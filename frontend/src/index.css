@@ -1,0 +1,58 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+*{
+    font-family: Outfit;
+}
+
+/* Add this to your CSS file or in a style tag */
+.toggle-checkbox:checked + .toggle-label {
+    background-color: #10B981;
+}
+
+.toggle-checkbox:checked + .toggle-label:before {
+    transform: translateX(100%);
+}
+
+.toggle-label {
+    display: block;
+    width: 56px;
+    height: 32px;
+    background-color: #D1D5DB;
+    border-radius: 9999px;
+    position: relative;
+    transition: all 0.3s;
+}
+
+.toggle-label:before {
+    content: '';
+    position: absolute;
+    width: 24px;
+    height: 24px;
+    background-color: white;
+    border-radius: 50%;
+    top: 4px;
+    left: 4px;
+    transition: all 0.3s;
+}
+
+@keyframes dashFlow {
+  to {
+    stroke-dashoffset: -100;
+  }
+}
+
+.animate-dash {
+  stroke-dashoffset: 0;
+  animation: dashFlow 4s linear infinite;
+}
+
+@keyframes sweep {
+  0% { left: -60%; }
+  100% { left: 130%; }
+}
+
+.animate-sweep {
+  animation: sweep 4s linear infinite;
+}
