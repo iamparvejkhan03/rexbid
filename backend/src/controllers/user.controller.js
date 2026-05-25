@@ -68,12 +68,8 @@ export const registerUser = async (req, res) => {
       countryName,
       phone = "",
       image = "",
-      // Add new address fields
-      dealershipName = "",
-      buildingNameNo = "",
       street = "",
       city = "",
-      county = "",
       postCode = "",
     } = req.body;
 
@@ -108,11 +104,8 @@ export const registerUser = async (req, res) => {
       isVerified: true,
       // Add address object
       address: {
-        dealershipName,
-        buildingNameNo,
         street,
         city,
-        county,
         postCode,
         country: countryName, // Use the countryName from request
       },
@@ -504,12 +497,12 @@ export const updatePaymentMethod = async (req, res) => {
       });
     }
 
-    if (!user.stripeCustomerId) {
-      return res.status(400).json({
-        success: false,
-        message: "No Stripe customer found",
-      });
-    }
+    // if (!user.stripeCustomerId) {
+    //   return res.status(400).json({
+    //     success: false,
+    //     message: "No Stripe customer found",
+    //   });
+    // }
 
     // ✅ STEP 1: Cancel ONLY pending authorizations (requires_capture) on old card
     // DO NOT cancel succeeded payments (already charged commissions)
@@ -603,5 +596,66 @@ export const updatePaymentMethod = async (req, res) => {
       success: false,
       message: error.message || "Failed to update payment method",
     });
+  }
+};
+
+
+import Review from "../models/review.model.js";
+import Auction from "../models/auction.model.js";
+
+/**
+ * Get seller stats for a user (items sold, average rating, total reviews)
+ */
+export const getSellerStats = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const user = await User.findById(userId).select("username firstName lastName countryName isVerified identificationStatus image email phone");
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    // Count sold items (auctions where user is seller and status is 'sold')
+    const itemsSold = await Auction.countDocuments({
+      seller: userId,
+      status: "sold",
+    });
+
+    const itemsAdded = await Auction.countDocuments({ seller: userId });
+
+    // Get reviews where user is the reviewee (ratings received)
+    const reviews = await Review.find({ reviewee: userId });
+    const totalReviews = reviews.length;
+    const sellerImage = user?.image;
+    const averageRating = totalReviews > 0
+      ? reviews.reduce((sum, r) => sum + r.rating, 0) / totalReviews
+      : 0;
+
+    // Calculate percentage (e.g., positive experience – optional, you can compute as (averageRating / 5) * 100)
+    const positivePercentage = averageRating > 0 ? (averageRating / 5) * 100 : 0;
+
+    // Determine verified status: user.isVerified or identificationStatus === 'verified'
+    const isVerified = user.isVerified || user.identificationStatus === "verified";
+
+    res.status(200).json({
+      success: true,
+      data: {
+        username: user.username,
+        email: user?.email,
+        phone: user?.phone,
+        fullName: `${user.firstName || ""} ${user.lastName || ""}`.trim(),
+        country: user.countryName || "Not specified",
+        isVerified,
+        itemsSold,
+        itemsAdded,
+        sellerImage,
+        averageRating: parseFloat(averageRating.toFixed(2)),
+        totalReviews,
+        positivePercentage: parseFloat(positivePercentage.toFixed(2)),
+      },
+    });
+  } catch (error) {
+    console.error("Get seller stats error:", error);
+    res.status(500).json({ success: false, message: "Internal server error" });
   }
 };

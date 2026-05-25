@@ -12,6 +12,8 @@ const BidConfirmationModal = forwardRef((props, ref) => {
 
     const [commissionType, setCommissionType] = useState("percentage");
     const [commissionValue, setCommissionValue] = useState(0);
+    const [isCommissionEnabled, setIsCommissionEnabled] = useState(null);
+    const [commissionAppliesTo, setCommissionAppliesTo] = useState([]);
     const [serviceFee, setServiceFee] = useState(0);
 
     useEffect(() => {
@@ -26,6 +28,8 @@ const BidConfirmationModal = forwardRef((props, ref) => {
 
                 setCommissionType(commission.commissionType);
                 setCommissionValue(commission.commissionValue);
+                setIsCommissionEnabled(commission.isEnabled);
+                setCommissionAppliesTo(commission.appliesTo);
 
                 if (commission.commissionType === "fixed") {
                     setServiceFee(Number(commission.commissionValue));
@@ -49,7 +53,7 @@ const BidConfirmationModal = forwardRef((props, ref) => {
         return `${Number(amount).toLocaleString("nb-NO")} kr`;
     };
 
-    const total = Number(bidAmount) + Number(serviceFee);
+    const total = (isCommissionEnabled && commissionAppliesTo?.includes('bidder') ? Number(bidAmount) + Number(serviceFee) : Number(bidAmount));
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50">
@@ -86,12 +90,12 @@ const BidConfirmationModal = forwardRef((props, ref) => {
                                     {formatNOK(bidAmount)}
                                 </td>
                             </tr>
-                            <tr>
-                                <td className="py-2 text-gray-600">Service Fee:</td>
-                                <td className="py-2 text-right text-gray-900">
+                            {isCommissionEnabled && commissionAppliesTo?.includes('bidder') && <tr>
+                                <td className="text-gray-600">Service Fee:</td>
+                                <td className="text-right text-gray-900">
                                     {formatNOK(serviceFee)}
                                 </td>
-                            </tr>
+                            </tr>}
                             <tr className="border-t border-gray-200">
                                 <td className="py-3 font-semibold text-gray-900">Total:</td>
                                 <td className="py-3 text-right font-semibold text-gray-900">

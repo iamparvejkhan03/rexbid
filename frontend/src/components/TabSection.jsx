@@ -1,5 +1,5 @@
 import { useState, Suspense, lazy, useEffect, forwardRef } from "react";
-import { MessageSquare, Gavel, Notebook, PoundSterling } from "lucide-react";
+import { MessageSquare, Gavel, Notebook, PoundSterling, Star } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 
 const LoadingSpinner = lazy(() => import("./LoadingSpinner"));
@@ -7,9 +7,10 @@ const CommentSection = lazy(() => import("./CommentSection"));
 const BidHistory = lazy(() => import("./BidHistory"));
 const Description = lazy(() => import("./Description"));
 const OffersSection = lazy(() => import("./OffersSection"));
+const ReviewsSection = lazy(() => import("./ReviewsSection"));
 
 const TabSection = forwardRef(
-  ({ description, bids, offers, auction, activatedTab, onAuctionUpdate }, ref) => {
+  ({ description, bids, offers, auction, activatedTab, onAuctionUpdate, auctionReviews }, ref) => {
     const [activeTab, setActiveTab] = useState(activatedTab || "description");
     const { user } = useAuth();
 
@@ -60,6 +61,7 @@ const TabSection = forwardRef(
       component: <CommentSection auctionId={auction._id} />,
     });
 
+
     if (isBiddingAllowed) {
       tabs.push({
         id: "bids",
@@ -84,6 +86,13 @@ const TabSection = forwardRef(
       });
     }
 
+    tabs.push({
+        id: "reviews",
+        label: "Reviews",
+        icon: <Star size={18} />,
+        component: <ReviewsSection auction={auction} auctionReviews={auctionReviews} />,
+      });
+
     return (
       <div className="bg-white rounded-lg shadow-md border border-gray-200">
         {/* Tabs */}
@@ -95,10 +104,9 @@ const TabSection = forwardRef(
                 onClick={() => setActiveTab(tab.id)}
                 className={`
                   flex items-center px-6 py-4 text-base md:text-lg font-medium border-b-2 transition-colors
-                  ${
-                    activeTab === tab.id
-                      ? "border-primary text-primary"
-                      : "border-transparent text-secondary hover:text-primary hover:border-gray-300"
+                  ${activeTab === tab.id
+                    ? "border-primary text-primary"
+                    : "border-transparent text-secondary hover:text-primary hover:border-gray-300"
                   }
                 `}
               >

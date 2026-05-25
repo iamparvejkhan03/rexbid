@@ -12,6 +12,9 @@ const Commissions = () => {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
 
+    const [isEnabled, setIsEnabled] = useState(true);
+    const [appliesTo, setAppliesTo] = useState(['seller']);
+
     // Fetch commission settings
     const fetchCommission = async () => {
         try {
@@ -19,6 +22,8 @@ const Commissions = () => {
             const { data } = await axiosInstance.get('/api/v1/commissions');
             if (data.success) {
                 setCommission(data.data.commission);
+                setIsEnabled(data.data.commission.isEnabled);
+                setAppliesTo(data.data.commission.appliesTo);
             }
         } catch (err) {
             console.error('Fetch commission error:', err);
@@ -31,6 +36,25 @@ const Commissions = () => {
     useEffect(() => {
         fetchCommission();
     }, []);
+
+    // Handle enable/disable toggle
+    const handleToggleCommission = () => {
+        setIsEnabled(!isEnabled);
+    };
+
+    // Handle appliesTo selection
+    const handleAppliesToChange = (party) => {
+        setAppliesTo(prev => {
+            if (prev.includes(party)) {
+                // Remove if already selected
+                const newSelection = prev.filter(p => p !== party);
+                return newSelection.length > 0 ? newSelection : prev; // Prevent empty selection
+            } else {
+                // Add new party
+                return [...prev, party];
+            }
+        });
+    };
 
     // Handle commission type change
     const handleCommissionTypeChange = (type) => {
@@ -45,7 +69,7 @@ const Commissions = () => {
     // Handle commission value change
     const handleCommissionValueChange = (value) => {
         const numValue = parseFloat(value) || 0;
-        
+
         // Validate percentage doesn't exceed 100
         if (commission.commissionType === 'percentage' && numValue > 100) {
             toast.error('Percentage cannot exceed 100%');
@@ -64,7 +88,9 @@ const Commissions = () => {
             setSaving(true);
             const { data } = await axiosInstance.put('/api/v1/commissions', {
                 commissionType: commission.commissionType,
-                commissionValue: commission.commissionValue
+                commissionValue: commission.commissionValue,
+                isEnabled: isEnabled,
+                appliesTo: appliesTo
             });
 
             if (data.success) {
@@ -115,8 +141,43 @@ const Commissions = () => {
                                     <p className="text-gray-300 text-sm">This rate applies to all auction categories</p>
                                 </div>
 
+                                {/* Is Enabled and applies to display */}
+                                <div className="flex items-center gap-2 p-6">
+                                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${isEnabled
+                                        ? 'bg-green-100 text-green-800'
+                                        : 'bg-red-100 text-red-800'
+                                        }`}>
+                                        {isEnabled ? 'Active' : 'Disabled'}
+                                    </span>
+                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                        Applies to: {appliesTo.join(' & ')}
+                                    </span>
+                                </div>
+
+                                {/* Enable/Disable Toggle */}
+                                <div className="flex items-center justify-between bg-gray-50 rounded-lg px-6">
+                                    <div className='mb-2'>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Enable Commission
+                                        </label>
+                                        <p className="text-xs text-gray-500">
+                                            When disabled, no commission will be charged on transactions
+                                        </p>
+                                    </div>
+                                    <button
+                                        onClick={handleToggleCommission}
+                                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${isEnabled ? 'bg-green-600' : 'bg-gray-300'
+                                            }`}
+                                    >
+                                        <span
+                                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${isEnabled ? 'translate-x-6' : 'translate-x-1'
+                                                }`}
+                                        />
+                                    </button>
+                                </div>
+
                                 {/* Current Rate Display */}
-                                <div className="p-6 border-b border-gray-200 bg-gray-50">
+                                {commission && isEnabled && <div className="p-6 border-b border-gray-200 bg-gray-50">
                                     <div className="flex justify-between items-center">
                                         <div>
                                             <p className="text-sm text-gray-500 mb-1">Current Commission</p>
@@ -127,21 +188,52 @@ const Commissions = () => {
                                                 </span>
                                             </div>
                                         </div>
-                                        <div className={`p-4 rounded-full ${
-                                            commission.commissionType === 'fixed' 
-                                                ? 'bg-green-100 text-green-600' 
-                                                : 'bg-orange-100 text-orange-500'
-                                        }`}>
-                                            {commission.commissionType === 'fixed' 
+                                        <div className={`p-4 rounded-full ${commission.commissionType === 'fixed'
+                                            ? 'bg-green-100 text-green-600'
+                                            : 'bg-orange-100 text-orange-500'
+                                            }`}>
+                                            {commission.commissionType === 'fixed'
                                                 ? <Banknote size={28} />
                                                 : <Percent size={28} />
                                             }
                                         </div>
                                     </div>
-                                </div>
+                                </div>}
 
                                 {/* Settings Form */}
-                                <div className="p-6 space-y-6">
+                                {commission && isEnabled && <div className="p-6 space-y-6">
+                                    {/* Commission Applies To Selector */}
+                                    {false && <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-3">
+                                            Apply Commission To
+                                        </label>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <button
+                                                onClick={() => handleAppliesToChange('seller')}
+                                                className={`flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 transition-all ${appliesTo.includes('seller')
+                                                    ? 'border-blue-600 bg-blue-50 text-blue-700'
+                                                    : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                                                    }`}
+                                            >
+                                                <span className="font-medium">Sellers</span>
+                                            </button>
+                                            <button
+                                                onClick={() => handleAppliesToChange('bidder')}
+                                                className={`flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 transition-all ${appliesTo.includes('bidder')
+                                                    ? 'border-purple-600 bg-purple-50 text-purple-700'
+                                                    : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                                                    }`}
+                                            >
+                                                <span className="font-medium">Bidders</span>
+                                            </button>
+                                        </div>
+                                        <p className="mt-2 text-xs text-gray-500">
+                                            {appliesTo.length === 2
+                                                ? "Commission will be charged to both sellers and bidders"
+                                                : `Commission will be charged to ${appliesTo.join(' and ')} only`}
+                                        </p>
+                                    </div>}
+
                                     {/* Commission Type Selector */}
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-3">
@@ -150,22 +242,20 @@ const Commissions = () => {
                                         <div className="grid grid-cols-2 gap-3">
                                             <button
                                                 onClick={() => handleCommissionTypeChange('fixed')}
-                                                className={`flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 transition-all ${
-                                                    commission.commissionType === 'fixed'
-                                                        ? 'border-green-600 bg-green-50 text-green-700'
-                                                        : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
-                                                }`}
+                                                className={`flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 transition-all ${commission.commissionType === 'fixed'
+                                                    ? 'border-green-600 bg-green-50 text-green-700'
+                                                    : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                                                    }`}
                                             >
                                                 <Banknote size={20} />
                                                 <span className="font-medium">Fixed Amount</span>
                                             </button>
                                             <button
                                                 onClick={() => handleCommissionTypeChange('percentage')}
-                                                className={`flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 transition-all ${
-                                                    commission.commissionType === 'percentage'
-                                                        ? 'border-orange-500 bg-orange-50 text-orange-600'
-                                                        : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
-                                                }`}
+                                                className={`flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 transition-all ${commission.commissionType === 'percentage'
+                                                    ? 'border-orange-500 bg-orange-50 text-orange-600'
+                                                    : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                                                    }`}
                                             >
                                                 <Percent size={20} />
                                                 <span className="font-medium">Percentage</span>
@@ -198,19 +288,7 @@ const Commissions = () => {
                                             </p>
                                         )}
                                     </div>
-
-                                    {/* Last Updated Info */}
-                                    {commission.updatedAt && (
-                                        <div className="bg-gray-50 rounded-lg text-sm text-gray-600">
-                                            <p>Last updated: {new Date(commission.updatedAt).toLocaleString()}</p>
-                                            {commission.updatedBy && (
-                                                <p className="text-xs text-gray-500 mt-1">
-                                                    Updated by: {commission.updatedBy}
-                                                </p>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
+                                </div>}
 
                                 {/* Save Button */}
                                 <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
@@ -248,6 +326,8 @@ const Commissions = () => {
                                             <p>• This is a <span className="font-medium">global setting</span> that applies to all auction categories</p>
                                             <p>• Changes take effect immediately for all new auctions</p>
                                             <p>• Existing auctions will use the commission rate that was set when they were created</p>
+                                            <p>• <span className="font-medium">Enable/Disable:</span> Toggle to enable or disable commission charging completely</p>
+                                            <p>• <span className="font-medium">Apply to:</span> Choose whether commission applies to sellers, bidders, or both parties</p>
                                         </div>
                                     </div>
                                 </div>

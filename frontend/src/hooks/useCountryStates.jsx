@@ -1,8 +1,6 @@
 function useCountryStates() {
-    // utils/countryService.js
-    const fetchCountriesWithStates = async () => {
+    const useCountries = async () => {
         try {
-            // First, get all countries
             const countriesResponse = await fetch('https://restcountries.com/v3.1/all?fields=name,cca2');
             const countriesData = await countriesResponse.json();
 
@@ -13,27 +11,49 @@ function useCountryStates() {
             })).sort((a, b) => a.name.localeCompare(b.name));
 
             return countries;
-
         } catch (error) {
             console.error('Error fetching countries:', error);
             return [];
         }
     };
 
-    // For states, you might need a different API or database
-    // const fetchStatesByCountry = async (countryCode) => {
-    //     try {
-    //         // This is a placeholder - you'll need to find a reliable states API
-    //         const response = await fetch(`https://api.example.com/states/${countryCode}`);
-    //         const states = await response.json();
-    //         return states;
-    //     } catch (error) {
-    //         console.error('Error fetching states:', error);
-    //         return [];
-    //     }
-    // };
-    
-    return fetchCountriesWithStates;
+    const useStatesByCountry = async (countryCode = 'IE') => {
+        try {
+            const username = 'darrenwalls'; // Your username
+
+            // Use the countryInfo endpoint to get the geonameId first
+            const countryInfoResponse = await fetch(
+                `https://secure.geonames.org/countryInfoJSON?country=${countryCode}&username=${username}`
+            );
+
+            const countryInfo = await countryInfoResponse.json();
+
+            if (countryInfo.geonames && countryInfo.geonames.length > 0) {
+                const geonameId = countryInfo.geonames[0].geonameId;
+
+                // Now fetch the states using the correct geonameId
+                const statesResponse = await fetch(
+                    `https://secure.geonames.org/childrenJSON?geonameId=${geonameId}&username=${username}`
+                );
+
+                const statesData = await statesResponse.json();
+
+                if (statesData.geonames) {
+                    return statesData.geonames.map(state => ({
+                        name: state.name,
+                        code: state.adminCode1 || state.fcode,
+                        id: state.geonameId
+                    }));
+                }
+            }
+            return [];
+        } catch (error) {
+            console.error('Error fetching states:', error);
+            return [];
+        }
+    };
+
+    return { useCountries, useStatesByCountry };
 }
 
 export default useCountryStates;

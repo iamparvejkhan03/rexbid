@@ -215,7 +215,7 @@ function ActiveAuctions() {
                         </div>
 
                         {/* Quick Filters with Status */}
-                        <div className="flex flex-wrap gap-3">
+                        {/* <div className="flex flex-wrap gap-3">
                             <button
                                 onClick={() => setFilter("all")}
                                 className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${filter === "all" ? "bg-orange-500 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}
@@ -234,7 +234,6 @@ function ActiveAuctions() {
                             >
                                 Active This Week
                             </button>
-                            {/* View Mode Toggle */}
                             <div className="flex items-center gap-2 bg-gray-100 p-1 rounded-lg">
                                 <button
                                     onClick={() => setViewMode("grid")}
@@ -251,7 +250,7 @@ function ActiveAuctions() {
                                     <List size={18} className={viewMode === "list" ? "text-blue-600" : "text-gray-500"} />
                                 </button>
                             </div>
-                        </div>
+                        </div> */}
                     </div>
 
                     {/* Auction Cards Grid or List */}

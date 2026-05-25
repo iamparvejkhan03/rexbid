@@ -17,6 +17,10 @@ import contactQueryRouter from "./routes/contactQuery.route.js";
 import offerRouter from "./routes/offer.route.js";
 import buyNowRouter from "./routes/buyNow.route.js";
 import categoryRouter from "./routes/category.route.js";
+import checkoutRouter from "./routes/checkout.route.js";
+import paymentRouter from "./routes/payment.route.js";
+import payoutRouter from "./routes/payout.route.js";
+import reviewRouter from "./routes/review.route.js";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -68,6 +72,10 @@ app.use('/api/v1/offers', offerRouter);
 app.use('/api/v1/buy-now', buyNowRouter);
 // app.use('/api/v1/admin/categories', categoryRouter);
 app.use('/api/v1/categories', categoryRouter);
+app.use("/api/v1/checkout", checkoutRouter);
+app.use('/api/v1/payments', paymentRouter);
+app.use("/api/v1/payouts", payoutRouter);
+app.use("/api/v1/reviews", reviewRouter);
 
 // 404 handler - SIMPLIFIED VERSION
 app.use((req, res, next) => {

@@ -1,46 +1,80 @@
 import Commission from "../models/commission.model.js";
 
+// Cache for commission settings
+let cachedCommission = null;
+let cacheTimestamp = null;
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
 /**
- * Calculate commission based on global commission settings
+ * Get commission settings with caching
+ */
+async function getCommissionSettings() {
+  if (cachedCommission && (Date.now() - cacheTimestamp) < CACHE_TTL) {
+    return cachedCommission;
+  }
+
+  cachedCommission = await Commission.findOne();
+  cacheTimestamp = Date.now();
+  return cachedCommission;
+}
+
+/**
+ * Calculate commission for seller based on global commission settings
  * @param {number} finalPrice - The final sale price
  * @returns {Promise<Object>} Commission details
  */
-
 export const calculateCommission = async (finalPrice) => {
   try {
-    // Get global commission settings
-    const commission = await Commission.findOne();
+    // Get commission settings (from cache or DB)
+    const settings = await getCommissionSettings();
 
-    if (!commission) {
-      // Default to 5% if no commission set
+    // No commission settings exist OR commission is disabled OR doesn't apply to seller
+    if (!settings || !settings.isEnabled || !settings.appliesTo?.includes('seller')) {
       return {
-        commissionType: "percentage",
-        commissionValue: 5,
-        commissionAmount: (finalPrice * 5) / 100,
+        commissionAmount: 0,
+        commissionType: settings?.commissionType || null,
+        commissionValue: settings?.commissionValue || 0,
       };
     }
 
-    let commissionAmount = 0;
+    // Commission value is zero
+    if (settings.commissionValue === 0) {
+      return {
+        commissionAmount: 0,
+        commissionType: settings.commissionType,
+        commissionValue: settings.commissionValue,
+      };
+    }
 
-    if (commission.commissionType === "fixed") {
-      commissionAmount = commission.commissionValue;
+    // Calculate commission
+    let commissionAmount = 0;
+    if (settings.commissionType === "fixed") {
+      commissionAmount = settings.commissionValue;
     } else {
       // Percentage
-      commissionAmount = (finalPrice * commission.commissionValue) / 100;
+      commissionAmount = (finalPrice * settings.commissionValue) / 100;
     }
 
     return {
-      commissionType: commission.commissionType,
-      commissionValue: commission.commissionValue,
+      commissionType: settings.commissionType,
+      commissionValue: settings.commissionValue,
       commissionAmount: Math.round(commissionAmount * 100) / 100, // Round to 2 decimals
     };
   } catch (error) {
     console.error("Error calculating commission:", error);
-    // Fallback to 5% if error
+    // Fallback - no commission on error
     return {
-      commissionType: "percentage",
-      commissionValue: 5,
-      commissionAmount: (finalPrice * 5) / 100,
+      commissionType: null,
+      commissionValue: 0,
+      commissionAmount: 0,
     };
   }
+};
+
+/**
+ * Clear commission cache (call when commission settings are updated)
+ */
+export const clearCommissionCache = () => {
+  cachedCommission = null;
+  cacheTimestamp = null;
 };

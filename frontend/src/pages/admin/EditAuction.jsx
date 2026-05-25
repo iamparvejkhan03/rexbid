@@ -164,8 +164,8 @@ const PhotoGallery = ({ photos, movePhoto, removePhoto, captions, onCaptionChang
                         index={index}
                         movePhoto={movePhoto}
                         removePhoto={removePhoto}
-                        caption={captions[index] || ''} // Add this
-                        onCaptionChange={onCaptionChange} // Add this
+                        caption={captions[index] || ''}
+                        onCaptionChange={onCaptionChange}
                     />
                 ))}
             </div>
@@ -214,7 +214,7 @@ const DocumentGallery = ({ existingDocs, newDocs, removeDoc, existingCaptions, n
                     <div className="space-y-2">
                         {newDocs.map((doc, index) => (
                             <div key={`new-doc-${index}`} className="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
-                                <div className="flex-1">
+                                {/* <div className="flex-1">
                                     <span className="text-sm truncate">{doc.name}</span>
                                     <input
                                         type="text"
@@ -223,7 +223,7 @@ const DocumentGallery = ({ existingDocs, newDocs, removeDoc, existingCaptions, n
                                         onChange={(e) => onCaptionChange('new', index, e.target.value)}
                                         className="w-full mt-1 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-black"
                                     />
-                                </div>
+                                </div> */}
                                 <button
                                     type="button"
                                     onClick={() => removeDoc(index, false)}
@@ -808,10 +808,11 @@ const EditAuction = () => {
     const nextStep = async () => {
         let isValid = true;
 
+        scrollTo({top: 0, behavior: 'smooth'});
+
         if (step === 1) {
             const fieldsToValidate = ['title', 'category', 'description', 'startDate', 'endDate'];
 
-            // Add category-specific fields to validation
             // Add ALL specification fields to validation
             const allSpecFields = getCategoryFields();
             allSpecFields.forEach(field => {
@@ -872,6 +873,8 @@ const EditAuction = () => {
 
     const prevStep = () => {
         setStep(step - 1);
+
+        scrollTo({top: 0, behavior: 'smooth'});
     };
 
     // Fixed handlePhotoUpload function
@@ -1554,8 +1557,8 @@ const EditAuction = () => {
                                                     photos={allPhotos}
                                                     movePhoto={movePhoto}
                                                     removePhoto={removePhoto}
-                                                    captions={photoCaptions} // Add this
-                                                    onCaptionChange={handlePhotoCaptionChange} // Add this
+                                                    captions={photoCaptions}
+                                                    onCaptionChange={handlePhotoCaptionChange} 
                                                 />
                                             )}
                                         </div>
@@ -1595,13 +1598,13 @@ const EditAuction = () => {
                                                                     </button>
                                                                 </div>
                                                                 {/* Caption input for existing documents */}
-                                                                <input
+                                                                {/* <input
                                                                     type="text"
                                                                     placeholder="Add document caption..."
                                                                     value={documentCaptions[index] || ''}
                                                                     onChange={(e) => handleDocumentCaptionChange('existing', index, e.target.value)}
                                                                     className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
-                                                                />
+                                                                /> */}
                                                             </div>
                                                         ))}
                                                     </div>
@@ -1626,13 +1629,13 @@ const EditAuction = () => {
                                                                     </button>
                                                                 </div>
                                                                 {/* Caption input for new documents */}
-                                                                <input
+                                                                {/* <input
                                                                     type="text"
                                                                     placeholder="Add document caption..."
                                                                     value={uploadedDocumentCaptions[index] || ''}
                                                                     onChange={(e) => handleDocumentCaptionChange('new', index, e.target.value)}
                                                                     className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
-                                                                />
+                                                                /> */}
                                                             </div>
                                                         ))}
                                                     </div>
@@ -1643,7 +1646,7 @@ const EditAuction = () => {
                                         {/* Service History Images Section */}
                                         <div className="mb-6">
                                             <label htmlFor="service-upload" className="block text-sm font-medium text-secondary mb-1">
-                                                Service History Images *
+                                                Other Images
                                             </label>
                                             <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
                                                 <input
@@ -1656,7 +1659,7 @@ const EditAuction = () => {
                                                 />
                                                 <label htmlFor="service-upload" className="cursor-pointer">
                                                     <FileText size={40} className="mx-auto text-gray-400 mb-2" />
-                                                    <p className="text-gray-600">Browse service record image(s) to upload</p>
+                                                    <p className="text-gray-600">Browse other image(s) to upload</p>
                                                     <p className="text-sm text-secondary">Service invoices, maintenance records, repair receipts, etc.</p>
                                                 </label>
                                             </div>
@@ -1665,9 +1668,9 @@ const EditAuction = () => {
                                             {allServiceRecords.length > 0 && (
                                                 <div className="mt-4">
                                                     <p className="text-sm text-secondary mb-3">
-                                                        Drag and drop to reorder service history images.
+                                                        Drag and drop to reorder other images.
                                                         <span className="block text-xs text-gray-500 mt-1">
-                                                            Blue badge indicates existing service records
+                                                            Blue badge indicates existing other images
                                                         </span>
                                                     </p>
                                                     <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
@@ -1678,8 +1681,8 @@ const EditAuction = () => {
                                                                 index={index}
                                                                 movePhoto={moveServiceRecord}
                                                                 removePhoto={removeServiceRecord}
-                                                                caption={serviceRecordCaptions[index] || ''} // Add this
-                                                                onCaptionChange={handleServiceRecordCaptionChange} // Add this
+                                                                caption={serviceRecordCaptions[index] || ''}
+                                                                onCaptionChange={handleServiceRecordCaptionChange}
                                                             />
                                                         ))}
                                                     </div>
@@ -1699,12 +1702,12 @@ const EditAuction = () => {
 
                                         <div className="mb-6">
                                             <label className="block text-sm font-medium text-secondary mb-1">Auction Type *</label>
-                                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4"> {/* Changed from grid-cols-3 to grid-cols-4 */}
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4"> {/* Changed from grid-cols-3 to grid-cols-4 */}
                                                 {[
                                                     { value: 'standard', label: 'Standard Auction' },
                                                     { value: 'reserve', label: 'Reserve Price Auction' },
-                                                    { value: 'buy_now', label: 'Buy Now Auction' },
-                                                    { value: 'giveaway', label: 'Free Giveaway' }, // ADD THIS LINE
+                                                    // { value: 'buy_now', label: 'Buy Now Auction' },
+                                                    // { value: 'giveaway', label: 'Free Giveaway' },
                                                 ].map((type) => (
                                                     <label key={type.value} className="flex items-center p-4 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
                                                         <input
@@ -2020,7 +2023,7 @@ const EditAuction = () => {
                                                                 </span>
                                                             </div>
                                                             <div className="flex justify-between items-center">
-                                                                <p className="text-xs text-secondary">Service Records</p>
+                                                                <p className="text-xs text-secondary">Other Images</p>
                                                                 <span className="font-medium bg-gray-100 px-2 py-1 rounded-full text-xs">
                                                                     {allServiceRecords.length} total ({allServiceRecords.filter(l => l.isExisting).length} existing, {allServiceRecords.filter(l => !l.isExisting).length} new)
                                                                 </span>

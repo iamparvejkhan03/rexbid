@@ -3,6 +3,7 @@ import upload from "../middlewares/multer.middleware.js";
 import { 
     forgotPassword,
     getBillingInfo,
+    getSellerStats,
     loginUser, 
     refreshAccessToken, 
     registerUser,
@@ -23,11 +24,12 @@ import { auth } from "../middlewares/auth.middleware.js";
 const userRouter = Router();
 
 // Public routes
-userRouter.post('/register', registerUser);
+userRouter.post('/register', upload.single('identificationDocument'), registerUser);
 userRouter.post('/login', loginUser);
 userRouter.post('/refresh-token', refreshAccessToken);
 userRouter.post('/forgot-password', forgotPassword);
 userRouter.post('/reset-password/:token', resetPassword);
+userRouter.get("/:userId/seller-stats", getSellerStats);
 
 // Protected routes
 userRouter.get('/profile', auth, getProfile);

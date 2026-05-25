@@ -2,11 +2,61 @@ import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, User, Phone, ChevronDown, Gavel, Store, Handshake } from 'lucide-react';
-import { darkLogo } from '../assets';
+import { darkLogo, otherData } from '../assets';
 import axios from "axios";
 import { toast } from "react-hot-toast";
 import { useAuth } from '../contexts/AuthContext';
+import { loadStripe } from '@stripe/stripe-js';
+import { useStripe, useElements, CardElement, Elements } from '@stripe/react-stripe-js';
+import axiosInstance from '../utils/axiosInstance';
 import useCountryStates from '../hooks/useCountryStates';
+
+// Initialize Stripe
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
+
+// CardSection component (same as before)
+const CardSection = () => {
+    const stripe = useStripe();
+    const elements = useElements();
+
+    return (
+        <div className="space-y-4 border-t border-gray-200 dark:border-bg-primary-light pt-6 mt-6">
+            <h3 className="text-lg font-semibold text-text-primary dark:text-text-primary-dark">Payment Information <span className='text-red-600'>*</span></h3>
+            <p className="text-sm text-text-secondary dark:text-text-secondary-dark">
+                RexBid requires a credit card to bid. There is no charge to register.
+                We will only authorize that your card is valid.
+            </p>
+
+            <div className="space-y-4">
+                <div>
+                    <label className="block text-sm font-medium text-text-secondary dark:text-text-secondary-dark mb-2">
+                        Credit Card Information
+                    </label>
+                    <div className="p-4 border border-gray-300 dark:border-bg-primary-light rounded-lg bg-gray-50 dark:bg-bg-primary-light">
+                        <CardElement
+                            options={{
+                                style: {
+                                    base: {
+                                        fontSize: '16px',
+                                        color: '#008000',
+                                        fontFamily: '"Helvetica Neue", Helvetica, sans-serif',
+                                        '::placeholder': {
+                                            color: '#aab7c4',
+                                        },
+                                    },
+                                    invalid: {
+                                        color: '#fa755a',
+                                        iconColor: '#fa755a',
+                                    },
+                                },
+                            }}
+                        />
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 // Main Register component
 const Register = () => {
@@ -16,21 +66,27 @@ const Register = () => {
     const [userType, setUserType] = useState('bidder');
     const navigate = useNavigate();
     const { setUser, setLoading, user } = useAuth();
-    const countriesAPI = useCountryStates();
+    // const countriesAPI = useCountryStates();
+    const { useCountries, useStatesByCountry } = useCountryStates();
     const [countries, setCountries] = useState([]);
+    const [states, setStates] = useState([]);
+    const [selectedCountry, setSelectedCountry] = useState('');
 
     useEffect(() => {
         const fetchCountries = async () => {
-            setCountries(await countriesAPI())
-        }
-        fetchCountries()
-    }, [])
+            setCountries(await useCountries());
+        };
+        fetchCountries();
+    }, []);
 
     useEffect(() => {
         if (user) {
             navigate(`/${user.userType}/profile`);
         }
     }, [user])
+
+    const stripe = useStripe();
+    const elements = useElements();
 
     const { register, handleSubmit, watch, formState: { errors }, setValue } = useForm({
         defaultValues: {
@@ -42,11 +98,8 @@ const Register = () => {
             firstName: '',
             lastName: '',
             // Add new address fields
-            dealershipName: '',
-            buildingNameNo: '',
             street: '',
             city: '',
-            county: '',
             postCode: '',
             country: '',
             userType: 'bidder'
@@ -61,34 +114,94 @@ const Register = () => {
         setValue('userType', type);
     };
 
+    const handleCountryChange = async (e) => {
+        const countryCode = e.target.value;
+        setSelectedCountry(countryCode);
+        setValue('country', countryCode);
+        setValue('state', ''); // Reset state when country changes
+        setStates([]); // Clear states
+
+        if (countryCode) {
+            try {
+                const statesList = await useStatesByCountry(countryCode);
+                setStates(statesList);
+            } catch (error) {
+                console.error('Error fetching states:', error);
+                toast.error('Failed to load states');
+            }
+        }
+    };
+
     const onSubmit = async (registrationData) => {
         setIsLoading(true);
         try {
-            // Prepare registration data - store both name and code
-            const registrationPayload = {
-                firstName: registrationData.firstName,
-                lastName: registrationData.lastName,
-                username: registrationData.username,
-                email: registrationData.email,
-                phone: registrationData.phone,
-                password: registrationData.password,
-                countryCode: registrationData.country,
-                countryName: countries.find(c => c.code === registrationData.country)?.name || registrationData.country,
-                userType: registrationData.userType,
-                // Add new address fields
-                dealershipName: registrationData.dealershipName,
-                buildingNameNo: registrationData.buildingNameNo,
-                street: registrationData.street,
-                city: registrationData.city,
-                county: registrationData.county,
-                postCode: registrationData.postCode
-            };
+            let paymentMethodId = null;
 
-            // Send registration request
-            const { data } = await axios.post(
+            const formData = new FormData();
+
+            // Append all form data
+            formData.append('firstName', registrationData.firstName);
+            formData.append('lastName', registrationData.lastName);
+            formData.append('email', registrationData.email);
+            formData.append('phone', registrationData.phone);
+            formData.append('password', registrationData.password);
+            formData.append('username', registrationData.username);
+            formData.append('countryCode', registrationData.country);
+            formData.append('countryName', countries.find(c => c.code === registrationData.country)?.name || registrationData.country);
+            formData.append('userType', registrationData.userType);
+            formData.append('street', registrationData.street);
+            formData.append('city', registrationData.city);
+            formData.append('postCode', registrationData.postCode);
+            formData.append('state', registrationData.state);
+            formData.append('country', countries.find(c => c.code === registrationData.country)?.name || registrationData.country);
+
+            // Handle bidder card verification
+            if (registrationData.userType === 'bidder') {
+                if (!stripe || !elements) {
+                    toast.error('Stripe not initialized properly');
+                    setIsLoading(false);
+                    return;
+                }
+
+                const cardElement = elements.getElement(CardElement);
+                if (!cardElement) {
+                    toast.error('Please enter your card details');
+                    setIsLoading(false);
+                    return;
+                }
+
+                const { error, paymentMethod } = await stripe.createPaymentMethod({
+                    type: 'card',
+                    card: cardElement,
+                    billing_details: {
+                        name: `${registrationData.firstName} ${registrationData.lastName}`,
+                        email: registrationData.email,
+                        phone: registrationData.phone,
+                        address: {
+                            country: registrationData.country,
+                        }
+                    }
+                });
+
+                if (error) {
+                    toast.error(`Payment error: ${error.message}`);
+                    setIsLoading(false);
+                    return;
+                }
+
+                paymentMethodId = paymentMethod.id;
+                formData.append('paymentMethodId', paymentMethodId);
+            }
+
+            const { data } = await axiosInstance.post(
                 `${import.meta.env.VITE_DOMAIN_URL}/api/v1/users/register`,
-                registrationPayload,
-                { withCredentials: true }
+                formData,
+                {
+                    withCredentials: true,
+                    headers: {
+                        'Content-Type': 'multipart/form-data',
+                    }
+                }
             );
 
             if (data.success) {
@@ -177,7 +290,7 @@ const Register = () => {
                                                 }
                                             })}
                                             className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                                            placeholder="e.g., +471234567890"
+                                            placeholder="e.g., +3531234XXXX"
                                         />
                                         {errors.phone && (
                                             <p className="text-red-500 text-sm mt-1 absolute">{errors.phone.message}</p>
@@ -301,14 +414,13 @@ const Register = () => {
 
                             {/* Add new address fields */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {/* Username field */}
-                                <div className={`${errors.username && 'mb-3'}`}>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Username *
+                                <div className="md:col-span-1">
+                                    <label className="block text-sm font-medium text-text-secondary dark:text-text-secondary-dark mb-2">
+                                        Username <span className='text-red-600'>*</span>
                                     </label>
                                     <div className="relative">
                                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                            <User size={20} className="text-gray-400" />
+                                            <User size={20} className="text-bg-primary-light dark:text-bg-secondary-dark" />
                                         </div>
                                         <input
                                             type="text"
@@ -320,134 +432,26 @@ const Register = () => {
                                                     message: 'Username can only contain letters, numbers, and underscores'
                                                 }
                                             })}
-                                            className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                                            className="block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-bg-primary-light bg-bg-secondary dark:bg-bg-primary text-text-primary dark:text-text-primary-dark rounded-lg focus:ring-2 focus:ring-secondary-darktext-bg-secondary-dark dark:focus:ring-gray-500 focus:border-transparent"
                                             placeholder="What others see when you bid"
                                         />
-                                        {errors.username && (
-                                            <p className="text-red-500 text-sm mt-1 absolute">{errors.username.message}</p>
-                                        )}
                                     </div>
+                                    {errors.username && (
+                                        <p className="text-red-500 text-sm mt-1">{errors.username.message}</p>
+                                    )}
                                 </div>
 
-                                {/* Dealership Name field */}
-                                {/* <div className={`${errors.dealershipName && 'mb-3'}`}>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Dealership Name
-                                    </label>
-                                    <input
-                                        type="text"
-                                        {...register('dealershipName')}
-                                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                                        placeholder="Dealership name (optional)"
-                                    />
-                                    {errors.dealershipName && (
-                                        <p className="text-red-500 text-sm mt-1 absolute">{errors.dealershipName.message}</p>
-                                    )}
-                                </div> */}
-
-                                {/* Building Name/No field - spans full width on mobile, half on desktop */}
-                                {/* <div className="md:col-span-1">
-                                    <div className={`${errors.buildingNameNo && 'mb-3'}`}>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                                            Building Name/No
-                                        </label>
-                                        <input
-                                            type="text"
-                                            {...register('buildingNameNo', {
-                                                required: 'Building name/number is required'
-                                            })}
-                                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                                            placeholder="Building name or number"
-                                        />
-                                        {errors.buildingNameNo && (
-                                            <p className="text-red-500 text-sm mt-1 absolute">{errors.buildingNameNo.message}</p>
-                                        )}
-                                    </div>
-                                </div> */}
-
-                                {/* Street field - spans full width on mobile, half on desktop */}
-                                {/* <div className="md:col-span-1">
-                                    <div className={`${errors.street && 'mb-3'}`}>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                                            Street
-                                        </label>
-                                        <input
-                                            type="text"
-                                            {...register('street', {
-                                                required: 'Street is required'
-                                            })}
-                                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                                            placeholder="Street address"
-                                        />
-                                        {errors.street && (
-                                            <p className="text-red-500 text-sm mt-1 absolute">{errors.street.message}</p>
-                                        )}
-                                    </div>
-                                </div> */}
-
-                                {/* City field */}
-                                {/* <div className={`${errors.city && 'mb-3'}`}>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        City
-                                    </label>
-                                    <input
-                                        type="text"
-                                        {...register('city', {
-                                            required: 'City is required'
-                                        })}
-                                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                                        placeholder="City"
-                                    />
-                                    {errors.city && (
-                                        <p className="text-red-500 text-sm mt-1 absolute">{errors.city.message}</p>
-                                    )}
-                                </div> */}
-
-                                {/* County field */}
-                                {/* <div className={`${errors.county && 'mb-3'}`}>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        County
-                                    </label>
-                                    <input
-                                        type="text"
-                                        {...register('county', {
-                                            required: 'County is required'
-                                        })}
-                                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                                        placeholder="County"
-                                    />
-                                    {errors.county && (
-                                        <p className="text-red-500 text-sm mt-1 absolute">{errors.county.message}</p>
-                                    )}
-                                </div> */}
-
-                                {/* Post Code field */}
-                                {/* <div className={`${errors.postCode && 'mb-3'}`}>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Post Code
-                                    </label>
-                                    <input
-                                        type="text"
-                                        {...register('postCode', {
-                                            required: 'Post code is required'
-                                        })}
-                                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                                        placeholder="Postal code"
-                                    />
-                                    {errors.postCode && (
-                                        <p className="text-red-500 text-sm mt-1 absolute">{errors.postCode.message}</p>
-                                    )}
-                                </div> */}
-
-                                {/* Country field - spans full width on mobile, half on desktop */}
+                                {/* Country field */}
                                 <div className="md:col-span-1">
                                     <div className={`${errors.country && 'mb-3'}`}>
                                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                                            Country of residence
+                                            Country <span className='text-red-600'>*</span>
                                         </label>
                                         <div className="relative">
                                             <select
                                                 {...register('country', { required: 'Country is required' })}
+                                                onChange={handleCountryChange}
+                                                value={selectedCountry}
                                                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent appearance-none"
                                             >
                                                 <option value="">Select country</option>
@@ -464,7 +468,103 @@ const Register = () => {
                                         </div>
                                     </div>
                                 </div>
+
+                                {/* State field */}
+                                <div className={`${errors.state && 'mb-3'}`}>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        State/Province <span className='text-red-600'>*</span>
+                                    </label>
+                                    <div className="relative">
+                                        {states.length > 0 ? (
+                                            <select
+                                                {...register('state', {
+                                                    required: selectedCountry ? 'State is required' : false
+                                                })}
+                                                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent appearance-none"
+                                                disabled={!selectedCountry}
+                                            >
+                                                <option value="">Select state</option>
+                                                {states.map(state => (
+                                                    <option key={state.id || state.code} value={state.name}>
+                                                        {state.name}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        ) : (
+                                            <input
+                                                type="text"
+                                                {...register('state', {
+                                                    required: selectedCountry ? 'State is required' : false
+                                                })}
+                                                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                                                placeholder={selectedCountry ? "Enter state" : "Select a country first"}
+                                                disabled={!selectedCountry}
+                                            />
+                                        )}
+                                        <ChevronDown size={20} className="absolute right-3 top-3 text-gray-400 pointer-events-none" />
+                                        {errors.state && (
+                                            <p className="text-red-500 text-sm mt-1 absolute">{errors.state.message}</p>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Street field - spans full width on mobile, half on desktop */}
+                                <div className="md:col-span-1">
+                                    <div className={`${errors.street && 'mb-3'}`}>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            Street <span className='text-red-600'>*</span>
+                                        </label>
+                                        <input
+                                            type="text"
+                                            {...register('street', {
+                                                required: 'Street is required'
+                                            })}
+                                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                                            placeholder="Street address"
+                                        />
+                                        {errors.street && (
+                                            <p className="text-red-500 text-sm mt-1 absolute">{errors.street.message}</p>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* City field */}
+                                <div className={`${errors.city && 'mb-3'}`}>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        City/County <span className='text-red-600'>*</span>
+                                    </label>
+                                    <input
+                                        type="text"
+                                        {...register('city', {
+                                            required: 'City is required'
+                                        })}
+                                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                                        placeholder="City"
+                                    />
+                                    {errors.city && (
+                                        <p className="text-red-500 text-sm mt-1 absolute">{errors.city.message}</p>
+                                    )}
+                                </div>
+
+                                {/* Post Code field */}
+                                <div className={`${errors.postCode && 'mb-3'}`}>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Post Code <span className='text-red-600'>*</span>
+                                    </label>
+                                    <input
+                                        type="text"
+                                        {...register('postCode', {
+                                            required: 'Post code is required'
+                                        })}
+                                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                                        placeholder="Postal code"
+                                    />
+                                    {errors.postCode && (
+                                        <p className="text-red-500 text-sm mt-1 absolute">{errors.postCode.message}</p>
+                                    )}
+                                </div>
                             </div>
+                            {/* <p className='text-gray-500 text-xs'>Note: These details will be used for shipping rates calculation.</p> */}
                         </div>
 
                         {/* User Type Selection */}
@@ -512,30 +612,14 @@ const Register = () => {
                                         <p className="text-sm text-gray-600">I want to list things on the platform.</p>
                                     </div>
                                 </label>
-
-                                <label
-                                    className={`flex items-center gap-5 border py-3 px-5 rounded cursor-pointer transition-colors ${userType === 'broker' ? 'border-primary bg-blue-50' : 'border-gray-200 hover:border-gray-300'
-                                        }`}
-                                >
-                                    <input
-                                        type="radio"
-                                        value="broker"
-                                        {...register('userType', { required: 'Please select user type' })}
-                                        className="hidden"
-                                        onChange={() => handleUserTypeChange('broker')}
-                                    />
-                                    <Handshake size={40} className={`flex-shrink-0 p-2 rounded ${userType === 'broker' ? 'bg-orange-500 text-white' : 'bg-gray-200 text-gray-600'
-                                        }`} />
-                                    <div>
-                                        <p className="text-sm font-semibold">I'm a broker</p>
-                                        <p className="text-sm text-gray-600">I want to list things on behalf of others.</p>
-                                    </div>
-                                </label>
                             </div>
                             {errors.userType && (
                                 <p className="text-red-500 text-sm mt-1 absolute">{errors.userType.message}</p>
                             )}
                         </div>
+                        
+                        {/* Stripe Card Section for Bidders */}
+                        {userType === 'bidder' && <CardSection />}
 
                         <div className={`${errors.termsConditions && 'mb-3'}`}>
                             <label className='flex items-center gap-2'>
@@ -544,7 +628,7 @@ const Register = () => {
                                     {...register('termsConditions', { required: 'Accepting terms of use is required for registration.' })}
                                 />
 
-                                <p className="text-sm text-gray-600">By registering, I agree to BidNordic's <Link className='text-blue-600 underline' to={`/terms-of-use`}>Terms of Use</Link>. My information will be used as described in the <Link to={`/privacy-policy`} className='text-blue-600 underline'>Privacy Policy</Link>.</p>
+                                <p className="text-sm text-gray-600">By registering, I agree to RexBid's <Link className='text-blue-600 underline' to={`/terms-of-use`}>Terms of Use</Link>. My information will be used as described in the <Link to={`/privacy-policy`} className='text-blue-600 underline'>Privacy Policy</Link>.</p>
                             </label>
                             {errors.termsConditions && (
                                 <p className="text-red-500 text-sm mt-1">{errors.termsConditions.message}</p>
@@ -575,7 +659,7 @@ const Register = () => {
                 {/* Footer */}
                 <div className="bg-white px-4 pb-4 text-center">
                     <p className="text-xs text-gray-500">
-                        © {new Date().getFullYear()} BidNordic. All rights reserved.
+                        © {new Date().getFullYear()} RexBid. All rights reserved.
                     </p>
                 </div>
             </div>
@@ -583,5 +667,11 @@ const Register = () => {
     );
 };
 
+// Wrap the main component with Stripe Elements provider
+const RegisterWithStripe = () => (
+    <Elements stripe={stripePromise}>
+        <Register />
+    </Elements>
+);
 
-export default Register;
+export default RegisterWithStripe;

@@ -101,64 +101,64 @@ function About() {
         <section className="pt-16 md:pt-16 max-w-full text-gray-600">
             <div className="bg-white">
                 {/* <Container> */}
-                    <section className="relative overflow-hidden bg-gradient-to-b from-white to-gray-50 pt-14 pb-5">
+                <section className="relative overflow-hidden bg-gradient-to-b from-white to-gray-50 pt-14 pb-5">
 
-                        {/* floating soft glow */}
-                        <div className="absolute -top-32 -left-32 w-80 h-80 bg-orange-200 opacity-30 rounded-full blur-3xl animate-pulse"></div>
-                        <div className="absolute top-32 -right-32 w-80 h-80 bg-orange-300 opacity-30 rounded-full blur-3xl animate-pulse"></div>
+                    {/* floating soft glow */}
+                    <div className="absolute -top-32 -left-32 w-80 h-80 bg-orange-200 opacity-30 rounded-full blur-3xl animate-pulse"></div>
+                    <div className="absolute top-32 -right-32 w-80 h-80 bg-orange-300 opacity-30 rounded-full blur-3xl animate-pulse"></div>
 
-                        <div className="max-w-full mx-auto text-center px-6 py-8">
+                    <div className="max-w-full mx-auto text-center px-6 py-8">
 
-                            {/* headline */}
-                            <h1 className="text-4xl md:text-5xl font-bold text-gray-900 leading-tight">
-                                Built on Trust — <br />
-                                <span className="text-orange-500">Across Every Bid & Every Deal</span>
-                            </h1>
+                        {/* headline */}
+                        <h1 className="text-4xl md:text-5xl font-bold text-gray-900 leading-tight">
+                            Built on Trust — <br />
+                            <span className="text-orange-500">Across Every Bid & Every Deal</span>
+                        </h1>
 
-                            {/* description */}
-                            <p className="mt-6 text-lg text-gray-600 max-w-3xl mx-auto">
-                                BidNordic brings together buyers and sellers from across the Nordics in a marketplace built on confidence. With transparency, fair pricing, and secure transactions at our core, we help industry professionals trade smarter.
-                            </p>
+                        {/* description */}
+                        <p className="mt-6 text-lg text-gray-600 max-w-3xl mx-auto">
+                            BidNordic brings together buyers and sellers from across the Nordics in a marketplace built on confidence. With transparency, fair pricing, and secure transactions at our core, we help industry professionals trade smarter.
+                        </p>
 
-                            {/* buttons */}
-                            <div className="mt-10 flex flex-wrap justify-center gap-4">
-                                <Link
-                                    to="/auctions"
-                                    className="px-8 py-3 bg-orange-500 text-white rounded-full font-semibold shadow hover:bg-orange-600 transition"
-                                >
-                                    Explore Auctions
-                                </Link>
+                        {/* buttons */}
+                        <div className="mt-10 flex flex-wrap justify-center gap-4">
+                            <Link
+                                to="/auctions"
+                                className="px-8 py-3 bg-orange-500 text-white rounded-full font-semibold shadow hover:bg-orange-600 transition"
+                            >
+                                Explore Auctions
+                            </Link>
 
-                                <Link
-                                    to="/contact"
-                                    className="px-8 py-3 border border-gray-300 rounded-full font-semibold hover:bg-gray-100 transition"
-                                >
-                                    Contact Us
-                                </Link>
-                            </div>
-
-                            {/* stats */}
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-10 mt-20">
-                                {stats.map((stat, i) => {
-                                    const Icon = stat.icon;
-                                    return (
-                                        <div key={i} className="flex flex-col items-center">
-                                            <Icon className="text-orange-500 mb-3" size={30} />
-                                            <div className="text-2xl font-bold text-gray-900">
-                                                {stat.value}
-                                            </div>
-                                            <div className="text-gray-500 text-sm">{stat.label}</div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
+                            <Link
+                                to="/contact"
+                                className="px-8 py-3 border border-gray-300 rounded-full font-semibold hover:bg-gray-100 transition"
+                            >
+                                Contact Us
+                            </Link>
                         </div>
-                    </section>
+
+                        {/* stats */}
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-10 mt-20">
+                            {stats.map((stat, i) => {
+                                const Icon = stat.icon;
+                                return (
+                                    <div key={i} className="flex flex-col items-center">
+                                        <Icon className="text-orange-500 mb-3" size={30} />
+                                        <div className="text-2xl font-bold text-gray-900">
+                                            {stat.value}
+                                        </div>
+                                        <div className="text-gray-500 text-sm">{stat.label}</div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                </section>
                 {/* </Container> */}
             </div>
 
             {/* Brands we work with */}
-            <Container className="mb-14">
+            {/* <Container className="mb-14">
                 <div className="max-w-full mx-auto mb-8 text-left">
                     <h2 className="text-3xl md:text-4xl font-bold text-black mb-4">
                         Brands We Work With
@@ -273,9 +273,7 @@ function About() {
                     </Link>
 
                 </div>
-
-
-            </Container>
+            </Container> */}
 
             {/* Why choose us */}
             <Container>

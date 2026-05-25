@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
-import { LoadingSpinner, SellerContainer, SellerHeader, SellerSidebar } from "../../components";
+import { LoadingSpinner, ReviewModal, SellerContainer, SellerHeader, SellerSidebar } from "../../components";
 import { Award, Calendar, Clock, DollarSign, Eye, Gavel, MapPin, Phone, Mail, User, Plane, History, Shield, Package } from "lucide-react";
 import axiosInstance from "../../utils/axiosInstance";
 import { Link } from "react-router-dom";
+import { useAuth } from "../../contexts/AuthContext";
+import toast from "react-hot-toast";
 
 function SoldAuctions() {
     const [wonAuctionsData, setWonAuctionsData] = useState([]);
@@ -11,6 +13,10 @@ function SoldAuctions() {
     const [isUserModalOpen, setIsUserModalOpen] = useState(false);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const { user: currentUser } = useAuth();
+    const [showReviewModal, setShowReviewModal] = useState(false);
+    const [userReview, setUserReview] = useState(null);
+    const [revieweeId, setRevieweeId] = useState(null);
 
     // Fetch seller's won auctions
     const fetchSoldAuctions = async () => {
@@ -63,6 +69,19 @@ function SoldAuctions() {
     useEffect(() => {
         fetchSoldAuctions();
     }, []);
+
+    useEffect(() => {
+        const fetchUserReview = async () => {
+            if (!currentUser || !selectedAuction || selectedAuction.status !== 'sold') return;
+            try {
+                const { data } = await axiosInstance.get(`/api/v1/reviews/my-review/auction/${selectedAuction.id}`);
+                setUserReview(data.data);
+            } catch (error) {
+                console.error("Error fetching user review:", error);
+            }
+        };
+        fetchUserReview();
+    }, [currentUser, selectedAuction]);
 
     const formatTime = (dateString) => {
         if (!dateString) return "N/A";
@@ -231,7 +250,7 @@ function SoldAuctions() {
                                         <div className="flex flex-wrap gap-4 mt-4">
                                             <div>
                                                 <div className="text-sm text-gray-500">Starting Bid</div>
-                                                <div className="font-medium">{formatCurrency(selectedAuction.startingBid)}</div>
+                                                <div className="font-medium">{formatCurrency(selectedAuction.startPrice)}</div>
                                             </div>
                                             {selectedAuction.reservePrice && (
                                                 <div>
@@ -243,7 +262,7 @@ function SoldAuctions() {
                                     </div>
                                     <div className="bg-green-50 border border-green-200 text-green-800 px-5 py-4 rounded-xl">
                                         <div className="text-sm font-medium">Winning Bid</div>
-                                        <div className="text-2xl font-bold">{formatCurrency(selectedAuction.winningBid)}</div>
+                                        <div className="text-2xl font-bold">{formatCurrency(selectedAuction.finalPrice)}</div>
                                         <div className="text-xs mt-1">Auction completed</div>
                                     </div>
                                 </div>
@@ -254,16 +273,16 @@ function SoldAuctions() {
                                         <Calendar size={20} className="text-blue-500 mr-3" />
                                         <div>
                                             <div className="text-sm text-gray-500">Auction Start</div>
-                                            <div className="font-medium">{formatDate(selectedAuction.startTime)}</div>
-                                            <div className="text-sm text-gray-500">{formatTime(selectedAuction.startTime)}</div>
+                                            <div className="font-medium">{formatDate(selectedAuction.startDate)}</div>
+                                            <div className="text-sm text-gray-500">{formatTime(selectedAuction.startDate)}</div>
                                         </div>
                                     </div>
                                     <div className="flex items-center">
                                         <Calendar size={20} className="text-blue-500 mr-3" />
                                         <div>
                                             <div className="text-sm text-gray-500">Auction End</div>
-                                            <div className="font-medium">{formatDate(selectedAuction.endTime)}</div>
-                                            <div className="text-sm text-gray-500">{formatTime(selectedAuction.endTime)}</div>
+                                            <div className="font-medium">{formatDate(selectedAuction.endDate)}</div>
+                                            <div className="text-sm text-gray-500">{formatTime(selectedAuction.endDate)}</div>
                                         </div>
                                     </div>
                                 </div>
@@ -296,11 +315,11 @@ function SoldAuctions() {
                                             <div className="flex flex-wrap gap-4 mt-3">
                                                 <div>
                                                     <div className="text-sm text-gray-500">Final Bid</div>
-                                                    <div className="font-medium text-green-600">{formatCurrency(selectedAuction.winningBid)}</div>
+                                                    <div className="font-medium text-green-600">{formatCurrency(selectedAuction.finalPrice)}</div>
                                                 </div>
                                             </div>
                                         </div>
-                                        {/* <div>
+                                        <div>
                                             <button
                                                 onClick={() => openUserModal(selectedAuction.winner)}
                                                 className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg flex items-center"
@@ -308,7 +327,19 @@ function SoldAuctions() {
                                                 <User size={16} className="mr-2" />
                                                 Contact Winner
                                             </button>
-                                        </div> */}
+                                            {!selectedAuction.userReview && selectedAuction.status === 'sold' && (
+                                                <button
+                                                    onClick={() => {
+                                                        setSelectedAuction(selectedAuction);
+                                                        setShowReviewModal(true);
+                                                        setRevieweeId(selectedAuction?.winner?.id);
+                                                    }}
+                                                    className="mt-3 bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 transition-colors w-full"
+                                                >
+                                                    Rate Bidder
+                                                </button>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -368,6 +399,17 @@ function SoldAuctions() {
                         </>
                     )}
 
+                    <ReviewModal
+                        isOpen={showReviewModal}
+                        onClose={() => setShowReviewModal(false)}
+                        auctionId={selectedAuction.id}
+                        revieweeId={revieweeId}
+                        onSuccess={() => {
+                            setUserReview({}); // mark as reviewed
+                            toast.success("Thank you for your review!");
+                        }}
+                    />
+
                     {/* User Details Modal */}
                     {isUserModalOpen && selectedUser && (
                         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -406,7 +448,7 @@ function SoldAuctions() {
                                     </div>
 
                                     <div className="space-y-4">
-                                        {/* {selectedUser.email && (
+                                        {selectedUser.email && (
                                             <div className="flex items-center">
                                                 <Mail size={18} className="text-gray-500 mr-3" />
                                                 <div className="flex-1">
@@ -436,7 +478,7 @@ function SoldAuctions() {
                                                     <div className="font-medium">{selectedUser.company}</div>
                                                 </div>
                                             </div>
-                                        )} */}
+                                        )}
                                         {/* {selectedUser.address && (
                                             <div className="flex items-center">
                                                 <MapPin size={18} className="text-gray-500 mr-3" />

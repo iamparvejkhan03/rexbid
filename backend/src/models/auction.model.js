@@ -464,56 +464,6 @@ auctionSchema.methods.placeBid = async function (
   return this.save();
 };
 
-// NEW: Method to buy now
-// auctionSchema.methods.buyNow = async function (buyerId, buyerUsername) {
-//   const now = new Date();
-
-//   if (this.status !== "active") {
-//     throw new Error("Auction is not active");
-//   }
-
-//   if (!this.buyNowPrice) {
-//     throw new Error("Buy Now is not available for this auction");
-//   }
-
-//   if (now >= this.endDate) {
-//     throw new Error("Auction has ended");
-//   }
-
-//   // Add buy now as a bid with special flag
-//   this.bids.push({
-//     bidder: buyerId,
-//     bidderUsername: buyerUsername,
-//     amount: this.buyNowPrice,
-//     timestamp: now,
-//     isBuyNow: true,
-//   });
-
-//   // Set auction as sold
-//   this.currentPrice = this.buyNowPrice;
-//   this.currentBidder = buyerId;
-//   // this.bidCount += 1;
-//   this.winner = buyerId;
-//   this.finalPrice = this.buyNowPrice;
-//   this.status = "sold";
-//   this.endDate = now; // End auction immediately
-
-//   // Reject all pending offers (if any)
-//   this.offers.forEach((offer) => {
-//     if (offer.status === "pending") {
-//       offer.status = "rejected";
-//       offer.sellerResponse = "Offer rejected - item purchased via Buy Now";
-//     }
-//   });
-
-//   // Cancel any scheduled jobs
-//   await agendaService.cancelAuctionJobs(this._id);
-
-//   return this.save();
-// };
-
-// In auction.model.js - find the buyNow method and update it
-
 auctionSchema.methods.buyNow = async function (buyerId, buyerUsername) {
   const now = new Date();
 
@@ -897,69 +847,6 @@ auctionSchema.methods.isReserveMet = function () {
   if (this.auctionType !== "reserve") return true;
   return this.currentPrice >= this.reservePrice;
 };
-
-// Method to end auction
-// auctionSchema.methods.endAuction = async function () {
-//   if (this.status !== "active") return this;
-
-//   const now = new Date();
-//   let wasSold = false;
-
-//   // For standard auctions OR reserve auctions that met reserve
-//   if (this.bidCount > 0) {
-//     if (this.auctionType === "standard") {
-//       // Standard auction with bids - sold
-//       this.status = "sold";
-//       this.winner = this.currentBidder;
-//       this.finalPrice = this.currentPrice;
-//       wasSold = true;
-//     } else if (this.auctionType === "reserve") {
-//       // Reserve auction - check if reserve is met
-//       if (this.isReserveMet()) {
-//         this.status = "sold";
-//         this.winner = this.currentBidder;
-//         this.finalPrice = this.currentPrice;
-//         wasSold = true;
-//       } else {
-//         this.status = "reserve_not_met";
-//       }
-//     } else if (this.auctionType === "buy_now") {
-//       // Buy Now auction that ended normally (not via Buy Now)
-//       if (this.bidCount > 0) {
-//         this.status = "sold";
-//         this.winner = this.currentBidder;
-//         this.finalPrice = this.currentPrice;
-//         wasSold = true;
-//       } else {
-//         this.status = "ended";
-//       }
-//     }
-//   } else {
-//     // No bids - just end it
-//     this.status = "ended";
-//   }
-
-//   // Set actual end time
-//   this.endDate = now;
-
-//   // Also reject any pending offers when auction ends
-//   this.offers.forEach((offer) => {
-//     if (offer.status === "pending") {
-//       offer.status = "expired";
-//       offer.sellerResponse = "Offer expired - auction ended";
-//     }
-//   });
-
-//   await this.save();
-
-//   // Return result object
-//   return {
-//     wasSold,
-//     winner: this.winner,
-//     finalPrice: this.finalPrice,
-//     newStatus: this.status,
-//   };
-// };
 
 auctionSchema.methods.endAuction = async function () {
   if (this.status !== "active") return this;

@@ -16,6 +16,8 @@ const MakeOfferModal = ({
     const [serviceFee, setServiceFee] = useState(0);
     const [commissionType, setCommissionType] = useState("percentage");
     const [commissionValue, setCommissionValue] = useState(0);
+    const [isCommissionEnabled, setIsCommissionEnabled] = useState(null);
+    const [commissionAppliesTo, setCommissionAppliesTo] = useState([]);
 
     useEffect(() => {
         if (!isOpen || !offerAmount) return;
@@ -28,6 +30,8 @@ const MakeOfferModal = ({
 
                 setCommissionType(commission.commissionType);
                 setCommissionValue(commission.commissionValue);
+                setIsCommissionEnabled(commission.isEnabled);
+                setCommissionAppliesTo(commission.appliesTo);
 
                 const amount = Number(offerAmount);
 
@@ -53,7 +57,7 @@ const MakeOfferModal = ({
         return `${Number(amount).toLocaleString("nb-NO")} kr`;
     };
 
-    const total = Number(offerAmount || 0) + Number(serviceFee);
+    const total = (isCommissionEnabled && commissionAppliesTo?.includes('bidder') ? Number(offerAmount) + Number(serviceFee) : Number(offerAmount));
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -117,10 +121,12 @@ const MakeOfferModal = ({
                                 <span>{formatNOK(offerAmount)}</span>
                             </div>
 
-                            <div className="flex justify-between text-gray-700">
+
+
+                            {isCommissionEnabled && commissionAppliesTo?.includes('bidder') && <div className="flex justify-between text-gray-700">
                                 <span>Service Fee</span>
                                 <span>{formatNOK(serviceFee)}</span>
-                            </div>
+                            </div>}
 
                             <div className="border-t pt-2 flex justify-between font-semibold text-green-600">
                                 <span>Total Payable</span>
@@ -158,7 +164,7 @@ const MakeOfferModal = ({
                         <button
                             type="button"
                             onClick={onClose}
-                            className="flex-1 border border-gray-300 text-gray-700 py-3 px-4 rounded-lg hover:bg-gray-50 transition-colors"
+                            className="flex-1 border border-gray-300 text-gray-700 py-3 px-4 rounded-lg hover:bg-gray-50 transition-colors order-2 md:order-1"
                         >
                             Cancel
                         </button>
@@ -166,7 +172,7 @@ const MakeOfferModal = ({
                         <button
                             type="submit"
                             disabled={loading || isInvalidOffer}
-                            className="flex-1 bg-[#edcd1f] text-black py-3 px-4 rounded-lg hover:bg-[#edcd1f]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="flex-1 bg-[#edcd1f] text-black py-3 px-4 rounded-lg hover:bg-[#edcd1f]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed order-1 md:order-2"
                         >
                             {loading ? "Submitting..." : "Submit Offer"}
                         </button>

@@ -109,7 +109,7 @@ const ServiceHistoryGallery = ({ serviceRecords, moveServiceRecord, removeServic
     return (
         <div className="mt-4">
             <p className="text-sm text-secondary mb-3">
-                Drag and drop to reorder service history images.
+                Drag and drop to reorder other images.
             </p>
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
                 {serviceRecords.map((record, index) => (
@@ -557,6 +557,8 @@ const CreateAuction = () => {
     const nextStep = async () => {
         let isValid = true;
 
+        scrollTo({top: 0, behavior: 'smooth'});
+
         if (step === 1) {
             const fieldsToValidate = [
                 'title',
@@ -623,6 +625,7 @@ const CreateAuction = () => {
 
     const prevStep = () => {
         setStep(step - 1);
+        scrollTo({top: 0, behavior: 'smooth'});
     };
 
     const handlePhotoUpload = (e) => {
@@ -838,60 +841,60 @@ const CreateAuction = () => {
                                                     id="title"
                                                     type="text"
                                                     className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
-                                                    placeholder="e.g., John Deere 6120M Tractor"
+                                                    placeholder="e.g., 1965 Ford Mustang GT"
                                                 />
                                                 {errors.title && <p className="text-red-500 text-sm mt-1">{errors.title.message}</p>}
                                             </div>
-                                        </div>
 
-                                        {/* Category Selection - Two Level Dropdown */}
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                                            <div>
-                                                <label htmlFor="parentCategory" className="block text-sm font-medium text-secondary mb-1">
-                                                    Category *
-                                                </label>
-                                                <select
-                                                    {...register('parentCategory', {
-                                                        required: 'Please select a category'
-                                                    })}
-                                                    id="parentCategory"
-                                                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
-                                                    disabled={loadingCategories}
-                                                >
-                                                    <option value="">Select a category</option>
-                                                    {parentCategories.map(cat => (
-                                                        <option key={cat._id} value={cat.slug}>
-                                                            {cat.name}
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                                {errors.parentCategory && (
-                                                    <p className="text-red-500 text-sm mt-1">{errors.parentCategory.message}</p>
-                                                )}
-                                            </div>
+                                            {/* Category Selection */}
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                                                <div>
+                                                    <label htmlFor="parentCategory" className="block text-sm font-medium text-secondary mb-1">
+                                                        Category *
+                                                    </label>
+                                                    <select
+                                                        {...register('parentCategory', {
+                                                            required: 'Please select a category'
+                                                        })}
+                                                        id="parentCategory"
+                                                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
+                                                        disabled={loadingCategories}
+                                                    >
+                                                        <option value="">Select a category</option>
+                                                        {parentCategories.map(cat => (
+                                                            <option key={cat._id} value={cat.slug}>
+                                                                {cat.name}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                    {errors.parentCategory && (
+                                                        <p className="text-red-500 text-sm mt-1">{errors.parentCategory.message}</p>
+                                                    )}
+                                                </div>
 
-                                            <div>
-                                                <label htmlFor="category" className="block text-sm font-medium text-secondary mb-1">
-                                                    Subcategory *
-                                                </label>
-                                                <select
-                                                    {...register('category', {
-                                                        required: 'Please select a subcategory'
-                                                    })}
-                                                    id="category"
-                                                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
-                                                    disabled={!selectedParentSlug || loadingCategories}
-                                                >
-                                                    <option value="">Select a subcategory</option>
-                                                    {subCategories.map(sub => (
-                                                        <option key={sub._id} value={sub.slug}>
-                                                            {sub.name}
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                                {errors.category && (
-                                                    <p className="text-red-500 text-sm mt-1">{errors.category.message}</p>
-                                                )}
+                                                <div>
+                                                    <label htmlFor="category" className="block text-sm font-medium text-secondary mb-1">
+                                                        Subcategory *
+                                                    </label>
+                                                    <select
+                                                        {...register('category', {
+                                                            required: 'Please select a subcategory'
+                                                        })}
+                                                        id="category"
+                                                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
+                                                        disabled={!selectedParentSlug || loadingCategories}
+                                                    >
+                                                        <option value="">Select a subcategory</option>
+                                                        {subCategories.map(sub => (
+                                                            <option key={sub._id} value={sub.slug}>
+                                                                {sub.name}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                    {errors.category && (
+                                                        <p className="text-red-500 text-sm mt-1">{errors.category.message}</p>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
 
@@ -936,7 +939,7 @@ const CreateAuction = () => {
                                                         id="location"
                                                         type="text"
                                                         className="w-full pl-10 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
-                                                        placeholder="e.g., Sandhult, Västra Götalands län, Sweden"
+                                                        placeholder="e.g., Cavan, Ireland"
                                                     />
                                                 </div>
                                             </div>
@@ -1076,7 +1079,7 @@ const CreateAuction = () => {
 
                                         <div className="mb-6">
                                             <label htmlFor="service-upload" className="block text-sm font-medium text-secondary mb-1">
-                                                Service History Images
+                                                Other Images
                                             </label>
                                             <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
                                                 <input
@@ -1089,7 +1092,7 @@ const CreateAuction = () => {
                                                 />
                                                 <label htmlFor="service-upload" className="cursor-pointer">
                                                     <FileText size={40} className="mx-auto text-gray-400 mb-2" />
-                                                    <p className="text-gray-600">Browse service record image(s) to upload</p>
+                                                    <p className="text-gray-600">Browse other image(s) to upload</p>
                                                     <p className="text-sm text-secondary">Service invoices, maintenance records, repair receipts</p>
                                                 </label>
                                             </div>
@@ -1115,12 +1118,12 @@ const CreateAuction = () => {
 
                                         <div className="mb-6">
                                             <label className="block text-sm font-medium text-secondary mb-1">Auction Type *</label>
-                                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4"> {/* Changed from grid-cols-3 to grid-cols-4 */}
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4"> {/* Changed from grid-cols-3 to grid-cols-4 */}
                                                 {[
                                                     { value: 'standard', label: 'Standard Auction' },
                                                     { value: 'reserve', label: 'Reserve Price Auction' },
-                                                    { value: 'buy_now', label: 'Buy Now Auction' },
-                                                    { value: 'giveaway', label: 'Free Giveaway' }, // ADD THIS LINE
+                                                    // { value: 'buy_now', label: 'Buy Now Auction' },
+                                                    // { value: 'giveaway', label: 'Free Giveaway' },
                                                 ].map((type) => (
                                                     <label key={type.value} className="flex items-center p-4 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
                                                         <input
@@ -1419,7 +1422,7 @@ const CreateAuction = () => {
                                                                 </span>
                                                             </div>
                                                             <div className="flex justify-between items-center">
-                                                                <p className="text-xs text-secondary">Service Records</p>
+                                                                <p className="text-xs text-secondary">Other Images</p>
                                                                 <span className="font-medium bg-gray-100 px-2 py-1 rounded-full text-xs">
                                                                     {uploadedServiceRecords.length} uploaded
                                                                 </span>

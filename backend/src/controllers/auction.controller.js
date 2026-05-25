@@ -18,6 +18,7 @@ import {
 } from "../utils/nodemailer.js";
 import Category from "../models/category.model.js";
 import Commission from "../models/commission.model.js";
+import Review from "../models/review.model.js";
 
 // Create New Auction
 export const createAuction = async (req, res) => {
@@ -202,7 +203,7 @@ export const createAuction = async (req, res) => {
             filename: doc.originalname,
             originalName: doc.originalname,
             resourceType: "raw",
-            caption: documentCaptions[index] || "", // ADD THIS
+            caption: newDocumentCaptions[index] || "", // ADD THIS
           });
         } catch (uploadError) {
           console.error("Document upload error:", uploadError);
@@ -695,7 +696,7 @@ export const getAuction = async (req, res) => {
     const { id } = req.params;
 
     const auction = await Auction.findById(id)
-      .populate("seller", "username firstName lastName countryName")
+      .populate("seller", "username firstName lastName countryName phone email address")
       .populate("currentBidder", "username firstName")
       .populate("winner", "username firstName lastName")
       .populate("bids.bidder", "username firstName");
@@ -1815,12 +1816,10 @@ export const getWonAuctions = async (req, res) => {
     // Build filter for auctions won by user
     const filter = {
       winner: userId,
-      status: { $in: ["sold", "ended"] }, // Include both sold and ended auctions where user won
+      status: { $in: ["sold", "ended"] },
     };
 
-    // Add status filter if provided
     if (status && status !== "all") {
-      // Map frontend status to backend status
       const statusMap = {
         payment_pending: "sold",
         paid: "sold",
@@ -1830,165 +1829,103 @@ export const getWonAuctions = async (req, res) => {
       filter.status = statusMap[status] || status;
     }
 
-    // Add search filter
     if (search) {
       filter.$or = [
         { title: { $regex: search, $options: "i" } },
         { description: { $regex: search, $options: "i" } },
-        // { category: { $regex: search, $options: "i" } },
         { categories: { $in: [new RegExp(search, "i")] } },
       ];
     }
 
     const auctions = await Auction.find(filter)
-      .populate("seller", "username firstName lastName email phone createdAt")
-      .populate("winner", "username firstName lastName")
+      .populate("seller", "username firstName lastName email phone address createdAt company")
+      .populate("winner", "username firstName lastName email phone address image")
       .populate("currentBidder", "username firstName")
+      .populate("bids.bidder", "username firstName lastName email")
       .sort({ endDate: -1 });
-    // .limit(limit * 1)
-    // .skip((page - 1) * limit);
 
     const total = await Auction.countDocuments(filter);
 
-    // Transform data to match frontend structure
+    // Get existing reviews by this user for these auctions
+    const auctionIds = auctions.map(a => a._id);
+    const userReviews = await Review.find({ auction: { $in: auctionIds }, reviewer: userId }).select("auction");
+    const reviewedAuctionIds = userReviews.map(r => r.auction.toString());
+
     const transformedAuctions = auctions.map((auction) => ({
       _id: auction._id.toString(),
       title: auction.title,
-      category: auction.category,
       description: auction.description,
-      category: auction.category,
-
-      // Pricing & Bidding
-      finalBid: auction.finalPrice || auction.currentPrice,
-      startingBid: auction.startPrice,
-      yourMaxBid: getMaxBidForUser(auction.bids, userId),
-      winningBid: auction.finalPrice || auction.currentPrice,
-      bids: auction.bidCount,
-
-      // Buy Now Info
+      categories: auction.categories,
+      startPrice: auction.startPrice,
+      currentPrice: auction.currentPrice,
+      finalPrice: auction.finalPrice,
+      bidCount: auction.bidCount,
       buyNowPrice: auction.buyNowPrice,
-
-      // Offers Info
-      allowsOffers: auction.allowOffers,
-      offersCount: auction.offers ? auction.offers.length : 0,
-      bidsCount: auction.bids ? auction.bids.length : 0,
-      pendingOffersCount: auction.offers
-        ? auction.offers.filter((o) => o.status === "pending").length
-        : 0,
-
-      // Payment & Invoice Info
-      paymentStatus: auction.paymentStatus || "pending",
+      allowOffers: auction.allowOffers,
+      offersCount: auction.offers?.length || 0,
+      pendingOffersCount: auction.offers?.filter(o => o.status === "pending").length || 0,
+      paymentStatus: auction.paymentStatus,
       paymentMethod: auction.paymentMethod,
       paymentDate: auction.paymentDate,
       transactionId: auction.transactionId,
       hasInvoice: !!(auction.invoice && auction.invoice.url),
-      invoice: auction.invoice
-        ? {
-            url: auction.invoice.url,
-            filename: auction.invoice.filename,
-            uploadedAt: auction.invoice.uploadedAt,
-            uploadedBy: auction.invoice.uploadedBy
-              ? {
-                  _id: auction.invoice.uploadedBy._id.toString(),
-                  name:
-                    auction.invoice.uploadedBy.name ||
-                    auction.invoice.uploadedBy.username,
-                  email: auction.invoice.uploadedBy.email,
-                }
-              : null,
-          }
-        : null,
-
-      // Status & Timing
+      invoice: auction.invoice || null,
       auctionStatus: auction.status,
       auctionType: auction.auctionType,
-      endTime: auction.endDate,
-      winTime:
-        auction.status === "sold" || auction.status === "sold_buy_now"
-          ? auction.updatedAt
-          : null,
-      reservePrice: auction.reservePrice,
-      reserveMet: auction.currentPrice >= auction.reservePrice,
-
-      // Location
-      location: auction.location,
-
-      // Seller Info
-      seller: {
-        _id: auction.seller._id.toString(),
-        name:
-          auction.seller.firstName && auction.seller.lastName
-            ? `${auction.seller.firstName} ${auction.seller.lastName}`
-            : auction.seller.username,
-        username: auction.seller.username,
-        memberSince: auction.seller.createdAt || "2025",
-        email: auction.seller.email,
-        phone: auction.seller.phone,
-        company: auction.seller.company || "N/A",
-      },
-
-      // Winner Info (if sold)
-      winner: auction.winner
-        ? {
-            _id: auction.winner._id.toString(),
-            name:
-              auction.winner.firstName && auction.winner.lastName
-                ? `${auction.winner.firstName} ${auction.winner.lastName}`
-                : auction.winner.username,
-            username: auction.winner.username,
-            email: auction.winner.email,
-          }
-        : null,
-
-      // Messages
-      congratulatoryMessage: generateCongratulatoryMessage(auction),
-
-      // Created/Updated timestamps
+      endDate: auction.endDate,
       createdAt: auction.createdAt,
       updatedAt: auction.updatedAt,
-
-      // Bid increment
+      location: auction.location,
+      reservePrice: auction.reservePrice,
+      reserveMet: auction.currentPrice >= auction.reservePrice,
       bidIncrement: auction.bidIncrement,
-
-      // Current bidder info
+      seller: auction.seller
+        ? {
+          _id: auction.seller._id.toString(),
+          firstName: auction.seller.firstName,
+          lastName: auction.seller.lastName,
+          username: auction.seller.username,
+          email: auction.seller.email,
+          phone: auction.seller.phone,
+          address: auction.seller.address,
+          createdAt: auction.seller.createdAt,
+        }
+        : null,
+      winner: auction.winner
+        ? {
+          _id: auction.winner._id.toString(),
+          firstName: auction.winner.firstName,
+          lastName: auction.winner.lastName,
+          username: auction.winner.username,
+          email: auction.winner.email,
+          phone: auction.winner.phone,
+          image: auction.winner.image,
+        }
+        : null,
       currentBidder: auction.currentBidder
         ? {
-            _id: auction.currentBidder._id.toString(),
-            name: auction.currentBidder.name || auction.currentBidder.username,
-          }
+          _id: auction.currentBidder._id.toString(),
+          name: auction.currentBidder.firstName
+            ? `${auction.currentBidder.firstName} ${auction.currentBidder.lastName}`
+            : auction.currentBidder.username,
+        }
         : null,
+      userReview: reviewedAuctionIds.includes(auction._id.toString()),
     }));
 
-    // Calculate statistics
-    const totalWon = total;
     const totalSpent = auctions.reduce(
-      (sum, auction) => sum + (auction.finalPrice || auction.currentPrice),
+      (sum, auction) => sum + (auction.finalPrice || auction.currentPrice || 0),
       0,
     );
-    const averageSavings =
-      auctions.length > 0
-        ? auctions.reduce(
-            (sum, auction) =>
-              sum +
-              auction.startPrice / (auction.finalPrice || auction.currentPrice),
-            0,
-          ) / auctions.length
-        : 0;
-
-    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-    const recentWins = auctions.filter(
-      (auction) => new Date(auction.endDate) > weekAgo,
-    ).length;
 
     res.status(200).json({
       success: true,
       data: {
         auctions: transformedAuctions,
         statistics: {
-          totalWon,
+          totalWon: total,
           totalSpent,
-          averageSavings,
-          recentWins,
+          averageSpent: total > 0 ? totalSpent / total : 0,
         },
         pagination: {
           currentPage: parseInt(page),
@@ -2036,13 +1973,11 @@ export const getSoldAuctions = async (req, res) => {
     const sellerId = req.user._id;
     const { page = 1, limit = 12, status, search } = req.query;
 
-    // Build filter for auctions sold by this seller
     const filter = {
       seller: sellerId,
-      status: { $in: ["sold", "ended"] }, // Auctions that have been sold or ended
+      status: { $in: ["sold", "ended", "reserve_not_met"] },
     };
 
-    // Add status filter if provided
     if (status && status !== "all") {
       const statusMap = {
         sold: "sold",
@@ -2052,143 +1987,104 @@ export const getSoldAuctions = async (req, res) => {
       filter.status = statusMap[status] || status;
     }
 
-    // Add search filter
     if (search) {
       filter.$or = [
         { title: { $regex: search, $options: "i" } },
         { description: { $regex: search, $options: "i" } },
-        // { category: { $regex: search, $options: "i" } },
         { categories: { $in: [new RegExp(search, "i")] } },
       ];
     }
 
     const auctions = await Auction.find(filter)
-      .populate("seller", "username firstName lastName email phone createdAt")
-      .populate(
-        "winner",
-        "username firstName lastName email phone image company address",
-      )
+      .populate("seller", "username firstName lastName email phone createdAt address company")
+      .populate("winner", "username firstName lastName email phone address image")
       .populate("currentBidder", "username firstName")
-      .populate(
-        "bids.bidder",
-        "username firstName lastName email phone company",
-      )
+      .populate("bids.bidder", "username firstName lastName email phone")
       .sort({ endDate: -1 });
-    // .limit(limit * 1)
-    // .skip((page - 1) * limit);
 
     const total = await Auction.countDocuments(filter);
 
-    // Transform data to match frontend structure for seller's won auctions page
+    // Get existing reviews by this user for these auctions
+    const auctionIds = auctions.map(a => a._id);
+    const userReviews = await Review.find({ auction: { $in: auctionIds }, reviewer: sellerId }).select("auction");
+    const reviewedAuctionIds = userReviews.map(r => r.auction.toString());
+
     const transformedAuctions = auctions.map((auction) => {
-      // Get all unique bidders with their highest bid
+      // Build list of unique bidders with their highest bid
       const uniqueBidders = auction.bids.reduce((acc, bid) => {
-        const bidderId = bid.bidder?._id?.toString();
-        if (bidderId && bid.bidder?._id) {
-          const existing = acc.find((b) => b.id === bidderId);
-          if (!existing || bid.amount > existing.finalBid) {
-            // Remove existing and add new highest bid
-            const filtered = acc.filter((b) => b.id !== bidderId);
-            return [
-              ...filtered,
-              {
-                id: bidderId,
-                name:
-                  bid.bidder.firstName && bid.bidder.lastName
-                    ? `${bid.bidder.firstName} ${bid.bidder.lastName}`
-                    : bid.bidder.username,
-                username: bid.bidder.username,
-                email: bid.bidder.email,
-                image: bid.bidder.image,
-                phone: bid.bidder.phone,
-                company: bid.bidder.company,
-                address: bid.bidder.address,
-                finalBid: bid.amount,
-                bidTime: bid.timestamp,
-                isWinner: auction.winner?._id?.toString() === bidderId,
-              },
-            ];
-          }
+        if (!bid.bidder?._id) return acc;
+        const bidderId = bid.bidder._id.toString();
+        const existing = acc.find(b => b.id === bidderId);
+        if (!existing || bid.amount > existing.finalBid) {
+          const filtered = acc.filter(b => b.id !== bidderId);
+          return [
+            ...filtered,
+            {
+              id: bidderId,
+              name: bid.bidder.firstName && bid.bidder.lastName
+                ? `${bid.bidder.firstName} ${bid.bidder.lastName}`
+                : bid.bidder.username,
+              username: bid.bidder.username,
+              email: bid.bidder.email,
+              phone: bid.bidder.phone,
+              finalBid: bid.amount,
+              bidTime: bid.timestamp,
+              isWinner: auction.winner?._id?.toString() === bidderId,
+            },
+          ];
         }
         return acc;
-      }, []);
-
-      // Sort bidders by final bid (highest first)
-      const sortedBidders = uniqueBidders.sort(
-        (a, b) => b.finalBid - a.finalBid,
-      );
+      }, []).sort((a, b) => b.finalBid - a.finalBid);
 
       return {
         id: auction._id.toString(),
         auctionId: `AV${auction._id.toString().slice(-6).toUpperCase()}`,
         title: auction.title,
         description: auction.description,
-        category: auction.category,
-        auctionType:
-          auction.auctionType === "reserve"
-            ? "Reserve Auction"
-            : "Standard Auction",
+        categories: auction.categories,
+        auctionType: auction.auctionType === "reserve" ? "Reserve Auction" : "Standard Auction",
         reservePrice: auction.reservePrice,
-        startingBid: auction.startPrice,
-        winningBid: auction.finalPrice || auction.currentPrice,
-        startTime: auction.startDate,
-        endTime: auction.endDate,
+        startPrice: auction.startPrice,
+        currentPrice: auction.currentPrice,
+        finalPrice: auction.finalPrice,
+        startDate: auction.startDate,
+        endDate: auction.endDate,
+        status: auction.status,
         winner: auction.winner
           ? {
-              id: auction.winner._id.toString(),
-              name:
-                auction.winner.firstName && auction.winner.lastName
-                  ? `${auction.winner.firstName} ${auction.winner.lastName}`
-                  : auction.winner.username,
-              username: auction.winner.username,
-              email: auction.winner.email,
-              image: auction.winner.image,
-              phone: auction.winner.phone,
-              company: auction.winner.company,
-              address: auction.winner.address,
-              ip: "Not Available", // IP might not be stored
-              bidHistory: auction.bids
-                .filter(
-                  (bid) =>
-                    bid.bidder?._id?.toString() ===
-                    auction.winner?._id?.toString(),
-                )
-                .map((bid) => ({
-                  amount: bid.amount,
-                  time: bid.timestamp,
-                }))
-                .sort((a, b) => new Date(a.time) - new Date(b.time)),
-            }
+            id: auction.winner._id.toString(),
+            name: auction.winner.firstName && auction.winner.lastName
+              ? `${auction.winner.firstName} ${auction.winner.lastName}`
+              : auction.winner.username,
+            username: auction.winner.username,
+            email: auction.winner.email,
+            phone: auction.winner.phone,
+            image: auction.winner.image,
+            address: auction.winner.address,
+            bidHistory: auction.bids
+              .filter(bid => bid.bidder?._id?.toString() === auction.winner._id.toString())
+              .map(bid => ({ amount: bid.amount, time: bid.timestamp }))
+              .sort((a, b) => new Date(a.time) - new Date(b.time)),
+          }
           : null,
-        bidders: sortedBidders.filter(
-          (bidder) =>
-            !auction.winner || bidder.id !== auction.winner._id?.toString(),
-        ),
+        bidders: uniqueBidders.filter(bidder => !auction.winner || bidder.id !== auction.winner._id.toString()),
+        userReview: reviewedAuctionIds.includes(auction._id.toString()),
       };
     });
 
-    // Calculate statistics for seller
-    const totalSold = total;
     const totalRevenue = auctions.reduce(
       (sum, auction) => sum + (auction.finalPrice || auction.currentPrice || 0),
       0,
     );
-    const averageSalePrice = totalSold > 0 ? totalRevenue / totalSold : 0;
-
-    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-    const recentSales = auctions.filter(
-      (auction) => new Date(auction.endDate) > weekAgo,
-    ).length;
 
     res.status(200).json({
       success: true,
       data: {
         auctions: transformedAuctions,
         statistics: {
-          totalSold,
+          totalSold: total,
           totalRevenue,
-          averageSalePrice,
-          recentSales,
+          averageSalePrice: total > 0 ? totalRevenue / total : 0,
         },
         pagination: {
           currentPage: parseInt(page),

@@ -1,5 +1,5 @@
-import { CalendarDays, CheckSquare, Clock, Download, File, Fuel, Gauge, Gavel, Heart, Loader, MapPin, MessageCircle, PaintBucket, Plane, ShieldCheck, Tag, User, Users, Weight, Zap, Banknote, MessageSquare } from "lucide-react";
-import { BidConfirmationModal, BuyNowModal, Container, LoadingSpinner, MobileBidStickyBar, SpecificationsSection, TabSection, TimerDisplay, WatchlistButton } from "../components";
+import { CalendarDays, CheckSquare, Clock, Download, File, Fuel, Gauge, Gavel, Heart, Loader, MapPin, MessageCircle, PaintBucket, Plane, ShieldCheck, Tag, User, Users, Weight, Zap, Banknote, MessageSquare, Mail, Phone, Star } from "lucide-react";
+import { BidConfirmationModal, BuyNowModal, Container, LoadingSpinner, MobileBidStickyBar, RatingStars, ReviewModal, SellerStatsCard, SpecificationsSection, TabSection, TimerDisplay, WatchlistButton } from "../components";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { lazy, Suspense, useRef, useState, useEffect } from "react";
 import useAuctionCountdown from "../hooks/useAuctionCountDown";
@@ -39,6 +39,10 @@ function SingleAuction() {
     const navigate = useNavigate();
     const [showBuyNowModal, setShowBuyNowModal] = useState(false);
     const [claiming, setClaiming] = useState(false);
+    const [showReviewModal, setShowReviewModal] = useState(false);
+    const [userReview, setUserReview] = useState(null);
+    const [revieweeId, setRevieweeId] = useState(null);
+    const [auctionReviews, setAuctionReviews] = useState([]);
 
     const updateAuctionState = (updatedAuction) => {
         setAuction(updatedAuction);
@@ -93,6 +97,32 @@ function SingleAuction() {
             fetchAuction();
         }
     }, [id, countdown?.status]);
+
+    useEffect(() => {
+        const fetchUserReview = async () => {
+            if (!user || !auction || auction.status !== 'sold') return;
+            try {
+                const { data } = await axiosInstance.get(`/api/v1/reviews/my-review/auction/${auction._id}`);
+                setUserReview(data.data);
+            } catch (error) {
+                console.error("Error fetching user review:", error);
+            }
+        };
+        fetchUserReview();
+    }, [user, auction]);
+
+    useEffect(() => {
+        const fetchReviews = async () => {
+            if (!auction?._id) return;
+            try {
+                const { data } = await axiosInstance.get(`/api/v1/reviews/auction/${auction._id}`);
+                setAuctionReviews(data.data);
+            } catch (error) {
+                console.error("Failed to fetch reviews:", error);
+            }
+        };
+        fetchReviews();
+    }, [auction]);
 
     const scrollToBidSection = () => {
         bidSectionRef.current?.scrollIntoView({
@@ -427,7 +457,15 @@ function SingleAuction() {
                     />
                 </div>
 
-                <h2 className="text-2xl md:text-3xl font-semibold my-6 text-primary">{auction.title}</h2>
+                <div className="flex items-center gap-3 my-6 flex-wrap">
+                    <h2 className="text-2xl md:text-3xl font-semibold text-primary">{auction.title}</h2>
+                    {/* {auctionReviews.length > 0 && (
+                        <div className="flex items-center gap-1 bg-orange-100 px-3 py-1 rounded-full">
+                            <RatingStars rating={auctionReviews.reduce((sum, r) => sum + r.rating, 0) / auctionReviews.length} size={16} />
+                            <span className="text-sm text-gray-600 ml-1">({auctionReviews.length})</span>
+                        </div>
+                    )} */}
+                </div>
 
                 {/* Image section */}
                 {/* <Suspense fallback={<LoadingSpinner />}> */}
@@ -517,6 +555,37 @@ function SingleAuction() {
                     <SpecificationsSection auction={auction} />
                 </div>
 
+                {/* Seller info section */}
+                {/* {auction?.seller && <div>
+                    <hr className="my-8" />
+                    <h3 className="my-5 text-primary text-xl font-semibold">Seller Information</h3>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-5 gap-y-10">
+                        <div className="flex items-center gap-3">
+                            <User className="flex-shrink-0 w-7 h-7 md:w-8 md:h-8" strokeWidth={1} />
+                            <div>
+                                <p className="text-secondary text-sm">Name</p>
+                                <p className="text-base capitalize">{auction?.seller?.firstName} {auction?.seller?.lastName}</p>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                            <Phone className="flex-shrink-0 w-6 h-6 md:w-7 md:h-7" strokeWidth={1} />
+                            <div>
+                                <p className="text-secondary text-sm">Phone</p>
+                                <p className="text-base">{auction?.seller?.phone}</p>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                            <Mail className="flex-shrink-0 w-7 h-7 md:w-8 md:h-8" strokeWidth={1} />
+                            <div>
+                                <p className="text-secondary text-sm">Email</p>
+                                <p className="text-base">{auction?.seller?.email}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>} */}
+
                 {/* Features Section */}
                 {auction.features && (
                     <>
@@ -568,7 +637,7 @@ function SingleAuction() {
                 {auction.serviceRecords && auction.serviceRecords.length > 0 && (
                     <>
                         <div>
-                            <h3 className="my-5 text-primary text-xl font-semibold">Service Records</h3>
+                            <h3 className="my-5 text-primary text-xl font-semibold">Other Images</h3>
                             <ImageLightBox
                                 images={auction.serviceRecords}
                                 captions={auction.serviceRecords.map(record => record.caption || '')} // ADD THIS LINE
@@ -591,7 +660,12 @@ function SingleAuction() {
                     </>
                 )}
 
-                <hr className="my-8" />
+                {/* NEW: Seller Stats Card */}
+                {auction?.seller && (
+                    <div className="my-8">
+                        <SellerStatsCard sellerId={auction.seller._id} />
+                    </div>
+                )}
 
                 <Suspense fallback={<LoadingSpinner />}>
                     <TabSection
@@ -602,6 +676,7 @@ function SingleAuction() {
                         auction={auction}
                         activatedTab={activeTab}
                         onAuctionUpdate={updateAuctionState}
+                        auctionReviews={auctionReviews}
                     />
                 </Suspense>
 
@@ -867,6 +942,30 @@ function SingleAuction() {
                                     </Suspense>
                                 </>
                             )}
+
+                            {/* Review Button for sold auctions */}
+                            {auction.status === 'sold' && user && (user._id === auction.seller?._id || user._id === auction.winner?._id) && !userReview && (
+                                <button
+                                    onClick={() => {
+                                        setRevieweeId(user._id === auction.seller?._id ? auction.winner?._id : auction.seller?._id);
+                                        setShowReviewModal(true);
+                                    }}
+                                    className="w-full bg-purple-600 text-white py-3 px-6 rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center gap-2"
+                                >
+                                    <Star size={18} /> Rate {user._id === auction.seller?._id ? "Bidder" : "Seller"}
+                                </button>
+                            )}
+
+                            <ReviewModal
+                                isOpen={showReviewModal}
+                                onClose={() => setShowReviewModal(false)}
+                                auctionId={auction._id}
+                                revieweeId={revieweeId}
+                                onSuccess={() => {
+                                    setUserReview({}); // mark as reviewed
+                                    toast.success("Thank you for your review!");
+                                }}
+                            />
 
                             {/* Non-active states for regular auctions */}
                             {countdown.status === 'approved' && (

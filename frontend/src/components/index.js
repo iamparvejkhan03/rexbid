@@ -56,10 +56,12 @@ import PaymentStatusDropdown from "./admin/PaymentStatusDropdown";
 import CategoryIconsSection from "./CategoryIconsSection";
 import AccountInactiveBanner from "./bidder/AccountInactiveBanner";
 import AuctionListItem from "./AuctionListItem";
-import VehicleLookupModal from "./VehicleLookupModal";
 import CategoryCarousel from "./CategoryCarousel";
 import HowItWorks from "./HowItWorks";
 import TestimonialSection from "./TestimonialSection";
+import ReviewModal from "./ReviewModal";
+import RatingStars from "./RatingStars";
+import SellerStatsCard from "./SellerStatsCard";
 
 export {
     Container,
@@ -120,8 +122,10 @@ export {
     CategoryIconsSection,
     AccountInactiveBanner,
     AuctionListItem,
-    VehicleLookupModal,
     CategoryCarousel,
     HowItWorks,
     TestimonialSection,
+    ReviewModal,
+    RatingStars,
+    SellerStatsCard,
 }

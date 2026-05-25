@@ -145,7 +145,7 @@ function Home() {
             <Hero />
 
             {/* Marquee section */}
-            <Container>
+            {/* <Container>
                 <Marquee speed={50} gradient={false}>
                     <div className="flex gap-8 w-full my-14 mr-8">
                         {
@@ -161,7 +161,7 @@ function Home() {
                         }
                     </div>
                 </Marquee>
-            </Container>
+            </Container> */}
 
             {/* Category section */}
             <Suspense fallback={<LoadingSpinner />}>
@@ -217,7 +217,7 @@ function Home() {
                             </div>
 
                             {/* Add this view mode toggle */}
-                            <div className="hidden md:flex items-center gap-2 bg-gray-100 p-1 rounded-lg">
+                            {/* <div className="hidden md:flex items-center gap-2 bg-gray-100 p-1 rounded-lg">
                                 <button
                                     onClick={() => setViewMode("grid")}
                                     className={`p-2 rounded transition-colors ${viewMode === "grid" ? "bg-white shadow-sm" : "hover:bg-gray-200"}`}
@@ -232,7 +232,7 @@ function Home() {
                                 >
                                     <List size={18} className={viewMode === "list" ? "text-orange-600" : "text-gray-500"} />
                                 </button>
-                            </div>
+                            </div> */}
                         </div>
                     </div>
                     <p className="text-sm md:text-base text-gray-500 order-2 md:order-3">

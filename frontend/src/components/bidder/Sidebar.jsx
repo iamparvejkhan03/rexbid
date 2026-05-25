@@ -24,7 +24,7 @@ const navigation = [
     { name: 'My Offers', path: '/bidder/offers', icon: <Hand size={20} /> },
     { name: 'My Bids', path: '/bidder/bids', icon: <TrendingUp size={20} /> },
     { name: 'Won Auctions', path: '/bidder/auctions/won', icon: <Award size={20} /> },
-    // { name: 'Billing', path: '/bidder/billing', icon: <CreditCard size={20} /> },
+    { name: 'Billing', path: '/bidder/billing', icon: <CreditCard size={20} /> },
     // { name: 'Notifications', path: '/bidder/notifications', icon: <Bell size={20} /> },
     { name: 'Profile', path: '/bidder/profile', icon: <User size={20} /> },
 ];
