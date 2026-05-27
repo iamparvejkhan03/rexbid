@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { LoadingSpinner, LowerReserveModal, SellerContainer, SellerHeader, SellerSidebar } from "../../components";
-import { Gavel, Eye, Award, BarChart3, TrendingUp, DollarSign, Clock, Search, Filter, SortAsc, Users, MoreVertical, Loader } from "lucide-react";
+import { Gavel, Eye, Award, BarChart3, TrendingUp, DollarSign, Clock, Search, Filter, SortAsc, Users, MoreVertical, Loader, Star } from "lucide-react";
 import axiosInstance from "../../utils/axiosInstance";
 import { Link } from "react-router-dom";
 import { useRef } from "react";
@@ -423,6 +423,11 @@ function AllAuctions() {
                                                             </div>
                                                             <div className="ml-4">
                                                                 <Link to={`/auction/${auction._id}`} target="_blank" className="font-medium text-gray-900">{auction.title}</Link>
+                                                                {auction.isFeatured && (
+                                                                    <span className="md:ml-2 text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full inline-flex">
+                                                                        <Star size={12} className="mr-1" /> Featured
+                                                                    </span>
+                                                                )}
                                                             </div>
                                                         </div>
                                                     </td>
@@ -468,6 +473,28 @@ function AllAuctions() {
                                                                         >
                                                                             View
                                                                         </Link>
+                                                                        <button
+                                                                            onClick={async () => {
+                                                                                setActiveDropdown(null);
+                                                                                try {
+                                                                                    const { data } = await axiosInstance.post(`/api/v1/auctions/${auction._id}/featured`);
+                                                                                    if (data.success) {
+                                                                                        // Update local state: set auction.isFeatured = true
+                                                                                        setAuctions(prev =>
+                                                                                            prev.map(a =>
+                                                                                                a._id === auction._id ? { ...a, isFeatured: true } : a
+                                                                                            )
+                                                                                        );
+                                                                                        alert('Auction marked as featured! 3% premium will apply on sale.');
+                                                                                    }
+                                                                                } catch (err) {
+                                                                                    alert(err.response?.data?.message || 'Failed to mark as featured');
+                                                                                }
+                                                                            }}
+                                                                            className="px-4 py-2 text-amber-600 hover:bg-amber-50 transition-colors text-left"
+                                                                        >
+                                                                            <Star size={16} className="inline mr-2" /> Make Featured (+3% premium)
+                                                                        </button>
                                                                         <button
                                                                             onClick={() => {
                                                                                 handleShowReserveModal(auction);

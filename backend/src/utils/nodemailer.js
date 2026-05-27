@@ -136,7 +136,7 @@ const contactEmail = async (
 ) => {
     try {
         const info = await transporter.sendMail({
-            from: `"BidNordic" <${process.env.EMAIL_USER}>`,
+            from: `"RexBid" <${process.env.EMAIL_USER}>`,
             to: `${process.env.EMAIL_USER}`,
             subject: `New Contact Query - ${name}`,
             html: `
@@ -177,10 +177,10 @@ const contactEmail = async (
                     <div class="container">
                         <div class="header">
                             <div class="logo-container">
-                                <img src="${process.env.FRONTEND_URL}/logo.png" alt="BidNordic Logo" class="logo">
+                                <img src="${process.env.FRONTEND_URL}/logo.png" alt="RexBid Logo" class="logo">
                             </div>
-                            <div class="brand-name">BidNordic</div>
-                            <div class="tagline">Nordic Online Auctions</div>
+                            <div class="brand-name">RexBid</div>
+                            <div class="tagline">Ireland’s Marketplace for Machinery & Commercials</div>
                         </div>
                         
                         <div class="content">
@@ -226,9 +226,9 @@ const contactEmail = async (
                         </div>
                         
                         <div class="footer">
-                            <p class="footer-text">This email was sent from the contact form on <span class="highlight">BidNordic</span> website.</p>
-                            <p class="footer-text">© ${new Date().getFullYear()} BidNordic. All rights reserved.</p>
-                            <p class="footer-text">Nordic Online Auctions</p>
+                            <p class="footer-text">This email was sent from the contact form on <span class="highlight">RexBid</span> website.</p>
+                            <p class="footer-text">© ${new Date().getFullYear()} RexBid. All rights reserved.</p>
+                            <p class="footer-text">Ireland’s Marketplace for Machinery & Commercials</p>
                         </div>
                     </div>
                 </body>
@@ -245,9 +245,9 @@ const contactEmail = async (
 const contactConfirmationEmail = async (name, email) => {
     try {
         const info = await transporter.sendMail({
-            from: `"BidNordic" <${process.env.EMAIL_USER}>`,
+            from: `"RexBid" <${process.env.EMAIL_USER}>`,
             to: email,
-            subject: `Thank You for Contacting BidNordic`,
+            subject: `Thank You for Contacting RexBid`,
             html: `
                 <!DOCTYPE html>
                 <html>
@@ -282,10 +282,10 @@ const contactConfirmationEmail = async (name, email) => {
                     <div class="container">
                         <div class="header">
                             <div class="logo-container">
-                                <img src="${process.env.FRONTEND_URL}/logo.png" alt="BidNordic Logo" class="logo">
+                                <img src="${process.env.FRONTEND_URL}/logo.png" alt="RexBid Logo" class="logo">
                             </div>
-                            <div class="brand-name">BidNordic</div>
-                            <div class="tagline">Nordic Online Auctions</div>
+                            <div class="brand-name">RexBid</div>
+                            <div class="tagline">Ireland’s Marketplace for Machinery & Commercials</div>
                         </div>
                         
                         <div class="content">
@@ -295,7 +295,7 @@ const contactConfirmationEmail = async (name, email) => {
                                 <p class="greeting">Dear <span class="highlight">${name}</span>,</p>
                                 
                                 <p class="message-text">
-                                    Thank you for reaching out to <span class="highlight">BidNordic</span>. We have successfully received your inquiry and appreciate you taking the time to contact us.
+                                    Thank you for reaching out to <span class="highlight">RexBid</span>. We have successfully received your inquiry and appreciate you taking the time to contact us.
                                 </p>
                                 
                                 <p class="message-text">
@@ -316,19 +316,19 @@ const contactConfirmationEmail = async (name, email) => {
                             
                             <div class="contact-info">
                                 <p><strong>Phone Support:</strong> Available Monday-Friday, 9:00 AM - 6:00 PM CET</p>
-                                <p><strong>Email Support:</strong> ${process.env.EMAIL_USER || "admin@bidnordic.com"}</p>
+                                <p><strong>Email Support:</strong> ${process.env.EMAIL_USER || "admin@rexbid.ie"}</p>
                             </div>
                             
                             <div class="signature">
                                 <p>Best regards,</p>
-                                <p><strong>The BidNordic Team</strong></p>
-                                <p>Nordic Online Auctions</p>
+                                <p><strong>The RexBid Team</strong></p>
+                                <p>Ireland’s Marketplace for Machinery & Commercials</p>
                             </div>
                         </div>
                         
                         <div class="footer">
                             <p class="footer-text">This is an automated confirmation email. Please do not reply to this message.</p>
-                            <p class="footer-text">© ${new Date().getFullYear()} BidNordic. All rights reserved.</p>
+                            <p class="footer-text">© ${new Date().getFullYear()} RexBid. All rights reserved.</p>
                             <p class="footer-text">Your next great find is just a bid away!</p>
                         </div>
                     </div>
@@ -353,7 +353,7 @@ const bidConfirmationEmail = async (
 ) => {
     try {
         const info = await transporter.sendMail({
-            from: `"BidNordic" <${process.env.EMAIL_USER}>`,
+            from: `"RexBid" <${process.env.EMAIL_USER}>`,
             to: userEmail,
             subject: `Bid Confirmation - ${auction.title}`,
             html: `
@@ -431,10 +431,10 @@ const bidConfirmationEmail = async (
                     <div class="container">
                         <div class="header">
                             <div class="logo-container">
-                                <img src="${process.env.FRONTEND_URL}/logo.png" alt="BidNordic Logo" class="logo">
+                                <img src="${process.env.FRONTEND_URL}/logo.png" alt="RexBid Logo" class="logo">
                             </div>
-                            <div class="brand-name">BidNordic</div>
-                            <div class="tagline">Nordic Online Auctions</div>
+                            <div class="brand-name">RexBid</div>
+                            <div class="tagline">Ireland’s Marketplace for Machinery & Commercials</div>
                         </div>
                         
                         <div class="content">
@@ -505,7 +505,7 @@ const bidConfirmationEmail = async (
                             </div>
                             
                             <p>Dear <span class="highlight">${userName}</span>,</p>
-                            <p>Thank you for placing your bid on <strong>${auction.title}</strong> on BidNordic.</p>
+                            <p>Thank you for placing your bid on <strong>${auction.title}</strong> on RexBid.</p>
                             <p>We'll notify you immediately if you are outbid or when the auction ends.</p>
                             
                             <div style="text-align: center; margin: 25px 0;">
@@ -514,12 +514,12 @@ const bidConfirmationEmail = async (
                                 </a>
                             </div>
                             
-                            <p><strong>Important:</strong> Remember that auctions on BidNordic use automatic extension. If a bid is placed in the last 2 minutes, the auction extends by 2 minutes to ensure fair bidding.</p>
+                            <p><strong>Important:</strong> Remember that auctions on RexBid use automatic extension. If a bid is placed in the last 2 minutes, the auction extends by 2 minutes to ensure fair bidding.</p>
                         </div>
                         
                         <div class="footer">
-                            <p class="footer-text">This is an automated confirmation from BidNordic.</p>
-                            <p class="footer-text">© ${new Date().getFullYear()} BidNordic. All rights reserved.</p>
+                            <p class="footer-text">This is an automated confirmation from RexBid.</p>
+                            <p class="footer-text">© ${new Date().getFullYear()} RexBid. All rights reserved.</p>
                             <p class="footer-text">Happy Bidding! Your next great find awaits.</p>
                         </div>
                     </div>
@@ -545,7 +545,7 @@ const offerConfirmationEmail = async (
 ) => {
     try {
         const info = await transporter.sendMail({
-            from: `"BidNordic" <${process.env.EMAIL_USER}>`,
+            from: `"RexBid" <${process.env.EMAIL_USER}>`,
             to: userEmail,
             subject: `Offer Submitted - ${auction.title}`,
             html: `
@@ -587,10 +587,10 @@ const offerConfirmationEmail = async (
                     <div class="container">
                         <div class="header">
                             <div class="logo-container">
-                                <img src="${process.env.FRONTEND_URL}/logo.png" alt="BidNordic Logo" class="logo">
+                                <img src="${process.env.FRONTEND_URL}/logo.png" alt="RexBid Logo" class="logo">
                             </div>
-                            <div class="brand-name">BidNordic</div>
-                            <div class="tagline">Nordic Online Auctions</div>
+                            <div class="brand-name">RexBid</div>
+                            <div class="tagline">Ireland’s Marketplace for Machinery & Commercials</div>
                         </div>
                         
                         <div class="content">
@@ -638,13 +638,13 @@ const offerConfirmationEmail = async (
                             </div>
                             
                             <p>Dear <span class="highlight">${userName}</span>,</p>
-                            <p>Thank you for submitting your offer for the <strong>${auction.title}</strong> on BidNordic.</p>
+                            <p>Thank you for submitting your offer for the <strong>${auction.title}</strong> on RexBid.</p>
                             <p>We have notified the seller of your offer and they have 48 hours to respond.</p>
                         </div>
                         
                         <div class="footer">
-                            <p class="footer-text">This is an automated confirmation from BidNordic.</p>
-                            <p class="footer-text">© ${new Date().getFullYear()} BidNordic. All rights reserved.</p>
+                            <p class="footer-text">This is an automated confirmation from RexBid.</p>
+                            <p class="footer-text">© ${new Date().getFullYear()} RexBid. All rights reserved.</p>
                             <p class="footer-text">Your next great find is just an offer away!</p>
                         </div>
                     </div>
@@ -670,7 +670,7 @@ const outbidNotificationEmail = async (
 ) => {
     try {
         const info = await transporter.sendMail({
-            from: `"BidNordic" <${process.env.EMAIL_USER}>`,
+            from: `"RexBid" <${process.env.EMAIL_USER}>`,
             to: userEmail,
             subject: `🚨 You've Been Outbid - ${auction.title}`,
             html: `
@@ -747,10 +747,10 @@ const outbidNotificationEmail = async (
                     <div class="container">
                         <div class="header">
                             <div class="logo-container">
-                                <img src="${process.env.FRONTEND_URL}/logo.png" alt="BidNordic Logo" class="logo">
+                                <img src="${process.env.FRONTEND_URL}/logo.png" alt="RexBid Logo" class="logo">
                             </div>
-                            <div class="brand-name">BidNordic</div>
-                            <div class="tagline">Nordic Online Auctions</div>
+                            <div class="brand-name">RexBid</div>
+                            <div class="tagline">Ireland’s Marketplace for Machinery & Commercials</div>
                         </div>
                         
                         <div class="content">
@@ -822,7 +822,7 @@ const outbidNotificationEmail = async (
                             
                             <div class="tip-box">
                                 <div class="tip-title">💡 Quick Tip:</div>
-                                <p>For a better chance to win, consider placing a bid that's significantly higher than the current bid. Remember, auctions on BidNordic use automatic extension - if a bid is placed in the last 2 minutes, the auction extends by 2 minutes.</p>
+                                <p>For a better chance to win, consider placing a bid that's significantly higher than the current bid. Remember, auctions on RexBid use automatic extension - if a bid is placed in the last 2 minutes, the auction extends by 2 minutes.</p>
                             </div>
                             
                             <p>Dear <span class="highlight">${userName}</span>,</p>
@@ -832,9 +832,9 @@ const outbidNotificationEmail = async (
                         
                         <div class="footer">
                             <p class="footer-text">You're receiving this email because you placed a bid on ${auction.title}.</p>
-                            <p class="footer-text">This is an automated notification from BidNordic.</p>
-                            <p class="footer-text">© ${new Date().getFullYear()} BidNordic. All rights reserved.</p>
-                            <p class="footer-text">Need help? Contact support at ${process.env.EMAIL_USER || 'admin@bidnordic.com'}</p>
+                            <p class="footer-text">This is an automated notification from RexBid.</p>
+                            <p class="footer-text">© ${new Date().getFullYear()} RexBid. All rights reserved.</p>
+                            <p class="footer-text">Need help? Contact support at ${process.env.EMAIL_USER || 'admin@rexbid.ie'}</p>
                         </div>
                     </div>
                 </body>
@@ -963,7 +963,7 @@ const sendAuctionWonEmail = async (auction) => {
         }
 
         const info = await transporter.sendMail({
-            from: `"BidNordic" <${process.env.EMAIL_USER}>`,
+            from: `"RexBid" <${process.env.EMAIL_USER}>`,
             to: auction?.winner?.email,
             subject: `Invoice - ${auction?.title}`,
             html: `
@@ -1028,12 +1028,12 @@ const sendAuctionWonEmail = async (auction) => {
                     <div class="container">
                         <!-- Company Header -->
                         <div class="header">
-                            <div class="company-name">BidNordic</div>
+                            <div class="company-name">RexBid</div>
                             <div class="company-address">
-                                Norway
+                                Cavan, Ireland
                             </div>
                             <div class="contact-info">
-                                Web: https://www.bidnordic.com | Email: admin@bidnordic.com
+                                Web: https://www.rexbid.ie | Email: admin@rexbid.ie
                             </div>
                         </div>
                         
@@ -1114,7 +1114,7 @@ const sendAuctionWonEmail = async (auction) => {
                             <p>Please transfer the total amount to the following account:</p>
                             <div class="bank-details">
                                 <div class="detail-row">
-                                    <span class="detail-label">Account name:</span> BidNordic AB
+                                    <span class="detail-label">Account name:</span> RexBid AB
                                 </div>
                                 <div class="detail-row">
                                     <span class="detail-label">Bank:</span> Swedbank
@@ -1147,17 +1147,17 @@ const sendAuctionWonEmail = async (auction) => {
                         <div class="cta-section">
                             <p>Once payment is confirmed, our team will contact you within 24-48 hours.</p>
                             <p>
-                                <a href="mailto:admin@bidnordic.com?subject=Payment%20Confirmation%20-%20${auction?.title}" class="cta-button">CONFIRM PAYMENT</a>
+                                <a href="mailto:admin@rexbid.ie?subject=Payment%20Confirmation%20-%20${auction?.title}" class="cta-button">CONFIRM PAYMENT</a>
                             </p>
                             <p style="font-size: 12px; color: #666;">
-                                Questions? Contact <a href="mailto:admin@bidnordic.com" class="support-link">admin@bidnordic.com</a>
+                                Questions? Contact <a href="mailto:admin@rexbid.ie" class="support-link">admin@rexbid.ie</a>
                             </p>
                         </div>
                         
                         <!-- Footer -->
                         <div class="footer">
                             <div class="footer-company">
-                                BidNordic © ${new Date().getFullYear()}
+                                RexBid © ${new Date().getFullYear()}
                             </div>
                         </div>
                     </div>
@@ -1197,7 +1197,7 @@ const sendAuctionEndedSellerEmail = async (auction) => {
                 : "Listing ended without sale";
 
         const info = await transporter.sendMail({
-            from: `"BidNordic" <${process.env.EMAIL_USER}>`,
+            from: `"RexBid" <${process.env.EMAIL_USER}>`,
             to: auction?.seller?.email,
             subject: `Your Listing Has Ended - ${auction?.title}`,
             html: `
@@ -1262,10 +1262,10 @@ const sendAuctionEndedSellerEmail = async (auction) => {
                     <div class="container">
                         <div class="header">
                             <div class="logo-container">
-                                <img src="${process.env.FRONTEND_URL}/logo.png" alt="BidNordic Logo" class="logo">
+                                <img src="${process.env.FRONTEND_URL}/logo.png" alt="RexBid Logo" class="logo">
                             </div>
-                            <div class="brand-name">BidNordic</div>
-                            <div class="tagline">Nordic Online Auctions</div>
+                            <div class="brand-name">RexBid</div>
+                            <div class="tagline">Ireland’s Marketplace for Machinery & Commercials</div>
                         </div>
                         
                         <div class="content">
@@ -1348,14 +1348,14 @@ const sendAuctionEndedSellerEmail = async (auction) => {
                             `}
                             
                             <p>Dear <span class="highlight">${auction?.seller?.firstName || auction?.seller?.username}</span>,</p>
-                            <p>Your listing for the <strong>${auction?.title}</strong> on BidNordic has ended.</p>
+                            <p>Your listing for the <strong>${auction?.title}</strong> on RexBid has ended.</p>
                             <p>For any questions about the sale process or assistance, please contact our support team.</p>
                         </div>
                         
                         <div class="footer">
-                            <p class="footer-text">This is an automated notification from BidNordic.</p>
-                            <p class="footer-text">© ${new Date().getFullYear()} BidNordic. All rights reserved.</p>
-                            <p class="footer-text">Need help? Contact support at ${process.env.EMAIL_USER || "admin@bidnordic.com"}</p>
+                            <p class="footer-text">This is an automated notification from RexBid.</p>
+                            <p class="footer-text">© ${new Date().getFullYear()} RexBid. All rights reserved.</p>
+                            <p class="footer-text">Need help? Contact support at ${process.env.EMAIL_USER || "admin@rexbid.ie"}</p>
                         </div>
                     </div>
                 </body>
@@ -1375,9 +1375,9 @@ const sendAuctionEndedSellerEmail = async (auction) => {
 const auctionListedEmail = async (auction, seller) => {
     try {
         const info = await transporter.sendMail({
-            from: `"BidNordic" <${process.env.EMAIL_USER}>`,
+            from: `"RexBid" <${process.env.EMAIL_USER}>`,
             to: seller.email,
-            subject: `✅ Your Listing is Live on BidNordic: ${auction?.title}`,
+            subject: `✅ Your Listing is Live on RexBid: ${auction?.title}`,
             html: `
                 <!DOCTYPE html>
                 <html>
@@ -1461,20 +1461,20 @@ const auctionListedEmail = async (auction, seller) => {
                     <div class="container">
                         <div class="header">
                             <div class="logo-container">
-                                <img src="${process.env.FRONTEND_URL}/logo.png" alt="BidNordic Logo" class="logo">
+                                <img src="${process.env.FRONTEND_URL}/logo.png" alt="RexBid Logo" class="logo">
                             </div>
-                            <div class="brand-name">BidNordic</div>
-                            <div class="tagline">Nordic Online Auctions</div>
+                            <div class="brand-name">RexBid</div>
+                            <div class="tagline">Ireland’s Marketplace for Machinery & Commercials</div>
                         </div>
                         
                         <div class="content">
                             <div class="confirmation-box">
                                 <div class="confirmation-title">📦 YOUR LISTING IS NOW LIVE!</div>
-                                <p style="font-size: 18px; color: #155724;">Your item is now available on BidNordic</p>
+                                <p style="font-size: 18px; color: #155724;">Your item is now available on RexBid</p>
                             </div>
                             
                             <p>Dear <span class="highlight">${seller?.firstName || seller?.username}</span>,</p>
-                            <p>Great news! Your listing is now active and visible to thousands of potential buyers on BidNordic.</p>
+                            <p>Great news! Your listing is now active and visible to thousands of potential buyers on RexBid.</p>
                             
                             <div class="item-details">
                                 <div class="item-title">${auction?.title}</div>
@@ -1531,8 +1531,8 @@ const auctionListedEmail = async (auction, seller) => {
                         </div>
                         
                         <div class="footer">
-                            <p class="footer-text">This is an automated confirmation from BidNordic.</p>
-                            <p class="footer-text">© ${new Date().getFullYear()} BidNordic. All rights reserved.</p>
+                            <p class="footer-text">This is an automated confirmation from RexBid.</p>
+                            <p class="footer-text">© ${new Date().getFullYear()} RexBid. All rights reserved.</p>
                             <p class="footer-text">Need assistance? Contact our seller support team.</p>
                         </div>
                     </div>
@@ -1557,7 +1557,7 @@ const auctionEndingSoonEmail = async (
 ) => {
     try {
         const info = await transporter.sendMail({
-            from: `"BidNordic" <${process.env.EMAIL_USER}>`,
+            from: `"RexBid" <${process.env.EMAIL_USER}>`,
             to: userEmail,
             subject: `⏰ Listing Expires Soon: ${auction?.title}`,
             html: `
@@ -1643,10 +1643,10 @@ const auctionEndingSoonEmail = async (
                     <div class="container">
                         <div class="header">
                             <div class="logo-container">
-                                <img src="${process.env.FRONTEND_URL}/logo.png" alt="BidNordic Logo" class="logo">
+                                <img src="${process.env.FRONTEND_URL}/logo.png" alt="RexBid Logo" class="logo">
                             </div>
-                            <div class="brand-name">BidNordic</div>
-                            <div class="tagline">Nordic Online Auctions</div>
+                            <div class="brand-name">RexBid</div>
+                            <div class="tagline">Ireland’s Marketplace for Machinery & Commercials</div>
                         </div>
                         
                         <div class="content">
@@ -1731,7 +1731,7 @@ const auctionEndingSoonEmail = async (
                         
                         <div class="footer">
                             <p class="footer-text">You're receiving this email because you showed interest in this item.</p>
-                            <p class="footer-text">© ${new Date().getFullYear()} BidNordic. All rights reserved.</p>
+                            <p class="footer-text">© ${new Date().getFullYear()} RexBid. All rights reserved.</p>
                             <p class="footer-text">Don't miss out - act before time runs out!</p>
                         </div>
                     </div>
@@ -1750,7 +1750,7 @@ const auctionEndingSoonEmail = async (
 const paymentSuccessEmail = async (user, auction, paymentAmount) => {
     try {
         const info = await transporter.sendMail({
-            from: `"BidNordic" <${process.env.EMAIL_USER}>`,
+            from: `"RexBid" <${process.env.EMAIL_USER}>`,
             to: user.email,
             subject: `Payment Confirmed - ${auction.title}`,
             html: `
@@ -1770,8 +1770,8 @@ const paymentSuccessEmail = async (user, auction, paymentAmount) => {
                 <body>
                     <div class="container">
                         <div class="confirmation">
-                            <img src="${process.env.FRONTEND_URL}/logo.png" alt="BidNordic Logo" class="logo">
-                            <div class="brand-name">BidNordic</div>
+                            <img src="${process.env.FRONTEND_URL}/logo.png" alt="RexBid Logo" class="logo">
+                            <div class="brand-name">RexBid</div>
                             <h2>✅ Payment Successful</h2>
                             <p>Your payment has been processed successfully</p>
                         </div>
@@ -1825,7 +1825,7 @@ const paymentCompletedEmail = async (user, auction, paymentAmount) => {
         }
 
         const info = await transporter.sendMail({
-            from: `"BidNordic" <${process.env.EMAIL_USER}>`,
+            from: `"RexBid" <${process.env.EMAIL_USER}>`,
             to: user?.email,
             subject: `✅ Payment Confirmed - ${auction?.title}`,
             html: `
@@ -1894,8 +1894,8 @@ const paymentCompletedEmail = async (user, auction, paymentAmount) => {
                 <body>
                     <div class="container">
                         <div class="header">
-                            <div class="brand-name">BidNordic</div>
-                            <div class="tagline">Nordic Online Auctions</div>
+                            <div class="brand-name">RexBid</div>
+                            <div class="tagline">Ireland’s Marketplace for Machinery & Commercials</div>
                         </div>
                         
                         <div class="content">
@@ -1970,9 +1970,9 @@ const paymentCompletedEmail = async (user, auction, paymentAmount) => {
                         </div>
                         
                         <div class="footer">
-                            <p class="footer-text">This payment confirmation was sent by BidNordic.</p>
-                            <p class="footer-text">© ${new Date().getFullYear()} BidNordic. All rights reserved.</p>
-                            <p class="footer-text">Need assistance? Contact us at ${process.env.EMAIL_USER || "support@bidnordic.com"}</p>
+                            <p class="footer-text">This payment confirmation was sent by RexBid.</p>
+                            <p class="footer-text">© ${new Date().getFullYear()} RexBid. All rights reserved.</p>
+                            <p class="footer-text">Need assistance? Contact us at ${process.env.EMAIL_USER || "support@rexbid.ie"}</p>
                         </div>
                     </div>
                 </body>
@@ -1993,7 +1993,7 @@ const paymentCompletedSellerEmail = async (seller, auction, buyer) => {
         const finalPrice = auction?.finalPrice || auction?.currentPrice || 0;
 
         const info = await transporter.sendMail({
-            from: `"BidNordic" <${process.env.EMAIL_USER}>`,
+            from: `"RexBid" <${process.env.EMAIL_USER}>`,
             to: seller?.email,
             subject: `💰 Payment Received - ${auction?.title}`,
             html: `
@@ -2061,8 +2061,8 @@ const paymentCompletedSellerEmail = async (seller, auction, buyer) => {
                 <body>
                     <div class="container">
                         <div class="header">
-                            <div class="brand-name">BidNordic</div>
-                            <div class="tagline">Nordic Online Auctions</div>
+                            <div class="brand-name">RexBid</div>
+                            <div class="tagline">Ireland’s Marketplace for Machinery & Commercials</div>
                         </div>
                         
                         <div class="content">
@@ -2128,9 +2128,9 @@ const paymentCompletedSellerEmail = async (seller, auction, buyer) => {
                         </div>
                         
                         <div class="footer">
-                            <p class="footer-text">This payment confirmation was sent by BidNordic.</p>
-                            <p class="footer-text">© ${new Date().getFullYear()} BidNordic. All rights reserved.</p>
-                            <p class="footer-text">Need assistance? Contact us at ${process.env.EMAIL_USER || "support@bidnordic.com"}</p>
+                            <p class="footer-text">This payment confirmation was sent by RexBid.</p>
+                            <p class="footer-text">© ${new Date().getFullYear()} RexBid. All rights reserved.</p>
+                            <p class="footer-text">Need assistance? Contact us at ${process.env.EMAIL_USER || "support@rexbid.ie"}</p>
                         </div>
                     </div>
                 </body>
@@ -2149,9 +2149,9 @@ const paymentCompletedSellerEmail = async (seller, auction, buyer) => {
 const welcomeEmail = async (user) => {
     try {
         const info = await transporter.sendMail({
-            from: `"BidNordic" <${process.env.EMAIL_USER}>`,
+            from: `"RexBid" <${process.env.EMAIL_USER}>`,
             to: user.email,
-            subject: `👋 Welcome to BidNordic!`,
+            subject: `👋 Welcome to RexBid!`,
             html: `
                 <!DOCTYPE html>
                 <html>
@@ -2215,23 +2215,23 @@ const welcomeEmail = async (user) => {
                     <div class="container">
                         <div class="header">
                             <div class="logo-container">
-                                <img src="${process.env.FRONTEND_URL}/logo.png" alt="BidNordic Logo" class="logo">
+                                <img src="${process.env.FRONTEND_URL}/logo.png" alt="RexBid Logo" class="logo">
                             </div>
-                            <div class="brand-name">BidNordic</div>
-                            <div class="tagline">Nordic Online Auctions</div>
+                            <div class="brand-name">RexBid</div>
+                            <div class="tagline">Ireland’s Marketplace for Machinery & Commercials</div>
                         </div>
                         
                         <div class="content">
                             <div class="welcome-box">
-                                <div class="welcome-title">👋 WELCOME TO BIDNORDIC!</div>
-                                <p style="font-size: 18px; color: #1e2d3b;">Your premier destination for online auctions in the Nordics</p>
+                                <div class="welcome-title">👋 WELCOME TO REXBID!</div>
+                                <p style="font-size: 18px; color: #1e2d3b;">Ireland’s Marketplace for Machinery & Commercials</p>
                             </div>
                             
                             <div class="user-greeting">
                                 Hello <span>${user.firstName || user.username}</span>!
                             </div>
                             
-                            <p>We're thrilled to welcome you to BidNordic, where you'll discover exceptional items and great deals across multiple categories. Your account has been successfully created.</p>
+                            <p>We're thrilled to welcome you to RexBid, where you'll discover exceptional items and great deals across multiple categories. Your account has been successfully created.</p>
                             
                             <div class="features-box">
                                 <div class="features-title">🎯 GET STARTED TODAY</div>
@@ -2273,7 +2273,7 @@ const welcomeEmail = async (user) => {
                             
                             <div class="cta-box">
                                 <div class="cta-title">🚀 READY TO EXPLORE?</div>
-                                <p>Start browsing our diverse selection of items or complete your profile to get the most out of your BidNordic experience.</p>
+                                <p>Start browsing our diverse selection of items or complete your profile to get the most out of your RexBid experience.</p>
                                 <p style="margin: 15px 0;">
                                     <a href="${process.env.FRONTEND_URL}/${user?.userType}/profile" class="cta-button">GO TO PROFILE</a>
                                 </p>
@@ -2286,9 +2286,9 @@ const welcomeEmail = async (user) => {
                         </div>
                         
                         <div class="footer">
-                            <p class="footer-text">Welcome to the BidNordic community - where your next great find awaits!</p>
-                            <p class="footer-text">© ${new Date().getFullYear()} BidNordic. All rights reserved.</p>
-                            <p class="footer-text">Questions? Contact us at ${process.env.EMAIL_USER || "admin@bidnordic.com"}</p>
+                            <p class="footer-text">Welcome to the RexBid community - where your next great find awaits!</p>
+                            <p class="footer-text">© ${new Date().getFullYear()} RexBid. All rights reserved.</p>
+                            <p class="footer-text">Questions? Contact us at ${process.env.EMAIL_USER || "admin@rexbid.ie"}</p>
                         </div>
                     </div>
                 </body>
@@ -2307,9 +2307,9 @@ const welcomeEmail = async (user) => {
 const resetPasswordEmail = async (email, url) => {
     try {
         const info = await transporter.sendMail({
-            from: `"BidNordic" <${process.env.EMAIL_USER}>`,
+            from: `"RexBid" <${process.env.EMAIL_USER}>`,
             to: email,
-            subject: `🔒 Reset Your BidNordic Password`,
+            subject: `🔒 Reset Your RexBid Password`,
             html: `
                 <!DOCTYPE html>
                 <html>
@@ -2372,16 +2372,16 @@ const resetPasswordEmail = async (email, url) => {
                     <div class="container">
                         <div class="header">
                             <div class="logo-container">
-                                <img src="${process.env.FRONTEND_URL}/logo.png" alt="BidNordic Logo" class="logo">
+                                <img src="${process.env.FRONTEND_URL}/logo.png" alt="RexBid Logo" class="logo">
                             </div>
-                            <div class="brand-name">BidNordic</div>
-                            <div class="tagline">Nordic Online Auctions</div>
+                            <div class="brand-name">RexBid</div>
+                            <div class="tagline">Ireland’s Marketplace for Machinery & Commercials</div>
                         </div>
                         
                         <div class="content">
                             <div class="security-box">
                                 <div class="security-title">🔒 PASSWORD RESET REQUEST</div>
-                                <p style="font-size: 18px; color: #1e2d3b;">We received a request to reset your BidNordic password</p>
+                                <p style="font-size: 18px; color: #1e2d3b;">We received a request to reset your RexBid password</p>
                             </div>
                             
                             <div class="instruction-box">
@@ -2415,12 +2415,12 @@ const resetPasswordEmail = async (email, url) => {
                                 <p>• Don't reuse passwords from other websites</p>
                             </div>
                             
-                            <p>After resetting your password, you can log in to your BidNordic account and continue browsing our diverse selection of items.</p>
+                            <p>After resetting your password, you can log in to your RexBid account and continue browsing our diverse selection of items.</p>
                         </div>
                         
                         <div class="footer">
-                            <p class="footer-text">This is an automated security email from BidNordic.</p>
-                            <p class="footer-text">© ${new Date().getFullYear()} BidNordic. All rights reserved.</p>
+                            <p class="footer-text">This is an automated security email from RexBid.</p>
+                            <p class="footer-text">© ${new Date().getFullYear()} RexBid. All rights reserved.</p>
                             <p class="footer-text">If you need further assistance, contact our support team.</p>
                         </div>
                     </div>
@@ -2438,7 +2438,7 @@ const resetPasswordEmail = async (email, url) => {
 const newUserRegistrationEmail = async (adminEmail, user) => {
     try {
         const info = await transporter.sendMail({
-            from: `"BidNordic" <${process.env.EMAIL_USER}>`,
+            from: `"RexBid" <${process.env.EMAIL_USER}>`,
             to: adminEmail,
             subject: `👤 New User Registration - ${user.userType || "Bidder"}`,
             html: `
@@ -2506,20 +2506,20 @@ const newUserRegistrationEmail = async (adminEmail, user) => {
                     <div class="container">
                         <div class="header">
                             <div class="logo-container">
-                                <img src="${process.env.FRONTEND_URL}/logo.png" alt="BidNordic Logo" class="logo">
+                                <img src="${process.env.FRONTEND_URL}/logo.png" alt="RexBid Logo" class="logo">
                             </div>
-                            <div class="brand-name">BidNordic</div>
-                            <div class="tagline">Nordic Online Auctions</div>
+                            <div class="brand-name">RexBid</div>
+                            <div class="tagline">Ireland’s Marketplace for Machinery & Commercials</div>
                         </div>
                         
                         <div class="content">
                             <div class="notification-box">
                                 <div class="notification-title">👤 NEW USER REGISTRATION</div>
-                                <p style="font-size: 18px; color: #1e2d3b;">A new user has joined BidNordic</p>
+                                <p style="font-size: 18px; color: #1e2d3b;">A new user has joined RexBid</p>
                             </div>
                             
                             <p><strong>Hello Admin,</strong></p>
-                            <p>A new user has successfully registered on BidNordic. Here are the user details:</p>
+                            <p>A new user has successfully registered on RexBid. Here are the user details:</p>
                             
                             <div class="user-card">
                                 <div class="user-title">USER INFORMATION</div>
@@ -2569,8 +2569,8 @@ const newUserRegistrationEmail = async (adminEmail, user) => {
                         </div>
                         
                         <div class="footer">
-                            <p class="footer-text">This is an automated notification from BidNordic Admin System.</p>
-                            <p class="footer-text">© ${new Date().getFullYear()} BidNordic. All rights reserved.</p>
+                            <p class="footer-text">This is an automated notification from RexBid Admin System.</p>
+                            <p class="footer-text">© ${new Date().getFullYear()} RexBid. All rights reserved.</p>
                             <p class="footer-text">You're receiving this email because you're an administrator.</p>
                         </div>
                     </div>
@@ -2590,7 +2590,7 @@ const newUserRegistrationEmail = async (adminEmail, user) => {
 const auctionWonAdminEmail = async (adminEmail, auction, buyer) => {
     try {
         const info = await transporter.sendMail({
-            from: `"BidNordic" <${process.env.EMAIL_USER}>`,
+            from: `"RexBid" <${process.env.EMAIL_USER}>`,
             to: adminEmail,
             subject: `🏆 Item Sold - ${auction?.title}`,
             html: `
@@ -2674,16 +2674,16 @@ const auctionWonAdminEmail = async (adminEmail, auction, buyer) => {
                     <div class="container">
                         <div class="header">
                             <div class="logo-container">
-                                <img src="${process.env.FRONTEND_URL}/logo.png" alt="BidNordic Logo" class="logo">
+                                <img src="${process.env.FRONTEND_URL}/logo.png" alt="RexBid Logo" class="logo">
                             </div>
-                            <div class="brand-name">BidNordic</div>
-                            <div class="tagline">Nordic Online Auctions</div>
+                            <div class="brand-name">RexBid</div>
+                            <div class="tagline">Ireland’s Marketplace for Machinery & Commercials</div>
                         </div>
                         
                         <div class="content">
                             <div class="success-box">
                                 <div class="success-title">🏆 ITEM SOLD!</div>
-                                <p style="font-size: 18px; color: #155724;">An item has been successfully sold on BidNordic</p>
+                                <p style="font-size: 18px; color: #155724;">An item has been successfully sold on RexBid</p>
                             </div>
                             
                             <p><strong>Hello Admin,</strong></p>
@@ -2774,8 +2774,8 @@ const auctionWonAdminEmail = async (adminEmail, auction, buyer) => {
                         </div>
                         
                         <div class="footer">
-                            <p class="footer-text">This is an automated notification from BidNordic Sales System.</p>
-                            <p class="footer-text">© ${new Date().getFullYear()} BidNordic. All rights reserved.</p>
+                            <p class="footer-text">This is an automated notification from RexBid Sales System.</p>
+                            <p class="footer-text">© ${new Date().getFullYear()} RexBid. All rights reserved.</p>
                             <p class="footer-text">You're receiving this email because you're an administrator.</p>
                         </div>
                     </div>
@@ -2843,7 +2843,7 @@ const auctionEndedAdminEmail = async (adminEmail, auction) => {
         const statusDetails = getStatusDetails(auction.status);
 
         const info = await transporter.sendMail({
-            from: `"BidNordic" <${process.env.EMAIL_USER}>`,
+            from: `"RexBid" <${process.env.EMAIL_USER}>`,
             to: adminEmail,
             subject: `${statusDetails.subject} - ${auction?.title}`,
             html: `
@@ -2929,10 +2929,10 @@ const auctionEndedAdminEmail = async (adminEmail, auction) => {
                     <div class="container">
                         <div class="header">
                             <div class="logo-container">
-                                <img src="${process.env.FRONTEND_URL}/logo.png" alt="BidNordic Logo" class="logo">
+                                <img src="${process.env.FRONTEND_URL}/logo.png" alt="RexBid Logo" class="logo">
                             </div>
-                            <div class="brand-name">BidNordic</div>
-                            <div class="tagline">Nordic Online Auctions</div>
+                            <div class="brand-name">RexBid</div>
+                            <div class="tagline">Ireland’s Marketplace for Machinery & Commercials</div>
                         </div>
                         
                         <div class="content">
@@ -2943,7 +2943,7 @@ const auctionEndedAdminEmail = async (adminEmail, auction) => {
                             </div>
                             
                             <p><strong>Hello Admin,</strong></p>
-                            <p>An auction listing on BidNordic has ended. Here are the details:</p>
+                            <p>An auction listing on RexBid has ended. Here are the details:</p>
                             
                             <div class="item-card">
                                 <div class="item-title">${auction.title}</div>
@@ -3034,8 +3034,8 @@ const auctionEndedAdminEmail = async (adminEmail, auction) => {
                         </div>
                         
                         <div class="footer">
-                            <p class="footer-text">This is an automated notification from BidNordic Admin System.</p>
-                            <p class="footer-text">© ${new Date().getFullYear()} BidNordic. All rights reserved.</p>
+                            <p class="footer-text">This is an automated notification from RexBid Admin System.</p>
+                            <p class="footer-text">© ${new Date().getFullYear()} RexBid. All rights reserved.</p>
                             <p class="footer-text">You're receiving this email because you're an administrator.</p>
                         </div>
                     </div>
@@ -3063,7 +3063,7 @@ const flaggedCommentAdminEmail = async (
 ) => {
     try {
         const info = await transporter.sendMail({
-            from: `"BidNordic" <${process.env.EMAIL_USER}>`,
+            from: `"RexBid" <${process.env.EMAIL_USER}>`,
             to: adminEmail,
             subject: `🚩 Flagged Comment - ${auction?.title}`,
             html: `
@@ -3147,10 +3147,10 @@ const flaggedCommentAdminEmail = async (
                     <div class="container">
                         <div class="header">
                             <div class="logo-container">
-                                <img src="${process.env.FRONTEND_URL}/logo.png" alt="BidNordic Logo" class="logo">
+                                <img src="${process.env.FRONTEND_URL}/logo.png" alt="RexBid Logo" class="logo">
                             </div>
-                            <div class="brand-name">BidNordic</div>
-                            <div class="tagline">Nordic Online Auctions</div>
+                            <div class="brand-name">RexBid</div>
+                            <div class="tagline">Ireland’s Marketplace for Machinery & Commercials</div>
                         </div>
                         
                         <div class="content">
@@ -3244,8 +3244,8 @@ const flaggedCommentAdminEmail = async (
                         </div>
                         
                         <div class="footer">
-                            <p class="footer-text">This is an automated notification from BidNordic Moderation System.</p>
-                            <p class="footer-text">© ${new Date().getFullYear()} BidNordic. All rights reserved.</p>
+                            <p class="footer-text">This is an automated notification from RexBid Moderation System.</p>
+                            <p class="footer-text">© ${new Date().getFullYear()} RexBid. All rights reserved.</p>
                             <p class="footer-text">You're receiving this email because you're a moderator/administrator.</p>
                         </div>
                     </div>
@@ -3268,7 +3268,7 @@ const flaggedCommentAdminEmail = async (
 const newCommentSellerEmail = async (seller, auction, comment, commentAuthor) => {
     try {
         const info = await transporter.sendMail({
-            from: `"BidNordic" <${process.env.EMAIL_USER}>`,
+            from: `"RexBid" <${process.env.EMAIL_USER}>`,
             to: seller?.email,
             subject: `💬 New Comment on Your Listing: ${auction.title}`,
             html: `
@@ -3359,10 +3359,10 @@ const newCommentSellerEmail = async (seller, auction, comment, commentAuthor) =>
                     <div class="container">
                         <div class="header">
                             <div class="logo-container">
-                                <img src="${process.env.FRONTEND_URL}/logo.png" alt="BidNordic Logo" class="logo">
+                                <img src="${process.env.FRONTEND_URL}/logo.png" alt="RexBid Logo" class="logo">
                             </div>
-                            <div class="brand-name">BidNordic</div>
-                            <div class="tagline">Nordic Online Auctions</div>
+                            <div class="brand-name">RexBid</div>
+                            <div class="tagline">Ireland’s Marketplace for Machinery & Commercials</div>
                         </div>
                         
                         <div class="content">
@@ -3424,7 +3424,7 @@ const newCommentSellerEmail = async (seller, auction, comment, commentAuthor) =>
                         
                         <div class="footer">
                             <p class="footer-text">You're receiving this email because you're the seller of this auction listing.</p>
-                            <p class="footer-text">© ${new Date().getFullYear()} BidNordic. All rights reserved.</p>
+                            <p class="footer-text">© ${new Date().getFullYear()} RexBid. All rights reserved.</p>
                         </div>
                     </div>
                 </body>
@@ -3443,7 +3443,7 @@ const newCommentSellerEmail = async (seller, auction, comment, commentAuthor) =>
 const newCommentBidderEmail = async (buyer, auction, comment, commentAuthor) => {
     try {
         const info = await transporter.sendMail({
-            from: `"BidNordic" <${process.env.EMAIL_USER}>`,
+            from: `"RexBid" <${process.env.EMAIL_USER}>`,
             to: buyer?.email,
             subject: `💬 New Activity on Auction: ${auction?.title}`,
             html: `
@@ -3543,10 +3543,10 @@ const newCommentBidderEmail = async (buyer, auction, comment, commentAuthor) => 
                     <div class="container">
                         <div class="header">
                             <div class="logo-container">
-                                <img src="${process.env.FRONTEND_URL}/logo.png" alt="BidNordic Logo" class="logo">
+                                <img src="${process.env.FRONTEND_URL}/logo.png" alt="RexBid Logo" class="logo">
                             </div>
-                            <div class="brand-name">BidNordic</div>
-                            <div class="tagline">Nordic Online Auctions</div>
+                            <div class="brand-name">RexBid</div>
+                            <div class="tagline">Ireland’s Marketplace for Machinery & Commercials</div>
                         </div>
                         
                         <div class="content">
@@ -3613,7 +3613,7 @@ const newCommentBidderEmail = async (buyer, auction, comment, commentAuthor) => 
                         
                         <div class="footer">
                             <p class="footer-text">You're receiving this email because you've shown interest in this auction.</p>
-                            <p class="footer-text">© ${new Date().getFullYear()} BidNordic. All rights reserved.</p>
+                            <p class="footer-text">© ${new Date().getFullYear()} RexBid. All rights reserved.</p>
                         </div>
                     </div>
                 </body>
@@ -3632,7 +3632,7 @@ const newCommentBidderEmail = async (buyer, auction, comment, commentAuthor) => 
 const auctionSubmittedForApprovalEmail = async (adminEmail, auction, seller) => {
     try {
         const info = await transporter.sendMail({
-            from: `"BidNordic" <${process.env.EMAIL_USER}>`,
+            from: `"RexBid" <${process.env.EMAIL_USER}>`,
             to: adminEmail,
             subject: `📝 New Listing for Approval - ${auction.title}`,
             html: `
@@ -3725,10 +3725,10 @@ const auctionSubmittedForApprovalEmail = async (adminEmail, auction, seller) => 
                     <div class="container">
                         <div class="header">
                             <div class="logo-container">
-                                <img src="${process.env.FRONTEND_URL}/logo.png" alt="BidNordic Logo" class="logo">
+                                <img src="${process.env.FRONTEND_URL}/logo.png" alt="RexBid Logo" class="logo">
                             </div>
-                            <div class="brand-name">BidNordic</div>
-                            <div class="tagline">Nordic Online Auctions</div>
+                            <div class="brand-name">RexBid</div>
+                            <div class="tagline">Ireland’s Marketplace for Machinery & Commercials</div>
                         </div>
                         
                         <div class="content">
@@ -3841,8 +3841,8 @@ const auctionSubmittedForApprovalEmail = async (adminEmail, auction, seller) => 
                         </div>
                         
                         <div class="footer">
-                            <p class="footer-text">This is an automated notification from BidNordic Listing Approval System.</p>
-                            <p class="footer-text">© ${new Date().getFullYear()} BidNordic. All rights reserved.</p>
+                            <p class="footer-text">This is an automated notification from RexBid Listing Approval System.</p>
+                            <p class="footer-text">© ${new Date().getFullYear()} RexBid. All rights reserved.</p>
                             <p class="footer-text">You're receiving this email because you're an administrator.</p>
                         </div>
                     </div>
@@ -3864,7 +3864,7 @@ const auctionSubmittedForApprovalEmail = async (adminEmail, auction, seller) => 
 const auctionApprovedEmail = async (seller, auction) => {
     try {
         const info = await transporter.sendMail({
-            from: `"BidNordic" <${process.env.EMAIL_USER}>`,
+            from: `"RexBid" <${process.env.EMAIL_USER}>`,
             to: seller.email,
             subject: `✅ Your Listing is Live: ${auction?.title}`,
             html: `
@@ -3948,10 +3948,10 @@ const auctionApprovedEmail = async (seller, auction) => {
                     <div class="container">
                         <div class="header">
                             <div class="logo-container">
-                                <img src="${process.env.FRONTEND_URL}/logo.png" alt="BidNordic Logo" class="logo">
+                                <img src="${process.env.FRONTEND_URL}/logo.png" alt="RexBid Logo" class="logo">
                             </div>
-                            <div class="brand-name">BidNordic</div>
-                            <div class="tagline">Nordic Online Auctions</div>
+                            <div class="brand-name">RexBid</div>
+                            <div class="tagline">Ireland’s Marketplace for Machinery & Commercials</div>
                         </div>
                         
                         <div class="content">
@@ -3961,7 +3961,7 @@ const auctionApprovedEmail = async (seller, auction) => {
                             </div>
                             
                             <p>Dear <span class="highlight">${seller?.firstName || seller?.username}</span>,</p>
-                            <p>Great news! Your listing has been approved and is now live on BidNordic.</p>
+                            <p>Great news! Your listing has been approved and is now live on RexBid.</p>
                             
                             <div class="item-card">
                                 <div class="item-title">${auction?.title}</div>
@@ -4023,8 +4023,8 @@ const auctionApprovedEmail = async (seller, auction) => {
                         </div>
                         
                         <div class="footer">
-                            <p class="footer-text">This is an automated notification from BidNordic.</p>
-                            <p class="footer-text">© ${new Date().getFullYear()} BidNordic. All rights reserved.</p>
+                            <p class="footer-text">This is an automated notification from RexBid.</p>
+                            <p class="footer-text">© ${new Date().getFullYear()} RexBid. All rights reserved.</p>
                             <p class="footer-text">Need assistance? Contact our seller support team.</p>
                         </div>
                     </div>
@@ -4069,7 +4069,7 @@ const newAuctionNotificationEmail = async (buyer, auction, seller) => {
             : "No end date set";
 
         const info = await transporter.sendMail({
-            from: `"BidNordic" <${process.env.EMAIL_USER}>`,
+            from: `"RexBid" <${process.env.EMAIL_USER}>`,
             to: buyer.email,
             subject: `🎯 New Auction: ${auction?.title}`,
             html: `
@@ -4191,16 +4191,16 @@ const newAuctionNotificationEmail = async (buyer, auction, seller) => {
                     <div class="container">
                         <div class="header">
                             <div class="logo-container">
-                                <img src="${process.env.FRONTEND_URL}/logo.png" alt="BidNordic Logo" class="logo">
+                                <img src="${process.env.FRONTEND_URL}/logo.png" alt="RexBid Logo" class="logo">
                             </div>
-                            <div class="brand-name">BidNordic</div>
-                            <div class="tagline">Nordic Online Auctions</div>
+                            <div class="brand-name">RexBid</div>
+                            <div class="tagline">Ireland’s Marketplace for Machinery & Commercials</div>
                             <div class="listing-badge">${listingStatus}</div>
                         </div>
                         
                         <div class="content">
                             <p>Dear <span class="highlight">${buyer?.firstName || buyer?.username}</span>,</p>
-                            <p>We're excited to let you know about a new auction listing on BidNordic that matches your interests!</p>
+                            <p>We're excited to let you know about a new auction listing on RexBid that matches your interests!</p>
                             
                             <div class="item-card">
                                 <div class="item-title">${auction?.title}</div>
@@ -4283,14 +4283,14 @@ const newAuctionNotificationEmail = async (buyer, auction, seller) => {
                             <ul>
                                 <li>Matches your saved preferences and search criteria</li>
                                 <li>Competitively priced in the current market</li>
-                                <li>From a verified seller on BidNordic</li>
+                                <li>From a verified seller on RexBid</li>
                                 <li>${auction?.buyNowPrice ? "Available for immediate purchase with Buy Now" : auction?.allowOffers ? "Open to offers and negotiations" : "Available for bidding"}</li>
                             </ul>
                         </div>
                         
                         <div class="footer">
-                            <p class="footer-text">You're receiving this email because you're a registered buyer on BidNordic.</p>
-                            <p class="footer-text">© ${new Date().getFullYear()} BidNordic. Nordic Online Auctions.</p>
+                            <p class="footer-text">You're receiving this email because you're a registered buyer on RexBid.</p>
+                            <p class="footer-text">© ${new Date().getFullYear()} RexBid. Ireland’s Marketplace for Machinery & Commercials.</p>
                         </div>
                     </div>
                 </body>
@@ -4364,7 +4364,7 @@ const sendBulkAuctionNotifications = async (buyers, auction, seller) => {
 const newBidNotificationEmail = async (seller, auction, bidAmount, bidder) => {
     try {
         const info = await transporter.sendMail({
-            from: `"BidNordic" <${process.env.EMAIL_USER}>`,
+            from: `"RexBid" <${process.env.EMAIL_USER}>`,
             to: seller.email,
             subject: `💰 New Bid Received - ${auction.title}`,
             html: `
@@ -4435,10 +4435,10 @@ const newBidNotificationEmail = async (seller, auction, bidAmount, bidder) => {
                     <div class="container">
                         <div class="header">
                             <div class="logo-container">
-                                <img src="${process.env.FRONTEND_URL}/logo.png" alt="BidNordic Logo" class="logo">
+                                <img src="${process.env.FRONTEND_URL}/logo.png" alt="RexBid Logo" class="logo">
                             </div>
-                            <div class="brand-name">BidNordic</div>
-                            <div class="tagline">Nordic Online Auctions</div>
+                            <div class="brand-name">RexBid</div>
+                            <div class="tagline">Ireland’s Marketplace for Machinery & Commercials</div>
                         </div>
                         
                         <div class="content">
@@ -4503,7 +4503,7 @@ const newBidNotificationEmail = async (seller, auction, bidAmount, bidder) => {
                         
                         <div class="footer">
                             <p class="footer-text">You're receiving this email because you're the seller of this auction.</p>
-                            <p class="footer-text">© ${new Date().getFullYear()} BidNordic. All rights reserved.</p>
+                            <p class="footer-text">© ${new Date().getFullYear()} RexBid. All rights reserved.</p>
                         </div>
                     </div>
                 </body>
@@ -4523,7 +4523,7 @@ const newBidNotificationEmail = async (seller, auction, bidAmount, bidder) => {
 const newOfferNotificationEmail = async (seller, auction, offerAmount, buyer) => {
     try {
         const info = await transporter.sendMail({
-            from: `"BidNordic" <${process.env.EMAIL_USER}>`,
+            from: `"RexBid" <${process.env.EMAIL_USER}>`,
             to: seller?.email,
             subject: `💰 New Offer Received - ${auction?.title}`,
             html: `
@@ -4613,10 +4613,10 @@ const newOfferNotificationEmail = async (seller, auction, offerAmount, buyer) =>
                     <div class="container">
                         <div class="header">
                             <div class="logo-container">
-                                <img src="${process.env.FRONTEND_URL}/logo.png" alt="BidNordic Logo" class="logo">
+                                <img src="${process.env.FRONTEND_URL}/logo.png" alt="RexBid Logo" class="logo">
                             </div>
-                            <div class="brand-name">BidNordic</div>
-                            <div class="tagline">Nordic Online Auctions</div>
+                            <div class="brand-name">RexBid</div>
+                            <div class="tagline">Ireland’s Marketplace for Machinery & Commercials</div>
                         </div>
                         
                         <div class="content">
@@ -4687,7 +4687,7 @@ const newOfferNotificationEmail = async (seller, auction, offerAmount, buyer) =>
                         
                         <div class="footer">
                             <p class="footer-text">You're receiving this email because you're the seller of this item.</p>
-                            <p class="footer-text">© ${new Date().getFullYear()} BidNordic. All rights reserved.</p>
+                            <p class="footer-text">© ${new Date().getFullYear()} RexBid. All rights reserved.</p>
                             <p class="footer-text">Respond quickly to maximize your chances of a successful sale!</p>
                         </div>
                     </div>
@@ -4714,7 +4714,7 @@ const offerCanceledEmail = async (
 ) => {
     try {
         const info = await transporter.sendMail({
-            from: `"BidNordic" <${process.env.EMAIL_USER}>`,
+            from: `"RexBid" <${process.env.EMAIL_USER}>`,
             to: buyerEmail,
             subject: `❌ Offer Canceled - ${auction?.title}`,
             html: `
@@ -4811,10 +4811,10 @@ const offerCanceledEmail = async (
                     <div class="container">
                         <div class="header">
                             <div class="logo-container">
-                                <img src="${process.env.FRONTEND_URL}/logo.png" alt="BidNordic Logo" class="logo">
+                                <img src="${process.env.FRONTEND_URL}/logo.png" alt="RexBid Logo" class="logo">
                             </div>
-                            <div class="brand-name">BidNordic</div>
-                            <div class="tagline">Nordic Online Auctions</div>
+                            <div class="brand-name">RexBid</div>
+                            <div class="tagline">Ireland’s Marketplace for Machinery & Commercials</div>
                         </div>
                         
                         <div class="content">
@@ -4878,7 +4878,7 @@ const offerCanceledEmail = async (
                             
                             <div class="cta-box">
                                 <div class="cta-title">🎯 FIND ANOTHER ITEM</div>
-                                <p>Continue your search for the perfect item. BidNordic has thousands of auctions waiting for you.</p>
+                                <p>Continue your search for the perfect item. RexBid has thousands of auctions waiting for you.</p>
                                 <p style="margin: 20px 0;">
                                     <a href="${process.env.FRONTEND_URL}/auctions" class="cta-button">BROWSE ALL AUCTIONS</a>
                                 </p>
@@ -4887,12 +4887,12 @@ const offerCanceledEmail = async (
                                 </div>
                             </div>
                             
-                            <p>Thank you for using BidNordic. We're here to help you find your next great find!</p>
+                            <p>Thank you for using RexBid. We're here to help you find your next great find!</p>
                         </div>
                         
                         <div class="footer">
-                            <p class="footer-text">This is an automated notification from BidNordic.</p>
-                            <p class="footer-text">© ${new Date().getFullYear()} BidNordic. All rights reserved.</p>
+                            <p class="footer-text">This is an automated notification from RexBid.</p>
+                            <p class="footer-text">© ${new Date().getFullYear()} RexBid. All rights reserved.</p>
                             <p class="footer-text">If you have questions about this cancellation, please contact our support team.</p>
                         </div>
                     </div>
@@ -4919,7 +4919,7 @@ const offerAcceptedEmail = async (
 ) => {
     try {
         const info = await transporter.sendMail({
-            from: `"BidNordic" <${process.env.EMAIL_USER}>`,
+            from: `"RexBid" <${process.env.EMAIL_USER}>`,
             to: buyerEmail,
             subject: `✅ Offer Accepted - ${auction?.title}`,
             html: `
@@ -5019,10 +5019,10 @@ const offerAcceptedEmail = async (
                     <div class="container">
                         <div class="header">
                             <div class="logo-container">
-                                <img src="${process.env.FRONTEND_URL}/logo.png" alt="BidNordic Logo" class="logo">
+                                <img src="${process.env.FRONTEND_URL}/logo.png" alt="RexBid Logo" class="logo">
                             </div>
-                            <div class="brand-name">BidNordic</div>
-                            <div class="tagline">Nordic Online Auctions</div>
+                            <div class="brand-name">RexBid</div>
+                            <div class="tagline">Ireland’s Marketplace for Machinery & Commercials</div>
                         </div>
                         
                         <div class="content">
@@ -5098,9 +5098,9 @@ const offerAcceptedEmail = async (
                         </div>
                         
                         <div class="footer">
-                            <p class="footer-text">Congratulations on your successful purchase! This is an automated confirmation from BidNordic.</p>
-                            <p class="footer-text">© ${new Date().getFullYear()} BidNordic. All rights reserved.</p>
-                            <p class="footer-text">Need assistance? Contact support at ${process.env.EMAIL_USER || "admin@bidnordic.com"}</p>
+                            <p class="footer-text">Congratulations on your successful purchase! This is an automated confirmation from RexBid.</p>
+                            <p class="footer-text">© ${new Date().getFullYear()} RexBid. All rights reserved.</p>
+                            <p class="footer-text">Need assistance? Contact support at ${process.env.EMAIL_USER || "admin@rexbid.ie"}</p>
                         </div>
                     </div>
                 </body>
@@ -5127,7 +5127,7 @@ const offerRejectedEmail = async (
 ) => {
     try {
         const info = await transporter.sendMail({
-            from: `"BidNordic" <${process.env.EMAIL_USER}>`,
+            from: `"RexBid" <${process.env.EMAIL_USER}>`,
             to: buyerEmail,
             subject: `❌ Offer Declined - ${auction?.title}`,
             html: `
@@ -5226,10 +5226,10 @@ const offerRejectedEmail = async (
                     <div class="container">
                         <div class="header">
                             <div class="logo-container">
-                                <img src="${process.env.FRONTEND_URL}/logo.png" alt="BidNordic Logo" class="logo">
+                                <img src="${process.env.FRONTEND_URL}/logo.png" alt="RexBid Logo" class="logo">
                             </div>
-                            <div class="brand-name">BidNordic</div>
-                            <div class="tagline">Nordic Online Auctions</div>
+                            <div class="brand-name">RexBid</div>
+                            <div class="tagline">Ireland’s Marketplace for Machinery & Commercials</div>
                         </div>
                         
                         <div class="content">
@@ -5240,7 +5240,7 @@ const offerRejectedEmail = async (
                             </div>
                             
                             <p>Dear <span class="highlight">${buyerName}</span>,</p>
-                            <p>We wanted to inform you that the seller has decided not to accept your offer on their item. This is a normal part of the negotiation process on BidNordic.</p>
+                            <p>We wanted to inform you that the seller has decided not to accept your offer on their item. This is a normal part of the negotiation process on RexBid.</p>
                             
                             ${reason ? `
                             <div class="reason-box">
@@ -5313,8 +5313,8 @@ const offerRejectedEmail = async (
                         </div>
                         
                         <div class="footer">
-                            <p class="footer-text">This is an automated notification from BidNordic.</p>
-                            <p class="footer-text">© ${new Date().getFullYear()} BidNordic. All rights reserved.</p>
+                            <p class="footer-text">This is an automated notification from RexBid.</p>
+                            <p class="footer-text">© ${new Date().getFullYear()} RexBid. All rights reserved.</p>
                             <p class="footer-text">If you have questions about this decision, you can contact the seller directly.</p>
                         </div>
                     </div>

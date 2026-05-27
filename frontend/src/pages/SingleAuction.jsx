@@ -1,4 +1,4 @@
-import { CalendarDays, CheckSquare, Clock, Download, File, Fuel, Gauge, Gavel, Heart, Loader, MapPin, MessageCircle, PaintBucket, Plane, ShieldCheck, Tag, User, Users, Weight, Zap, Banknote, MessageSquare, Mail, Phone, Star } from "lucide-react";
+import { CalendarDays, CheckSquare, Clock, Download, File, Fuel, Gauge, Gavel, Heart, Loader, MapPin, MessageCircle, PaintBucket, Plane, ShieldCheck, Tag, User, Users, Weight, Zap, Banknote, MessageSquare, Mail, Phone, Star, CreditCard } from "lucide-react";
 import { BidConfirmationModal, BuyNowModal, Container, LoadingSpinner, MobileBidStickyBar, RatingStars, ReviewModal, SellerStatsCard, SpecificationsSection, TabSection, TimerDisplay, WatchlistButton } from "../components";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { lazy, Suspense, useRef, useState, useEffect } from "react";
@@ -469,7 +469,7 @@ function SingleAuction() {
 
                 {/* Image section */}
                 {/* <Suspense fallback={<LoadingSpinner />}> */}
-                <ImageLightBox images={auction.photos} auctionType={auction?.auctionType} isReserveMet={auction.currentPrice >= auction.reservePrice} />
+                <ImageLightBox isFeatured={auction.isFeatured} images={auction.photos} auctionType={auction?.auctionType} isReserveMet={auction.currentPrice >= auction.reservePrice} />
                 {/* </Suspense> */}
 
                 <hr className="my-8" />
@@ -941,6 +941,18 @@ function SingleAuction() {
                                         />
                                     </Suspense>
                                 </>
+                            )}
+
+                            {/* Make Payment Button for sold auctions */}
+                            {auction.status === 'sold' && user && (user._id === auction.winner?._id) && (
+                                <button
+                                    onClick={() => {
+                                        navigate(`/checkout/${auction?._id}`)
+                                    }}
+                                    className="w-full bg-green-600 text-white py-3 px-6 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
+                                >
+                                    <CreditCard size={18} /> Pay Now
+                                </button>
                             )}
 
                             {/* Review Button for sold auctions */}

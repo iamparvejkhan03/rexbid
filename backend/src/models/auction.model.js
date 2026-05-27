@@ -229,6 +229,15 @@ const auctionSchema = new Schema(
       default: 0,
     },
 
+    isFeatured: {
+      type: Boolean,
+      default: false,
+    },
+    featuredPremiumAmount: {
+      type: Number,
+      default: 0,
+    },
+
     // Offers - NEW: Array of offers
     offers: [offerSchema],
 
@@ -503,10 +512,11 @@ auctionSchema.methods.buyNow = async function (buyerId, buyerUsername) {
 
   // Calculate and store commission (only for non-giveaway)
   if (this.auctionType !== "giveaway") {
-    const commissionData = await calculateCommission(this.finalPrice);
+    const commissionData = await calculateCommission(this.finalPrice, this.isFeatured);
     this.commissionAmount = commissionData.commissionAmount;
     this.commissionType = commissionData.commissionType;
     this.commissionValue = commissionData.commissionValue;
+    this.featuredPremiumAmount = commissionData.featuredPremium; // NEW
   }
 
   // Reject all pending offers (if any)
@@ -605,10 +615,11 @@ auctionSchema.methods.respondToOffer = async function (
       this.endDate = new Date(); // End auction immediately
 
       // Calculate and store commission
-      const commissionData = await calculateCommission(this.finalPrice);
+      const commissionData = await calculateCommission(this.finalPrice, this.isFeatured);
       this.commissionAmount = commissionData.commissionAmount;
       this.commissionType = commissionData.commissionType;
       this.commissionValue = commissionData.commissionValue;
+      this.featuredPremiumAmount = commissionData.featuredPremium;
 
       // Reject all other pending offers
       this.offers.forEach((o) => {
@@ -673,10 +684,11 @@ auctionSchema.methods.respondToCounterOffer = async function (offerId, accept) {
     this.endDate = new Date();
 
     // Calculate and store commission
-    const commissionData = await calculateCommission(this.finalPrice);
+    const commissionData = await calculateCommission(this.finalPrice, this.isFeatured);
     this.commissionAmount = commissionData.commissionAmount;
     this.commissionType = commissionData.commissionType;
     this.commissionValue = commissionData.commissionValue;
+    this.featuredPremiumAmount = commissionData.featuredPremium;
 
     // Reject all other pending offers
     this.offers.forEach((o) => {
@@ -752,11 +764,9 @@ auctionSchema.methods.reactivateAndAcceptOffer = async function (
   // Reactivate and accept the offer
   const previousResponse = offer.sellerResponse || "";
   offer.status = "accepted";
-  offer.sellerResponse = `${
-    previousResponse ? previousResponse + " | " : ""
-  }Reactivated and accepted by ${
-    isAdmin ? "admin" : "seller"
-  } on ${new Date().toLocaleDateString()}`;
+  offer.sellerResponse = `${previousResponse ? previousResponse + " | " : ""
+    }Reactivated and accepted by ${isAdmin ? "admin" : "seller"
+    } on ${new Date().toLocaleDateString()}`;
   offer.reactivatedAt = new Date();
 
   // Update auction details
@@ -768,10 +778,11 @@ auctionSchema.methods.reactivateAndAcceptOffer = async function (
   this.endDate = new Date();
 
   // Calculate and store commission
-  const commissionData = await calculateCommission(this.finalPrice);
+  const commissionData = await calculateCommission(this.finalPrice, this.isFeatured);
   this.commissionAmount = commissionData.commissionAmount;
   this.commissionType = commissionData.commissionType;
   this.commissionValue = commissionData.commissionValue;
+  this.featuredPremiumAmount = commissionData.featuredPremium;
 
   // Reject all other pending offers
   this.offers.forEach((o) => {
@@ -864,10 +875,12 @@ auctionSchema.methods.endAuction = async function () {
       wasSold = true;
 
       // Calculate and store commission
-      const commissionData = await calculateCommission(this.finalPrice);
+      const commissionData = await calculateCommission(this.finalPrice, this.isFeatured);
       this.commissionAmount = commissionData.commissionAmount;
       this.commissionType = commissionData.commissionType;
       this.commissionValue = commissionData.commissionValue;
+      this.featuredPremiumAmount = commissionData.featuredPremium;
+
     } else if (this.auctionType === "reserve") {
       // Reserve auction - check if reserve is met
       if (this.isReserveMet()) {
@@ -877,10 +890,11 @@ auctionSchema.methods.endAuction = async function () {
         wasSold = true;
 
         // Calculate and store commission
-        const commissionData = await calculateCommission(this.finalPrice);
+        const commissionData = await calculateCommission(this.finalPrice, this.isFeatured);
         this.commissionAmount = commissionData.commissionAmount;
         this.commissionType = commissionData.commissionType;
         this.commissionValue = commissionData.commissionValue;
+        this.featuredPremiumAmount = commissionData.featuredPremium;
       } else {
         this.status = "reserve_not_met";
       }
@@ -893,10 +907,12 @@ auctionSchema.methods.endAuction = async function () {
         wasSold = true;
 
         // Calculate and store commission
-        const commissionData = await calculateCommission(this.finalPrice);
+        const commissionData = await calculateCommission(this.finalPrice, this.isFeatured);
         this.commissionAmount = commissionData.commissionAmount;
         this.commissionType = commissionData.commissionType;
         this.commissionValue = commissionData.commissionValue;
+        this.featuredPremiumAmount = commissionData.featuredPremium;
+
       } else {
         this.status = "ended";
       }

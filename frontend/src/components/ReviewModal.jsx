@@ -70,14 +70,14 @@ const ReviewModal = ({ isOpen, onClose, auctionId, revieweeId, onSuccess }) => {
                             value={comment}
                             onChange={(e) => setComment(e.target.value)}
                             rows="4"
-                            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#D19F3E]"
                             placeholder="Share your experience..."
                         />
                     </div>
                     <button
                         type="submit"
                         disabled={loading}
-                        className="w-full bg-orange-500 text-white py-2 rounded-md hover:bg-orange-600 disabled:opacity-50"
+                        className="w-full bg-[#D19F3E] text-white py-2 rounded-md hover:bg-[#E8B86B] disabled:opacity-50"
                     >
                         {loading ? "Submitting..." : "Submit Review"}
                     </button>

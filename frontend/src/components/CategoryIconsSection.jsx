@@ -1,9 +1,8 @@
-import { useState, useEffect, lazy, Suspense } from 'react';
-import { Container, LoadingSpinner } from '../components';
+import { useState, useEffect } from 'react';
+import { Container } from '../components';
 import axiosInstance from '../utils/axiosInstance';
 import { useNavigate } from 'react-router-dom';
-
-const CategoryCarousel = lazy(() => import('../components/CategoryCarousel'));
+import CategoryGrid from '../components/CategoryCarousel';
 
 const CategoryIconsSection = () => {
     const [categories, setCategories] = useState([]);
@@ -18,9 +17,7 @@ const CategoryIconsSection = () => {
         const fetchCategories = async () => {
             try {
                 setLoading(true);
-                // Use the new endpoint that specifically returns ONLY parent categories
                 const { data } = await axiosInstance.get('/api/v1/categories/public/parents/with-images');
-
                 if (data.success) {
                     setCategories(data.data);
                 } else {
@@ -33,43 +30,54 @@ const CategoryIconsSection = () => {
                 setLoading(false);
             }
         };
-
         fetchCategories();
     }, []);
 
     if (loading) {
         return (
-            <Container className="mb-14">
-                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-5 sm:gap-7">
-                    {[...Array(5)].map((_, index) => (
-                        <div key={index} className="flex flex-col items-center justify-center p-3 rounded-lg shadow-md">
-                            <div className="bg-gray-200 rounded-lg w-24 h-24 animate-pulse"></div>
-                            <div className="bg-gray-200 h-5 w-20 rounded animate-pulse mt-2"></div>
-                        </div>
-                    ))}
-                </div>
-            </Container>
+            <div className="bg-gray-100 py-16">
+                <Container>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+                        {[...Array(5)].map((_, i) => (
+                            <div key={i} className="bg-white rounded-2xl p-6 animate-pulse shadow-md h-32" />
+                        ))}
+                    </div>
+                </Container>
+            </div>
         );
     }
 
     return (
-        <Container className="mb-14">
-            <div className='mb-8'>
-                <h2 className="text-3xl md:text-4xl font-bold text-primary">
-                    Categories
-                </h2>
-                <p className="text-sm md:text-base text-gray-500 mt-3">
-                    Browse by Category — excavators, tractors, cranes, and more. All verified. All in one place.
-                </p>
-            </div>
+        // Full-width colored background that clearly separates from the rest of the page
+        <div className="bg-gradient-to-br from-[#F8F6F2] to-[#FFF]">
+            <Container className="py-14">
+                {/* Header */}
+                <div className="text-center max-w-2xl mx-auto mb-12">
+                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#D19F3E]/10 border border-[#D19F3E]/20 mb-4">
+                        <span className="text-xs font-semibold tracking-wider text-[#D19F3E] uppercase">
+                            Shop by Category
+                        </span>
+                    </div>
+                    <h2 className="text-3xl md:text-4xl font-bold text-[#072342]">
+                        Browse Equipment by{' '}
+                        <span className="relative inline-block">
+                            <span className="relative z-10 text-transparent bg-clip-text bg-gradient-to-r from-[#D19F3E] to-[#E8B86B]">
+                                Specialty
+                            </span>
+                            <svg className="absolute -bottom-2 left-0 w-full" height="10" viewBox="0 0 200 10" fill="none">
+                                <path d="M2 7.5C50 3.5 130 2.5 198 7.5" stroke="#D19F3E" strokeWidth="2" strokeLinecap="round" strokeDasharray="4 4" />
+                            </svg>
+                        </span>
+                    </h2>
+                    <p className="text-gray-600 mt-4">
+                        Farming, construction, trucks, and more – all in one place.
+                    </p>
+                </div>
 
-            <Suspense fallback={<LoadingSpinner />}>
-                <CategoryCarousel
-                    categories={categories}
-                    onCategoryClick={handleCategoryClick}
-                />
-            </Suspense>
-        </Container>
+                {/* Category Grid – cards themselves will have white backgrounds and strong shadows */}
+                <CategoryGrid categories={categories} onCategoryClick={handleCategoryClick} />
+            </Container>
+        </div>
     );
 };
 

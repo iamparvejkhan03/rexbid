@@ -5,75 +5,63 @@ let cachedCommission = null;
 let cacheTimestamp = null;
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
-/**
- * Get commission settings with caching
- */
-async function getCommissionSettings() {
+export async function getCommissionSettings() {
   if (cachedCommission && (Date.now() - cacheTimestamp) < CACHE_TTL) {
     return cachedCommission;
   }
-
   cachedCommission = await Commission.findOne();
   cacheTimestamp = Date.now();
   return cachedCommission;
 }
 
 /**
- * Calculate commission for seller based on global commission settings
+ * Calculate commission for seller based on global commission settings + featured premium
  * @param {number} finalPrice - The final sale price
- * @returns {Promise<Object>} Commission details
+ * @param {boolean} isFeatured - Whether the auction is marked as featured (adds 3% premium)
+ * @returns {Promise<Object>} Commission details including featured premium
  */
-export const calculateCommission = async (finalPrice) => {
+export const calculateCommission = async (finalPrice, isFeatured = false) => {
   try {
-    // Get commission settings (from cache or DB)
     const settings = await getCommissionSettings();
 
-    // No commission settings exist OR commission is disabled OR doesn't apply to seller
-    if (!settings || !settings.isEnabled || !settings.appliesTo?.includes('seller')) {
-      return {
-        commissionAmount: 0,
-        commissionType: settings?.commissionType || null,
-        commissionValue: settings?.commissionValue || 0,
-      };
+    // Base commission (could be 0 if disabled or not applicable)
+    let baseCommission = 0;
+    if (settings && settings.isEnabled && settings.appliesTo?.includes('seller')) {
+      if (settings.commissionValue !== 0) {
+        if (settings.commissionType === "fixed") {
+          baseCommission = settings.commissionValue;
+        } else {
+          // Percentage
+          baseCommission = (finalPrice * settings.commissionValue) / 100;
+        }
+      }
     }
 
-    // Commission value is zero
-    if (settings.commissionValue === 0) {
-      return {
-        commissionAmount: 0,
-        commissionType: settings.commissionType,
-        commissionValue: settings.commissionValue,
-      };
+    // Featured premium: 3% of final price if auction is featured
+    let featuredPremium = 0;
+    if (isFeatured) {
+      featuredPremium = finalPrice * 0.03; // 3% premium
     }
 
-    // Calculate commission
-    let commissionAmount = 0;
-    if (settings.commissionType === "fixed") {
-      commissionAmount = settings.commissionValue;
-    } else {
-      // Percentage
-      commissionAmount = (finalPrice * settings.commissionValue) / 100;
-    }
+    const totalCommission = baseCommission + featuredPremium;
 
     return {
-      commissionType: settings.commissionType,
-      commissionValue: settings.commissionValue,
-      commissionAmount: Math.round(commissionAmount * 100) / 100, // Round to 2 decimals
+      commissionType: settings?.commissionType || null,
+      commissionValue: settings?.commissionValue || 0,
+      commissionAmount: Math.round(totalCommission * 100) / 100,
+      featuredPremium: Math.round(featuredPremium * 100) / 100,
     };
   } catch (error) {
     console.error("Error calculating commission:", error);
-    // Fallback - no commission on error
     return {
       commissionType: null,
       commissionValue: 0,
       commissionAmount: 0,
+      featuredPremium: 0,
     };
   }
 };
 
-/**
- * Clear commission cache (call when commission settings are updated)
- */
 export const clearCommissionCache = () => {
   cachedCommission = null;
   cacheTimestamp = null;

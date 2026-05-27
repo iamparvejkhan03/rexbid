@@ -1,4 +1,4 @@
-import { Gavel, Heart, MapPin, Eye, Users, Shield, Clock, Zap, File, Gauge, Settings, ShoppingCart, HandHelping, HandGrab } from "lucide-react";
+import { Gavel, Heart, MapPin, Eye, Users, Shield, Clock, Zap, File, Gauge, Settings, ShoppingCart, HandHelping, HandGrab, Star } from "lucide-react";
 import { heroImg } from "../assets";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -36,6 +36,38 @@ function AuctionCard({ auction }) {
     // Calculate status badges
     const getStatusBadges = () => {
         const badges = [];
+
+        if (auction.status === 'active') {
+            badges.push({
+                label: 'Live',
+                icon: Clock,
+                color: 'bg-green-100 text-green-700 border-green-200'
+            });
+        }
+
+        if (auction.status === 'approved') {
+            badges.push({
+                label: 'Starting Soon',
+                icon: Clock,
+                color: 'bg-orange-100 text-orange-700 border-orange-200'
+            });
+        }
+
+        if (auction.status === 'ended') {
+            badges.push({
+                label: 'Ended',
+                icon: Clock,
+                color: 'bg-red-100 text-red-700 border-red-200'
+            });
+        }
+
+        if (auction.status === 'sold') {
+            badges.push({
+                label: 'Sold',
+                icon: Clock,
+                color: 'bg-green-100 text-green-700 border-green-200'
+            });
+        }
 
         if (auction.auctionType === 'reserve' && isReserveMet) {
             badges.push({
@@ -83,38 +115,6 @@ function AuctionCard({ auction }) {
         //     });
         // }
 
-        if (auction.status === 'active') {
-            badges.push({
-                label: 'Live',
-                icon: Clock,
-                color: 'bg-green-100 text-green-700 border-green-200'
-            });
-        }
-
-        if (auction.status === 'approved') {
-            badges.push({
-                label: 'Starting Soon',
-                icon: Clock,
-                color: 'bg-orange-100 text-orange-700 border-orange-200'
-            });
-        }
-
-        if (auction.status === 'ended') {
-            badges.push({
-                label: 'Ended',
-                icon: Clock,
-                color: 'bg-red-100 text-red-700 border-red-200'
-            });
-        }
-
-        if (auction.status === 'sold') {
-            badges.push({
-                label: 'Sold',
-                icon: Clock,
-                color: 'bg-green-100 text-green-700 border-green-200'
-            });
-        }
-
         return badges;
     };
 
@@ -150,6 +150,13 @@ function AuctionCard({ auction }) {
 
                 {/* Status Badges */}
                 <div className="absolute top-3 left-3 flex flex-wrap gap-2">
+                    <div>
+                        {auction.isFeatured && (
+                            <span className="text-xs bg-amber-100 text-amber-800 px-2 py-1 rounded-full inline-flex font-medium">
+                                <Star size={12} className="mr-1" /> Featured
+                            </span>
+                        )}
+                    </div>
                     {statusBadges.map((badge, index) => {
                         const IconComponent = badge.icon;
                         return (
@@ -315,8 +322,8 @@ function AuctionCard({ auction }) {
                         navigate(`/auction/${auction._id}`);
                     }}
                     className={`flex-1 py-3 px-4 cursor-pointer text-white rounded-lg flex gap-2 items-center justify-center transition-all ${isAuctionActive
-                        ? 'bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 hover:bg-amber-500/90 shadow-md hover:shadow-lg'
-                        : 'bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 hover:from-amber-500 hover:via-amber-600 hover:to-amber-700 shadow-md hover:shadow-lg'
+                        ? 'bg-gradient-to-r from-[#D19F3E] to-[#E8B86B] bg-[#E8B86B]/90 shadow-md hover:shadow-lg'
+                        : 'bg-gradient-to-r from-[#D19F3E] to-[#E8B86B] hover:from-[#D19F3E]/90 hover:to-[#E8B86B]/90 shadow-md hover:shadow-lg'
                         }`}
                 >
                     {

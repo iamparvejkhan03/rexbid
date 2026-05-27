@@ -29,8 +29,8 @@ const navLinks = [
 const auctionTypes = [
     { name: "Standard Auction", slug: "standard", icon: Gavel },
     { name: "Reserve Auction", slug: "reserve", icon: Clock },
-    { name: "Buy Now", slug: "buy_now", icon: DollarSign },
-    { name: "Free Giveaway", slug: "giveaway", icon: Gift }
+    // { name: "Buy Now", slug: "buy_now", icon: DollarSign },
+    // { name: "Free Giveaway", slug: "giveaway", icon: Gift }
 ];
 
 function Header() {
@@ -141,7 +141,7 @@ function Header() {
         <header className={`${isScrolled ? 'fixed bg-white bg-opacity-100 shadow-lg shadow-primary/5' : 'absolute bg-opacity-0'} w-full transition-all duration-150 z-50`}>
             <Container className={`flex items-center justify-between py-4`}>
                 <Link to="/">
-                    <img src={(isScrolled || isMenuOpen) ? `${darkLogo}` : `${logo}`} alt="BidNordic's Logo" className="h-10 md:h-12 z-10" />
+                    <img src={(isScrolled || isMenuOpen) ? `${darkLogo}` : `${logo}`} alt="RexBid's Logo" className="h-10 md:h-12 z-10" />
                 </Link>
 
                 {/* Navlinks for larger screens */}
@@ -150,7 +150,7 @@ function Header() {
                         {
                             navLinks.map(link => (
                                 <li key={link.name}>
-                                    <NavLink to={link.href} className={({ isActive }) => `${isActive && isScrolled ? 'text-orange-500' : isActive && !isScrolled ? 'text-orange-500' : isScrolled ? 'text-black' : 'text-white'} hover:underline`}>
+                                    <NavLink to={link.href} className={({ isActive }) => `${isActive && isScrolled ? 'text-[#D19F3E]' : isActive && !isScrolled ? 'text-[#D19F3E]' : isScrolled ? 'text-black' : 'text-white'} hover:underline`}>
                                         {link.name}
                                     </NavLink>
                                 </li>
@@ -178,9 +178,9 @@ function Header() {
                                             <button
                                                 key={type.slug}
                                                 onClick={() => handleAuctionTypeSelect(type.slug)}
-                                                className="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-orange-50 transition-colors text-gray-700"
+                                                className="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-[#D19F3E]/10 transition-colors text-gray-700"
                                             >
-                                                <Icon size={18} className="text-orange-500" />
+                                                <Icon size={18} className="text-[#D19F3E]" />
                                                 <span>{type.name}</span>
                                             </button>
                                         );
@@ -189,7 +189,7 @@ function Header() {
                                         <Link
                                             to="/auctions"
                                             onClick={() => setIsAuctionTypesOpen(false)}
-                                            className="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-orange-50 transition-colors text-orange-500 font-medium"
+                                            className="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-[#D19F3E]/10 transition-colors text-[#D19F3E] font-medium"
                                         >
                                             <ChevronRight size={18} />
                                             <span>View All Auctions</span>
@@ -219,7 +219,7 @@ function Header() {
                                     <div className="relative w-full max-w-6xl bg-white shadow-2xl rounded-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
                                         <div className="flex h-[75vh]">
                                             {/* LEFT SIDEBAR */}
-                                            <div className="w-1/4 overflow-y-auto py-4 border-r bg-orange-50">
+                                            <div className="w-1/4 overflow-y-auto py-4 border-r bg-[#D19F3E]/10">
                                                 {categories.map((cat) => (
                                                     <div
                                                         key={cat.slug}
@@ -279,9 +279,9 @@ function Header() {
                             {
                                 user
                                     ?
-                                    <button className="flex items-center gap-2 inset-0 bg-gradient-to-r from-amber-500 via-amber-600 to-amber-700 text-white px-5 py-2 rounded-md cursor-pointer" onClick={() => navigate(`/${user.userType}/dashboard`)}><LayoutDashboard size={20} /> Dashboard</button>
+                                    <button className="flex items-center gap-2 inset-0 bg-gradient-to-r from-[#D19F3E] to-[#E8B86B] text-white px-5 py-2 rounded-md cursor-pointer" onClick={() => navigate(`/${user.userType}/dashboard`)}><LayoutDashboard size={20} /> Dashboard</button>
                                     :
-                                    <button className="flex items-center gap-2 inset-0 bg-gradient-to-r from-amber-500 via-amber-600 to-amber-700 text-white px-5 py-2 rounded-md cursor-pointer" onClick={() => navigate('/login')}><LogIn size={20} /> Log In</button>
+                                    <button className="flex items-center gap-2 inset-0 bg-gradient-to-r from-[#D19F3E] to-[#E8B86B] text-white px-5 py-2 rounded-md cursor-pointer" onClick={() => navigate('/login')}><LogIn size={20} /> Log In</button>
                             }
                         </li>
                     </ul>
@@ -329,9 +329,9 @@ function Header() {
                             {
                                 user
                                     ?
-                                    <button className="flex items-center gap-2 bg-gradient-to-r from-amber-500 via-amber-600 to-amber-700 text-white px-5 py-2 rounded-md cursor-pointer" onClick={() => navigate(`/${user.userType}/dashboard`)}><LayoutDashboard size={20} /> Dashboard</button>
+                                    <button className="flex items-center gap-2 bg-gradient-to-r from-[#D19F3E] to-[#E8B86B] text-white px-5 py-2 rounded-md cursor-pointer" onClick={() => navigate(`/${user.userType}/dashboard`)}><LayoutDashboard size={20} /> Dashboard</button>
                                     :
-                                    <button className="flex items-center gap-2 bg-gradient-to-r from-amber-500 via-amber-600 to-amber-700 text-white px-5 py-2 rounded-md cursor-pointer" onClick={() => { navigate('/login'); setIsMenuOpen(false) }}><LogIn size={20} /> Log In</button>
+                                    <button className="flex items-center gap-2 bg-gradient-to-r from-[#D19F3E] to-[#E8B86B] text-white px-5 py-2 rounded-md cursor-pointer" onClick={() => { navigate('/login'); setIsMenuOpen(false) }}><LogIn size={20} /> Log In</button>
                             }
                         </li>
                     </ul>
@@ -361,7 +361,7 @@ function Header() {
                                             handleAuctionTypeSelect(type.slug);
                                             setMobileAuctionTypesOpen(false);
                                         }}
-                                        className="flex items-center gap-4 p-4 border rounded-xl hover:border-orange-500 cursor-pointer"
+                                        className="flex items-center gap-4 p-4 border rounded-xl hover:border-[#D19F3E] cursor-pointer"
                                     >
                                         <div className={`p-2 rounded-lg bg-gray-100 ${type.color}`}>
                                             <Icon size={20} />
@@ -378,7 +378,7 @@ function Header() {
                                 <Link
                                     to="/auctions"
                                     onClick={() => setMobileAuctionTypesOpen(false)}
-                                    className="flex items-center gap-2 text-orange-500 font-medium"
+                                    className="flex items-center gap-2 text-[#D19F3E] font-medium"
                                 >
                                     View all auctions <ChevronRight size={16} />
                                 </Link>

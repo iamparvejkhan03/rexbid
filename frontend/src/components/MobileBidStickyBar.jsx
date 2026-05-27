@@ -202,7 +202,7 @@ const MobileBidStickyBar = ({
           {showMakeOffer && (
             <button
               onClick={onMakeOfferClick}
-              className="bg-gradient-to-r from-orange-400 via-orange-500 to-orange-600 text-white hover:from-orange-500 hover:via-orange-600 hover:to-orange-700 py-3 px-4 rounded-md cursor-pointer flex items-center gap-2 text-sm font-medium w-full justify-center"
+              className="bg-gradient-to-r from-[#D19F3E] to-[#E8B86B] text-white hover:from-[#D19F3E] hover:to-[#E8B86B] py-3 px-4 rounded-md cursor-pointer flex items-center gap-2 text-sm font-medium w-full justify-center"
             >
               <Banknote size={18} />
               <span>Make Offer</span>

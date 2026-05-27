@@ -7,6 +7,7 @@ import {
     createWonAuctionPayment,
     getAuctionPaymentStatus,
     handleStripeWebhook,
+    paySellerCommission,
 } from "../controllers/payment.controller.js";
 import { auth } from "../middlewares/auth.middleware.js";
 
@@ -21,6 +22,7 @@ paymentRouter.get("/auction/:auctionId/status", getAuctionPaymentStatus);
 paymentRouter.post("/create-checkout-payment", createCheckoutPayment);
 paymentRouter.post("/confirm-checkout-payment", confirmCheckoutPayment);
 paymentRouter.post("/create-bank-transfer-payment", createBankTransferPayment);
+paymentRouter.post("/pay-commission", paySellerCommission);
 
 // Webhook route (no auth)
 paymentRouter.post(

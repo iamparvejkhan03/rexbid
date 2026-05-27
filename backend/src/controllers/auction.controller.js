@@ -362,6 +362,7 @@ export const getAuctions = async (req, res) => {
       search,
       sortBy = "createdAt",
       sortOrder = "desc",
+      isFeatured,
       // Car filters
       make,
       model,
@@ -519,6 +520,11 @@ export const getAuctions = async (req, res) => {
     // Allow offers filter
     if (allowOffers !== undefined && allowOffers !== "") {
       filter.allowOffers = allowOffers === "true";
+    }
+
+    // Allow offers filter
+    if (isFeatured !== undefined && isFeatured !== "") {
+      filter.isFeatured = isFeatured == "true";
     }
 
     // Combine specifications filter with main filter
@@ -690,7 +696,128 @@ export const getTopLiveAuctions = async (req, res) => {
   }
 };
 
-// Get Single Auction
+
+// export const getTopLiveAuctions = async (req, res) => {
+//   try {
+//     const {
+//       category,
+//       status = "active",
+//       limit = 4,
+//       sortBy = "highestBid", 
+//     } = req.query;
+
+//     // Build filter object
+//     const filter = { isFeatured: { $ne: true } };
+
+//     // Status filtering
+//     if (status === "active") {
+//       filter.status = "active";
+//       filter.endDate = { $gt: new Date() };
+//     } else if (status === "ending_soon") {
+//       filter.status = "active";
+//       filter.endDate = {
+//         $gt: new Date(),
+//         $lt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+//       };
+//     } else if (status === "sold") {
+//       // Filter for sold, ended, and reserve_not_met statuses
+//       filter.status = { $in: ["sold", "ended", "reserve_not_met"] };
+//     } else if (status === "upcoming") {
+//       filter.status = "active";
+//       filter.startDate = { $gt: new Date() }; 
+//     } else {
+//       filter.status = status;
+//     }
+
+//     // Add category filter if provided
+//     if (category && category !== "all") {
+//       filter.category = category;
+//     }
+
+//     // Build sort options based on sortBy parameter
+//     const sortOptions = {};
+//     switch (sortBy) {
+//       case "highestBid":
+//         sortOptions.currentPrice = -1;
+//         sortOptions.bidCount = -1;
+//         break;
+//       case "mostBids":
+//         sortOptions.bidCount = -1;
+//         sortOptions.currentPrice = -1;
+//         break;
+//       case "endingSoon":
+//         sortOptions.endDate = 1;
+//         sortOptions.currentPrice = -1;
+//         break;
+//       case "newest":
+//         sortOptions.createdAt = -1;
+//         sortOptions.currentPrice = -1;
+//         break;
+//       case "lowestBid":
+//         sortOptions.currentPrice = 1;
+//         sortOptions.bidCount = -1;
+//         break;
+//       default:
+//         sortOptions.currentPrice = -1;
+//         sortOptions.bidCount = -1;
+//     }
+
+//     // Get auctions based on filters and sort
+//     let auctions = await Auction.find(filter)
+//       .populate("seller", "username firstName lastName")
+//       .populate("currentBidder", "username firstName")
+//       .sort(sortOptions)
+//       .limit(parseInt(limit));
+
+//     if (
+//       auctions.length < parseInt(limit) &&
+//       (status === "active" || status === "ending_soon")
+//     ) {
+//       const additionalFilter = {
+//         status: "active",
+//         endDate: { $gt: new Date() },
+//         isFeatured: { $ne: true },
+//         _id: { $nin: auctions.map((a) => a._id) },
+//       };
+
+//       if (category && category !== "all") {
+//         additionalFilter.category = category;
+//       }
+
+//       const additionalAuctions = await Auction.find(additionalFilter)
+//         .populate("seller", "username firstName lastName")
+//         .populate("currentBidder", "username firstName")
+//         .sort({
+//           createdAt: -1, // Get newest first as fallback
+//           startDate: 1,
+//         })
+//         .limit(parseInt(limit) - auctions.length);
+
+//       auctions.push(...additionalAuctions);
+//     }
+
+//     res.status(200).json({
+//       success: true,
+//       data: {
+//         auctions,
+//         total: auctions.length,
+//         filters: {
+//           category: category || "all",
+//           status,
+//           sortBy,
+//           limit: parseInt(limit),
+//         },
+//       },
+//     });
+//   } catch (error) {
+//     console.error("Get top live auctions error:", error);
+//     res.status(500).json({
+//       success: false,
+//       message: "Internal server error while fetching top live auctions",
+//     });
+//   }
+// };
+
 export const getAuction = async (req, res) => {
   try {
     const { id } = req.params;
@@ -1871,6 +1998,8 @@ export const getWonAuctions = async (req, res) => {
       hasInvoice: !!(auction.invoice && auction.invoice.url),
       invoice: auction.invoice || null,
       auctionStatus: auction.status,
+      commissionAmount: auction.commissionAmount,
+      featuredPremium: auction.featuredPremium,
       auctionType: auction.auctionType,
       endDate: auction.endDate,
       createdAt: auction.createdAt,
@@ -1918,6 +2047,11 @@ export const getWonAuctions = async (req, res) => {
       0,
     );
 
+    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const recentWins = auctions.filter(
+      (auction) => new Date(auction.endDate) > weekAgo,
+    ).length;
+
     res.status(200).json({
       success: true,
       data: {
@@ -1926,6 +2060,7 @@ export const getWonAuctions = async (req, res) => {
           totalWon: total,
           totalSpent,
           averageSpent: total > 0 ? totalSpent / total : 0,
+          recentWins
         },
         pagination: {
           currentPage: parseInt(page),
@@ -2050,6 +2185,40 @@ export const getSoldAuctions = async (req, res) => {
         startDate: auction.startDate,
         endDate: auction.endDate,
         status: auction.status,
+        paymentStatus: auction.paymentStatus,
+        paymentMethod: auction.paymentMethod,
+        paymentDate: auction.paymentDate,
+        transactionId: auction.transactionId,
+        hasInvoice: !!(auction.invoice && auction.invoice.url),
+        invoice: auction.invoice || null,
+        auctionStatus: auction.status,
+        createdAt: auction.createdAt,
+        updatedAt: auction.updatedAt,
+        location: auction.location,
+        reserveMet: auction.currentPrice >= auction.reservePrice,
+        bidIncrement: auction.bidIncrement,
+        commissionAmount: auction.commissionAmount,
+        featuredPremium: auction.featuredPremium,
+        seller: auction.seller
+          ? {
+            _id: auction.seller._id.toString(),
+            firstName: auction.seller.firstName,
+            lastName: auction.seller.lastName,
+            username: auction.seller.username,
+            email: auction.seller.email,
+            phone: auction.seller.phone,
+            address: auction.seller.address,
+            createdAt: auction.seller.createdAt,
+          }
+          : null,
+        currentBidder: auction.currentBidder
+          ? {
+            _id: auction.currentBidder._id.toString(),
+            name: auction.currentBidder.firstName
+              ? `${auction.currentBidder.firstName} ${auction.currentBidder.lastName}`
+              : auction.currentBidder.username,
+          }
+          : null,
         winner: auction.winner
           ? {
             id: auction.winner._id.toString(),
@@ -2440,6 +2609,194 @@ export const getAuctionCommission = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to fetch commission info",
+    });
+  }
+};
+
+export const markAsFeatured = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const seller = req.user;
+
+    const auction = await Auction.findById(id);
+    if (!auction) {
+      return res.status(404).json({ success: false, message: 'Auction not found' });
+    }
+
+    // Security: only seller can feature own auction
+    if (auction.seller.toString() !== seller._id.toString()) {
+      return res.status(403).json({ success: false, message: 'Unauthorized' });
+    }
+
+    // Validation: cannot feature already sold/ended auction
+    if (auction.status !== 'active' && auction.status !== 'draft') {
+      return res.status(400).json({ success: false, message: 'Auction cannot be featured in its current state' });
+    }
+
+    if (auction.isFeatured) {
+      return res.status(400).json({ success: false, message: 'Auction is already featured' });
+    }
+
+    auction.isFeatured = true;
+    await auction.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Auction marked as featured. 3% premium will apply on final sale.',
+      data: { auction },
+    });
+  } catch (error) {
+    console.error('Mark as featured error:', error);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};
+
+// Get a single "hot listing" based on weighted score (bidCount * currentPrice)
+export const getHotListing = async (req, res) => {
+  try {
+    const now = new Date();
+
+    // Build filter for active listings (status active, endDate in future)
+    const filter = {
+      status: "active",
+      endDate: { $gt: now },
+    };
+
+    // Optional: add category filter if provided
+    if (req.query.category && req.query.category !== "all") {
+      filter.categories = req.query.category;
+    }
+
+    // Find all active listings matching filter
+    let listings = await Auction.find(filter)
+      .populate("seller", "username firstName lastName location")
+      .populate("currentBidder", "username firstName")
+      .lean(); // use lean for performance
+
+    if (!listings.length) {
+      // Fallback 1: try ended but sold listings (for demo/empty state)
+      listings = await Auction.find({ status: "sold" })
+        .populate("seller", "username firstName lastName location")
+        .populate("winner", "username firstName")
+        .sort({ finalPrice: -1 })
+        .limit(1)
+        .lean();
+
+      if (!listings.length) {
+        return res.status(404).json({
+          success: false,
+          message: "No active listings found to feature as hot listing",
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        data: {
+          auction: listings[0],
+          note: "No active listings available – showing recent sold item.",
+        },
+      });
+    }
+
+    // Calculate weighted score: (bidCount + 1) * currentPrice
+    // +1 ensures listings with zero bids get a small score instead of zero
+    const scoredListings = listings.map((listing) => ({
+      ...listing,
+      hotScore: (listing.bidCount + 1) * listing.currentPrice,
+    }));
+
+    // Sort by hotScore descending
+    scoredListings.sort((a, b) => b.hotScore - a.hotScore);
+
+    // Pick the top one
+    const hotListing = scoredListings[0];
+
+    res.status(200).json({
+      success: true,
+      data: {
+        auction: hotListing,
+        score: hotListing.hotScore,
+      },
+    });
+  } catch (error) {
+    console.error("Get hot listing error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error while fetching hot listing",
+    });
+  }
+};
+
+// Get featured active listings (isFeatured = true, status = active, endDate > now)
+export const getFeaturedListings = async (req, res) => {
+  try {
+    const {
+      limit = 8,
+      page = 1,
+      sortBy = "highestBid", // highestBid, newest, endingSoon, mostBids
+      category,
+    } = req.query;
+
+    const now = new Date();
+    const filter = {
+      isFeatured: true,
+      status: "active",
+      endDate: { $gt: now },
+    };
+
+    if (category && category !== "all") {
+      filter.categories = category;
+    }
+
+    // Sort options
+    let sortOptions = {};
+    switch (sortBy) {
+      case "highestBid":
+        sortOptions = { currentPrice: -1, bidCount: -1 };
+        break;
+      case "mostBids":
+        sortOptions = { bidCount: -1, currentPrice: -1 };
+        break;
+      case "endingSoon":
+        sortOptions = { endDate: 1, currentPrice: -1 };
+        break;
+      case "newest":
+        sortOptions = { createdAt: -1, currentPrice: -1 };
+        break;
+      default:
+        sortOptions = { currentPrice: -1, bidCount: -1 };
+    }
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    const [listings, total] = await Promise.all([
+      Auction.find(filter)
+        .populate("seller", "username firstName lastName location")
+        .populate("currentBidder", "username firstName")
+        .sort(sortOptions)
+        .skip(skip)
+        .limit(parseInt(limit))
+        .lean(),
+      Auction.countDocuments(filter),
+    ]);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        listings,
+        pagination: {
+          total,
+          page: parseInt(page),
+          limit: parseInt(limit),
+          pages: Math.ceil(total / parseInt(limit)),
+        },
+      },
+    });
+  } catch (error) {
+    console.error("Get featured listings error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error while fetching featured listings",
     });
   }
 };

@@ -33,16 +33,16 @@ const AccountInactiveBanner = () => {
     }
 
     return (
-        <div className="bg-amber-50 border-l-4 border-amber-400 p-4 mb-6 rounded-r-lg">
+        <div className="bg-[#E8B86B]/10 border-l-4 border-[#D19F3E] p-4 mb-6 rounded-r-lg">
             <div className="flex items-start">
                 <div className="flex-shrink-0">
-                    <ShieldAlert className="h-6 w-6 text-amber-400" />
+                    <ShieldAlert className="h-6 w-6 text-[#D19F3E]" />
                 </div>
                 <div className="ml-3">
-                    <h3 className="text-sm font-semibold text-amber-800">
+                    <h3 className="text-sm font-semibold text-[#E8B86B]">
                         Account Pending Approval
                     </h3>
-                    <div className="mt-2 text-sm text-amber-700">
+                    <div className="mt-2 text-sm text-[#E8B86B]">
                         <div className="flex flex-col gap-2">
                             <p className="flex items-center gap-2">
                                 <AlertCircle className="h-4 w-4" />
@@ -61,7 +61,7 @@ const AccountInactiveBanner = () => {
                     <div className="mt-3">
                         <Link
                         to={`/contact`}
-                            className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-amber-700 bg-amber-100 hover:bg-amber-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500"
+                            className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-[#E8B86B] bg-[#D19F3E]/15 hover:bg-[#D19F3E]/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#D19F3E]/40"
                         >
                             Contact Support
                         </Link>

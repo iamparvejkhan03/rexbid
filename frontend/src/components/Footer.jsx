@@ -40,7 +40,7 @@ function Footer() {
     ];
 
     return (
-        <footer className="bg-slate-900 text-gray-200 font-light py-12 relative overflow-hidden">
+        <footer className="bg-gradient-to-br from-[#072342] to-[#0a2a4a] text-gray-200 font-light py-12 relative overflow-hidden">
             {/* Industrial Background Pattern - Fixed pointer events */}
             <div className="absolute inset-0 opacity-10 pointer-events-none">
                 <div className="absolute inset-0" style={{
@@ -61,8 +61,8 @@ function Footer() {
             </div>
 
             {/* Gradient Orbs - Fixed pointer events */}
-            <div className="absolute top-20 left-10 w-96 h-96 bg-amber-500/5 rounded-full blur-3xl pointer-events-none" />
-            <div className="absolute bottom-20 right-10 w-80 h-80 bg-orange-600/5 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute top-20 left-10 w-96 h-96 bg-[#D19F3E]/5 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute bottom-20 right-10 w-80 h-80 bg-[#D19F3E]/5 rounded-full blur-3xl pointer-events-none" />
 
             {/* Content with proper z-index */}
             <Container className='relative z-10 px-6 md:px-16 lg:px-24 xl:px-32'>
@@ -72,13 +72,13 @@ function Footer() {
                             <img src={logo} alt="logo" className="h-10 md:h-12" />
                         </Link>
                         <p className=''>
-                            Bid with confidence on quality machinery — verified listings, real-time updates, and complete transparency. That's the BidNordic promise.
+                            Trusted listings, competitive bidding, and complete transparency — built for buyers and sellers across Ireland.
                         </p>
                         <div className='flex items-center gap-3 mt-4'>
-                            <Link to="#" target="_blank" className="hover:text-orange-500 transition-colors">
+                            <Link to="#" target="_blank" className="hover:text-[#D19F3E] transition-colors">
                                 <Instagram strokeWidth={1.25} />
                             </Link>
-                            <Link to="#" target="_blank" className="hover:text-orange-500 transition-colors">
+                            <Link to="#" target="_blank" className="hover:text-[#D19F3E] transition-colors">
                                 <Facebook strokeWidth={1.25} />
                             </Link>
                         </div>
@@ -93,7 +93,7 @@ function Footer() {
                                 <li className="relative py-1" key={link.name}>
                                     <NavLink 
                                         className={({ isActive }) => 
-                                            `text-white hover:text-orange-500 transition-colors ${isActive ? 'text-orange-500' : ''}`
+                                            `text-white hover:text-[#D19F3E] transition-colors ${isActive ? 'text-[#D19F3E]' : ''}`
                                         } 
                                         to={link.href}
                                     >
@@ -113,7 +113,7 @@ function Footer() {
                                 <li key={category.title}>
                                     <Link 
                                         to={category.url} 
-                                        className="text-white hover:text-orange-500 transition-colors"
+                                        className="text-white hover:text-[#D19F3E] transition-colors"
                                     >
                                         {category.title}
                                     </Link>
@@ -131,7 +131,7 @@ function Footer() {
                                 <li key={service.name}>
                                     <Link 
                                         to={service.href} 
-                                        className="text-white hover:text-orange-500 transition-colors"
+                                        className="text-white hover:text-[#D19F3E] transition-colors"
                                     >
                                         {service.name}
                                     </Link>
@@ -148,7 +148,7 @@ function Footer() {
                             <li className="flex items-center gap-2">
                                 <Phone size={18} className="text-white" />
                                 <Link 
-                                    className="text-white hover:text-orange-500 transition-colors" 
+                                    className="text-white hover:text-[#D19F3E] transition-colors" 
                                     to={`tel:${otherData.phone}`}
                                 >
                                     +47 (1)61 883 2737
@@ -157,7 +157,7 @@ function Footer() {
                             <li className="flex items-center gap-2">
                                 <Mail size={18} className="text-white" />
                                 <Link 
-                                    className="text-white hover:text-orange-500 transition-colors" 
+                                    className="text-white hover:text-[#D19F3E] transition-colors" 
                                     to={`mailto:${otherData.email}`}
                                 >
                                     {otherData.email}
@@ -172,16 +172,16 @@ function Footer() {
                 <div className='relative z-20 flex flex-col md:flex-row gap-2 md:items-center justify-between py-5'>
                     <p>
                         <span>© {new Date().getFullYear()} &nbsp;</span>
-                        <Link to="/" className="underline hover:text-orange-500 transition-colors">
-                            BidNordic.
+                        <Link to="/" className="underline hover:text-[#D19F3E] transition-colors">
+                            RexBid.
                         </Link>
                         &nbsp; All rights reserved. &nbsp;
                     </p>
                     <div className="flex flex-wrap flex-row gap-4 items-center">
-                        <Link to={'/terms-of-use'} className="hover:text-orange-500 transition-colors">
+                        <Link to={'/terms-of-use'} className="hover:text-[#D19F3E] transition-colors">
                             Terms of Use
                         </Link>
-                        <Link to={'/privacy-policy'} className="hover:text-orange-500 transition-colors">
+                        <Link to={'/privacy-policy'} className="hover:text-[#D19F3E] transition-colors">
                             Privacy Policy
                         </Link>
                     </div>

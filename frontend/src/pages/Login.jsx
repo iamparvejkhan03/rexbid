@@ -132,7 +132,7 @@ const Login = () => {
                         <button
                             type="submit"
                             disabled={isLoading}
-                            className="w-full bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 hover:from-amber-500 hover:via-amber-600 hover:to-amber-700 text-white py-3 px-4 rounded-lg font-semibold transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="w-full bg-gradient-to-r from-[#D19F3E] to-[#E8B86B] hover:from-[#D19F3E]/90 hover:to-[#E8B86B]/90 text-white py-3 px-4 rounded-lg font-semibold transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {isLoading ? 'Signing in...' : 'Sign In'}
                         </button>
@@ -144,7 +144,7 @@ const Login = () => {
                             <div className="w-full border-t border-gray-300" />
                         </div>
                         <div className="relative flex justify-center text-sm">
-                            <span className="px-2 bg-white text-secondary">New to BidNordic?</span>
+                            <span className="px-2 bg-white text-secondary">New to RexBid?</span>
                         </div>
                     </div>
 
@@ -162,7 +162,7 @@ const Login = () => {
                 {/* Footer */}
                 <div className="bg-white px-4 pb-4 text-center">
                     <p className="text-xs text-secondary">
-                        © {new Date().getFullYear()} BidNordic. All rights reserved.
+                        © {new Date().getFullYear()} RexBid. All rights reserved.
                     </p>
                 </div>
             </div>

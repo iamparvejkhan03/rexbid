@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { LoadingSpinner, ReviewModal, SellerContainer, SellerHeader, SellerSidebar } from "../../components";
-import { Award, Calendar, Clock, DollarSign, Eye, Gavel, MapPin, Phone, Mail, User, Plane, History, Shield, Package } from "lucide-react";
+import { Award, Calendar, Clock, DollarSign, Eye, Gavel, MapPin, Phone, Mail, User, Plane, History, Shield, Package, CreditCard, Loader } from "lucide-react";
 import axiosInstance from "../../utils/axiosInstance";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import toast from "react-hot-toast";
 
@@ -17,6 +17,8 @@ function SoldAuctions() {
     const [showReviewModal, setShowReviewModal] = useState(false);
     const [userReview, setUserReview] = useState(null);
     const [revieweeId, setRevieweeId] = useState(null);
+    const navigate = useNavigate();
+    const [payingCommission, setPayingCommission] = useState(false);
 
     // Fetch seller's won auctions
     const fetchSoldAuctions = async () => {
@@ -220,11 +222,25 @@ function SoldAuctions() {
                         >
                             {wonAuctionsData.map(auction => (
                                 <option key={auction.id} value={auction.id}>
-                                    {auction.title} - Won for {formatCurrency(auction.winningBid)}
+                                    {auction.title} - Won for {formatCurrency(auction.finalPrice)}
                                 </option>
                             ))}
                         </select>
                     </div>
+
+                    {wonAuctionsData.some(a => a.paymentStatus === "pending") && (
+                        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-6 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <CreditCard size={24} className="text-yellow-600" />
+                                <div>
+                                    <p className="font-semibold text-yellow-800">Pending Payments</p>
+                                    <p className="text-sm text-yellow-700">
+                                        You have {wonAuctionsData.filter(a => a.paymentStatus === "pending").length} auction(s) awaiting payment
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     {selectedAuction && (
                         <>
@@ -233,9 +249,15 @@ function SoldAuctions() {
                                 <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
                                     <div className="flex-1">
                                         <div className="flex items-center gap-2 mb-2">
-                                            {getCategoryIcon(selectedAuction.category)}
+                                            {/* {getCategoryIcon(selectedAuction.category)}
                                             <span className="text-sm font-medium text-gray-600 bg-gray-100 px-2 py-1 rounded-md">
-                                                {selectedAuction.category}
+                                                {selectedAuction.categories[0]}
+                                            </span> */}
+                                            <span className={`text-sm font-medium px-2 py-1 rounded-md bg-yellow-100 text-yellow-800`}>
+                                                Payment {selectedAuction.paymentStatus}
+                                            </span>
+                                            <span className={`text-sm font-medium px-2 py-1 rounded-md bg-yellow-100 text-yellow-800`}>
+                                                {selectedAuction.paymentMethod == 'bank_transfer' ? 'Manual Payment' : 'Paid With Card'}
                                             </span>
                                             <span className={`text-sm font-medium px-2 py-1 rounded-md ${selectedAuction.auctionType === "Reserve Auction"
                                                 ? "bg-purple-100 text-purple-800"
@@ -265,6 +287,46 @@ function SoldAuctions() {
                                         <div className="text-2xl font-bold">{formatCurrency(selectedAuction.finalPrice)}</div>
                                         <div className="text-xs mt-1">Auction completed</div>
                                     </div>
+                                </div>
+
+                                <div>
+                                    {/* Make Payment Button for sold auctions */}
+                                    {selectedAuction.status === 'sold' && selectedAuction?.paymentMethod == 'bank_transfer' && (selectedAuction?.paymentStatus == 'pending' || selectedAuction?.paymentStatus == 'processing') && (
+                                        <button
+                                            onClick={async () => {
+                                                setPayingCommission(true);
+                                                try {
+                                                    const { data } = await axiosInstance.post('/api/v1/payments/pay-commission', {
+                                                        auctionId: selectedAuction.id
+                                                    });
+                                                    if (data.success) {
+                                                        toast.success('Commission paid successfully!');
+                                                        // Refresh the auction data to update paymentStatus
+                                                        fetchSoldAuctions();
+                                                    } else {
+                                                        toast.error(data.message || 'Payment failed');
+                                                    }
+                                                } catch (error) {
+                                                    console.error('Commission payment error:', error);
+                                                    toast.error(error.response?.data?.message || 'Payment failed. Please try again.');
+                                                } finally {
+                                                    setPayingCommission(false);
+                                                }
+                                            }}
+                                            disabled={payingCommission}
+                                            className="w-full bg-green-600 text-white py-3 px-6 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2 my-3 disabled:opacity-50"
+                                        >
+                                            {payingCommission ? (
+                                                <Loader className="animate-spin" size={16} />
+                                            ) : (
+                                                <>
+                                                    <CreditCard size={18} /> Pay Commission ({formatCurrency(selectedAuction?.commissionAmount)})
+                                                </>
+                                            )}
+                                        </button>
+                                    )}
+
+                                    <p className="text-gray-500 text-xs">Note: You are paying the platform commission (service fee + featured premium if applicable). The buyer paid you directly.</p>
                                 </div>
 
                                 {/* Auction Timeline */}

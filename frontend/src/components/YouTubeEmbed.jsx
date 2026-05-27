@@ -1,4 +1,4 @@
-function extractYouTubeId(input) {
+export function extractYouTubeId(input) {
   if (!input) return null;
 
   if (/^[a-zA-Z0-9_-]{11}$/.test(input)) {

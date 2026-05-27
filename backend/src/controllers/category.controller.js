@@ -49,18 +49,25 @@ export const createCategory = async (req, res) => {
       }
     }
 
-    // Check if category already exists
-    const existingCategory = await Category.findOne({
-      $or: [
-        { name: name.trim() },
-        { slug: name.trim().toLowerCase().replace(/\s+/g, "-") },
-      ],
-    });
+    // Check if category already exists under the same parent
+    const query = {
+      name: { $regex: new RegExp(`^${name.trim()}$`, 'i') },
+    };
+    
+    // If parentCategory is provided, check only within that parent
+    // If no parentCategory, check only root-level categories (parentCategory: null)
+    if (parentCategory) {
+      query.parentCategory = parentCategory;
+    } else {
+      query.parentCategory = null;
+    }
+    
+    const existingCategory = await Category.findOne(query);
 
     if (existingCategory) {
       return res.status(400).json({
         success: false,
-        message: "Category with this name already exists",
+        message: `A category with name "${name.trim()}" already exists ${parentCategory ? 'under this parent category' : 'at the root level'}`,
       });
     }
 
@@ -509,7 +516,8 @@ export const deleteCategoryField = async (req, res) => {
     }
 
     category.fields = category.fields.filter(
-      (f) => f._id.toString() !== fieldId,
+      // (f) => f._id.toString() !== fieldId,
+      (f) => f.name !== fieldId,
     );
     await category.save();
 
@@ -827,7 +835,7 @@ export const getCategoriesWithImages = async (req, res) => {
       image: { $exists: true, $ne: null }, // Only categories with images
       "image.url": { $exists: true, $ne: "" }, // Ensure image URL exists
     })
-      .select("name slug image order auctionCount")
+      .select("name slug image order auctionCount description")
       .sort({ order: 1, name: 1 })
       .limit(20); // Limit to 10 categories
 
@@ -838,6 +846,7 @@ export const getCategoriesWithImages = async (req, res) => {
       image: category.image?.url,
       order: category.order,
       auctionCount: category.auctionCount,
+      description: category.description
     }));
 
     res.status(200).json({
@@ -852,8 +861,6 @@ export const getCategoriesWithImages = async (req, res) => {
     });
   }
 };
-
-// Add to category.controller.js
 
 /**
  * @desc    Get parent categories (level 0) - PUBLIC
@@ -1040,7 +1047,7 @@ export const getParentCategoriesWithImages = async (req, res) => {
             image: { $exists: true, $ne: null }, // Only categories with images
             'image.url': { $exists: true, $ne: '' }
         })
-        .select('name slug image order auctionCount')
+        .select('name slug image order auctionCount description')
         .sort({ order: 1, name: 1 })
         .limit(20);
 
@@ -1050,7 +1057,8 @@ export const getParentCategoriesWithImages = async (req, res) => {
             slug: category.slug,
             image: category.image?.url,
             order: category.order,
-            auctionCount: category.auctionCount
+            auctionCount: category.auctionCount,
+            description: category?.description
         }));
 
         res.status(200).json({

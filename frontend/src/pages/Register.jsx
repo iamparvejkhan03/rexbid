@@ -617,9 +617,9 @@ const Register = () => {
                                 <p className="text-red-500 text-sm mt-1 absolute">{errors.userType.message}</p>
                             )}
                         </div>
-                        
+
                         {/* Stripe Card Section for Bidders */}
-                        {userType === 'bidder' && <CardSection />}
+                        <CardSection />
 
                         <div className={`${errors.termsConditions && 'mb-3'}`}>
                             <label className='flex items-center gap-2'>
@@ -639,7 +639,7 @@ const Register = () => {
                         <button
                             type="submit"
                             disabled={isLoading}
-                            className="w-full bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 hover:from-amber-500 hover:via-amber-600 hover:to-amber-700 text-white py-3 px-4 rounded-lg font-semibold transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed mt-6"
+                            className="w-full bg-gradient-to-r from-[#D19F3E] to-[#E8B86B] hover:from-[#D19F3E]/90 hover:to-[#E8B86B]/90 text-white py-3 px-4 rounded-lg font-semibold transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed mt-6"
                         >
                             {isLoading ? 'Creating account...' : 'Create Account'}
                         </button>

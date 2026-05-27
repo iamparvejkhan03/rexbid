@@ -1,399 +1,385 @@
-import { Verified, Gavel, BadgeCheck, UserPlus, Clock, Heart, Shield, Users, Calendar, Cpu, CheckCircle, TrendingUp, Search, ShieldCheck, Wallet, Globe, BarChart3, Smile, Handshake, BadgeDollarSign, HandHelping, PackageCheck, UserCheck, } from "lucide-react";
-import { Link } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
 import {
-    CaseIH,
-    Claas,
-    Cummins,
-    Fendt,
-    Freightliner,
-    Hitachi,
-    JCB,
-    JohnDeere,
-    Komatsu,
-    Kubota,
-    Liebherr,
-    MasseyFerguson,
-    Mercedes,
-    NewHolland,
-    NokianTyres,
-    Peterbilt,
-    Scag,
-    Skania,
-    Stiga,
-    Timberjack,
-    Toro,
-    Toyota,
-    Volvo,
-} from "../assets";
-import { Container, HowItWorksCard } from "../components";
+    ArrowRight,
+    ShieldCheck,
+    Gavel,
+    Globe2,
+    BarChart3,
+    Users,
+    CheckCircle2,
+    PackageCheck,
+    TrendingUp,
+} from "lucide-react";
+import { Link } from "react-router-dom";
+import { Container } from "../components";
 
-const highlights = [
+// Intersection Observer hook for fade-in animations
+const useFadeIn = () => {
+    const ref = useRef(null);
+    const [isVisible, setIsVisible] = useState(false);
+
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                if (entry.isIntersecting) {
+                    setIsVisible(true);
+                    observer.disconnect();
+                }
+            },
+            { threshold: 0.1, rootMargin: "0px 0px -30px 0px" }
+        );
+        if (ref.current) observer.observe(ref.current);
+        return () => observer.disconnect();
+    }, []);
+
+    return { ref, isVisible };
+};
+
+const features = [
     {
-        icon: Handshake,
-        title: "Unbeatable Selection",
-        desc: "Thousands of machines from leading manufacturers. Find exactly what you need.",
+        icon: ShieldCheck,
+        title: "Trusted Listings",
+        desc: "Verified sellers and transparent listing details.",
     },
     {
         icon: Gavel,
-        title: "Trade Your Way",
-        desc: "Auctions, buy now, offers, and giveaways — the flexibility you deserve.",
+        title: "Competitive Bidding",
+        desc: "Simple and secure bidding for machinery and vehicles.",
     },
     {
-        icon: BadgeDollarSign,
-        title: "Zero Hidden Fees",
-        desc: "Transparent buyer fees and pricing. What you see is what you pay.",
+        icon: Globe2,
+        title: "Across Ireland",
+        desc: "Connecting buyers and sellers across Ireland.",
     },
     {
-        icon: HandHelping,
-        title: "Expert Support",
-        desc: "From your first bid to final delivery — we're with you every step.",
+        icon: BarChart3,
+        title: "Better Selling",
+        desc: "Helping sellers reach serious buyers faster.",
     },
 ];
 
 const stats = [
-    { icon: Smile, value: "500+", label: "Customer", sub: "Total Customer" },
-    { icon: PackageCheck, value: "450", label: "Auctions", sub: "Total Product" },
-    { icon: Users, value: "600+", label: "Bidder", sub: "Number Of Total Bidder" },
-    { icon: UserCheck, value: "1.2k", label: "Accounts", sub: "User Helped" },
-];
-
-const features = [
-    {
-        number: "01",
-        icon: ShieldCheck,
-        title: "Verified Listings",
-        desc: "Every machine is verified to ensure authenticity and transparency across the Nordics.",
-    },
-    {
-        number: "02",
-        icon: Gavel,
-        title: "Real-Time Bidding",
-        desc: "Experience live auctions with instant updates — just as if you were in the room.",
-    },
-    {
-        number: "03",
-        icon: Wallet,
-        title: "Secure Payments",
-        desc: "Bank-level encryption and trusted gateways protect every bid and every deal.",
-    },
-    {
-        number: "04",
-        icon: Globe,
-        title: "Global Marketplace",
-        desc: "Connect with buyers and sellers across Norway, seamless cross-border trading made simple.",
-    },
-    {
-        number: "05",
-        icon: BarChart3,
-        title: "Market Insights",
-        desc: "Smart pricing data helps buyers and sellers make informed decisions based on real market trends.",
-    },
-    {
-        number: "06",
-        icon: Smile,
-        title: "Customer Satisfaction",
-        desc: "Our team ensures a smooth experience from listing to selling — because your satisfaction matters.",
-    },
+    { icon: Users, value: "1.2K+", label: "Trusted Members" },
+    { icon: PackageCheck, value: "450+", label: "Equipment Listings" },
+    { icon: TrendingUp, value: "900+", label: "Successful Deals" },
 ];
 
 function About() {
+    const heroRef = useRef(null);
+    const introRef = useRef(null);
+    const featuresRef = useRef(null);
+    const expertiseRef = useRef(null);
+    const statsRef = useRef(null);
+    const ctaRef = useRef(null);
+
+    const [heroVisible, setHeroVisible] = useState(false);
+    const [introVisible, setIntroVisible] = useState(false);
+    const [featuresVisible, setFeaturesVisible] = useState(false);
+    const [expertiseVisible, setExpertiseVisible] = useState(false);
+    const [statsVisible, setStatsVisible] = useState(false);
+    const [ctaVisible, setCtaVisible] = useState(false);
+
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            (entries) => {
+                entries.forEach((entry) => {
+                    if (entry.isIntersecting) {
+                        const target = entry.target.getAttribute("data-section");
+                        if (target === "hero") setHeroVisible(true);
+                        if (target === "intro") setIntroVisible(true);
+                        if (target === "features") setFeaturesVisible(true);
+                        if (target === "expertise") setExpertiseVisible(true);
+                        if (target === "stats") setStatsVisible(true);
+                        if (target === "cta") setCtaVisible(true);
+                        observer.unobserve(entry.target);
+                    }
+                });
+            },
+            { threshold: 0.1, rootMargin: "0px 0px -50px 0px" }
+        );
+
+        if (heroRef.current) observer.observe(heroRef.current);
+        if (introRef.current) observer.observe(introRef.current);
+        if (featuresRef.current) observer.observe(featuresRef.current);
+        if (expertiseRef.current) observer.observe(expertiseRef.current);
+        if (statsRef.current) observer.observe(statsRef.current);
+        if (ctaRef.current) observer.observe(ctaRef.current);
+
+        return () => observer.disconnect();
+    }, []);
+
     return (
-        <section className="pt-16 md:pt-16 max-w-full text-gray-600">
-            <div className="bg-white">
-                {/* <Container> */}
-                <section className="relative overflow-hidden bg-gradient-to-b from-white to-gray-50 pt-14 pb-5">
-
-                    {/* floating soft glow */}
-                    <div className="absolute -top-32 -left-32 w-80 h-80 bg-orange-200 opacity-30 rounded-full blur-3xl animate-pulse"></div>
-                    <div className="absolute top-32 -right-32 w-80 h-80 bg-orange-300 opacity-30 rounded-full blur-3xl animate-pulse"></div>
-
-                    <div className="max-w-full mx-auto text-center px-6 py-8">
-
-                        {/* headline */}
-                        <h1 className="text-4xl md:text-5xl font-bold text-gray-900 leading-tight">
-                            Built on Trust — <br />
-                            <span className="text-orange-500">Across Every Bid & Every Deal</span>
-                        </h1>
-
-                        {/* description */}
-                        <p className="mt-6 text-lg text-gray-600 max-w-3xl mx-auto">
-                            BidNordic brings together buyers and sellers from across the Nordics in a marketplace built on confidence. With transparency, fair pricing, and secure transactions at our core, we help industry professionals trade smarter.
+        <section className="bg-[#FAFAFA] text-[#072342] overflow-hidden pt-16 md:pt-20">
+            {/* HERO SECTION with overlay animation */}
+            <div
+                ref={heroRef}
+                data-section="hero"
+                className={`relative h-[340px] md:h-[420px] overflow-hidden transition-all duration-700 ${heroVisible ? "opacity-100 scale-100" : "opacity-0 scale-105"
+                    }`}
+            >
+                <img
+                    src="https://images.unsplash.com/photo-1578575437130-527eed3abbec?q=80&w=1600&auto=format&fit=crop"
+                    alt="About RexBid"
+                    className="absolute inset-0 w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-[#072342]/75"></div>
+                <Container>
+                    <div className="relative z-10 h-full flex flex-col justify-center">
+                        <p className="text-[#D19F3E] uppercase tracking-[3px] text-sm font-semibold animate-fade-up pt-20">
+                            About RexBid
                         </p>
-
-                        {/* buttons */}
-                        <div className="mt-10 flex flex-wrap justify-center gap-4">
-                            <Link
-                                to="/auctions"
-                                className="px-8 py-3 bg-orange-500 text-white rounded-full font-semibold shadow hover:bg-orange-600 transition"
-                            >
-                                Explore Auctions
+                        <h1 className="text-4xl md:text-6xl font-bold text-white mt-4 leading-tight">
+                            Built on Trust &<br />
+                            Transparent Bidding
+                        </h1>
+                        <div className="flex items-center gap-2 mt-6 text-white/70 text-sm">
+                            <Link to="/" className="hover:text-white transition">
+                                Home
                             </Link>
-
-                            <Link
-                                to="/contact"
-                                className="px-8 py-3 border border-gray-300 rounded-full font-semibold hover:bg-gray-100 transition"
-                            >
-                                Contact Us
-                            </Link>
-                        </div>
-
-                        {/* stats */}
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-10 mt-20">
-                            {stats.map((stat, i) => {
-                                const Icon = stat.icon;
-                                return (
-                                    <div key={i} className="flex flex-col items-center">
-                                        <Icon className="text-orange-500 mb-3" size={30} />
-                                        <div className="text-2xl font-bold text-gray-900">
-                                            {stat.value}
-                                        </div>
-                                        <div className="text-gray-500 text-sm">{stat.label}</div>
-                                    </div>
-                                );
-                            })}
+                            <span>/</span>
+                            <span className="text-[#D19F3E]">About Us</span>
                         </div>
                     </div>
-                </section>
-                {/* </Container> */}
+                </Container>
             </div>
 
-            {/* Brands we work with */}
-            {/* <Container className="mb-14">
-                <div className="max-w-full mx-auto mb-8 text-left">
-                    <h2 className="text-3xl md:text-4xl font-bold text-black mb-4">
-                        Brands We Work With
-                    </h2>
-                    <p className="text-lg text-gray-700 mb-2">
-                        From excavators and tractors to cranes and forklifts — we handle heavy equipment across all major manufacturers.
-                    </p>
-                </div>
-
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
-
-                    <Link to="#" className="group px-8 pt-8 pb-3 flex flex-col items-center justify-center border border-gray-300 border-r-0 md:border-b-0">
-                        <img src={CaseIH} alt="Case IH" className="h-8 w-auto mix-blend-multiply" />
-                        <p className="flex items-center gap-1 font-medium opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0 transition-all duration-300 text-sm">
-                            Case IH
-                        </p>
-                    </Link>
-
-                    <Link to="#" className="group px-8 pt-8 pb-3 flex flex-col items-center justify-center border border-gray-300 md:border-b-0 md:border-r-0">
-                        <img src={Claas} alt="Claas" className="h-7 w-auto mix-blend-multiply" />
-                        <p className="opacity-0 group-hover:opacity-100 transition-all duration-300 text-sm">Claas</p>
-                    </Link>
-
-                    <Link to="#" className="group px-8 pt-8 pb-3 flex flex-col items-center justify-center border border-gray-300 border-y-0 border-r-0 md:border-r md:border-t">
-                        <img src={Cummins} alt="Cummins" className="h-10 w-auto mix-blend-multiply" />
-                        <p className="opacity-0 group-hover:opacity-100 transition-all duration-300 text-sm">Cummins</p>
-                    </Link>
-
-                    <Link to="#" className="group px-8 pt-8 pb-3 flex flex-col items-center justify-center border border-gray-300 border-y-0 md:border-b md:border-r-0 md:border-t">
-                        <img src={Fendt} alt="Fendt" className="h-10 w-auto mix-blend-multiply" />
-                        <p className="opacity-0 group-hover:opacity-100 transition-all duration-300 text-sm">Fendt</p>
-                    </Link>
-
-                    <Link to="#" className="group px-8 pt-8 pb-3 flex flex-col items-center justify-center border border-gray-300 border-r-0">
-                        <img src={Freightliner} alt="Freightliner" className="h-10 w-auto mix-blend-multiply" />
-                        <p className="opacity-0 group-hover:opacity-100 transition-all duration-300 text-sm">Freightliner</p>
-                    </Link>
-
-                    <Link to="#" className="group px-8 pt-8 pb-3 flex flex-col items-center justify-center border border-gray-300 border-r-0">
-                        <img src={Hitachi} alt="Hitachi" className="h-11 w-auto mix-blend-multiply" />
-                        <p className="opacity-0 group-hover:opacity-100 transition-all duration-300 text-sm">Hitachi</p>
-                    </Link>
-
-                    <Link to="#" className="group px-8 pt-8 pb-3 flex flex-col items-center justify-center border border-gray-300">
-                        <img src={JCB} alt="JCB" className="h-11 w-auto mix-blend-multiply" />
-                        <p className="opacity-0 group-hover:opacity-100 transition-all duration-300 text-sm">JCB</p>
-                    </Link>
-
-                    <Link to="#" className="group px-8 pt-8 pb-3 flex flex-col items-center justify-center border border-gray-300">
-                        <img src={JohnDeere} alt="John Deere" className="h-11 w-auto mix-blend-multiply" />
-                        <p className="opacity-0 group-hover:opacity-100 transition-all duration-300 text-sm">John Deere</p>
-                    </Link>
-
-                    <Link to="#" className="group px-8 pt-8 pb-3 flex flex-col items-center justify-center border border-gray-300">
-                        <img src={Komatsu} alt="Komatsu" className="h-8 w-auto mix-blend-multiply" />
-                        <p className="opacity-0 group-hover:opacity-100 transition-all duration-300 text-sm">Komatsu</p>
-                    </Link>
-
-                    <Link to="#" className="group px-8 pt-8 pb-3 flex flex-col items-center justify-center border border-gray-300">
-                        <img src={Kubota} alt="Kubota" className="h-8 w-auto mix-blend-multiply" />
-                        <p className="opacity-0 group-hover:opacity-100 transition-all duration-300 text-sm">Kubota</p>
-                    </Link>
-
-                    <Link to="#" className="group px-8 pt-8 pb-3 flex flex-col items-center justify-center border border-gray-300">
-                        <img src={Liebherr} alt="Liebherr" className="h-8 w-auto mix-blend-multiply" />
-                        <p className="opacity-0 group-hover:opacity-100 transition-all duration-300 text-sm">Liebherr</p>
-                    </Link>
-
-                    <Link to="#" className="group px-8 pt-8 pb-3 flex flex-col items-center justify-center border border-gray-300">
-                        <img src={Mercedes} alt="Mercedes" className="h-11 w-auto mix-blend-multiply" />
-                        <p className="opacity-0 group-hover:opacity-100 transition-all duration-300 text-sm">Mercedes</p>
-                    </Link>
-
-                    <Link to="#" className="group px-8 pt-8 pb-3 flex flex-col items-center justify-center border border-gray-300">
-                        <img src={NewHolland} alt="NewHolland" className="h-11 w-auto mix-blend-multiply" />
-                        <p className="opacity-0 group-hover:opacity-100 transition-all duration-300 text-sm">NewHolland</p>
-                    </Link>
-
-                    <Link to="#" className="group px-8 pt-8 pb-3 flex flex-col items-center justify-center border border-gray-300">
-                        <img src={Scag} alt="Scag" className="h-8 w-auto mix-blend-multiply" />
-                        <p className="opacity-0 group-hover:opacity-100 transition-all duration-300 text-sm">Scag</p>
-                    </Link>
-
-                    <Link to="#" className="group px-8 pt-8 pb-3 flex flex-col items-center justify-center border border-gray-300">
-                        <img src={Skania} alt="Scania" className="h-11 w-auto mix-blend-multiply" />
-                        <p className="opacity-0 group-hover:opacity-100 transition-all duration-300 text-sm">Scania</p>
-                    </Link>
-
-                    <Link to="#" className="group px-8 pt-8 pb-3 flex flex-col items-center justify-center border border-gray-300">
-                        <img src={NokianTyres} alt="Nokian Tyres" className="h-8 w-auto mix-blend-multiply" />
-                        <p className="opacity-0 group-hover:opacity-100 transition-all duration-300 text-sm">Nokian Tyres</p>
-                    </Link>
-
-                    <Link to="#" className="group px-8 pt-8 pb-3 flex flex-col items-center justify-center border border-gray-300">
-                        <img src={MasseyFerguson} alt="Massey Ferguson" className="h-11 w-auto mix-blend-multiply" />
-                        <p className="opacity-0 group-hover:opacity-100 transition-all duration-300 text-sm">Massey Ferguson</p>
-                    </Link>
-
-                    <Link to="#" className="group px-8 pt-8 pb-3 flex flex-col items-center justify-center border border-gray-300">
-                        <img src={Peterbilt} alt="Peterbilt" className="h-11 w-auto mix-blend-multiply" />
-                        <p className="opacity-0 group-hover:opacity-100 transition-all duration-300 text-sm">Peterbilt</p>
-                    </Link>
-
-                    <Link to="#" className="group px-8 pt-8 pb-3 flex flex-col items-center justify-center border border-gray-300">
-                        <img src={Toyota} alt="Toyota" className="h-11 w-auto mix-blend-multiply" />
-                        <p className="opacity-0 group-hover:opacity-100 transition-all duration-300 text-sm">Toyota</p>
-                    </Link>
-
-                    <Link to="#" className="group px-8 pt-8 pb-3 flex flex-col items-center justify-center border border-gray-300">
-                        <img src={Stiga} alt="Stiga" className="h-7 w-auto mix-blend-multiply" />
-                        <p className="opacity-0 group-hover:opacity-100 transition-all duration-300 text-sm">Stiga</p>
-                    </Link>
-
-                </div>
-            </Container> */}
-
-            {/* Why choose us */}
-            <Container>
-                <section className="bg-gray-50">
-                    <div className="max-w-full mx-auto">
-
-                        {/* Heading */}
-                        <div className="text-left mb-8">
-                            <p className="text-orange-500 font-semibold tracking-widest uppercase text-sm">
-                                Why Choose Us
-                            </p>
-                            <h2 className="text-3xl md:text-4xl font-bold text-black mt-2">
-                                Built for Trust, Speed & Results
-                            </h2>
-                        </div>
-
-                        {/* Grid */}
-                        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-                            {features.map((item, i) => {
-                                const Icon = item.icon;
-                                return (
-                                    <div
-                                        key={i}
-                                        className="group bg-white rounded-2xl p-8 shadow-sm hover:shadow-xl transition duration-300 relative overflow-hidden"
-                                    >
-                                        {/* top accent line */}
-                                        <div className="absolute left-0 top-0 h-1 w-0 bg-orange-500 transition-all duration-300 group-hover:w-full"></div>
-
-                                        {/* Number */}
-                                        <span className="absolute right-5 top-12 text-5xl font-extrabold text-transparent stroke-text group-hover:text-orange-500 transition duration-300">
-                                            {item.number}
-                                        </span>
-
-                                        {/* Icon */}
-                                        <div className="mt-4 w-12 h-12 flex items-center justify-center rounded-xl bg-orange-100 text-orange-500">
-                                            <Icon size={24} />
-                                        </div>
-
-                                        {/* Title */}
-                                        <h3 className="mt-5 text-xl font-semibold text-gray-900">
-                                            {item.title}
-                                        </h3>
-
-                                        {/* Description */}
-                                        <p className="mt-3 text-gray-600 leading-relaxed">
-                                            {item.desc}
-                                        </p>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </div>
-                </section>
-            </Container>
-
-            {/* Highlights */}
-            <section className="bg-orange-100 py-14 mt-14">
+            {/* COMPANY INTRO */}
+            <div
+                ref={introRef}
+                data-section="intro"
+                className={`py-14 md:py-14 transition-all duration-700 delay-100 ${introVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
+                    }`}
+            >
                 <Container>
+                    <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+                        {/* LEFT */}
+                        <div>
+                            <span className="text-[#D19F3E] uppercase tracking-[3px] text-sm font-semibold">
+                                Who We Are
+                            </span>
+                            <h2 className="text-3xl md:text-4xl lg:text-4xl font-bold text-[#072342] leading-tight mt-2">
+                                Modern Machinery & Vehicle Trading{" "}
+                                <span className="relative inline-block">
+                                    <span className="relative z-10 text-transparent bg-clip-text bg-gradient-to-r from-[#D19F3E] to-[#E8B86B]">
+                                        Built for Ireland
+                                    </span>
+                                    <svg className="absolute -bottom-3 left-0 w-full" height="12" viewBox="0 0 200 12" fill="none">
+                                        <path d="M2 9.5C50 4.5 130 2.5 198 9.5" stroke="#D19F3E" strokeWidth="2.5" strokeLinecap="round" strokeDasharray="4 6" />
+                                    </svg>
+                                </span>
+                            </h2>
+                            <p className="mt-6 text-[#072342]/70 leading-relaxed text-base md:text-lg">
+                                RexBid is a trusted marketplace connecting buyers and sellers across Ireland through transparent, secure, and easy-to-use bidding experiences.
+                            </p>
+                            <p className="mt-4 text-[#072342]/65 leading-relaxed">
+                                We make machinery and vehicle trading simpler with verified listings, competitive bidding, and a professional platform designed for modern businesses, dealers, and private sellers.
+                            </p>
+                            <div className="mt-8 space-y-3">
+                                {[
+                                    "Verified listings",
+                                    "Transparent bidding",
+                                    "Secure transactions",
+                                    "Trusted marketplace support",
+                                ].map((item, i) => (
+                                    <div key={i} className="flex items-center gap-3">
+                                        <CheckCircle2 size={18} className="text-[#D19F3E]" />
+                                        <span className="text-[#072342]/80">{item}</span>
+                                    </div>
+                                ))}
+                            </div>
+                            <Link
+                                to="/auctions"
+                                className="inline-flex items-center gap-2 mt-8 bg-[#D19F3E] hover:bg-[#bc8f35] text-white px-6 py-3 rounded-lg font-medium transition-all duration-300"
+                            >
+                                Explore Auctions
+                                <ArrowRight size={16} />
+                            </Link>
+                        </div>
 
-                    {/* label */}
-                    <div className="inline-flex items-center gap-2 bg-orange-50 text-orange-500 text-sm px-4 py-1.5 rounded-md mb-6 font-semibold tracking-wide">
-                        → HIGHLIGHTED
+                        {/* RIGHT with floating card */}
+                        <div className="relative">
+                            <div className="relative rounded-2xl overflow-hidden shadow-xl">
+                                <img
+                                    src="https://images.unsplash.com/photo-1519003722824-194d4455a60c?q=80&w=1200&auto=format&fit=crop"
+                                    alt="Industrial Marketplace"
+                                    className="w-full h-[400px] md:h-[520px] object-cover"
+                                />
+                            </div>
+                            <div className="absolute -bottom-6 left-4 md:-bottom-8 md:left-8 bg-white rounded-xl shadow-xl p-4 md:p-5 border border-gray-100">
+                                <h3 className="text-3xl md:text-4xl font-bold text-[#072342]">5/5</h3>
+                                <p className="text-[#072342]/60 text-sm md:text-base mt-1">
+                                    Secure & Verified Marketplace
+                                </p>
+                            </div>
+                        </div>
                     </div>
+                </Container>
+            </div>
 
-                    {/* heading */}
-                    <h2 className="text-3xl md:text-4xl font-bold text-black mb-4">
-                        Our Featured <span className="text-gray-500 font-medium italic">Highlights.</span>
-                    </h2>
-
-                    {/* features */}
-                    <div className="grid md:grid-cols-4 mt-8 border-t border-b border-gray-300/40">
-                        {highlights.map((item, i) => {
+            {/* FEATURES SECTION */}
+            <div
+                ref={featuresRef}
+                data-section="features"
+                className={`bg-white transition-all duration-700 delay-200 ${featuresVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
+                    }`}
+            >
+                <Container>
+                    <div className="text-center max-w-2xl mx-auto">
+                        <span className="text-[#D19F3E] uppercase tracking-[3px] text-sm font-semibold">
+                            Why Choose Us
+                        </span>
+                        <h2 className="text-3xl md:text-4xl lg:text-4xl font-bold text-[#072342] leading-tight mt-2">
+                            A Simpler Way to{" "}
+                            <span className="relative inline-block">
+                                <span className="relative z-10 text-transparent bg-clip-text bg-gradient-to-r from-[#D19F3E] to-[#E8B86B]">
+                                    Buy & Sell Across Ireland
+                                </span>
+                                <svg className="absolute -bottom-3 left-0 w-full" height="12" viewBox="0 0 200 12" fill="none">
+                                    <path d="M2 9.5C50 4.5 130 2.5 198 9.5" stroke="#D19F3E" strokeWidth="2.5" strokeLinecap="round" strokeDasharray="4 6" />
+                                </svg>
+                            </span>
+                        </h2>
+                    </div>
+                    <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-7 mt-12 md:mt-16">
+                        {features.map((item, i) => {
                             const Icon = item.icon;
                             return (
                                 <div
                                     key={i}
-                                    className={`py-10 px-6 text-center md:text-left ${i !== highlights.length - 1
-                                        ? "md:border-r border-gray-300/40"
-                                        : ""
-                                        }`}
+                                    className="bg-[#FAFAFA] hover:bg-[#072342] border border-gray-200 hover:border-[#072342] rounded-xl p-6 transition-all duration-300 group"
                                 >
-                                    <Icon size={40} strokeWidth={1} className="text-orange-500 mb-6 mx-auto md:mx-0" />
-
-                                    <h3 className="text-xl font-semibold text-gray-900 mb-3">
+                                    <div className="w-12 h-12 rounded-xl bg-[#D19F3E]/10 flex items-center justify-center">
+                                        <Icon size={24} className="text-[#D19F3E]" />
+                                    </div>
+                                    <h3 className="text-lg font-semibold mt-5 group-hover:text-white transition">
                                         {item.title}
                                     </h3>
-
-                                    <p className="text-gray-600 leading-relaxed text-sm max-w-xs mx-auto md:mx-0">
+                                    <p className="text-[#072342]/65 group-hover:text-white/70 mt-2 leading-relaxed text-sm transition">
                                         {item.desc}
                                     </p>
                                 </div>
                             );
                         })}
                     </div>
-
-                    {/* stats */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center md:text-left mt-14">
-                        {stats.map((stat, i) => {
-                            const Icon = stat.icon;
-                            return (
-                                <div key={i} className="flex flex-col sm:flex-row items-center justify-center md:justify-start gap-4">
-                                    <Icon size={40} strokeWidth={1} className="text-gray-500" />
-
-                                    <div>
-                                        <div className="text-2xl font-bold text-gray-900">
-                                            {stat.value}{" "}
-                                            <span className="text-lg font-medium text-gray-700">
-                                                {stat.label}
-                                            </span>
-                                        </div>
-                                        <p className="text-gray-500 text-sm">{stat.sub}</p>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-
                 </Container>
-            </section>
-        </section >
+            </div>
+
+            {/* EXPERTISE SECTION */}
+            <div
+                ref={expertiseRef}
+                data-section="expertise"
+                className={`py-14 md:py-14 transition-all duration-700 delay-300 ${expertiseVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
+                    }`}
+            >
+                <Container>
+                    <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+                        <div className="rounded-xl overflow-hidden shadow-xl order-2 lg:order-1">
+                            <img
+                                src="https://images.unsplash.com/photo-1504307651254-35680f356dfd?q=80&w=1200&auto=format&fit=crop"
+                                alt="Industry Expertise"
+                                className="w-full h-[380px] md:h-[460px] object-cover"
+                            />
+                        </div>
+                        <div className="order-1 lg:order-2">
+                            <span className="text-[#D19F3E] uppercase tracking-[3px] text-sm font-semibold">
+                                Our Expertise
+                            </span>
+                            <h2 className="text-3xl md:text-4xl lg:text-4xl font-bold text-[#072342] leading-tight mt-2">
+                                Built for Machinery &{" "}
+                                <span className="relative inline-block">
+                                    <span className="relative z-10 text-transparent bg-clip-text bg-gradient-to-r from-[#D19F3E] to-[#E8B86B]">
+                                        Vehicle Trading
+                                    </span>
+                                    <svg className="absolute -bottom-3 left-0 w-full" height="12" viewBox="0 0 200 12" fill="none">
+                                        <path d="M2 9.5C50 4.5 130 2.5 198 9.5" stroke="#D19F3E" strokeWidth="2.5" strokeLinecap="round" strokeDasharray="4 6" />
+                                    </svg>
+                                </span>
+                            </h2>
+                            <p className="mt-5 text-[#072342]/70 leading-relaxed">
+                                Our platform combines modern technology with industry experience to create a smooth, secure, and transparent marketplace for buyers and sellers across Ireland.
+                            </p>
+                            <div className="grid sm:grid-cols-2 gap-4 mt-8">
+                                {[
+                                    "Machinery & Vehicle Listings",
+                                    "Secure Transactions",
+                                    "Verified Listings",
+                                    "Professional Support",
+                                    "Real-Time Bidding",
+                                    "Marketplace Transparency",
+                                ].map((item, i) => (
+                                    <div key={i} className="flex items-center gap-2">
+                                        <CheckCircle2 size={16} className="text-[#D19F3E]" />
+                                        <span className="text-[#072342]/75 text-sm">{item}</span>
+                                    </div>
+                                ))}
+                            </div>
+                            <Link
+                                to="/contact"
+                                className="inline-flex items-center gap-2 mt-8 bg-[#072342] hover:bg-[#051a30] text-white px-6 py-3 rounded-lg font-medium transition-all duration-300"
+                            >
+                                Contact Us
+                                <ArrowRight size={16} />
+                            </Link>
+                        </div>
+                    </div>
+                </Container>
+            </div>
+
+            {/* CTA SECTION with brand blue background */}
+            <div
+                ref={ctaRef}
+                data-section="cta"
+                className={`py-14 md:py-14 bg-[#072342] transition-all duration-700 delay-500 ${ctaVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
+                    }`}
+            >
+                <Container>
+                    <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-8 md:p-12 text-center">
+                        <span className="text-[#D19F3E] uppercase tracking-[3px] text-sm font-semibold">
+                            Get Started
+                        </span>
+                        <h2 className="text-3xl md:text-4xl font-bold mt-4 leading-tight text-white">
+                            Built for Modern Machinery
+                            <br />
+                            & Vehicle Trading
+                        </h2>
+                        <p className="max-w-2xl mx-auto mt-5 text-gray-300 leading-relaxed">
+                            Explore verified listings and connect with buyers and sellers across Ireland through a simple, transparent, and secure bidding platform.
+                        </p>
+                        <div className="flex flex-wrap justify-center gap-4 mt-8">
+                            <Link
+                                to="/register"
+                                className="bg-[#D19F3E] hover:bg-[#bc8f35] text-[#072342] font-semibold px-6 py-3 rounded-lg transition-all duration-300"
+                            >
+                                Create Account
+                            </Link>
+                            <Link
+                                to="/auctions"
+                                className="border border-white/30 hover:border-[#D19F3E] text-white hover:text-[#D19F3E] px-6 py-3 rounded-lg font-medium transition-all duration-300"
+                            >
+                                Browse Auctions
+                            </Link>
+                        </div>
+                    </div>
+                </Container>
+            </div>
+
+            {/* Global animation styles */}
+            <style>{`
+                @keyframes fadeUp {
+                    from {
+                        opacity: 0;
+                        transform: translateY(20px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
+                }
+                .animate-fade-up {
+                    animation: fadeUp 0.6s ease-out forwards;
+                }
+            `}</style>
+        </section>
     );
 }
 

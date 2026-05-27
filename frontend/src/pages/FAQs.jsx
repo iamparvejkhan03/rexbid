@@ -1,263 +1,314 @@
-import { Container } from "../components";
-import { MessageCircleQuestion, Search, Shield, HelpCircle, Phone, Mail, Car, CreditCard, Truck, Store, FileText, Clock, Gavel } from "lucide-react";
-import { Link } from "react-router-dom";
+import {
+    ChevronDown,
+    Search,
+    Mail,
+    Phone,
+    ArrowRight,
+    ShieldCheck,
+    Gavel,
+    CreditCard,
+    Truck,
+    Store,
+    Clock,
+} from "lucide-react";
+
 import { useState } from "react";
+import { Link } from "react-router-dom";
+import { Container } from "../components";
 import { otherData } from "../assets";
 
-const { phone, email, address } = otherData;
+const { email, phone } = otherData;
 
 const faqs = [
     {
-        category: "Bidder",
-        icon: <Gavel size={20} />,
+        category: "Buyers",
+        icon: <Gavel size={18} />,
         questions: [
             {
-                question: "Who can bid on BidNordic?",
-                answer: "BidNordic is open to both trade professionals and private buyers across Norway. Dealers, contractors, farmers, and individuals can all register and participate."
+                question: "Who can place bids on RexBid?",
+                answer: "Both businesses and private buyers across Ireland can register and place bids.",
             },
             {
-                question: "Are there any fees for buyers?",
-                answer: "Yes, we charge a minimal buyer fee on successful purchases. The fee is clearly displayed before you bid, so there are no surprises."
+                question: "Are bids legally binding?",
+                answer: "Yes. All bids placed on the platform are considered legally binding.",
             },
             {
-                question: "Can I inspect equipment before bidding?",
-                answer: "Inspection is not available before bidding. However, if you have questions about a listing, please reach out to us and we'll help where we can."
+                question: "Can I inspect an item before bidding?",
+                answer: "Some sellers may allow inspections. Please contact the seller directly for availability.",
             },
-            {
-                question: "Are machines sold with a warranty?",
-                answer: "No. All equipment is sold on an 'as-is' basis without warranty. Descriptions are provided for guidance only."
-            },
-            {
-                question: "Can I return a machine after purchase?",
-                answer: "If you have concerns after winning, please contact us directly. We'll review your situation and advise accordingly."
-            },
-            {
-                question: "How does the 'Make an Offer' feature work?",
-                answer: "On eligible listings, you can submit an offer. If the seller accepts, a binding agreement is formed and payment must be completed within the agreed timeframe."
-            },
-            {
-                question: "Are bids and Buy Now purchases binding?",
-                answer: "Yes. All bids, accepted offers, and Buy Now purchases are legally binding contracts. Bid retractions are not permitted."
-            },
-            {
-                question: "Can anyone participate in giveaways?",
-                answer: "Yes! Our free giveaways are open to everyone—both trade and private individuals."
-            }
-        ]
+        ],
     },
     {
         category: "Payments",
-        icon: <CreditCard size={20} />,
+        icon: <CreditCard size={18} />,
         questions: [
             {
-                question: "What payment methods do you accept?",
-                answer: "Bank transfer is our primary payment method. All payments must be made in NOK."
+                question: "What payment methods are accepted?",
+                answer: "Payments can be made either through saved card or directly to the seller by bank transfer or cash, depending on the listing.",
             },
             {
-                question: "How long do I have to make payment?",
-                answer: "Payment terms vary by listing. Please check the specific auction or listing for your payment deadline."
+                question: "Does RexBid handle payments?",
+                answer: "In some cases, payment may be processed using the card registered to your account.",
             },
-            {
-                question: "What happens after I make payment?",
-                answer: "Once payment clears, you'll receive an invoice and collection instructions. Ownership transfers only after full payment is received."
-            },
-            {
-                question: "Is off-platform communication or payment allowed?",
-                answer: "No. All communication, offers, and payments must go through BidNordic. Off-platform activity may result in account suspension."
-            }
-        ]
+        ],
     },
     {
-        category: "Collection & Delivery",
-        icon: <Truck size={20} />,
+        category: "Collection",
+        icon: <Truck size={18} />,
         questions: [
             {
-                question: "Can I collect equipment myself?",
-                answer: "Yes. Collection is available by appointment. Please contact us to arrange a suitable time."
+                question: "Do you offer delivery services?",
+                answer: "No, we don't offer delivery services. You need to arrange delivery by contacting the seller.",
             },
             {
-                question: "Do you offer delivery?",
-                answer: "Yes, delivery can be arranged across Norway. Quotes are provided before dispatch."
+                question: "Can I collect the item myself?",
+                answer: "Yes. Collection can usually be arranged directly with the seller after payment.",
             },
-            {
-                question: "When does responsibility transfer to me?",
-                answer: "Risk transfers to the buyer once the equipment is collected or delivered, whichever occurs first."
-            }
-        ]
+        ],
     },
     {
         category: "Sellers",
-        icon: <Store size={20} />,
+        icon: <Store size={18} />,
         questions: [
             {
-                question: "I have equipment to sell — how does it work?",
-                answer: "We offer tailored remarketing services for dealers, fleet operators, rental companies, and contractors. Contact us for a custom quote."
+                question: "How do I list an item on RexBid?",
+                answer: "Create an account, upload your listing details, and start receiving bids from buyers.",
             },
             {
-                question: "What are your seller fees?",
-                answer: "We offer both commission-based and fixed-fee options. Please contact us to discuss which model suits your needs."
+                question: "What are the seller fees?",
+                answer: "RexBid charges a 3% seller commission, with an additional 3% for featured listings.",
             },
-            {
-                question: "Do you provide inspection or photography services?",
-                answer: "Sellers are responsible for managing their own listings, including descriptions and images. We recommend providing clear, accurate information to attract serious buyers."
-            }
-        ]
+        ],
     },
     {
         category: "General",
-        icon: <Clock size={20} />,
+        icon: <Clock size={18} />,
         questions: [
             {
-                question: "What are your support hours?",
-                answer: "We're always available! Our team is here to help whenever you need us."
+                question: "Which currencies are supported?",
+                answer: "Listings can use GBP for Northern Ireland and EUR for the Republic of Ireland.",
             },
             {
-                question: "What languages do you support?",
-                answer: "Our support team is available in multiple languages, including Swedish and English."
+                question: "How can I contact support?",
+                answer: `You can contact us anytime via email at ${email} or by phone at ${phone}.`,
             },
-            {
-                question: "How can I contact BidNordic?",
-                answer: `BidNordic | Phone: ${phone} | Email: ${email} | Address: ${address}`
-            }
-        ]
-    }
+        ],
+    },
 ];
 
 function FAQsPage() {
+    const [activeCategory, setActiveCategory] = useState("Buyers");
     const [openIndex, setOpenIndex] = useState(null);
     const [searchTerm, setSearchTerm] = useState("");
-    const [activeCategory, setActiveCategory] = useState("Bidder");
 
-    const filteredFaqs = faqs.flatMap(category =>
-        category.questions.filter(q =>
-            (activeCategory === "all" || category.category === activeCategory) &&
-            (q.question.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                q.answer.toLowerCase().includes(searchTerm.toLowerCase()))
-        ).map(q => ({ ...q, category: category.category }))
-    );
+    const filteredFaqs = faqs
+        .filter((cat) => cat.category === activeCategory)
+        .flatMap((cat) =>
+            cat.questions.map((q) => ({
+                ...q,
+                category: cat.category,
+            }))
+        )
+        .filter(
+            (faq) =>
+                faq.question.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                faq.answer.toLowerCase().includes(searchTerm.toLowerCase())
+        );
 
     return (
-        <section className="pt-24 md:pt-32 bg-gradient-to-b from-white to-gray-50 max-w-full">
-            {/* Hero Section */}
-            <div className="">
+        <section className="bg-white text-[#072342] overflow-hidden">
+            {/* HERO SECTION - White background */}
+            <section className="relative pt-32 bg-white border-b border-gray-100">
                 <Container>
-                    <div className="max-w-4xl mx-auto text-center">
-                        <div className="inline-flex items-center gap-2 px-4 py-2 bg-orange-100 rounded-full mb-4">
-                            <span className="w-2 h-2 bg-orange-500 rounded-full"></span>
-                            <span className="text-sm font-semibold text-secondary">FAQ Center</span>
+                    <div className="max-w-full text-center">
+                        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#D19F3E]/10 text-[#D19F3E] text-sm font-medium">
+                            <ShieldCheck size={16} />
+                            Help Center
                         </div>
-                        <div className="text-center mb-10">
-                            <h1 className="text-4xl md:text-5xl font-bold text-slate-900">
-                                Frequently Asked <span className="italic text-gray-500">Questions</span>
-                            </h1>
+                        <h1 className="mt-6 text-4xl md:text-5xl lg:text-6xl font-bold leading-tight">
+                            Frequently Asked
+                            <span className="text-[#D19F3E]"> Questions</span>
+                        </h1>
+                        <p className="mt-6 text-lg text-[#072342]/70 leading-relaxed max-w-full">
+                            Everything you need to know about listings, bidding, payments, and selling machinery or vehicles on RexBid.
+                        </p>
+                        <div className="relative mt-10 max-w-2xl mx-auto">
+                            <Search
+                                size={20}
+                                className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400"
+                            />
+                            <input
+                                type="text"
+                                placeholder="Search for answers..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="w-full h-14 pl-14 pr-5 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#D19F3E]/30 focus:border-[#D19F3E] transition"
+                            />
+                        </div>
+                    </div>
+                </Container>
+            </section>
+
+            {/* MAIN CONTENT - Gray background for separation */}
+            <section className="py-14 lg:py-14 bg-gray-50">
+                <Container>
+                    <div className="grid lg:grid-cols-[300px,1fr] gap-8 lg:gap-12">
+                        {/* SIDEBAR */}
+                        <div className="space-y-6">
+                            <div className="bg-gray-100/80 rounded-2xl p-5 shadow-sm">
+                                <h3 className="text-lg font-semibold text-[#072342] mb-4 px-1">Categories</h3>
+                                <div className="space-y-1">
+                                    {faqs.map((cat) => (
+                                        <button
+                                            key={cat.category}
+                                            onClick={() => setActiveCategory(cat.category)}
+                                            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all duration-200 ${
+                                                activeCategory === cat.category
+                                                    ? "bg-[#072342] text-white shadow-md"
+                                                    : "hover:bg-white/70 text-[#072342]/80"
+                                            }`}
+                                        >
+                                            <span
+                                                className={`w-9 h-9 rounded-lg flex items-center justify-center transition-colors ${
+                                                    activeCategory === cat.category
+                                                        ? "bg-white/10 text-[#D19F3E]"
+                                                        : "bg-[#D19F3E]/10 text-[#D19F3E]"
+                                                }`}
+                                            >
+                                                {cat.icon}
+                                            </span>
+                                            <span className="font-medium text-sm md:text-base">
+                                                {cat.category}
+                                            </span>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Contact Card - stays dark blue */}
+                            <div className="bg-[#072342] rounded-2xl p-6 text-white relative overflow-hidden shadow-lg">
+                                <div className="absolute -top-20 -right-20 w-48 h-48 bg-[#D19F3E]/20 rounded-full blur-2xl" />
+                                <div className="relative z-10">
+                                    <h3 className="text-xl font-bold leading-snug">Still Need Help?</h3>
+                                    <p className="mt-2 text-white/70 text-sm">
+                                        Our support team is always available to assist you.
+                                    </p>
+                                    <div className="mt-6 space-y-3">
+                                        <a
+                                            href={`mailto:${email}`}
+                                            className="flex items-center gap-3 bg-white/5 hover:bg-white/10 transition rounded-xl p-3"
+                                        >
+                                            <div className="w-9 h-9 rounded-lg bg-[#D19F3E]/20 flex items-center justify-center">
+                                                <Mail size={16} className="text-[#D19F3E]" />
+                                            </div>
+                                            <div>
+                                                <p className="text-xs text-white/60">Email Us</p>
+                                                <p className="text-sm font-medium">{email}</p>
+                                            </div>
+                                        </a>
+                                        <a
+                                            href={`tel:${phone}`}
+                                            className="flex items-center gap-3 bg-white/5 hover:bg-white/10 transition rounded-xl p-3"
+                                        >
+                                            <div className="w-9 h-9 rounded-lg bg-[#D19F3E]/20 flex items-center justify-center">
+                                                <Phone size={16} className="text-[#D19F3E]" />
+                                            </div>
+                                            <div>
+                                                <p className="text-xs text-white/60">Call Us</p>
+                                                <p className="text-sm font-medium">{phone}</p>
+                                            </div>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
-                        {/* Search Bar */}
-                        <div className="max-w-2xl mx-auto mb-12">
-                            <div className="relative">
-                                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-                                <input
-                                    type="text"
-                                    placeholder="Search for answers..."
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                    className="w-full pl-12 pr-4 py-4 bg-white border border-gray-200 rounded-xl shadow-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition-all duration-200"
-                                />
+                        {/* FAQ ACCORDION AREA */}
+                        <div>
+                            <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
+                                <div>
+                                    <p className="text-[#D19F3E] uppercase tracking-[3px] text-xs font-semibold">
+                                        Support Questions
+                                    </p>
+                                    <h2 className="mt-1 text-2xl md:text-3xl font-bold text-[#072342]">
+                                        {activeCategory} FAQs
+                                    </h2>
+                                </div>
+                                <div className="text-sm text-[#072342]/50 bg-white px-3 py-1 rounded-full shadow-sm">
+                                    {filteredFaqs.length} questions
+                                </div>
+                            </div>
+
+                            <div className="space-y-3">
+                                {filteredFaqs.map((faq, index) => {
+                                    const isOpen = openIndex === index;
+                                    return (
+                                        <div
+                                            key={index}
+                                            className={`bg-white rounded-xl border transition-all duration-300 overflow-hidden shadow-sm ${
+                                                isOpen
+                                                    ? "border-[#D19F3E]/40 shadow-md"
+                                                    : "border-gray-100 hover:shadow-md hover:border-gray-200"
+                                            }`}
+                                        >
+                                            <button
+                                                onClick={() => setOpenIndex(isOpen ? null : index)}
+                                                className="w-full flex items-center justify-between gap-4 px-5 py-4 text-left"
+                                            >
+                                                <h3 className="text-base md:text-lg font-semibold text-[#072342] leading-relaxed pr-2">
+                                                    {faq.question}
+                                                </h3>
+                                                <div
+                                                    className={`flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-300 ${
+                                                        isOpen
+                                                            ? "bg-[#D19F3E] text-white rotate-180"
+                                                            : "bg-gray-100 text-[#072342]"
+                                                    }`}
+                                                >
+                                                    <ChevronDown size={18} />
+                                                </div>
+                                            </button>
+                                            <div
+                                                className={`grid transition-all duration-300 ease-in-out ${
+                                                    isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+                                                }`}
+                                            >
+                                                <div className="overflow-hidden">
+                                                    <div className="px-5 pb-5 text-[#072342]/70 leading-relaxed text-sm md:text-base">
+                                                        {faq.answer}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+
+                            {/* CTA Banner with subtle shadow */}
+                            <div className="mt-10 bg-white rounded-2xl p-6 md:p-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 border border-gray-100 shadow-md">
+                                <div>
+                                    <p className="text-[#D19F3E] uppercase tracking-[3px] text-xs font-semibold">
+                                        Need More Assistance?
+                                    </p>
+                                    <h3 className="mt-1 text-xl md:text-2xl font-bold text-[#072342]">
+                                        Contact Our Support Team
+                                    </h3>
+                                    <p className="mt-1 text-[#072342]/60 text-sm max-w-md">
+                                        We're here to help with auctions, payments, account issues, and equipment listings.
+                                    </p>
+                                </div>
+                                <Link
+                                    to="/contact"
+                                    className="inline-flex items-center justify-center gap-2 bg-[#D19F3E] hover:bg-[#bc8d2f] text-[#072342] font-semibold px-6 py-3 rounded-xl transition-all duration-300 whitespace-nowrap"
+                                >
+                                    Contact Us
+                                    <ArrowRight size={16} />
+                                </Link>
                             </div>
                         </div>
                     </div>
                 </Container>
-            </div>
-
-            <Container className="py-16">
-                <div className="grid lg:grid-cols-[320px,1fr] gap-10">
-
-                    {/* LEFT SIDEBAR */}
-                    <div className="space-y-6">
-
-                        {/* Category Box */}
-                        <div className="bg-[#efe7df] rounded-2xl p-6 space-y-2">
-                            {faqs.map((cat) => (
-                                <button
-                                    key={cat.category}
-                                    onClick={() => setActiveCategory(cat.category)}
-                                    className={`w-full text-left px-5 py-4 rounded-xl border-b border-b-white transition font-medium
-            ${activeCategory === cat.category
-                                            ? "bg-white text-green-600 shadow"
-                                            : "text-gray-700 hover:bg-white/60"}`}
-                                >
-                                    {cat.category}
-                                </button>
-                            ))}
-                        </div>
-
-                        {/* Help Card */}
-                        <div className="bg-[#e9e2f4] rounded-2xl p-6 text-center">
-                            <h3 className="font-semibold text-lg mb-4">
-                                Didn't find your answer? Ask directly!
-                            </h3>
-
-                            <div className="w-14 h-14 mx-auto mb-4 flex items-center justify-center border rounded-full text-green-600 border-green-500">
-                                <Mail size={22} />
-                            </div>
-
-                            <p className="text-sm text-gray-600">To Send Mail</p>
-                            <Link to={`mailto:${otherData.email}`} className="font-semibold hover:underline">{otherData?.email}</Link>
-                        </div>
-
-                    </div>
-
-                    {/* RIGHT SIDE QUESTIONS */}
-                    <div className="space-y-5">
-
-                        {faqs
-                            .filter(cat => activeCategory === "all" || cat.category === activeCategory)
-                            .flatMap(cat =>
-                                cat.questions.map(q => ({
-                                    ...q,
-                                    category: cat.category
-                                }))
-                            )
-                            .filter(faq =>
-                                faq.question.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                faq.answer.toLowerCase().includes(searchTerm.toLowerCase())
-                            )
-                            .map((faq, index) => (
-
-                                <div
-                                    key={index}
-                                    className="bg-white border border-gray-200 rounded-2xl overflow-hidden"
-                                >
-                                    <button
-                                        onClick={() => setOpenIndex(openIndex === index ? null : index)}
-                                        className="w-full flex items-center justify-between px-6 py-5 text-left"
-                                    >
-                                        <span className="font-semibold text-gray-800">
-                                            {faq.question}
-                                        </span>
-
-                                        <span className={`w-9 h-9 flex items-center justify-center rounded-full transition
-                ${openIndex === index
-                                                ? "bg-green-200 rotate-45"
-                                                : "bg-green-100"}`}
-                                        >
-                                            <span className="text-xl font-bold text-green-700">+</span>
-                                        </span>
-                                    </button>
-
-                                    <div className={`transition-all duration-300 overflow-hidden
-              ${openIndex === index ? "max-h-96 opacity-100" : "max-h-0 opacity-0"}`}
-                                    >
-                                        <p className="px-6 pb-6 text-gray-600 leading-relaxed">
-                                            {faq.answer}
-                                        </p>
-                                    </div>
-                                </div>
-                            ))}
-                    </div>
-                </div>
-            </Container>
-
+            </section>
         </section>
     );
 }

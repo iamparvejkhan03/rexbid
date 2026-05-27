@@ -46,7 +46,7 @@ const bidPaymentSchema = new Schema({
     },
     type: {
         type: String,
-        enum: ['bid_authorization', 'final_commission', 'bid_deposit', 'checkout_payment', 'bank_transfer_payment'],  // ADDED: 'checkout_payment', 'bank_transfer_payment'
+        enum: ['bid_authorization', 'final_commission', 'seller_commission_payment', 'bid_deposit', 'checkout_payment', 'bank_transfer_payment'], 
         default: 'bid_authorization'
     },
     commissionRate: {

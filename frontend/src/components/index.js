@@ -62,6 +62,7 @@ import TestimonialSection from "./TestimonialSection";
 import ReviewModal from "./ReviewModal";
 import RatingStars from "./RatingStars";
 import SellerStatsCard from "./SellerStatsCard";
+import FeaturedListings from "./FeaturedListings";
 
 export {
     Container,
@@ -128,4 +129,5 @@ export {
     ReviewModal,
     RatingStars,
     SellerStatsCard,
+    FeaturedListings,
 }

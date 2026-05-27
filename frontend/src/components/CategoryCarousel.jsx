@@ -1,156 +1,69 @@
-import { useState, useEffect } from "react";
-import { useKeenSlider } from "keen-slider/react";
-import { Link } from "react-router-dom";
-import { ChevronLeft, ChevronRight, Tractor, Building2, Trees, Truck, Wrench, Package, Leaf, Warehouse, Cog } from "lucide-react";
-import "keen-slider/keen-slider.min.css";
+import { Tractor, Truck, Car, Wrench, Package, Leaf, Cog, Warehouse, Building2, Trees, Gavel } from "lucide-react";
 
-// Map category names to icons (fallback)
+// Map category names to brand-colored icons (same as before)
 const getCategoryIcon = (categoryName) => {
     const name = categoryName?.toLowerCase() || '';
-    if (name.includes('agriculture') || name.includes('tractor')) return Tractor;
-    if (name.includes('construction') || name.includes('building')) return Building2;
-    if (name.includes('forestry') || name.includes('tree')) return Trees;
+    if (name.includes('farming') || name.includes('tractor')) return Tractor;
+    if (name.includes('plant') || name.includes('machinery')) return Truck;
+    if (name.includes('cars') || name.includes('commercials')) return Car;
     if (name.includes('transport') || name.includes('truck')) return Truck;
     if (name.includes('ground') || name.includes('lawn')) return Wrench;
     if (name.includes('material') || name.includes('handling')) return Package;
     if (name.includes('spray') || name.includes('irrigation')) return Leaf;
     if (name.includes('spare') || name.includes('parts')) return Cog;
     if (name.includes('storage') || name.includes('silo')) return Warehouse;
-    return Package; // default icon
+    return Gavel;
 };
 
-function CategoryCarousel({ categories = [], onCategoryClick }) {
-    const [currentSlide, setCurrentSlide] = useState(0);
-    const [loaded, setLoaded] = useState(false);
-
-    const [sliderRef, instanceRef] = useKeenSlider({
-        slideChanged(slider) {
-            setCurrentSlide(slider.track.details.rel);
-        },
-        created() {
-            setLoaded(true);
-        },
-        slides: { perView: 1, spacing: 16 },
-        breakpoints: {
-            "(min-width: 640px)": { slides: { perView: 2, spacing: 16 } },
-            "(min-width: 768px)": { slides: { perView: 3, spacing: 16 } },
-            "(min-width: 1024px)": { slides: { perView: 4, spacing: 20 } },
-            "(min-width: 1280px)": { slides: { perView: 5, spacing: 20 } },
-        },
-        loop: categories.length > 5,
-    });
-
-    // autoplay
-    useEffect(() => {
-        if (!instanceRef.current || categories.length <= 5) return;
-        const interval = setInterval(() => instanceRef.current?.next(), 4500);
-        return () => clearInterval(interval);
-    }, [instanceRef, categories.length]);
-
-    // Don't render if no categories
+function CategoryGrid({ categories = [], onCategoryClick }) {
     if (!categories || categories.length === 0) {
         return (
-            <div className="text-center py-12 bg-gray-50 rounded-lg">
-                <Package size={48} className="mx-auto text-gray-300 mb-4" />
-                <h3 className="text-lg font-medium text-gray-700">No categories available</h3>
+            <div className="text-center py-16 bg-gray-100 rounded-2xl">
+                <Package size={48} className="mx-auto text-gray-400 mb-3" />
+                <p className="text-gray-500">No categories available</p>
             </div>
         );
     }
 
     return (
-        <div className="relative">
-            {/* arrows - only show if more than 5 categories */}
-            {loaded && instanceRef.current && categories.length > 5 && (
-                <>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6 md:gap-7">
+            {categories.map((category) => {
+                const Icon = getCategoryIcon(category.name);
+                const auctionCount = category.auctionCount || 0;
+
+                return (
                     <button
-                        onClick={() => instanceRef.current?.prev()}
-                        className="absolute left-0 top-1/2 -translate-y-1/2 -ml-4 bg-white shadow-md rounded-full p-2 hover:scale-105 transition z-10"
-                        aria-label="Previous"
+                        key={category.slug || category._id}
+                        onClick={() => onCategoryClick(category.slug)}
+                        className="group relative bg-white rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 focus:outline-none overflow-hidden border border-gray-100 hover:border-[#D19F3E]/30"
                     >
-                        <ChevronLeft size={20} />
-                    </button>
-                    <button
-                        onClick={() => instanceRef.current?.next()}
-                        className="absolute right-0 top-1/2 -translate-y-1/2 -mr-4 bg-white shadow-md rounded-full p-2 hover:scale-105 transition z-10"
-                        aria-label="Next"
-                    >
-                        <ChevronRight size={20} />
-                    </button>
-                </>
-            )}
+                        {/* Top accent bar on hover */}
+                        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#D19F3E] to-[#E8B86B] scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left" />
 
-            {/* slider */}
-            <div ref={sliderRef} className="keen-slider">
-                {categories.map((category) => {
-                    const Icon = getCategoryIcon(category.name);
-                    // Use the image from API if available, otherwise fallback to placeholder
-                    const imageUrl = category.image || `https://images.unsplash.com/photo-1500595046743-cd271d694d30?w=800&auto=format&fit=crop`;
+                        <div className="p-6 text-center">
+                            {/* Icon container with brand color background */}
+                            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-[#D19F3E]/15 to-[#D19F3E]/5 group-hover:from-[#D19F3E]/25 group-hover:to-[#D19F3E]/10 transition-colors mb-4">
+                                <Icon size={32} className="text-[#D19F3E] group-hover:scale-110 transition-transform duration-300" />
+                            </div>
 
-                    return (
-                        <div key={category.slug || category._id} className="keen-slider__slide">
-                            <button
-                                onClick={() => onCategoryClick(category.slug)}
-                                className="w-full focus:outline-none"
-                            >
-                                <div className="relative h-52 rounded-xl overflow-hidden group cursor-pointer will-change-transform">
-                                    {/* Background Image */}
-                                    <div
-                                        className="absolute inset-0 bg-cover bg-center transition-transform duration-500 ease-out group-hover:scale-110"
-                                        style={{ backgroundImage: `url(${imageUrl})` }}
-                                    />
+                            {/* Category name */}
+                            <h3 className="font-semibold text-[#072342] text-lg mb-2">
+                                {category.name}
+                            </h3>
 
-                                    {/* Dark overlay */}
-                                    <div className="absolute inset-0 bg-black/30 group-hover:bg-black/50 transition duration-300 pointer-events-none" />
-
-                                    {/* Hover Icon */}
-                                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                                        <div className="bg-orange-500 rounded-full p-4 shadow-lg
-                                            opacity-0 scale-75
-                                            group-hover:opacity-100 group-hover:scale-100
-                                            transition duration-300 ease-out">
-                                            <Icon size={28} className="text-white" />
-                                        </div>
-                                    </div>
-
-                                    {/* Bottom Label */}
-                                    <div className="absolute bottom-5 left-1/2 -translate-x-1/2 pointer-events-none w-full px-4">
-                                        <h3 className="font-semibold text-white text-center text-lg drop-shadow-lg">
-                                            {category.name}
-                                        </h3>
-                                        {category.auctionCount > 0 && (
-                                            <p className="text-xs text-white/90 text-center mt-1">
-                                                {category.auctionCount.toLocaleString()} auctions
-                                            </p>
-                                        )}
-                                    </div>
+                            {/* Auction count badge */}
+                            {auctionCount > 0 && (
+                                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-100 text-xs font-medium text-gray-700">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-[#D19F3E]" />
+                                    {auctionCount.toLocaleString()} auctions
                                 </div>
-                            </button>
+                            )}
                         </div>
-                    );
-                })}
-            </div>
-
-            {/* Dots Navigation */}
-            {loaded && instanceRef.current && categories.length > 5 && (
-                <div className="flex justify-center mt-6 gap-2">
-                    {[
-                        ...Array(instanceRef.current.track.details.slides.length).keys(),
-                    ].map((idx) => (
-                        <button
-                            key={idx}
-                            onClick={() => instanceRef.current?.moveToIdx(idx)}
-                            className={`w-2 h-2 rounded-full transition-all ${
-                                currentSlide === idx 
-                                    ? 'bg-orange-500 w-6' 
-                                    : 'bg-gray-300 hover:bg-gray-400'
-                            }`}
-                            aria-label={`Go to slide ${idx + 1}`}
-                        />
-                    ))}
-                </div>
-            )}
+                    </button>
+                );
+            })}
         </div>
     );
 }
 
-export default CategoryCarousel;
+export default CategoryGrid;

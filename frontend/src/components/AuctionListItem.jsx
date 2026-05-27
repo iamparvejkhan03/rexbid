@@ -290,7 +290,7 @@ function AuctionListItem({ auction }) {
                             e.stopPropagation();
                             navigate(`/auction/${auction._id}`);
                         }}
-                        className="px-4 py-2 sm:px-3 sm:py-1.5 bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 text-white text-sm sm:text-xs font-medium rounded hover:bg-gradient-to-r hover:from-amber-500 hover:via-amber-600 hover:to-amber-700 flex-1 sm:flex-none flex items-center justify-center gap-1"
+                        className="px-4 py-2 sm:px-3 sm:py-1.5 bg-gradient-to-r from-[#D19F3E] to-[#E8B86B] text-white text-sm sm:text-xs font-medium rounded hover:from-[#D19F3E]/90 hover:to-[#E8B86B]/90 flex-1 sm:flex-none flex items-center justify-center gap-1"
                     >
                         {getButtonIcon()}
                         {getButtonText()}

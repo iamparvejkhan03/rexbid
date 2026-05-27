@@ -89,11 +89,11 @@ const PaymentRefundPolicy = () => {
                 <p className="mb-4">
                     SpeedWays Auto <br />
                     {otherData.address} <br />
-                    <Link className="text-blue-600 underline" to="mailto:admin@bidnordic.com">
-                        admin@bidnordic.com
+                    <Link className="text-blue-600 underline" to="mailto:admin@rexbid.ie">
+                        admin@rexbid.ie
                     </Link> <br />
                     <Link className="text-blue-600 underline" to="tel:+441234567890">
-                        +471234567890
+                        +3531234567890
                     </Link> <br />
                 </p>
             </Container>

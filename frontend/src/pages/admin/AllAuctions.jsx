@@ -148,7 +148,7 @@ function AllAuctions() {
     const toggleFeatured = async (auctionId, currentlyFeatured) => {
         try {
             const { data } = await axiosInstance.patch(`/api/v1/admin/auctions/${auctionId}/status`, {
-                featured: !currentlyFeatured
+                isFeatured: !currentlyFeatured
             });
             if (data.success) {
                 toast.success(data.message);
@@ -380,10 +380,10 @@ function AllAuctions() {
                             <div className="text-2xl font-bold text-amber-600">{stats.pending?.toLocaleString('nb-NO')}</div>
                             <div className="text-sm text-gray-500">Pending</div>
                         </div>
-                        {/* <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+                        <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
                             <div className="text-2xl font-bold text-purple-600">{stats.featured?.toLocaleString('nb-NO')}</div>
                             <div className="text-sm text-gray-500">Featured</div>
-                        </div> */}
+                        </div>
                         <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
                             <div className="text-2xl font-bold text-blue-600">{stats.sold?.toLocaleString('nb-NO')}</div>
                             <div className="text-sm text-gray-500">Sold</div>
@@ -473,7 +473,7 @@ function AllAuctions() {
                                                                     {auction.category}
                                                                 </span> */}
                                                                 {getAuctionTypeBadge(auction.auctionType)}
-                                                                {auction.featured && (
+                                                                {auction.isFeatured && (
                                                                     <span className="inline-flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-amber-400 to-orange-500 text-white text-xs rounded-full">
                                                                         <Star size={10} />
                                                                         Featured
@@ -706,7 +706,7 @@ function AllAuctions() {
                                                                         </button>
                                                                     )}
 
-                                                                    {auction.status === "sold" && (
+                                                                    {/* {auction.status === "sold" && (
                                                                         <button
                                                                             onClick={() => {
                                                                                 handleEditAuction(auction);
@@ -717,23 +717,23 @@ function AllAuctions() {
                                                                             <RefreshCcw size={16} />
                                                                             <span>Relist Auction</span>
                                                                         </button>
-                                                                    )}
+                                                                    )} */}
 
                                                                     {/* Featured Toggle */}
-                                                                    {/* <div className="border-t border-gray-100 my-1"></div>
+                                                                    <div className="border-t border-gray-100 my-1"></div>
                                                                     <div className="px-3 py-2 text-xs font-medium text-gray-500 border-b border-gray-100">
                                                                         Featured Status
                                                                     </div>
                                                                     <button
                                                                         onClick={() => {
-                                                                            toggleFeatured(auction._id, auction.featured);
+                                                                            toggleFeatured(auction._id, auction.isFeatured);
                                                                             setActiveDropdown(null);
                                                                         }}
                                                                         className="flex items-center gap-3 w-full px-4 py-2 text-sm text-amber-600 hover:bg-amber-50 transition-colors"
                                                                     >
-                                                                        <Star size={16} fill={auction.featured ? "currentColor" : "none"} />
-                                                                        <span>{auction.featured ? "Remove Featured" : "Make Featured"}</span>
-                                                                    </button> */}
+                                                                        <Star size={16} fill={auction.isFeatured ? "currentColor" : "none"} />
+                                                                        <span>{auction.isFeatured ? "Remove Featured" : "Make Featured"}</span>
+                                                                    </button>
 
                                                                     {/* Delete Action */}
                                                                     <div className="border-t border-gray-100 my-1"></div>
@@ -828,12 +828,12 @@ function AllAuctions() {
                                         <div className="flex-1">
                                             <div className="flex items-center gap-2 mb-2">
                                                 <h4 className="text-xl font-bold text-gray-900">{selectedAuction.title}</h4>
-                                                {/* {selectedAuction.featured && (
-                                <span className="inline-flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-amber-400 to-orange-500 text-white text-xs rounded-full">
-                                    <Star size={12} />
-                                    Featured
-                                </span>
-                            )} */}
+                                                {selectedAuction.isFeatured && (
+                                                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-amber-400 to-orange-500 text-white text-xs rounded-full">
+                                                        <Star size={12} />
+                                                        Featured
+                                                    </span>
+                                                )}
                                             </div>
                                             <div className="flex flex-wrap gap-2 mb-2">
                                                 {getStatusBadge(selectedAuction.status, selectedAuction.endDate)}

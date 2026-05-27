@@ -317,8 +317,6 @@ const FiltersSection = ({
                             <option value="">All Types</option>
                             <option value="standard">Standard Auction</option>
                             <option value="reserve">Reserve Auction</option>
-                            <option value="buy_now">Buy Now Auction</option>
-                            <option value="giveaway">Free Giveaway</option>
                         </select>
                     </div>
 
@@ -330,6 +328,23 @@ const FiltersSection = ({
                         <select
                             name="allowOffers"
                             value={uiFilters.allowOffers || ''}
+                            onChange={handleFilterChange}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                        >
+                            <option value="">All</option>
+                            <option value="true">Yes</option>
+                            <option value="false">No</option>
+                        </select>
+                    </div>
+
+                    {/* IsFeatured */}
+                    <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Featured Auctions
+                        </label>
+                        <select
+                            name="isFeatured"
+                            value={uiFilters.isFeatured || ''}
                             onChange={handleFilterChange}
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                         >
@@ -376,6 +391,7 @@ function Auctions() {
         sortOrder: "desc",
         auctionType: "",
         allowOffers: "",
+        isFeatured: ""
     });
 
     const [categories, setCategories] = useState([]);
@@ -397,6 +413,7 @@ function Auctions() {
         const statusParam = searchParams.get('status');
         const auctionTypeParam = searchParams.get('auctionType'); // Add this line
         const allowOffersParam = searchParams.get('allowOffers'); // Add this line
+        const isFeaturedParam = searchParams.get('isFeaturedOffers'); // Add this line
 
         const newFilters = { ...uiFilters };
 
@@ -427,6 +444,11 @@ function Auctions() {
             newFilters.allowOffers = allowOffersParam;
         }
 
+        // Set allow offers from URL if exists
+        if (isFeaturedParam) {
+            newFilters.isFeatured = isFeaturedParam;
+        }
+
         // IMPORTANT: Only set status from URL if it exists, otherwise keep 'active'
         if (statusParam) {
             newFilters.status = statusParam;
@@ -437,7 +459,7 @@ function Auctions() {
         setUiFilters(newFilters);
 
         // Only update API filters if we have parameters
-        if (categoryParam || subcategoryParam || statusParam || auctionTypeParam || allowOffersParam) {
+        if (categoryParam || subcategoryParam || statusParam || auctionTypeParam || allowOffersParam || isFeaturedParam) {
             updateFilters(newFilters);
         }
     }, [location.search]);
@@ -589,6 +611,7 @@ function Auctions() {
             sortOrder: "desc",
             auctionType: "",
             allowOffers: "",
+            isFeatured: "",
             make: "",
             model: "",
             yearMin: "",
@@ -710,7 +733,7 @@ function Auctions() {
 
                                 <div className="flex items-center gap-3">
                                     {/* Add view mode toggle */}
-                                    <div className="hidden md:flex items-center gap-2 bg-gray-100 p-1 rounded-lg">
+                                    {/* <div className="hidden md:flex items-center gap-2 bg-gray-100 p-1 rounded-lg">
                                         <button
                                             onClick={() => setViewMode("grid")}
                                             className={`p-2 rounded transition-colors ${viewMode === "grid" ? "bg-white shadow-sm" : "hover:bg-gray-200"}`}
@@ -725,7 +748,7 @@ function Auctions() {
                                         >
                                             <List size={18} className={viewMode === "list" ? "text-orange-500" : "text-gray-500"} />
                                         </button>
-                                    </div>
+                                    </div> */}
 
                                     <div className="flex items-center gap-2">
                                         <span className="text-gray-600 text-sm">Sort by:</span>

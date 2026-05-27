@@ -37,6 +37,7 @@ const CTA = lazy(() => import('../components/CTA'));
 const CategoryIconsSection = lazy(() => import('../components/CategoryIconsSection'));
 const TestimonialSection = lazy(() => import('../components/TestimonialSection'));
 const About = lazy(() => import('../components/About'));
+const FeaturedListings = lazy(() => import('../components/FeaturedListings'));
 
 const trustedBrands = [
     { src: CaseIH, alt: 'Case IH' },
@@ -68,26 +69,29 @@ function Home() {
     const [auctions, setAuctions] = useState([]);
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
-    const [activeTab, setActiveTab] = useState('active'); // 'sold', 'active', 'approved'
+    const [activeTab, setActiveTab] = useState('ending_soon'); // 'sold', 'active', 'approved'
     const [viewMode, setViewMode] = useState("grid"); // "grid" or "list"
 
     // Map tab values to API status values
     const tabStatusMap = {
         'sold': 'sold',
         'active': 'active',
-        'approved': 'approved'
+        'approved': 'approved',
+        'ending_soon': 'ending_soon',
     };
 
     const tabTitles = {
-        'active': 'Live Auctions',
-        'sold': 'Closed Auctions',
-        'approved': 'Upcoming Auctions'
+        'ending_soon': 'Ending Soon',
+        'active': 'Live Listings',
+        'sold': 'Closed Listings',
+        'approved': 'Upcoming Listings'
     };
 
     const tabDescriptions = {
-        'active': 'Handpicked heavy equipment. Clear bidding. Verified listings. — find your perfect machine today.',
-        'sold': 'Learn from past auctions — browse sold and reserve-not-met listings to bid smarter on your next machine.',
-        'approved': 'Plan your next move — browse upcoming heavy equipment auctions and build your bidding strategy in advance.'
+        'ending_soon': 'These listings are ending within the next 24 hours. Don’t miss your chance to bid.',
+        'active': 'Live listings from Irish sellers. Heavy machinery, plant equipment, and commercial vehicles – ready to inspect, ready to deal.',
+        'sold': 'See what sold and what didn’t. Real closing prices from real Irish sellers. Sharpen your bid for the next live listing.',
+        'approved': 'Coming soon to RexBid. Get early access to listings before they go live. Build your shortlist and move fast when the timer starts.'
     };
 
     const fetchAuctions = async (tab = activeTab, category = null, limit = 4, sortBy = 'highestBid') => {
@@ -120,7 +124,7 @@ function Home() {
     };
 
     useEffect(() => {
-        fetchAuctions('active'); // Load sold auctions by default
+        fetchAuctions('ending_soon'); // Load sold auctions by default
     }, []);
 
     const handleLoadByStatus = () => {
@@ -168,52 +172,52 @@ function Home() {
                 <CategoryIconsSection />
             </Suspense>
 
+            {/* Featured Listings Section */}
+            <FeaturedListings />
+
             {/* Dynamic Auctions section */}
             <Container className="mb-14 flex flex-col">
                 <div className="gap-y-3">
                     <div className="flex items-center justify-between flex-wrap gap-y-3">
                         <h2 className="text-3xl md:text-4xl font-bold text-primary order-1">{tabTitles[activeTab]}</h2>
                         <div className="flex items-center  flex-wrap gap-5 order-2 mb-3">
-                            <div className="flex space-x-2 bg-white p-1 border border-gray-500/50 rounded-md text-sm">
-                                <div className="flex items-center">
-                                    <input
-                                        type="radio"
-                                        name="options"
-                                        id="active"
-                                        className="hidden peer"
-                                        checked={activeTab === 'active'}
-                                        onChange={() => handleTabChange('active')}
-                                    />
-                                    <label htmlFor="active" className="cursor-pointer rounded py-2 px-4 sm:px-8 text-[#1e2d3b] transition-colors duration-200 peer-checked:bg-gradient-to-r peer-checked:from-amber-400 peer-checked:via-amber-500 peer-checked:to-amber-600 peer-checked:text-white">
-                                        Live
-                                    </label>
-                                </div>
-                                <div className="flex items-center">
-                                    <input
-                                        type="radio"
-                                        name="options"
-                                        id="sold"
-                                        className="hidden peer"
-                                        checked={activeTab === 'sold'}
-                                        onChange={() => handleTabChange('sold')}
-                                    />
-                                    <label htmlFor="sold" className="cursor-pointer rounded py-2 px-4 sm:px-8 text-gray-500 transition-colors duration-200 peer-checked:bg-gradient-to-r peer-checked:from-amber-400 peer-checked:via-amber-500 peer-checked:to-amber-600 peer-checked:text-white">
-                                        Closed
-                                    </label>
-                                </div>
-                                <div className="flex items-center">
-                                    <input
-                                        type="radio"
-                                        name="options"
-                                        id="approved"
-                                        className="hidden peer"
-                                        checked={activeTab === 'approved'}
-                                        onChange={() => handleTabChange('approved')}
-                                    />
-                                    <label htmlFor="approved" className="cursor-pointer rounded py-2 px-4 sm:px-8 text-gray-500 transition-colors duration-200 peer-checked:bg-gradient-to-r peer-checked:from-amber-400 peer-checked:via-amber-500 peer-checked:to-amber-600 peer-checked:text-white">
-                                        Upcoming
-                                    </label>
-                                </div>
+                            <div className="flex rounded-full border border-gray-200 p-1 bg-gray-50/50">
+                                <button
+                                    onClick={() => handleTabChange('ending_soon')}
+                                    className={`px-5 py-2 text-sm font-medium rounded-full transition-all ${activeTab === 'ending_soon'
+                                        ? 'bg-[#D19F3E] text-white shadow-sm'
+                                        : 'text-gray-600 hover:text-[#D19F3E]'
+                                        }`}
+                                >
+                                    Ending Soon
+                                </button>
+                                <button
+                                    onClick={() => handleTabChange('active')}
+                                    className={`px-5 py-2 text-sm font-medium rounded-full transition-all ${activeTab === 'active'
+                                        ? 'bg-[#D19F3E] text-white shadow-sm'
+                                        : 'text-gray-600 hover:text-[#D19F3E]'
+                                        }`}
+                                >
+                                    Live
+                                </button>
+                                <button
+                                    onClick={() => handleTabChange('approved')}
+                                    className={`px-5 py-2 text-sm font-medium rounded-full transition-all ${activeTab === 'approved'
+                                        ? 'bg-[#D19F3E] text-white shadow-sm'
+                                        : 'text-gray-600 hover:text-[#D19F3E]'
+                                        }`}
+                                >
+                                    Upcoming
+                                </button>
+                                <button
+                                    onClick={() => handleTabChange('sold')}
+                                    className={`px-5 py-2 text-sm font-medium rounded-full transition-all ${activeTab === 'sold'
+                                        ? 'bg-[#D19F3E] text-white shadow-sm'
+                                        : 'text-gray-600 hover:text-[#D19F3E]'
+                                        }`}
+                                >
+                                    Closed
+                                </button>
                             </div>
 
                             {/* Add this view mode toggle */}
@@ -322,7 +326,7 @@ function Home() {
                         {auctions.length > 0 && (
                             <button
                                 onClick={handleLoadByStatus}
-                                className="px-8 py-3 bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 text-white font-medium rounded-lg hover:bg-gradient-to-r hover:from-amber-500 hover:via-amber-600 hover:to-amber-700 focus:outline-none focus:ring-2 focus:ring-orange-600 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center gap-2 mt-10 mx-auto"
+                                className="px-8 py-3 bg-gradient-to-r from-[#D19F3E] to-[#E8B86B] text-white font-medium rounded-lg hover:bg-gradient-to-r hover:from-[#D19F3E]/90 hover:to-[#E8B86B]/90 focus:outline-none focus:ring-2 focus:ring-[#E8B86B] focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center gap-2 mt-10 mx-auto"
                             >
                                 View More
                             </button>
@@ -338,16 +342,16 @@ function Home() {
                 </Suspense>
             </Container>
 
-            <Container className="">
-                <HowItWorks />
-            </Container>
+            {/* <Container className=""> */}
+            <HowItWorks />
+            {/* </Container> */}
 
             {/* Testimonials */}
-            <Container>
-                <Suspense fallback={<LoadingSpinner />}>
-                    <TestimonialSection />
-                </Suspense>
-            </Container>
+            {/* <Container> */}
+            <Suspense fallback={<LoadingSpinner />}>
+                <TestimonialSection />
+            </Suspense>
+            {/* </Container> */}
 
             <CTA />
         </>

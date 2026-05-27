@@ -229,14 +229,14 @@ createRoot(document.getElementById('root')).render(
                             /> */}
 
                         {/* Seller Billing */}
-                        {/* <Route
+                        <Route
                                 path='/seller/billing'
                                 element={
                                     <Suspense fallback={<LoadingSpinner height={'750px'} />}>
                                         <SellerBilling />
                                     </Suspense>
                                 }
-                            /> */}
+                            />
                     </Route>
 
                     {/* Broker Layout */}

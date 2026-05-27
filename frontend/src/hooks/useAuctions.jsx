@@ -18,6 +18,7 @@ export const useAuctions = () => {
         location: '',
         sortBy: 'createdAt',
         sortOrder: 'desc',
+        isFeatured: '',
         // Add all the new car filters
         make: '',
         model: '',

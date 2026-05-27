@@ -739,7 +739,7 @@ export const getAllAuctions = async (req, res) => {
           ],
           draft: [{ $match: { status: "draft" } }, { $count: "count" }],
           sold: [{ $match: { status: "sold" } }, { $count: "count" }],
-          featured: [{ $match: { featured: true } }, { $count: "count" }],
+          featured: [{ $match: { isFeatured: true, status: "active" } }, { $count: "count" }]
         },
       },
     ]);
@@ -841,11 +841,11 @@ export const getAuctionDetails = async (req, res) => {
 export const updateAuctionStatus = async (req, res) => {
   try {
     const { auctionId } = req.params;
-    const { status, featured } = req.body;
+    const { status, isFeatured } = req.body;
 
     const updateData = {};
     if (status) updateData.status = status;
-    if (featured !== undefined) updateData.featured = featured;
+    if (isFeatured !== undefined) updateData.isFeatured = isFeatured;
 
     const auction = await Auction.findByIdAndUpdate(auctionId, updateData, {
       new: true,
@@ -861,8 +861,8 @@ export const updateAuctionStatus = async (req, res) => {
 
     let message = "Auction updated successfully";
     if (status) message = `Auction ${status} successfully`;
-    if (featured !== undefined) {
-      message = `Auction ${featured ? "featured" : "unfeatured"} successfully`;
+    if (isFeatured !== undefined) {
+      message = `Auction ${isFeatured ? "featured" : "unfeatured"} successfully`;
     }
 
     res.status(200).json({
@@ -1162,6 +1162,7 @@ export const updateAuction = async (req, res) => {
         // watchlistCount: 0,
 
         // Reset commission
+        featuredPremium: 0,
         commissionAmount: 0,
         commissionType: null,
         commissionValue: 0,

@@ -6,6 +6,7 @@ import Commission from "../models/commission.model.js";
 import {
     paymentCompletedEmail,
 } from "../utils/nodemailer.js";
+import { getCommissionSettings } from "../utils/commissionCalculator.js";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -54,11 +55,13 @@ export const createWonAuctionPayment = async (req, res) => {
             });
         }
 
+        const commissionSettings = await getCommissionSettings();
+
         // Calculate total amount (finalPrice + commission)
         const bidAmount = auction.finalPrice || auction.currentPrice;
         const commissionAmount = auction.commissionAmount || 0;
-        const totalAmount = bidAmount + commissionAmount;
-
+        // const totalAmount = bidAmount + commissionAmount;
+        const totalAmount = commissionSettings && commissionSettings.isEnabled && commissionSettings.appliesTo?.includes('bidder') ? bidAmount + commissionAmount : bidAmount;
         // Check if payment record already exists
         let bidPayment = await BidPayment.findOne({
             auction: auctionId,
@@ -353,10 +356,13 @@ export const createCheckoutPayment = async (req, res) => {
             });
         }
 
+        const commissionSettings = await getCommissionSettings();
+
         // 3. Calculate total (winning bid + commission)
         const bidAmount = auction.finalPrice || auction.currentPrice;
         const commissionAmount = auction.commissionAmount || 0;
-        const totalAmount = bidAmount + commissionAmount;
+        // const totalAmount = bidAmount + commissionAmount;
+        const totalAmount = commissionSettings && commissionSettings.isEnabled && commissionSettings.appliesTo?.includes('bidder') ? bidAmount + commissionAmount : bidAmount;
 
         // 4. Create and confirm payment immediately
         const paymentIntent = await stripe.paymentIntents.create({
@@ -407,7 +413,7 @@ export const createCheckoutPayment = async (req, res) => {
 
         return res.status(200).json({
             success: true,
-            message: "Payment successful! Details will be emailed to seller.",
+            message: "Payment successful!",
             data: {
                 paymentIntent: {
                     id: paymentIntent.id,
@@ -457,10 +463,13 @@ export const createBankTransferPayment = async (req, res) => {
                 .json({ success: false, message: "Payment already processed" });
         }
 
+        const commissionSettings = await getCommissionSettings();
+
         // Calculate total
         const bidAmount = auction.finalPrice || auction.currentPrice;
         const commissionAmount = auction.commissionAmount || 0;
-        const totalAmount = bidAmount + commissionAmount;
+        // const totalAmount = bidAmount + commissionAmount;
+        const totalAmount = commissionSettings && commissionSettings.isEnabled && commissionSettings.appliesTo?.includes('bidder') ? bidAmount + commissionAmount : bidAmount;
 
         // Update auction status to pending (bank transfer)
         auction.paymentStatus = "processing";
@@ -592,6 +601,124 @@ export const confirmCheckoutPayment = async (req, res) => {
         return res.status(400).json({
             success: false,
             message: error.message || "Payment confirmation failed",
+        });
+    }
+};
+
+/**
+ * @desc    Seller pays commission when buyer paid manually (bank transfer)
+ * @route   POST /api/v1/payments/pay-commission
+ * @access  Private (Seller only)
+ */
+export const paySellerCommission = async (req, res) => {
+    try {
+        const { auctionId } = req.body;
+        const sellerId = req.user.id;
+
+        // 1. Find auction and verify seller
+        const auction = await Auction.findById(auctionId).populate(
+            "seller",
+            "stripeCustomerId paymentMethodId email username"
+        );
+
+        if (!auction) {
+            return res.status(404).json({ success: false, message: "Auction not found" });
+        }
+
+        // Must be seller
+        if (auction.seller._id.toString() !== sellerId) {
+            return res.status(403).json({ success: false, message: "Not authorized" });
+        }
+
+        // Must be sold, bank_transfer method, and payment not completed
+        if (auction.status !== "sold") {
+            return res.status(400).json({ success: false, message: "Auction is not sold" });
+        }
+        if (auction.paymentMethod !== "bank_transfer") {
+            return res.status(400).json({ success: false, message: "Payment method is not bank transfer" });
+        }
+        if (auction.paymentStatus === "completed") {
+            return res.status(400).json({ success: false, message: "Commission already paid" });
+        }
+
+        // 2. Get commission amount (already includes featured premium if applicable)
+        const commissionAmount = auction.commissionAmount || 0;
+        if (commissionAmount <= 0) {
+            return res.status(400).json({ success: false, message: "No commission due" });
+        }
+
+        // 3. Get seller's saved card info
+        const seller = await User.findById(sellerId);
+        if (!seller.stripeCustomerId || !seller.paymentMethodId) {
+            return res.status(400).json({
+                success: false,
+                message: "No saved card found. Please add a card to your account.",
+            });
+        }
+
+        // 4. Charge the seller using Stripe
+        const paymentIntent = await stripe.paymentIntents.create({
+            amount: Math.round(commissionAmount * 100),
+            currency: "usd",
+            customer: seller.stripeCustomerId,
+            payment_method: seller.paymentMethodId,
+            description: `Commission payment for auction: ${auction.title}`,
+            confirm: true,
+            off_session: true,
+            metadata: {
+                auctionId: auctionId,
+                sellerId: sellerId,
+                type: "seller_commission",
+            },
+        });
+
+        if (paymentIntent.status !== "succeeded") {
+            return res.status(400).json({
+                success: false,
+                message: `Payment failed: ${paymentIntent.status}`,
+            });
+        }
+
+        // 5. Update auction payment status
+        auction.paymentStatus = "completed";
+        auction.paymentDate = new Date();
+        auction.transactionId = paymentIntent.id;
+        // Keep paymentMethod as "bank_transfer" (the original method used by buyer)
+        await auction.save();
+
+        // 6. Create BidPayment record for this commission
+        await BidPayment.create({
+            auction: auctionId,
+            bidder: sellerId, // seller is paying commission
+            bidAmount: 0, // not applicable
+            commissionAmount: commissionAmount,
+            totalAmount: commissionAmount,
+            paymentIntentId: paymentIntent.id,
+            status: "succeeded",
+            chargeSucceeded: true,
+            type: "seller_commission_payment",
+            paymentMethod: "credit_card",
+        });
+
+        // 7. Send confirmation email (optional)
+        // if (seller.preferences?.emailUpdates) {
+        //   // You may create a new email template or reuse existing
+        //   paymentCompletedEmail(seller, auction).catch(console.error);
+        // }
+
+        return res.status(200).json({
+            success: true,
+            message: "Commission paid successfully!",
+            data: {
+                paymentIntent: { id: paymentIntent.id, status: paymentIntent.status },
+                auction: { id: auction._id, paymentStatus: auction.paymentStatus },
+            },
+        });
+    } catch (error) {
+        console.error("Seller commission payment error:", error);
+        return res.status(500).json({
+            success: false,
+            message: error.message || "Failed to process commission payment",
         });
     }
 };

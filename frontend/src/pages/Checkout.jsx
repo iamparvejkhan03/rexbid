@@ -293,7 +293,7 @@ const CheckoutContent = () => {
 
             if (response.data.success) {
                 toast.dismiss(loadingToast);
-                toast.success("Payment successful! Details will be emailed to seller.");
+                toast.success("Payment successful!");
 
                 // Redirect after success
                 setTimeout(() => navigate('/bidder/auctions/won'), 3000);
@@ -314,7 +314,7 @@ const CheckoutContent = () => {
 
             if (response.data.success) {
                 toast.dismiss(loadingToast);
-                toast.success("Bank transfer initiated! Please transfer the amount to the seller.");
+                toast.success("Manual payment initiated! Please transfer the amount to the seller.");
 
                 // ✅ Set the bank details and show modal
                 if (response.data.data.bankDetails) {
@@ -327,7 +327,7 @@ const CheckoutContent = () => {
                     if (!showBankDetailsModal) {
                         navigate('/bidder/auctions/won');
                     }
-                }, 5000);
+                }, 1000);
             }
         } catch (error) {
             toast.dismiss(loadingToast);
@@ -491,7 +491,7 @@ const CheckoutContent = () => {
                                                 <span className="font-medium">Handle Payment Yourself</span>
                                             </div>
                                             <p className="text-sm text-gray-600 mt-1">
-                                                Pay in cash to seller or transfer directly to his bank account. You will still need to pay service fee here with your saved card.
+                                                Pay in cash to seller or transfer directly to his bank account.
                                             </p>
                                         </div>
                                         <Globe size={20} className="text-blue-600" />
@@ -564,7 +564,7 @@ const CheckoutContent = () => {
                                         ) : (
                                             <>
                                                 {paymentMethod === 'stripe' ? <CreditCard size={18} /> : <Banknote size={18} />}
-                                                {paymentMethod === 'stripe' ? `Pay ${formatCurrency(calculateTotal())}` : 'Confirm Bank Payment'}
+                                                {paymentMethod === 'stripe' ? `Pay ${formatCurrency(calculateTotal())}` : 'Confirm Manual Payment'}
                                             </>
                                         )}
                                     </button>
@@ -573,8 +573,8 @@ const CheckoutContent = () => {
                                     <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
                                         <p className="text-xs text-yellow-800 flex items-start gap-2">
                                             <AlertCircle size={14} className="flex-shrink-0 mt-0.5" />
-                                            {paymentMethod == 'bank' ? <span>By selecting this method, you agree to pay seller with cash or bank transfer manually. You agree to pay your service fee with saved card (if applies).</span> : <span>
-                                                By selecting this method, you agree to pay with your saved card. Service fee will be included in this amount (if applies).
+                                            {paymentMethod == 'bank' ? <span>By selecting this method, you agree to pay seller with cash or bank transfer manually.</span> : <span>
+                                                By selecting this method, you agree to pay with your saved card.
                                             </span>}
                                         </p>
                                     </div>
