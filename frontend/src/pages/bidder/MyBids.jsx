@@ -19,6 +19,7 @@ import { about } from "../../assets";
 import axiosInstance from "../../utils/axiosInstance";
 import { Link } from "react-router-dom";
 import { useDebounce } from "../../hooks/useDebounce"; // Create this hook as shown earlier
+import { useAuth } from "../../contexts/AuthContext";
 
 function MyBids() {
     const [bids, setBids] = useState([]);
@@ -37,6 +38,9 @@ function MyBids() {
         successRate: 0,
         avgBidAmount: 0
     });
+
+    const { user } = useAuth();
+    const userCurrency = user?.currency || 'EUR';
 
     // Fetch all bids on component mount
     useEffect(() => {
@@ -86,7 +90,7 @@ function MyBids() {
             setLoading(true);
             setError(null);
 
-            const { data } = await axiosInstance.get("/api/v1/bids/my-bids");
+            const { data } = await axiosInstance.get(`/api/v1/bids/my-bids?currency=${userCurrency}`);
 
             if (data.success) {
                 setAllBids(data.data.bids);
@@ -145,16 +149,16 @@ function MyBids() {
     };
 
     const formatCurrency = (amount) => {
-        return new Intl.NumberFormat('nb-NO', {
+        return new Intl.NumberFormat('en-IE', {
             style: 'currency',
-            currency: 'NOK',
+            currency: `${userCurrency}`,
             minimumFractionDigits: 0,
             maximumFractionDigits: 0
         }).format(amount);
     };
 
     const formatDate = (dateString) => {
-        return new Date(dateString).toLocaleDateString('nb-NO', {
+        return new Date(dateString).toLocaleDateString('en-IE', {
             year: 'numeric',
             month: 'long',
             day: 'numeric'
@@ -324,7 +328,7 @@ function MyBids() {
                                 className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${filter === "winning" ? "bg-green-100 text-green-800 border border-green-200 shadow-lg" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}
                             >
                                 <Award size={14} className="inline mr-1" />
-                                Winning ({statistics.totalWinning?.toLocaleString('nb-NO')})
+                                Winning ({statistics.totalWinning?.toLocaleString('en-IE')})
                             </button>
                             <button
                                 onClick={() => setFilter("outbid")}
@@ -338,7 +342,7 @@ function MyBids() {
                                 className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${filter === "won" ? "bg-blue-100 text-blue-800 border border-blue-200 shadow-lg" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}
                             >
                                 <CheckCircle size={14} className="inline mr-1" />
-                                Won ({statistics.totalWon?.toLocaleString('nb-NO')})
+                                Won ({statistics.totalWon?.toLocaleString('en-IE')})
                             </button>
                         </div>
                     </div>
@@ -491,16 +495,16 @@ function MyBids() {
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
                                 <div>
                                     <p className="text-sm text-gray-600">Total Bids Placed</p>
-                                    <p className="text-2xl font-bold text-gray-900">{statistics.totalBids?.toLocaleString('nb-NO')}</p>
+                                    <p className="text-2xl font-bold text-gray-900">{statistics.totalBids?.toLocaleString('en-IE')}</p>
                                 </div>
                                 <div>
                                     <p className="text-sm text-gray-600">Active Participation</p>
-                                    <p className="text-2xl font-bold text-green-600">{statistics.totalActiveBids?.toLocaleString('nb-NO')}</p>
+                                    <p className="text-2xl font-bold text-green-600">{statistics.totalActiveBids?.toLocaleString('en-IE')}</p>
                                 </div>
                                 <div>
                                     <p className="text-sm text-gray-600">Success Rate</p>
                                     <p className="text-2xl font-bold text-blue-600">
-                                        {statistics.successRate?.toLocaleString('nb-NO')}%
+                                        {statistics.successRate?.toLocaleString('en-IE')}%
                                     </p>
                                 </div>
                             </div>

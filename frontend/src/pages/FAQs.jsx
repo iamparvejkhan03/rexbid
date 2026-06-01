@@ -90,7 +90,7 @@ const faqs = [
             },
             {
                 question: "How can I contact support?",
-                answer: `You can contact us anytime via email at ${email} or by phone at ${phone}.`,
+                answer: `You can contact us anytime via email at ${email} or by phone at ${otherData.phoneCode}${phone}.`,
             },
         ],
     },
@@ -207,7 +207,7 @@ function FAQsPage() {
                                             </div>
                                         </a>
                                         <a
-                                            href={`tel:${phone}`}
+                                            href={`tel:${otherData.phoneCode}${phone}`}
                                             className="flex items-center gap-3 bg-white/5 hover:bg-white/10 transition rounded-xl p-3"
                                         >
                                             <div className="w-9 h-9 rounded-lg bg-[#D19F3E]/20 flex items-center justify-center">
@@ -215,7 +215,7 @@ function FAQsPage() {
                                             </div>
                                             <div>
                                                 <p className="text-xs text-white/60">Call Us</p>
-                                                <p className="text-sm font-medium">{phone}</p>
+                                                <p className="text-sm font-medium">{otherData?.phoneCode} {otherData?.formatPhone(otherData?.phone)}</p>
                                             </div>
                                         </a>
                                     </div>

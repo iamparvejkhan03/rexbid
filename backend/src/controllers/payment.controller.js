@@ -7,6 +7,7 @@ import {
     paymentCompletedEmail,
 } from "../utils/nodemailer.js";
 import { getCommissionSettings } from "../utils/commissionCalculator.js";
+import { getCachedRates } from "../routes/currency.route.js";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -318,10 +319,174 @@ export const getAuctionPaymentStatus = async (req, res) => {
     }
 };
 
+// Charge in Auction's Base Currency
+// export const createCheckoutPayment = async (req, res) => {
+//     try {
+//         const { auctionId } = req.body;
+//         const userId = req.user.id;
+//         const userCurrency = req.query.currency || 'EUR';
+//         const rates = getCachedRates();
+
+//         // Helper to convert amount using auction's base currency (for display only)
+//         const convertAmount = (amount, auction) => {
+//             if (!amount) return 0;
+//             if (!rates) return amount;
+//             const base = auction.baseCurrency || 'EUR';
+//             const rate = rates[base]?.rates[userCurrency];
+//             if (!rate) return amount;
+//             return parseFloat((amount * rate).toFixed(2));
+//         };
+
+//         // 1. Find auction and verify winner
+//         const auction = await Auction.findById(auctionId)
+//             .populate("seller", "email username firstName lastName")
+//             .populate(
+//                 "winner",
+//                 "email username firstName lastName stripeCustomerId paymentMethodId cardLast4 cardBrand",
+//             );
+
+//         if (!auction) {
+//             return res
+//                 .status(404)
+//                 .json({ success: false, message: "Auction not found" });
+//         }
+
+//         if (auction.winner?._id.toString() !== userId) {
+//             return res
+//                 .status(403)
+//                 .json({ success: false, message: "Not authorized" });
+//         }
+
+//         if (auction.paymentStatus === "completed") {
+//             return res.status(400).json({ success: false, message: "Already paid" });
+//         }
+
+//         // 2. Get user's saved card
+//         const user = await User.findById(userId);
+//         if (!user.stripeCustomerId || !user.paymentMethodId) {
+//             return res.status(400).json({
+//                 success: false,
+//                 message: "No saved card found. Please add a card to your account.",
+//             });
+//         }
+
+//         const commissionSettings = await getCommissionSettings();
+
+//         // 3. Calculate total in base currency (original - this is what Stripe will charge)
+//         const bidAmount = auction.finalPrice || auction.currentPrice;
+//         const commissionAmount = auction.commissionAmount || 0;
+//         const totalAmountInBase = commissionSettings && commissionSettings.isEnabled && commissionSettings.appliesTo?.includes('bidder') 
+//             ? bidAmount + commissionAmount 
+//             : bidAmount;
+
+//         // Charge in auction's base currency (EUR or GBP)
+//         const amountToCharge = Math.round(totalAmountInBase * 100);
+//         const chargeCurrency = auction.baseCurrency === 'GBP' ? 'gbp' : 'eur';
+
+//         // 4. Create and confirm payment immediately
+//         const paymentIntent = await stripe.paymentIntents.create({
+//             amount: amountToCharge,
+//             currency: chargeCurrency,
+//             customer: user.stripeCustomerId,
+//             payment_method: user.paymentMethodId,
+//             description: `Payment for auction: ${auction.title}`,
+//             confirm: true,
+//             off_session: true,
+//             metadata: {
+//                 auctionId: auctionId,
+//                 userId: userId,
+//                 baseCurrency: auction.baseCurrency,
+//                 originalAmount: totalAmountInBase,
+//                 userCurrency: userCurrency,
+//             },
+//         });
+
+//         if (paymentIntent.status !== "succeeded") {
+//             return res.status(400).json({
+//                 success: false,
+//                 message: `Payment failed: ${paymentIntent.status}`,
+//             });
+//         }
+
+//         // 5. Update auction payment status
+//         auction.paymentStatus = "completed";
+//         auction.paymentMethod = "credit_card";
+//         auction.paymentDate = new Date();
+//         auction.transactionId = paymentIntent.id;
+//         await auction.save();
+
+//         // 6. Store payment record with converted amounts for display
+//         const convertedBidAmount = convertAmount(bidAmount, auction);
+//         const convertedCommissionAmount = convertAmount(commissionAmount, auction);
+//         const convertedTotalAmount = convertAmount(totalAmountInBase, auction);
+
+//         const bidPayment = await BidPayment.create({
+//             auction: auctionId,
+//             bidder: userId,
+//             bidAmount: bidAmount,
+//             bidAmountConverted: convertedBidAmount,
+//             commissionAmount: commissionAmount,
+//             commissionAmountConverted: convertedCommissionAmount,
+//             totalAmount: totalAmountInBase,
+//             totalAmountConverted: convertedTotalAmount,
+//             paymentIntentId: paymentIntent.id,
+//             status: "succeeded",
+//             chargeSucceeded: true,
+//             type: "checkout_payment",
+//             displayCurrency: userCurrency,
+//         });
+
+//         // 7. Send email to buyer (optional)
+//         if (user.preferences?.emailUpdates) {
+//             paymentCompletedEmail(user, auction).catch(console.error);
+//         }
+
+//         return res.status(200).json({
+//             success: true,
+//             message: "Payment successful!",
+//             data: {
+//                 paymentIntent: {
+//                     id: paymentIntent.id,
+//                     status: paymentIntent.status,
+//                 },
+//                 auction: {
+//                     id: auction._id,
+//                     paymentStatus: auction.paymentStatus,
+//                 },
+//                 paymentDetails: {
+//                     amountPaid: convertedTotalAmount,
+//                     currency: userCurrency,
+//                     amountPaidOriginal: totalAmountInBase,
+//                     originalCurrency: auction.baseCurrency,
+//                 },
+//             },
+//         });
+//     } catch (error) {
+//         console.error("Checkout payment error:", error);
+//         return res.status(500).json({
+//             success: false,
+//             message: error.message || "Payment processing failed",
+//         });
+//     }
+// };
+
+// Convert to User's Currency Before Charging
 export const createCheckoutPayment = async (req, res) => {
     try {
         const { auctionId } = req.body;
         const userId = req.user.id;
+        const userCurrency = req.query.currency || 'EUR';
+        const rates = getCachedRates();
+
+        // Helper to convert amount using auction's base currency
+        const convertAmount = (amount, auction) => {
+            if (!amount) return 0;
+            if (!rates) return amount;
+            const base = auction.baseCurrency || 'EUR';
+            const rate = rates[base]?.rates[userCurrency];
+            if (!rate) return amount;
+            return parseFloat((amount * rate).toFixed(2));
+        };
 
         // 1. Find auction and verify winner
         const auction = await Auction.findById(auctionId)
@@ -358,16 +523,22 @@ export const createCheckoutPayment = async (req, res) => {
 
         const commissionSettings = await getCommissionSettings();
 
-        // 3. Calculate total (winning bid + commission)
+        // 3. Calculate total in base currency (original)
         const bidAmount = auction.finalPrice || auction.currentPrice;
         const commissionAmount = auction.commissionAmount || 0;
-        // const totalAmount = bidAmount + commissionAmount;
-        const totalAmount = commissionSettings && commissionSettings.isEnabled && commissionSettings.appliesTo?.includes('bidder') ? bidAmount + commissionAmount : bidAmount;
+        const totalAmountInBase = commissionSettings && commissionSettings.isEnabled && commissionSettings.appliesTo?.includes('bidder')
+            ? bidAmount + commissionAmount
+            : bidAmount;
+
+        // Convert to user's currency before charging
+        const totalAmountConverted = convertAmount(totalAmountInBase, auction);
+        const amountToCharge = Math.round(totalAmountConverted * 100);
+        const chargeCurrency = userCurrency === 'GBP' ? 'gbp' : 'eur';
 
         // 4. Create and confirm payment immediately
         const paymentIntent = await stripe.paymentIntents.create({
-            amount: Math.round(totalAmount * 100),
-            currency: "usd",
+            amount: amountToCharge,
+            currency: chargeCurrency,
             customer: user.stripeCustomerId,
             payment_method: user.paymentMethodId,
             description: `Payment for auction: ${auction.title}`,
@@ -376,6 +547,11 @@ export const createCheckoutPayment = async (req, res) => {
             metadata: {
                 auctionId: auctionId,
                 userId: userId,
+                baseCurrency: auction.baseCurrency,
+                originalAmount: totalAmountInBase,
+                originalCurrency: auction.baseCurrency,
+                convertedAmount: totalAmountConverted,
+                userCurrency: userCurrency,
             },
         });
 
@@ -393,20 +569,27 @@ export const createCheckoutPayment = async (req, res) => {
         auction.transactionId = paymentIntent.id;
         await auction.save();
 
-        // 6. Store payment record
+        // 6. Store payment record with converted amounts
+        const convertedBidAmount = convertAmount(bidAmount, auction);
+        const convertedCommissionAmount = convertAmount(commissionAmount, auction);
+
         const bidPayment = await BidPayment.create({
             auction: auctionId,
             bidder: userId,
-            bidAmount,
-            commissionAmount,
-            totalAmount,
+            bidAmount: bidAmount,
+            bidAmountConverted: convertedBidAmount,
+            commissionAmount: commissionAmount,
+            commissionAmountConverted: convertedCommissionAmount,
+            totalAmount: totalAmountInBase,
+            totalAmountConverted: totalAmountConverted,
             paymentIntentId: paymentIntent.id,
             status: "succeeded",
             chargeSucceeded: true,
             type: "checkout_payment",
+            displayCurrency: userCurrency,
         });
 
-        // 8. Send email to buyer (optional)
+        // 7. Send email to buyer (optional)
         if (user.preferences?.emailUpdates) {
             paymentCompletedEmail(user, auction).catch(console.error);
         }
@@ -423,6 +606,12 @@ export const createCheckoutPayment = async (req, res) => {
                     id: auction._id,
                     paymentStatus: auction.paymentStatus,
                 },
+                paymentDetails: {
+                    amountPaid: totalAmountConverted,
+                    currency: userCurrency,
+                    amountPaidOriginal: totalAmountInBase,
+                    originalCurrency: auction.baseCurrency,
+                },
             },
         });
     } catch (error) {
@@ -438,6 +627,18 @@ export const createBankTransferPayment = async (req, res) => {
     try {
         const { auctionId } = req.body;
         const userId = req.user.id;
+        const userCurrency = req.query.currency || 'EUR';
+        const rates = getCachedRates();
+
+        // Helper to convert amount using auction's base currency
+        const convertAmount = (amount, auction) => {
+            if (!amount) return 0;
+            if (!rates) return amount;
+            const base = auction.baseCurrency || 'EUR';
+            const rate = rates[base]?.rates[userCurrency];
+            if (!rate) return amount;
+            return parseFloat((amount * rate).toFixed(2));
+        };
 
         // Find the auction and verify winner
         const auction = await Auction.findById(auctionId);
@@ -465,30 +666,40 @@ export const createBankTransferPayment = async (req, res) => {
 
         const commissionSettings = await getCommissionSettings();
 
-        // Calculate total
+        // Calculate total in base currency
         const bidAmount = auction.finalPrice || auction.currentPrice;
         const commissionAmount = auction.commissionAmount || 0;
-        // const totalAmount = bidAmount + commissionAmount;
-        const totalAmount = commissionSettings && commissionSettings.isEnabled && commissionSettings.appliesTo?.includes('bidder') ? bidAmount + commissionAmount : bidAmount;
+        const totalAmountInBase = commissionSettings && commissionSettings.isEnabled && commissionSettings.appliesTo?.includes('bidder')
+            ? bidAmount + commissionAmount
+            : bidAmount;
+
+        // Convert to user's currency for display
+        const convertedBidAmount = convertAmount(bidAmount, auction);
+        const convertedCommissionAmount = convertAmount(commissionAmount, auction);
+        const convertedTotalAmount = convertAmount(totalAmountInBase, auction);
 
         // Update auction status to pending (bank transfer)
         auction.paymentStatus = "processing";
         auction.paymentMethod = "bank_transfer";
         await auction.save();
 
-        // Create bid payment record
+        // Create bid payment record with converted amounts
         await BidPayment.create({
             auction: auctionId,
             bidder: userId,
-            bidAmount,
-            commissionAmount,
-            totalAmount,
+            bidAmount: bidAmount,
+            bidAmountConverted: convertedBidAmount,
+            commissionAmount: commissionAmount,
+            commissionAmountConverted: convertedCommissionAmount,
+            totalAmount: totalAmountInBase,
+            totalAmountConverted: convertedTotalAmount,
             status: "pending",
             type: "bank_transfer_payment",
             paymentMethod: "bank_transfer",
+            displayCurrency: userCurrency,
         });
 
-        // ✅ Fetch admin's bank details from database
+        // Fetch admin's bank details from database
         const adminUser = await User.findOne({ userType: "admin" }).select(
             "payoutMethods firstName lastName email",
         );
@@ -505,7 +716,7 @@ export const createBankTransferPayment = async (req, res) => {
                 iban: adminUser.payoutMethods.bankTransfer.iban,
                 swiftCode: adminUser.payoutMethods.bankTransfer.swiftCode,
                 bankAddress: adminUser.payoutMethods.bankTransfer.bankAddress,
-                currency: adminUser.payoutMethods.bankTransfer.currency || "USD",
+                currency: adminUser.payoutMethods.bankTransfer.currency || userCurrency,
             };
         }
 
@@ -524,8 +735,11 @@ export const createBankTransferPayment = async (req, res) => {
                 bankDetails,
                 auction: {
                     id: auction._id,
-                    totalAmount,
+                    totalAmount: convertedTotalAmount,
+                    totalAmountOriginal: totalAmountInBase,
                     title: auction.title,
+                    currency: userCurrency,
+                    baseCurrency: auction.baseCurrency,
                 },
             },
         });
@@ -614,6 +828,18 @@ export const paySellerCommission = async (req, res) => {
     try {
         const { auctionId } = req.body;
         const sellerId = req.user.id;
+        const userCurrency = req.query.currency || 'EUR';
+        const rates = getCachedRates();
+
+        // Helper to convert amount using auction's base currency
+        const convertAmount = (amount, auction) => {
+            if (!amount) return 0;
+            if (!rates) return amount;
+            const base = auction.baseCurrency || 'EUR';
+            const rate = rates[base]?.rates[userCurrency];
+            if (!rate) return amount;
+            return parseFloat((amount * rate).toFixed(2));
+        };
 
         // 1. Find auction and verify seller
         const auction = await Auction.findById(auctionId).populate(
@@ -647,6 +873,9 @@ export const paySellerCommission = async (req, res) => {
             return res.status(400).json({ success: false, message: "No commission due" });
         }
 
+        // Convert commission amount for display
+        const convertedCommissionAmount = convertAmount(commissionAmount, auction);
+
         // 3. Get seller's saved card info
         const seller = await User.findById(sellerId);
         if (!seller.stripeCustomerId || !seller.paymentMethodId) {
@@ -656,10 +885,13 @@ export const paySellerCommission = async (req, res) => {
             });
         }
 
-        // 4. Charge the seller using Stripe
+        // 4. Charge the seller using Stripe (charge in auction's base currency)
+        const amountToCharge = Math.round(commissionAmount * 100);
+        const chargeCurrency = auction.baseCurrency === 'GBP' ? 'gbp' : 'eur';
+
         const paymentIntent = await stripe.paymentIntents.create({
-            amount: Math.round(commissionAmount * 100),
-            currency: "usd",
+            amount: amountToCharge,
+            currency: chargeCurrency,
             customer: seller.stripeCustomerId,
             payment_method: seller.paymentMethodId,
             description: `Commission payment for auction: ${auction.title}`,
@@ -669,6 +901,10 @@ export const paySellerCommission = async (req, res) => {
                 auctionId: auctionId,
                 sellerId: sellerId,
                 type: "seller_commission",
+                baseCurrency: auction.baseCurrency,
+                originalAmount: commissionAmount,
+                userCurrency: userCurrency,
+                convertedAmount: convertedCommissionAmount,
             },
         });
 
@@ -686,18 +922,21 @@ export const paySellerCommission = async (req, res) => {
         // Keep paymentMethod as "bank_transfer" (the original method used by buyer)
         await auction.save();
 
-        // 6. Create BidPayment record for this commission
+        // 6. Create BidPayment record for this commission with converted amounts
         await BidPayment.create({
             auction: auctionId,
             bidder: sellerId, // seller is paying commission
             bidAmount: 0, // not applicable
             commissionAmount: commissionAmount,
+            commissionAmountConverted: convertedCommissionAmount,
             totalAmount: commissionAmount,
+            totalAmountConverted: convertedCommissionAmount,
             paymentIntentId: paymentIntent.id,
             status: "succeeded",
             chargeSucceeded: true,
             type: "seller_commission_payment",
             paymentMethod: "credit_card",
+            displayCurrency: userCurrency,
         });
 
         // 7. Send confirmation email (optional)
@@ -710,8 +949,20 @@ export const paySellerCommission = async (req, res) => {
             success: true,
             message: "Commission paid successfully!",
             data: {
-                paymentIntent: { id: paymentIntent.id, status: paymentIntent.status },
-                auction: { id: auction._id, paymentStatus: auction.paymentStatus },
+                paymentIntent: {
+                    id: paymentIntent.id,
+                    status: paymentIntent.status
+                },
+                auction: {
+                    id: auction._id,
+                    paymentStatus: auction.paymentStatus
+                },
+                paymentDetails: {
+                    commissionPaid: convertedCommissionAmount,
+                    commissionPaidOriginal: commissionAmount,
+                    currency: userCurrency,
+                    originalCurrency: auction.baseCurrency,
+                },
             },
         });
     } catch (error) {

@@ -5,6 +5,7 @@ import axiosInstance from "../utils/axiosInstance";
 import AuctionCard from "./AuctionCard";
 import AuctionListItem from "./AuctionListItem";
 import Container from "./Container";
+import { useAuth } from "../contexts/AuthContext";
 
 const FeaturedListings = () => {
     const navigate = useNavigate();
@@ -15,6 +16,9 @@ const FeaturedListings = () => {
     const [pagination, setPagination] = useState({ page: 1, total: 0, pages: 1, limit: 8 });
     const [category, setCategory] = useState("all");
 
+    const { user } = useAuth();
+      const userCurrency = user?.currency || 'EUR';
+
     const fetchFeaturedListings = async (page = 1, reset = true) => {
         setLoading(true);
         try {
@@ -22,6 +26,7 @@ const FeaturedListings = () => {
             params.append("limit", pagination.limit.toString());
             params.append("page", page.toString());
             params.append("sortBy", sortBy);
+            params.append("currency", userCurrency);
             if (category !== "all") params.append("category", category);
 
             const { data } = await axiosInstance.get(`/api/v1/auctions/featured?${params}`);

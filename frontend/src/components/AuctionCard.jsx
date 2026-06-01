@@ -4,11 +4,15 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import useAuctionCountdown from "../hooks/useAuctionCountDown";
 import { useWatchlist } from "../hooks/useWatchlist";
+import { useAuth } from "../contexts/AuthContext";
 
 function AuctionCard({ auction }) {
     const navigate = useNavigate();
     const [tilt, setTilt] = useState({ x: 0, y: 0 });
     const [isLiked, setIsLiked] = useState(false);
+
+    const { user } = useAuth();
+    const userCurrency = user?.currency || 'EUR';
 
     const threshold = 5;
 
@@ -30,7 +34,7 @@ function AuctionCard({ auction }) {
     };
 
     // Check if reserve is met
-    const isReserveMet = auction.currentPrice >= auction.reservePrice;
+    const isReserveMet = auction.convertedCurrentPrice >= auction.convertedReservePrice;
     const isAuctionActive = auction.status === 'active' && !auctionTime.completed;
 
     // Calculate status badges
@@ -227,14 +231,14 @@ function AuctionCard({ auction }) {
                     {/* <div className="text-center p-2 bg-gray-50 rounded-lg">
                         <div className="text-xs text-gray-600 mb-1">{auction.status === 'sold' ? 'Final Bid' : auction.bidCount > 0 ? 'Current Bid' : 'Starting Bid'}</div>
                         <div className="font-bold text-lg text-green-600">
-                            ${(auction.currentPrice || auction.startPrice).toLocaleString()}
+                            ${(auction.convertedCurrentPrice || auction.convertedStartPrice).toLocaleString()}
                         </div>
                     </div> */}
 
                     <div className="text-center p-2 bg-gray-50 rounded-lg">
                         <div className="text-xs text-gray-600 mb-1">{auction.status === 'sold' ? 'Final Price' : 'Starting Price'}</div>
                         <div className="font-bold text-lg text-green-600">
-                            {(auction.currentPrice || auction.startPrice).toLocaleString()} kr
+                            {userCurrency === 'GBP' ? '£' : '€'}{(auction.convertedCurrentPrice || auction.convertedStartPrice)?.toLocaleString()}
                         </div>
                     </div>
 
@@ -268,7 +272,7 @@ function AuctionCard({ auction }) {
                             <div className="text-center p-2 bg-gray-50 rounded-lg">
                                 <div className="text-xs text-gray-600 mb-1">Buy Now</div>
                                 <div className="font-bold text-lg text-primary flex items-center justify-center gap-1">
-                                    {auction?.buyNowPrice?.toLocaleString()} kr
+                                    {userCurrency === 'GBP' ? '£' : '€'}{auction?.convertedBuyNowPrice?.toLocaleString()}
                                 </div>
                             </div>
                         )
@@ -282,9 +286,9 @@ function AuctionCard({ auction }) {
                         : 'bg-orange-50 text-orange-700 border border-orange-200'
                         }`}>
                         {isReserveMet ? (
-                            <span>✅ Reserve met at ${auction.reservePrice?.toLocaleString()}</span>
+                            <span>✅ Reserve met at ${auction.convertedReservePrice?.toLocaleString()}</span>
                         ) : (
-                            <span>⚠️ Reserve: ${auction.reservePrice?.toLocaleString()}</span>
+                            <span>⚠️ Reserve: ${auction.convertedReservePrice?.toLocaleString()}</span>
                         )}
                     </div>
                 )} */}
@@ -292,7 +296,7 @@ function AuctionCard({ auction }) {
                 {/* Bid Increment */}
                 <div className="text-xs text-gray-500 text-center flex items-center justify-around">
                     <div>
-                        Bid increment: {auction.bidIncrement?.toLocaleString()} kr
+                        Bid increment: {userCurrency === 'GBP' ? '£' : '€'}{auction.convertedBidIncrement?.toFixed(2)?.toLocaleString()}
                     </div>
                     <div className="text-xs text-gray-500 text-center">
                         {auction.watchlistCount || 0} user{auction.watchlistCount !== 1 ? 's' : ''} watching
@@ -303,7 +307,7 @@ function AuctionCard({ auction }) {
                     {
                         auction.auctionType === 'buy_now' && (
                             <div>
-                                Buy Now: {auction?.buyNowPrice?.toLocaleString()} kr
+                                Buy Now: {userCurrency === 'GBP' ? '£' : '€'}{auction?.convertedBuyNowPrice?.toLocaleString()}
                             </div>
                         )
                     }

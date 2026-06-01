@@ -26,6 +26,7 @@ import { Container } from "../components";
 import axiosInstance from "../utils/axiosInstance";
 import { heroImg } from "../assets";
 import { extractYouTubeId } from "./YouTubeEmbed";
+import { useAuth } from "../contexts/AuthContext";
 
 function Hero() {
   const navigate = useNavigate();
@@ -41,8 +42,11 @@ function Hero() {
   const [videoModalOpen, setVideoModalOpen] = useState(false);
   const videoId = hotListing?.videoLink ? extractYouTubeId(hotListing?.videoLink) : null;
 
+  const { user } = useAuth();
+  const userCurrency = user?.currency || 'EUR';
+
   const formatPrice = (price) => {
-    return `kr ${price.toLocaleString()}`;
+    return `${userCurrency === 'GBP' ? '£' : '€'}${price?.toFixed(2).toLocaleString()}`;
   };
 
   // Helper: calculate remaining time from endDate
@@ -63,7 +67,7 @@ function Hero() {
     const fetchHotListing = async () => {
       try {
         setLoading(true);
-        const response = await axiosInstance.get('/api/v1/auctions/hot');
+        const response = await axiosInstance.get(`/api/v1/auctions/hot?currency=${userCurrency}`);
         if (response.data.success) {
           setHotListing(response.data.data.auction);
           setError(null);
@@ -308,11 +312,6 @@ function Hero() {
                           <div className="flex items-center gap-2 text-gray-400 text-sm">
                             <MapPin size={14} />
                             <span>{hotListing.location || 'Ireland'}</span>
-                            {hotListing._id && (
-                              <>
-                                <span className="w-1 h-1 bg-gray-500 rounded-full"></span>
-                              </>
-                            )}
                           </div>
                         </div>
                         <div className="flex items-center gap-1.5 bg-green-500/10 text-green-400 px-2.5 py-1 rounded-full text-xs font-semibold">
@@ -326,7 +325,7 @@ function Hero() {
                         <div className="bg-white/5 rounded-xl p-3">
                           <p className="text-gray-400 text-xs mb-1">Current Bid</p>
                           <p className="text-xl font-bold text-white">
-                            {formatPrice(hotListing.currentPrice)}
+                            {formatPrice(hotListing.convertedCurrentPrice || hotListing.convertedStartPrice)}
                           </p>
                           <p className="text-[#D19F3E] text-xs mt-1">
                             {hotListing.bidCount} {hotListing.bidCount === 1 ? 'bid' : 'bids'}

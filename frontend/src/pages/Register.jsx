@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock, Eye, EyeOff, User, Phone, ChevronDown, Gavel, Store, Handshake } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, User, Phone, ChevronDown, Gavel, Store, Handshake, Banknote } from 'lucide-react';
 import { darkLogo, otherData } from '../assets';
 import axios from "axios";
 import { toast } from "react-hot-toast";
@@ -23,7 +23,7 @@ const CardSection = () => {
         <div className="space-y-4 border-t border-gray-200 dark:border-bg-primary-light pt-6 mt-6">
             <h3 className="text-lg font-semibold text-text-primary dark:text-text-primary-dark">Payment Information <span className='text-red-600'>*</span></h3>
             <p className="text-sm text-text-secondary dark:text-text-secondary-dark">
-                RexBid requires a credit card to bid. There is no charge to register.
+                RexBid requires a credit card. There is no charge to register.
                 We will only authorize that your card is valid.
             </p>
 
@@ -66,11 +66,12 @@ const Register = () => {
     const [userType, setUserType] = useState('bidder');
     const navigate = useNavigate();
     const { setUser, setLoading, user } = useAuth();
-    // const countriesAPI = useCountryStates();
     const { useCountries, useStatesByCountry } = useCountryStates();
     const [countries, setCountries] = useState([]);
+    const [currencies, setCurrencies] = useState([{ code: 'GBP', name: 'Pound Sterling' }, { code: 'EUR', name: 'Euro' }]);
     const [states, setStates] = useState([]);
     const [selectedCountry, setSelectedCountry] = useState('');
+    const [selectedCurrency, setSelectedCurrency] = useState('');
 
     useEffect(() => {
         const fetchCountries = async () => {
@@ -80,7 +81,7 @@ const Register = () => {
     }, []);
 
     useEffect(() => {
-        if (user) {
+        if (user && user?.userType) {
             navigate(`/${user.userType}/profile`);
         }
     }, [user])
@@ -102,6 +103,7 @@ const Register = () => {
             city: '',
             postCode: '',
             country: '',
+            currency: '',
             userType: 'bidder'
         }
     });
@@ -132,6 +134,12 @@ const Register = () => {
         }
     };
 
+    const handleCurrencyChange = async (e) => {
+        const currencyCode = e.target.value;
+        setSelectedCurrency(currencyCode);
+        setValue('currency', currencyCode);
+    };
+
     const onSubmit = async (registrationData) => {
         setIsLoading(true);
         try {
@@ -154,9 +162,10 @@ const Register = () => {
             formData.append('postCode', registrationData.postCode);
             formData.append('state', registrationData.state);
             formData.append('country', countries.find(c => c.code === registrationData.country)?.name || registrationData.country);
+            formData.append('currency', registrationData.currency);
 
             // Handle bidder card verification
-            if (registrationData.userType === 'bidder') {
+            // if (registrationData.userType === 'bidder') {
                 if (!stripe || !elements) {
                     toast.error('Stripe not initialized properly');
                     setIsLoading(false);
@@ -191,7 +200,7 @@ const Register = () => {
 
                 paymentMethodId = paymentMethod.id;
                 formData.append('paymentMethodId', paymentMethodId);
-            }
+            // }
 
             const { data } = await axiosInstance.post(
                 `${import.meta.env.VITE_DOMAIN_URL}/api/v1/users/register`,
@@ -290,7 +299,7 @@ const Register = () => {
                                                 }
                                             })}
                                             className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                                            placeholder="e.g., +3531234XXXX"
+                                            placeholder={`e.g., ${otherData?.phoneCode}1234XXXX`}
                                         />
                                         {errors.phone && (
                                             <p className="text-red-500 text-sm mt-1 absolute">{errors.phone.message}</p>
@@ -615,6 +624,34 @@ const Register = () => {
                             </div>
                             {errors.userType && (
                                 <p className="text-red-500 text-sm mt-1 absolute">{errors.userType.message}</p>
+                            )}
+                        </div>
+
+                        {/* Currency Selection */}
+                        <div className={`border-t pt-6 pb-3 ${errors.currency && 'mb-3'}`}>
+                            <label className="text-sm font-medium leading-none text-gray-700 flex items-center gap-2 mb-4">
+                                <Banknote size={20} />
+                                <span>Currency</span>
+                            </label>
+                            <div className="relative">
+                                <select
+                                    {...register('currency', { required: 'Currency is required' })}
+                                    onChange={handleCurrencyChange}
+                                    value={selectedCurrency}
+                                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent appearance-none"
+                                >
+                                    <option value="">Select currency</option>
+                                    {currencies.map(currency => (
+                                        <option key={currency.code} value={currency.code}>
+                                            {currency.name}
+                                        </option>
+                                    ))}
+                                </select>
+                                <ChevronDown size={20} className="absolute right-3 top-3 text-gray-400 pointer-events-none" />
+                            </div>
+                            <p className="text-gray-500 text-xs py-2 absolute">Note: You can change it later from profile settings.</p>
+                            {errors.currency && (
+                                <p className="text-red-500 text-sm mt-1 absolute">{errors.currency.message}</p>
                             )}
                         </div>
 

@@ -68,7 +68,7 @@ class AgendaService {
       try {
         let auction = await Auction.findById(auctionId).populate(
           "seller",
-          "email phone username firstName",
+          "email phone username firstName currency",
         );
         // Don't populate winner initially since it might be null
 
@@ -131,8 +131,8 @@ class AgendaService {
           // Re-fetch the auction with populated winner if it was sold
           if (result.wasSold) {
             auction = await Auction.findById(auctionId)
-              .populate("seller", "email phone username firstName")
-              .populate("winner", "email phone username firstName address");
+              .populate("seller", "email phone username firstName currency")
+              .populate("winner", "email phone username firstName address currency");
           }
 
           // Send appropriate emails based on the result
@@ -149,7 +149,7 @@ class AgendaService {
             // Send admin email for sold auction
             const adminUsers = await User.find({ userType: "admin" });
             for (const admin of adminUsers) {
-              await auctionWonAdminEmail(admin.email, auction, auction.winner);
+              await auctionWonAdminEmail(admin.email, admin?.currency, auction, auction.winner);
             }
 
             console.log(`✅ Agenda: Sent SOLD emails for auction ${auctionId}`);
@@ -164,7 +164,7 @@ class AgendaService {
             // Send admin email for ended auction
             const adminUsers = await User.find({ userType: "admin" });
             for (const admin of adminUsers) {
-              await auctionEndedAdminEmail(admin.email, auction);
+              await auctionEndedAdminEmail(admin.email, admin?.currency, auction);
             }
 
             console.log(
@@ -231,7 +231,7 @@ class AgendaService {
               "notifications.ending24hour": { $ne: true }, // Not sent yet
             },
           ],
-        }).populate("seller", "email username preferences userType"); // Populate seller to exclude them
+        }).populate("seller", "email username preferences userType currency"); // Populate seller to exclude them
 
         for (const auction of endingSoonAuctions) {
           // Calculate exact time remaining for this auction

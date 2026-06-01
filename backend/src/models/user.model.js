@@ -63,6 +63,11 @@ const userSchema = new Schema(
       required: false,
       trim: true,
     },
+    currency: {
+      type: String,
+      required: false,
+      trim: true,
+    },
     phone: {
       type: String,
       trim: true,

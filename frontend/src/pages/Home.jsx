@@ -32,6 +32,7 @@ import toast from "react-hot-toast";
 import axiosInstance from "../utils/axiosInstance";
 import { useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
 
 const CTA = lazy(() => import('../components/CTA'));
 const CategoryIconsSection = lazy(() => import('../components/CategoryIconsSection'));
@@ -72,6 +73,9 @@ function Home() {
     const [activeTab, setActiveTab] = useState('ending_soon'); // 'sold', 'active', 'approved'
     const [viewMode, setViewMode] = useState("grid"); // "grid" or "list"
 
+    const { user } = useAuth();
+    const userCurrency = user?.currency || 'EUR';
+
     // Map tab values to API status values
     const tabStatusMap = {
         'sold': 'sold',
@@ -102,6 +106,7 @@ function Home() {
             params.append('status', status);
             params.append('limit', limit.toString());
             params.append('sortBy', sortBy);
+            params.append('currency', userCurrency);
             if (category && category !== 'all') {
                 params.append('category', category);
             }

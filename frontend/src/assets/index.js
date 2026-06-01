@@ -37,11 +37,24 @@ import Timberjack from './Timberjack.webp';
 import Toro from './Toro.webp';
 import Toyota from './Toyota.webp';
 import Volvo from './volvo.webp';
+import aboutCar from './aboutCar.webp';
+import aboutDigger from './aboutDigger.webp';
+import aboutExcavator from './aboutExcavator.webp';
+import aboutHandle from './aboutHandle.webp';
+import aboutTractor from './aboutTractor.webp';
+
+function formatPhone(phone) {
+  const cleaned = phone.replace(/\D/g, '');
+  return cleaned.replace(/(\d{3})(\d{3})(\d{4})/, '($1) $2-$3');
+}
 
 const otherData = {
-    phone: '+3531618832737',
+    phone: '1618832737',
     email: 'admin@rexbid.ie',
-    address: 'Ireland'
+    address: 'Ireland',
+    phoneCode: '+353',
+    brandName: 'RexBid',
+    formatPhone
 }
 
 export {
@@ -85,4 +98,9 @@ export {
     Toro,
     Toyota,
     Volvo,
+    aboutCar,
+    aboutDigger,
+    aboutExcavator,
+    aboutHandle,
+    aboutTractor
 };

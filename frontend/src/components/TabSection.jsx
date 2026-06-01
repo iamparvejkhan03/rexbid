@@ -10,7 +10,7 @@ const OffersSection = lazy(() => import("./OffersSection"));
 const ReviewsSection = lazy(() => import("./ReviewsSection"));
 
 const TabSection = forwardRef(
-  ({ description, bids, offers, auction, activatedTab, onAuctionUpdate, auctionReviews }, ref) => {
+  ({ description, bids, offers, auction, activatedTab, onAuctionUpdate, auctionReviews, userCurrency }, ref) => {
     const [activeTab, setActiveTab] = useState(activatedTab || "description");
     const { user } = useAuth();
 
@@ -67,7 +67,7 @@ const TabSection = forwardRef(
         id: "bids",
         label: "Bid History",
         icon: <Gavel size={18} />,
-        component: <BidHistory bids={bids} auction={auction} />,
+        component: <BidHistory bids={bids} auction={auction} userCurrency={userCurrency} />,
       });
     }
 
@@ -81,6 +81,7 @@ const TabSection = forwardRef(
             offers={getUserOffers()}
             auction={auction}
             onAuctionUpdate={onAuctionUpdate}
+            userCurrency={userCurrency}
           />
         ),
       });

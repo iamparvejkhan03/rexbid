@@ -1,9 +1,9 @@
-// components/BidHistory.jsx
 import { useState, useEffect, useMemo } from "react";
 import { Search, Filter, Calendar, Download, BarChart3, User, Gavel, Award, Clock, Banknote, Users, TrendingUp, Package } from "lucide-react";
 import axiosInstance from "../../utils/axiosInstance.js";
 import { toast } from "react-hot-toast";
 import { AdminContainer, AdminHeader, AdminSidebar } from "../../components/index.js";
+import { useAuth } from "../../contexts/AuthContext.jsx";
 
 function BidHistory() {
     const [allAuctions, setAllAuctions] = useState([]); // Store all auctions from initial fetch
@@ -22,14 +22,17 @@ function BidHistory() {
         sortBy: "recent"
     });
 
+    const { user } = useAuth();
+    const userCurrency = user?.currency || 'EUR';
+
     // Fetch all data once on component mount
     const fetchAllData = async () => {
         try {
             setLoading(true);
 
             const [historyResponse, statsResponse] = await Promise.all([
-                axiosInstance.get(`/api/v1/bids/admin/history`), // No filters initially
-                axiosInstance.get('/api/v1/bids/admin/stats')
+                axiosInstance.get(`/api/v1/bids/admin/history?currency=${userCurrency}`), // No filters initially
+                axiosInstance.get(`/api/v1/bids/admin/stats?currency=${userCurrency}`)
             ]);
 
             if (historyResponse.data.success) {
@@ -99,7 +102,7 @@ function BidHistory() {
                     case "most_bids":
                         return b.totalBids - a.totalBids;
                     case "highest_bid":
-                        return b.winningBid - a.winningBid;
+                        return b.convertedWinningBid - a.convertedWinningBid;
                     case "seller_name":
                         return a.seller.name.localeCompare(b.seller.name);
                     default:
@@ -151,23 +154,23 @@ function BidHistory() {
     };
 
     const formatTime = (dateString) => {
-        return new Date(dateString).toLocaleTimeString('nb-NO', {
+        return new Date(dateString).toLocaleTimeString('en-IE', {
             hour: '2-digit',
             minute: '2-digit'
         });
     };
 
     const formatCurrency = (amount) => {
-        return new Intl.NumberFormat('nb-NO', {
+        return new Intl.NumberFormat('en-IE', {
             style: 'currency',
-            currency: 'NOK',
+            currency: `${userCurrency}`,
             minimumFractionDigits: 0,
             maximumFractionDigits: 0
         }).format(amount);
     };
 
     const formatDate = (dateString) => {
-        return new Date(dateString).toLocaleDateString('nb-NO', {
+        return new Date(dateString).toLocaleDateString('en-IE', {
             year: 'numeric',
             month: 'long',
             day: 'numeric'
@@ -207,14 +210,14 @@ function BidHistory() {
     const statCards = [
         {
             title: "Total Bids",
-            value: stats.totalBids?.toLocaleString('nb-NO') || "0",
+            value: stats.totalBids?.toLocaleString('en-IE') || "0",
             change: "All Time",
             icon: <Gavel size={24} />,
             color: "blue"
         },
         {
             title: "Recent Bids",
-            value: stats.recentBids?.toLocaleString('nb-NO') || "0",
+            value: stats.recentBids?.toLocaleString('en-IE') || "0",
             change: "Last 7 Days",
             icon: <TrendingUp size={24} />,
             color: "green"
@@ -228,7 +231,7 @@ function BidHistory() {
         // },
         {
             title: "Active Bidders",
-            value: stats.activeBidders?.toLocaleString('nb-NO') || "0",
+            value: stats.activeBidders?.toLocaleString('en-IE') || "0",
             change: "Last 30 Days",
             icon: <Users size={24} />,
             color: "orange"
@@ -366,13 +369,13 @@ function BidHistory() {
                                                     <div className="flex items-center gap-2 mt-2">
                                                         {getCategoryIcon(auction.category)}
                                                         <span className="text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded">
-                                                            {auction.category}
+                                                            {auction.auctionType}
                                                         </span>
                                                         {getStatusBadge(auction.status)}
                                                     </div>
                                                     <div className="flex justify-between items-center mt-2">
                                                         <span className="text-sm font-medium text-gray-900">
-                                                            {formatCurrency(auction.winningBid)}
+                                                            {formatCurrency(auction.convertedWinningBid)}
                                                         </span>
                                                         <span className="text-xs text-gray-500">
                                                             {auction.totalBids} bids
@@ -410,11 +413,11 @@ function BidHistory() {
                                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
                                             <div>
                                                 <div className="text-sm text-gray-500">Starting Bid</div>
-                                                <div className="font-medium">{formatCurrency(selectedAuction.startingBid)}</div>
+                                                <div className="font-medium">{formatCurrency(selectedAuction.convertedStartingBid)}</div>
                                             </div>
                                             <div>
                                                 <div className="text-sm text-gray-500">Winning Bid</div>
-                                                <div className="font-medium text-green-600">{formatCurrency(selectedAuction.winningBid)}</div>
+                                                <div className="font-medium text-green-600">{formatCurrency(selectedAuction.convertedWinningBid)}</div>
                                             </div>
                                             <div>
                                                 <div className="text-sm text-gray-500">Total Bids</div>
@@ -465,7 +468,7 @@ function BidHistory() {
                                                             <td className="py-3 px-4">
                                                                 <div className={`font-medium text-sm ${bid.isHighest ? 'text-green-600' : 'text-gray-900'
                                                                     }`}>
-                                                                    {formatCurrency(bid.amount)}
+                                                                    {formatCurrency(bid.convertedAmount)}
                                                                 </div>
                                                             </td>
                                                             <td className="py-3 px-4 text-sm text-gray-900">

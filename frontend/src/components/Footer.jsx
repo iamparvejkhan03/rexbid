@@ -149,9 +149,9 @@ function Footer() {
                                 <Phone size={18} className="text-white" />
                                 <Link 
                                     className="text-white hover:text-[#D19F3E] transition-colors" 
-                                    to={`tel:${otherData.phone}`}
+                                    to={`tel:${otherData?.phoneCode}${otherData.phone}`}
                                 >
-                                    +47 (1)61 883 2737
+                                    {otherData?.phoneCode} {otherData?.formatPhone(otherData?.phone)}
                                 </Link>
                             </li>
                             <li className="flex items-center gap-2">

@@ -1,5 +1,15 @@
 import Watchlist from '../models/watchlist.model.js';
 import Auction from '../models/auction.model.js';
+import { getCachedRates } from '../routes/currency.route.js';
+
+const convertPrice = (auction, targetCurrency, priceField) => {
+    const rates = getCachedRates();
+    if (!rates) return auction[priceField]; // fallback
+    const base = auction.baseCurrency;
+    const rate = rates[base].rates[targetCurrency];
+    if (!rate) return auction[priceField];
+    return auction[priceField] * rate;
+};
 
 // Add auction to watchlist
 export const addToWatchlist = async (req, res) => {
@@ -55,7 +65,7 @@ export const addToWatchlist = async (req, res) => {
 
     } catch (error) {
         console.error('Add to watchlist error:', error);
-        
+
         if (error.code === 11000) {
             return res.status(400).json({
                 success: false,
@@ -176,7 +186,7 @@ export const toggleWatchlist = async (req, res) => {
 
     } catch (error) {
         console.error('Toggle watchlist error:', error);
-        
+
         if (error.code === 11000) {
             return res.status(400).json({
                 success: false,
@@ -196,13 +206,13 @@ export const getMyWatchlist = async (req, res) => {
     try {
         const userId = req.user._id;
         const { page = 1, limit = 12, status } = req.query;
+        const userCurrency = req.query.currency || 'EUR';
 
         // Build filter for auctions
         const auctionFilter = {};
         if (status) {
             auctionFilter.status = status;
         } else {
-            // Default: show active and upcoming auctions
             auctionFilter.status = { $in: ['draft', 'active', 'approved'] };
         }
 
@@ -215,19 +225,52 @@ export const getMyWatchlist = async (req, res) => {
                     { path: 'currentBidder', select: 'username' }
                 ]
             })
-            .sort({ addedAt: -1 })
-            // .limit(limit * 1)
-            // .skip((page - 1) * limit);
+            .sort({ addedAt: -1 });
 
-        // Filter out watchlist items where auction was not found (deleted auctions)
+        // Filter out deleted auctions
         const validWatchlistItems = watchlistItems.filter(item => item.auction !== null);
 
+        // Convert each auction inside its watchlist item using convertPrice
+        const watchlistWithConverted = validWatchlistItems.map(item => {
+            const auction = item.auction;
+            const auctionObj = auction.toObject();
+
+            // Use the helper convertPrice (imported from your conversion utility)
+            const convertedStartPrice = convertPrice(auction, userCurrency, 'startPrice');
+            const convertedCurrentPrice = convertPrice(auction, userCurrency, 'currentPrice');
+            const convertedBidIncrement = convertPrice(auction, userCurrency, 'bidIncrement');
+            const convertedBuyNowPrice = convertPrice(auction, userCurrency, 'buyNowPrice');
+            const convertedReservePrice = convertPrice(auction, userCurrency, 'reservePrice');
+            const convertedFinalPrice = convertPrice(auction, userCurrency, 'finalPrice');
+
+            // Build the converted auction object
+            const convertedAuction = {
+                ...auctionObj,
+                convertedStartPrice: convertedStartPrice !== null ? parseFloat(convertedStartPrice.toFixed(2)) : null,
+                convertedCurrentPrice: convertedCurrentPrice !== null ? parseFloat(convertedCurrentPrice.toFixed(2)) : null,
+                convertedBidIncrement: convertedBidIncrement !== null ? parseFloat(convertedBidIncrement.toFixed(2)) : null,
+                convertedBuyNowPrice: convertedBuyNowPrice !== null ? parseFloat(convertedBuyNowPrice.toFixed(2)) : null,
+                convertedReservePrice: convertedReservePrice !== null ? parseFloat(convertedReservePrice.toFixed(2)) : null,
+                convertedFinalPrice: convertedFinalPrice !== null ? parseFloat(convertedFinalPrice.toFixed(2)) : null,
+                displayCurrency: userCurrency
+            };
+
+            return {
+                ...item.toObject(),
+                auction: convertedAuction
+            };
+        });
+
         const total = await Watchlist.countDocuments({ user: userId });
+
+        // Paginate
+        const start = (parseInt(page) - 1) * parseInt(limit);
+        const paginatedWatchlist = watchlistWithConverted.slice(start, start + parseInt(limit));
 
         res.status(200).json({
             success: true,
             data: {
-                watchlist: validWatchlistItems,
+                watchlist: paginatedWatchlist,
                 pagination: {
                     currentPage: parseInt(page),
                     totalPages: Math.ceil(total / limit),

@@ -4,15 +4,18 @@ import { useState } from "react";
 import { TrendingUp, Gavel, Award, Banknote, Bookmark, Hand } from "lucide-react";
 import { Link } from "react-router-dom";
 import axiosInstance from "../../utils/axiosInstance";
+import { useAuth } from "../../contexts/AuthContext";
 
 function Dashboard() {
     const [loading, setLoading] = useState(false);
 
     const [stats, setStats] = useState({});
+    const { user } = useAuth();
+    const userCurrency = user?.currency || 'EUR';
 
     const fetchUserStats = async () => {
         try {
-            const { data } = await axiosInstance.get('/api/v1/users/stats/bidder');
+            const { data } = await axiosInstance.get(`/api/v1/users/stats/bidder?currency=${userCurrency}`);
             if (data.success) {
                 setLoading(true);
                 setStats(data.data.statistics);

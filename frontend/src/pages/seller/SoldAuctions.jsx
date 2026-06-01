@@ -19,6 +19,7 @@ function SoldAuctions() {
     const [revieweeId, setRevieweeId] = useState(null);
     const navigate = useNavigate();
     const [payingCommission, setPayingCommission] = useState(false);
+    const userCurrency = currentUser?.currency || 'EUR';
 
     // Fetch seller's won auctions
     const fetchSoldAuctions = async () => {
@@ -26,7 +27,7 @@ function SoldAuctions() {
             setLoading(true);
             setError(null);
 
-            const { data } = await axiosInstance.get("/api/v1/auctions/sold-auctions");
+            const { data } = await axiosInstance.get(`/api/v1/auctions/sold-auctions?currency=${userCurrency}`);
 
             if (data.success) {
                 const transformedAuctions = transformAuctionData(data.data.auctions);
@@ -87,23 +88,23 @@ function SoldAuctions() {
 
     const formatTime = (dateString) => {
         if (!dateString) return "N/A";
-        return new Date(dateString).toLocaleTimeString('nb-NO', {
+        return new Date(dateString).toLocaleTimeString('en-IE', {
             hour: '2-digit',
             minute: '2-digit'
         });
     };
 
     const formatCurrency = (amount) => {
-        return new Intl.NumberFormat('nb-NO', {
+        return new Intl.NumberFormat('en-IE', {
             style: 'currency',
-            currency: 'NOK',
+            currency: `${userCurrency}`,
             minimumFractionDigits: 0,
-            maximumFractionDigits: 0
+            maximumFractionDigits: 2
         }).format(amount);
     };
 
     const formatDate = (dateString) => {
-        return new Date(dateString).toLocaleDateString('nb-NO', {
+        return new Date(dateString).toLocaleDateString('en-IE', {
             year: 'numeric',
             month: 'long',
             day: 'numeric'
@@ -222,7 +223,7 @@ function SoldAuctions() {
                         >
                             {wonAuctionsData.map(auction => (
                                 <option key={auction.id} value={auction.id}>
-                                    {auction.title} - Won for {formatCurrency(auction.finalPrice)}
+                                    {auction.title} - Won for {formatCurrency(auction.convertedFinalPrice)}
                                 </option>
                             ))}
                         </select>
@@ -272,19 +273,19 @@ function SoldAuctions() {
                                         <div className="flex flex-wrap gap-4 mt-4">
                                             <div>
                                                 <div className="text-sm text-gray-500">Starting Bid</div>
-                                                <div className="font-medium">{formatCurrency(selectedAuction.startPrice)}</div>
+                                                <div className="font-medium">{formatCurrency(selectedAuction.convertedStartPrice)}</div>
                                             </div>
-                                            {selectedAuction.reservePrice && (
+                                            {selectedAuction.convertedReservePrice && (
                                                 <div>
                                                     <div className="text-sm text-gray-500">Reserve Price</div>
-                                                    <div className="font-medium">{formatCurrency(selectedAuction.reservePrice)}</div>
+                                                    <div className="font-medium">{formatCurrency(selectedAuction.convertedReservePrice)}</div>
                                                 </div>
                                             )}
                                         </div>
                                     </div>
                                     <div className="bg-green-50 border border-green-200 text-green-800 px-5 py-4 rounded-xl">
                                         <div className="text-sm font-medium">Winning Bid</div>
-                                        <div className="text-2xl font-bold">{formatCurrency(selectedAuction.finalPrice)}</div>
+                                        <div className="text-2xl font-bold">{formatCurrency(selectedAuction.convertedFinalPrice)}</div>
                                         <div className="text-xs mt-1">Auction completed</div>
                                     </div>
                                 </div>
@@ -296,7 +297,7 @@ function SoldAuctions() {
                                             onClick={async () => {
                                                 setPayingCommission(true);
                                                 try {
-                                                    const { data } = await axiosInstance.post('/api/v1/payments/pay-commission', {
+                                                    const { data } = await axiosInstance.post(`/api/v1/payments/pay-commission?currency=${userCurrency}`, {
                                                         auctionId: selectedAuction.id
                                                     });
                                                     if (data.success) {
@@ -320,13 +321,13 @@ function SoldAuctions() {
                                                 <Loader className="animate-spin" size={16} />
                                             ) : (
                                                 <>
-                                                    <CreditCard size={18} /> Pay Commission ({formatCurrency(selectedAuction?.commissionAmount)})
+                                                    <CreditCard size={18} /> Pay Commission ({formatCurrency(selectedAuction?.convertedCommissionAmount)})
                                                 </>
                                             )}
                                         </button>
                                     )}
 
-                                    <p className="text-gray-500 text-xs">Note: You are paying the platform commission (service fee + featured premium if applicable). The buyer paid you directly.</p>
+                                    {selectedAuction.status === 'sold' && selectedAuction?.paymentMethod == 'bank_transfer' && (selectedAuction?.paymentStatus == 'pending' || selectedAuction?.paymentStatus == 'processing') && <p className="text-gray-500 text-xs">Note: You are paying the platform commission (service fee + featured premium if applicable). The buyer paid you directly.</p>}
                                 </div>
 
                                 {/* Auction Timeline */}
@@ -377,7 +378,7 @@ function SoldAuctions() {
                                             <div className="flex flex-wrap gap-4 mt-3">
                                                 <div>
                                                     <div className="text-sm text-gray-500">Final Bid</div>
-                                                    <div className="font-medium text-green-600">{formatCurrency(selectedAuction.finalPrice)}</div>
+                                                    <div className="font-medium text-green-600">{formatCurrency(selectedAuction.convertedFinalPrice)}</div>
                                                 </div>
                                             </div>
                                         </div>

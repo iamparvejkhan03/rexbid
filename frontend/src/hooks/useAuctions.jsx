@@ -2,9 +2,12 @@ import { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import axiosInstance from '../utils/axiosInstance';
 import { useLocation } from "react-router-dom";
+import { useAuth } from '../contexts/AuthContext';
 
 export const useAuctions = () => {
     const location = useLocation();
+    const { user } = useAuth();
+    const userCurrency = user?.currency || 'EUR';
     const [auctions, setAuctions] = useState([]);
     const [loading, setLoading] = useState(false);
     const [loadingMore, setLoadingMore] = useState(false);
@@ -18,15 +21,8 @@ export const useAuctions = () => {
         location: '',
         sortBy: 'createdAt',
         sortOrder: 'desc',
+        currency: `${userCurrency}`,
         isFeatured: '',
-        // Add all the new car filters
-        make: '',
-        model: '',
-        yearMin: '',
-        yearMax: '',
-        transmission: '',
-        fuelType: '',
-        condition: '',
         auctionType: '',
         allowOffers: ''
     });
@@ -58,6 +54,7 @@ export const useAuctions = () => {
             const params = new URLSearchParams({
                 page: page.toString(),
                 limit: limit.toString(),
+                currency: `${userCurrency}`,
                 // Copy all filters except categories
                 ...Object.fromEntries(
                     Object.entries(clean).filter(([key]) => key !== 'categories')
@@ -126,14 +123,6 @@ export const useAuctions = () => {
             priceMin: searchParams.get('priceMin') || '',
             priceMax: searchParams.get('priceMax') || '',
             location: searchParams.get('location') || '',
-            // New car filters from URL
-            make: searchParams.get('make') || '',
-            model: searchParams.get('model') || '',
-            yearMin: searchParams.get('yearMin') || '',
-            yearMax: searchParams.get('yearMax') || '',
-            transmission: searchParams.get('transmission') || '',
-            fuelType: searchParams.get('fuelType') || '',
-            condition: searchParams.get('condition') || '',
             auctionType: searchParams.get('auctionType') || '',
             allowOffers: searchParams.get('allowOffers') || '',
             sortBy: searchParams.get('sortBy') || 'createdAt',

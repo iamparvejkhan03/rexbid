@@ -5,6 +5,7 @@ import { about } from "../../assets";
 import toast from "react-hot-toast";
 import axiosInstance from "../../utils/axiosInstance";
 import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../../contexts/AuthContext";
 
 function AllAuctions() {
     const [auctions, setAuctions] = useState([]);
@@ -30,6 +31,9 @@ function AllAuctions() {
         hasPrev: false
     });
 
+    const { user } = useAuth();
+    const userCurrency = user?.currency || 'EUR';
+
     useEffect(() => {
         function handleClickOutside(event) {
             if (!event.target.closest('.relative')) {
@@ -51,6 +55,7 @@ function AllAuctions() {
                     page,
                     limit: 10,
                     search,
+                    currency: userCurrency,
                     filter: auctionFilter !== 'all' ? auctionFilter : undefined
                 }
             });
@@ -70,7 +75,7 @@ function AllAuctions() {
 
     const fetchAuctionDetails = async (auctionId) => {
         try {
-            const { data } = await axiosInstance.get(`/api/v1/admin/auctions/${auctionId}`);
+            const { data } = await axiosInstance.get(`/api/v1/admin/auctions/${auctionId}?currency=${userCurrency}`);
             if (data.success) {
                 setSelectedAuction(data.data.auction);
                 setIsModalOpen(true);
@@ -292,16 +297,16 @@ function AllAuctions() {
     };
 
     const formatCurrency = (amount) => {
-        return new Intl.NumberFormat('nb-NO', {
+        return new Intl.NumberFormat('en-IE', {
             style: 'currency',
-            currency: 'NOK',
+            currency: userCurrency,
             minimumFractionDigits: 0,
-            maximumFractionDigits: 0
+            maximumFractionDigits: 2
         }).format(amount);
     };
 
     const formatDate = (dateString) => {
-        return new Date(dateString).toLocaleDateString('nb-NO', {
+        return new Date(dateString).toLocaleDateString('en-IE', {
             year: 'numeric',
             month: 'long',
             day: 'numeric'
@@ -369,23 +374,23 @@ function AllAuctions() {
                     {/* Stats Overview */}
                     <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
                         <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
-                            <div className="text-2xl font-bold text-gray-900">{stats.total?.toLocaleString('nb-NO')}</div>
+                            <div className="text-2xl font-bold text-gray-900">{stats.total?.toLocaleString('en-IE')}</div>
                             <div className="text-sm text-gray-500">Total Auctions</div>
                         </div>
                         <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
-                            <div className="text-2xl font-bold text-green-600">{stats.active?.toLocaleString('nb-NO')}</div>
+                            <div className="text-2xl font-bold text-green-600">{stats.active?.toLocaleString('en-IE')}</div>
                             <div className="text-sm text-gray-500">Active</div>
                         </div>
                         <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
-                            <div className="text-2xl font-bold text-amber-600">{stats.pending?.toLocaleString('nb-NO')}</div>
+                            <div className="text-2xl font-bold text-amber-600">{stats.pending?.toLocaleString('en-IE')}</div>
                             <div className="text-sm text-gray-500">Pending</div>
                         </div>
                         <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
-                            <div className="text-2xl font-bold text-purple-600">{stats.featured?.toLocaleString('nb-NO')}</div>
+                            <div className="text-2xl font-bold text-purple-600">{stats.featured?.toLocaleString('en-IE')}</div>
                             <div className="text-sm text-gray-500">Featured</div>
                         </div>
                         <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
-                            <div className="text-2xl font-bold text-blue-600">{stats.sold?.toLocaleString('nb-NO')}</div>
+                            <div className="text-2xl font-bold text-blue-600">{stats.sold?.toLocaleString('en-IE')}</div>
                             <div className="text-sm text-gray-500">Sold</div>
                         </div>
                     </div>
@@ -500,11 +505,11 @@ function AllAuctions() {
                                                 <td className="py-4 px-6">
                                                     <div className="text-lg text-green-600">
                                                         {(() => {
-                                                            const startPrice = formatCurrency(auction.startPrice);
+                                                            const startPrice = formatCurrency(auction.convertedStartPrice);
 
                                                             if (auction.auctionType === 'buy_now') {
                                                                 if (auction.status === 'sold') {
-                                                                    return formatCurrency(auction.finalPrice);
+                                                                    return formatCurrency(auction.convertedFinalPrice);
                                                                 }
 
                                                                 if (auction.allowOffers) {
@@ -530,7 +535,7 @@ function AllAuctions() {
                                                             if (auction.auctionType === 'standard' || auction.auctionType === 'reserve') {
                                                                 // Standard/Reserve auction
                                                                 if (auction.bids?.length > 0) {
-                                                                    return formatCurrency(auction.currentPrice);
+                                                                    return formatCurrency(auction.convertedCurrentPrice);
                                                                 }
 
                                                                 // No bids, check for offers
@@ -560,12 +565,12 @@ function AllAuctions() {
                                                         })()}
                                                     </div>
                                                     <div className="text-xs text-gray-500">
-                                                        Start: {formatCurrency(auction.startPrice)}
-                                                        {auction.reservePrice && (
-                                                            <div>Reserve: {formatCurrency(auction.reservePrice)}</div>
+                                                        Start: {formatCurrency(auction.convertedStartPrice)}
+                                                        {auction.convertedReservePrice && (
+                                                            <div>Reserve: {formatCurrency(auction.convertedReservePrice)}</div>
                                                         )}
-                                                        {auction.buyNowPrice && (
-                                                            <div>Buy Now: {formatCurrency(auction.buyNowPrice)}</div>
+                                                        {auction.convertedBuyNowPrice && (
+                                                            <div>Buy Now: {formatCurrency(auction.convertedBuyNowPrice)}</div>
                                                         )}
                                                     </div>
                                                 </td>
@@ -841,7 +846,7 @@ function AllAuctions() {
                                                 <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
                                                     {selectedAuction.category}
                                                 </span>
-                                                {selectedAuction.auctionType === 'buy_now' && selectedAuction.buyNowPrice && (
+                                                {selectedAuction.auctionType === 'buy_now' && selectedAuction.convertedBuyNowPrice && (
                                                     <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                                                         Buy Now Available
                                                     </span>
@@ -867,7 +872,7 @@ function AllAuctions() {
                                                 {/* Current Bid/Price Display */}
                                                 <div className="flex justify-between">
                                                     <span className="text-gray-500">
-                                                        {selectedAuction.auctionType === 'buy_now' && selectedAuction.buyNowPrice
+                                                        {selectedAuction.auctionType === 'buy_now' && selectedAuction.convertedBuyNowPrice
                                                             ? 'Buy Now Price'
                                                             : selectedAuction.status === 'active'
                                                                 ? 'Current Price'
@@ -877,14 +882,14 @@ function AllAuctions() {
                                                         {(() => {
                                                             // Buy Now auction
                                                             if (selectedAuction.auctionType === 'buy_now') {
-                                                                return selectedAuction.buyNowPrice
-                                                                    ? formatCurrency(selectedAuction.buyNowPrice)
-                                                                    : formatCurrency(selectedAuction.startPrice);
+                                                                return selectedAuction.convertedBuyNowPrice
+                                                                    ? formatCurrency(selectedAuction.convertedBuyNowPrice)
+                                                                    : formatCurrency(selectedAuction.convertedStartPrice);
                                                             }
 
                                                             // Standard/Reserve with bids
                                                             if (selectedAuction.bids?.length > 0) {
-                                                                return formatCurrency(selectedAuction.currentPrice);
+                                                                return formatCurrency(selectedAuction.convertedCurrentPrice);
                                                             }
 
                                                             // Standard/Reserve with offers
@@ -902,22 +907,22 @@ function AllAuctions() {
 
                                                 <div className="flex justify-between">
                                                     <span className="text-gray-500">Starting Price</span>
-                                                    <span className="font-medium">{formatCurrency(selectedAuction.startPrice)}</span>
+                                                    <span className="font-medium">{formatCurrency(selectedAuction.convertedStartPrice)}</span>
                                                 </div>
 
                                                 {/* Buy Now Price (for buy_now auctions) */}
-                                                {/* {selectedAuction.auctionType === 'buy_now' && selectedAuction.buyNowPrice && (
+                                                {/* {selectedAuction.auctionType === 'buy_now' && selectedAuction.convertedBuyNowPrice && (
                                                     <div className="flex justify-between">
                                                         <span className="text-gray-500">Buy Now Price</span>
-                                                        <span className="font-bold text-blue-600">{formatCurrency(selectedAuction.buyNowPrice)}</span>
+                                                        <span className="font-bold text-blue-600">{formatCurrency(selectedAuction.convertedBuyNowPrice)}</span>
                                                     </div>
                                                 )} */}
 
                                                 {/* Reserve Price (for reserve auctions) */}
-                                                {selectedAuction.auctionType === 'reserve' && selectedAuction.reservePrice && (
+                                                {selectedAuction.auctionType === 'reserve' && selectedAuction.convertedReservePrice && (
                                                     <div className="flex justify-between">
                                                         <span className="text-gray-500">Reserve Price</span>
-                                                        <span className="font-medium">{formatCurrency(selectedAuction.reservePrice)}</span>
+                                                        <span className="font-medium">{formatCurrency(selectedAuction.convertedReservePrice)}</span>
                                                     </div>
                                                 )}
 
@@ -925,7 +930,7 @@ function AllAuctions() {
                                                 {(selectedAuction.auctionType === 'standard' || selectedAuction.auctionType === 'reserve') && (
                                                     <div className="flex justify-between">
                                                         <span className="text-gray-500">Bid Increment</span>
-                                                        <span className="font-medium">{formatCurrency(selectedAuction.bidIncrement)}</span>
+                                                        <span className="font-medium">{formatCurrency(selectedAuction.convertedBidIncrement)}</span>
                                                     </div>
                                                 )}
 
@@ -1035,10 +1040,10 @@ function AllAuctions() {
                                                 )}
 
                                                 {/* Final Price */}
-                                                {selectedAuction.finalPrice && (
+                                                {selectedAuction.convertedFinalPrice && (
                                                     <div className="flex justify-between">
                                                         <span className="text-gray-500">Final Price</span>
-                                                        <span className="font-bold text-green-600">{formatCurrency(selectedAuction.finalPrice)}</span>
+                                                        <span className="font-bold text-green-600">{formatCurrency(selectedAuction.convertedFinalPrice)}</span>
                                                     </div>
                                                 )}
 

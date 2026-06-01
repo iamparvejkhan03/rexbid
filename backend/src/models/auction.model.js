@@ -134,6 +134,17 @@ const auctionSchema = new Schema(
         return this.startPrice;
       },
     },
+    baseCurrency: {
+      type: String,
+      enum: ['EUR', 'GBP'],
+      required: true,
+      default: 'EUR'
+    },
+    basePrice: {
+      type: Number,
+      required: true,
+      min: 0
+    },
     bidIncrement: {
       type: Number,
       required: false,

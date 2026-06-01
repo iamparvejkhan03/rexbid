@@ -1,7 +1,7 @@
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { closeMenu, darkLogo, logo, menuIcon } from "../assets";
 import Container from "./Container";
-import { ChevronRight, LayoutDashboard, LogIn, Search, ChevronDown, X, Gavel, Clock, DollarSign, Gift } from "lucide-react";
+import { ChevronRight, LayoutDashboard, LogIn, Search, ChevronDown, X, Gavel, Clock, DollarSign, Gift, Euro, PoundSterling } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { usePopUp } from "../contexts/PopUpContextProvider";
@@ -33,21 +33,30 @@ const auctionTypes = [
     // { name: "Free Giveaway", slug: "giveaway", icon: Gift }
 ];
 
+const currencies = [
+    { name: "Euro", slug: "EUR", symbol: "€", icon: Euro },
+    { name: "Pound Sterling", slug: "GBP", symbol: "£", icon: PoundSterling },
+];
+
 function Header() {
     const [isScrolled, setIsScrolled] = useState(false);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isCategoriesOpen, setIsCategoriesOpen] = useState(false);
     const [isAuctionTypesOpen, setIsAuctionTypesOpen] = useState(false);
+    const [isCurrencySwitcherOpen, setIsCurrencySwitcherOpen] = useState(false);
     const [categories, setCategories] = useState([]);
     const [hoveredCategory, setHoveredCategory] = useState(null);
     const [loading, setLoading] = useState(false);
     const { pathname } = useLocation();
     const navigate = useNavigate();
-    const { user } = useAuth();
+    const { user, setUser } = useAuth();
     const auctionTypesRef = useRef(null);
+    const currencySwitcherRef = useRef(null);
+    const [userCurrency, setUserCurrency] = useState(user?.currency || 'EUR');
 
     const [mobileCategoriesOpen, setMobileCategoriesOpen] = useState(false);
     const [mobileAuctionTypesOpen, setMobileAuctionTypesOpen] = useState(false);
+    const [mobileCurrencySwitcherOpen, setMobileCurrencySwitcherOpen] = useState(false);
     const [activeMobileCategory, setActiveMobileCategory] = useState(null);
 
     useEffect(() => {
@@ -61,6 +70,10 @@ function Header() {
         const handleClickOutside = (event) => {
             if (auctionTypesRef.current && !auctionTypesRef.current.contains(event.target)) {
                 setIsAuctionTypesOpen(false);
+            }
+
+            if (currencySwitcherRef.current && !currencySwitcherRef.current.contains(event.target)) {
+                setIsCurrencySwitcherOpen(false);
             }
         };
 
@@ -135,6 +148,34 @@ function Header() {
         navigate(`/auctions?${searchParams.toString()}`);
         setIsAuctionTypesOpen(false);
         setMobileAuctionTypesOpen(false);
+    };
+
+    const handleCurrencySelect = (slug) => {
+        if (user) {
+            const updatedUser = { ...user, currency: slug };
+            localStorage.setItem('user', JSON.stringify(updatedUser));
+            setUser(updatedUser);
+
+            // Close dropdowns first
+            setIsCurrencySwitcherOpen(false);
+            setMobileCurrencySwitcherOpen(false);
+
+            // Reload after a tiny delay to ensure localStorage is written
+            setTimeout(() => {
+                window.location.reload();
+            }, 100);
+        } else {
+            localStorage.setItem('user', JSON.stringify({ currency: slug }));
+
+            // Close dropdowns first
+            setIsCurrencySwitcherOpen(false);
+            setMobileCurrencySwitcherOpen(false);
+
+            // Reload after a tiny delay
+            setTimeout(() => {
+                window.location.reload();
+            }, 100);
+        }
     };
 
     return (
@@ -275,9 +316,41 @@ function Header() {
                             )}
                         </li>
 
+                        {/* Auction Types Dropdown - Simple */}
+                        <li
+                            ref={currencySwitcherRef}
+                            className={`${isScrolled ? 'text-black' : 'text-white'} relative`}
+                        >
+                            <button
+                                onClick={() => setIsCurrencySwitcherOpen(!isCurrencySwitcherOpen)}
+                                className="currency-switcher-trigger flex gap-1 items-center cursor-pointer hover:underline"
+                            >
+                                <span>Currency</span>
+                                <ChevronDown size={16} className={`transition-transform ${isCurrencySwitcherOpen ? 'rotate-180' : ''}`} />
+                            </button>
+
+                            {isCurrencySwitcherOpen && (
+                                <div className="absolute top-full left-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden z-50">
+                                    {currencies.map((type) => {
+                                        const Icon = type.icon;
+                                        return (
+                                            <button
+                                                key={type.slug}
+                                                onClick={() => handleCurrencySelect(type.slug)}
+                                                className="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-[#D19F3E]/10 transition-colors text-gray-700"
+                                            >
+                                                <Icon size={18} className="text-[#D19F3E]" />
+                                                <span>{type.name}</span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </li>
+
                         <li>
                             {
-                                user
+                                user && user?.userType
                                     ?
                                     <button className="flex items-center gap-2 inset-0 bg-gradient-to-r from-[#D19F3E] to-[#E8B86B] text-white px-5 py-2 rounded-md cursor-pointer" onClick={() => navigate(`/${user.userType}/dashboard`)}><LayoutDashboard size={20} /> Dashboard</button>
                                     :
@@ -325,9 +398,22 @@ function Header() {
                             </button>
                         </li>
 
+                        <li className="relative mx-5 py-2 mb-2">
+                            <button
+                                onClick={() => {
+                                    setMobileCurrencySwitcherOpen(true);
+                                    setIsMenuOpen(false);
+                                }}
+                                className="flex items-center gap-1"
+                            >
+                                Currency
+                                <ChevronRight size={16} />
+                            </button>
+                        </li>
+
                         <li>
                             {
-                                user
+                                user && user?.userType
                                     ?
                                     <button className="flex items-center gap-2 bg-gradient-to-r from-[#D19F3E] to-[#E8B86B] text-white px-5 py-2 rounded-md cursor-pointer" onClick={() => navigate(`/${user.userType}/dashboard`)}><LayoutDashboard size={20} /> Dashboard</button>
                                     :
@@ -460,6 +546,46 @@ function Header() {
                             </div>
                         </div>
                     )}
+                </div>
+
+                {/* MOBILE CURRENCY SWITCHER DRAWER */}
+                <div
+                    className={`fixed inset-0 bg-white z-[100] transform transition-transform duration-300 ${mobileCurrencySwitcherOpen ? "translate-x-0" : "translate-x-full"
+                        }`}
+                >
+                    <div className="h-full overflow-y-auto">
+                        <div className="flex items-center justify-between p-5 border-b">
+                            <h2 className="text-xl font-bold">Currency</h2>
+                            <X
+                                className="cursor-pointer"
+                                onClick={() => setMobileCurrencySwitcherOpen(false)}
+                            />
+                        </div>
+
+                        <div className="p-5 space-y-3">
+                            {currencies.map((type) => {
+                                const Icon = type.icon;
+                                return (
+                                    <div
+                                        key={type.slug}
+                                        onClick={() => {
+                                            handleCurrencySelect(type.slug);
+                                            setMobileCurrencySwitcherOpen(false);
+                                        }}
+                                        className="flex items-center gap-4 p-4 border rounded-xl hover:border-[#D19F3E] cursor-pointer"
+                                    >
+                                        <div className={`p-2 rounded-lg bg-gray-100 ${type.color}`}>
+                                            <Icon size={20} />
+                                        </div>
+                                        <div>
+                                            <h3 className="font-semibold">{type.name}</h3>
+                                            <p className="text-sm text-gray-500">{type.description}</p>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
                 </div>
 
                 <div className="lg:hidden z-50 flex items-center gap-5">

@@ -4,6 +4,7 @@ import { Search, Filter, Mail, Phone, MapPin, Calendar, Award, Gavel, Shield, Us
 import { about, dummyUserImg } from "../../assets";
 import toast from "react-hot-toast";
 import axiosInstance from "../../utils/axiosInstance";
+import { useAuth } from "../../contexts/AuthContext";
 
 function AllUsers() {
     const [users, setUsers] = useState([]);
@@ -26,6 +27,9 @@ function AllUsers() {
         hasNext: false,
         hasPrev: false
     });
+
+    const { user } = useAuth();
+    const userCurrency = user?.currency || 'EUR';
 
     const fetchUsers = async (page = 1, search = searchTerm, userFilter = filter) => {
         setLoading(true);
@@ -179,16 +183,16 @@ function AllUsers() {
     };
 
     const formatCurrency = (amount) => {
-        return new Intl.NumberFormat('nb-NO', {
+        return new Intl.NumberFormat('en-IE', {
             style: 'currency',
-            currency: 'NOK',
+            currency: `${userCurrency}`,
             minimumFractionDigits: 0,
             maximumFractionDigits: 0
         }).format(amount);
     };
 
     const formatDate = (dateString) => {
-        return new Date(dateString).toLocaleDateString('nb-NO', {
+        return new Date(dateString).toLocaleDateString('en-IE', {
             year: 'numeric',
             month: 'long',
             day: 'numeric'
@@ -570,13 +574,6 @@ function AllUsers() {
                                                 {selectedUser.userType === 'seller' && selectedUser.stats && (
                                                     <>
                                                         <div className="flex items-center gap-3">
-                                                            <Banknote size={18} className="text-green-500" />
-                                                            <div>
-                                                                <div className="text-sm text-gray-500">Total Sales</div>
-                                                                <div className="font-medium">{formatCurrency(selectedUser.stats.totalSales || 0)}</div>
-                                                            </div>
-                                                        </div>
-                                                        <div className="flex items-center gap-3">
                                                             <Gavel size={18} className="text-blue-500" />
                                                             <div>
                                                                 <div className="text-sm text-gray-500">Active Listings</div>
@@ -594,13 +591,6 @@ function AllUsers() {
                                                 )}
                                                 {selectedUser.userType === 'broker' && selectedUser.stats && (
                                                     <>
-                                                        <div className="flex items-center gap-3">
-                                                            <Banknote size={18} className="text-green-500" />
-                                                            <div>
-                                                                <div className="text-sm text-gray-500">Total Sales</div>
-                                                                <div className="font-medium">{formatCurrency(selectedUser.stats.totalSales || 0)}</div>
-                                                            </div>
-                                                        </div>
                                                         <div className="flex items-center gap-3">
                                                             <Gavel size={18} className="text-blue-500" />
                                                             <div>

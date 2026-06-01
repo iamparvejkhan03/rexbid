@@ -1,5 +1,5 @@
 import { ChartColumnIncreasing, Gavel, ShieldCheck, Clock, Users, Award, ArrowRight } from "lucide-react";
-import { whoWeAre, about } from "../assets";
+import { whoWeAre, about, aboutCar, aboutTractor } from "../assets";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -59,7 +59,7 @@ function About() {
                             {/* Main image card with modern styling */}
                             <div className="relative rounded-3xl overflow-hidden shadow-2xl shadow-[#072342]/10">
                                 <img
-                                    src={whoWeAre}
+                                    src={aboutTractor}
                                     alt="Heavy machinery auction hall"
                                     className="w-full h-[480px] lg:h-[560px] object-cover transition-transform duration-700 hover:scale-105"
                                 />
@@ -81,7 +81,7 @@ function About() {
                             {/* Floating second image - New position and styling */}
                             <div className="absolute -bottom-8 -right-8 lg:-bottom-12 lg:-right-12 w-48 lg:w-64 rounded-2xl border-4 border-white shadow-2xl rotate-3 transition-all duration-500 hover:rotate-0 hover:scale-105">
                                 <img
-                                    src={about}
+                                    src={aboutCar}
                                     alt="Equipment inspection"
                                     className="w-full h-36 lg:h-48 object-cover rounded-xl"
                                 />

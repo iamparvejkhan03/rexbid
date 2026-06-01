@@ -52,6 +52,7 @@ export const AuthProvider = ({ children }) => {
                     createdAt: data.data.user.createdAt,
                     countryName: data.data.user.countryName,
                     countryCode: data.data.user.countryCode,
+                    currency: data.data.user.currency,
                 };
 
                 const accessToken = data.data.accessToken;

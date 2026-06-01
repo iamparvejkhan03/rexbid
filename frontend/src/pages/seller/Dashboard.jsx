@@ -3,13 +3,16 @@ import { QuickActions, StatCard, SellerContainer, SellerHeader, SellerSidebar } 
 import { useState } from "react";
 import { TrendingUp, Gavel, Award, Heart, DollarSign, Clock, Eye } from "lucide-react";
 import axiosInstance from "../../utils/axiosInstance";
+import { useAuth } from "../../contexts/AuthContext";
 
 function Dashboard() {
     const [stats, setStats] = useState({});
+    const { user } = useAuth();
+    const userCurrency = user?.currency || 'EUR';
 
     const fetchUserStats = async () => {
         try {
-            const { data } = await axiosInstance.get('/api/v1/users/stats/seller');
+            const { data } = await axiosInstance.get(`/api/v1/users/stats/seller?currency=${userCurrency}`);
             if (data.success) {
                 setStats(data.data.statistics);
             }
@@ -25,11 +28,11 @@ function Dashboard() {
     const statsData = [
         {
             title: "Total Revenue",
-            value: stats?.totalRevenue?.toLocaleString('nb-NO'),
+            value: stats?.totalRevenue?.toFixed(2).toLocaleString('en-IE'),
             change: "All Time",
             icon: <DollarSign size={24} />,
             trend: "up",
-            currency: " kr"
+            currency: userCurrency === 'GBP' ? '£' : '€'
         },
         {
             title: "Active Auctions",
@@ -62,11 +65,11 @@ function Dashboard() {
         },
         {
             title: "Avg. Sale Price",
-            value: stats?.avgSalePrice?.toLocaleString('nb-NO'),
+            value: stats?.avgSalePrice?.toFixed(2).toLocaleString('en-IE'),
             change: "Per Item Sold",
             icon: <DollarSign size={24} />,
             trend: "up",
-            currency: " kr"
+            currency: userCurrency === 'GBP' ? '£' : '€'
         },
         {
             title: "Watchlist Items",

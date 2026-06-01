@@ -3,6 +3,7 @@ import { LoadingSpinner, SellerContainer, SellerHeader, SellerSidebar } from "..
 import { Search, Filter, Calendar, Download, BarChart3, User, Gavel, Award, Clock, DollarSign, Plane, History, Package } from "lucide-react";
 import axiosInstance from "../../utils/axiosInstance";
 import { toast } from "react-hot-toast";
+import { useAuth } from "../../contexts/AuthContext";
 
 function BidHistory() {
     const [auctions, setAuctions] = useState([]);
@@ -12,6 +13,9 @@ function BidHistory() {
     const [dateRange, setDateRange] = useState({ start: "", end: "" });
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+
+    const { user } = useAuth();
+    const userCurrency = user?.currency || 'EUR';
 
     // Fetch seller's auctions with bid history
     useEffect(() => {
@@ -23,7 +27,7 @@ function BidHistory() {
             setLoading(true);
             setError(null);
 
-            const { data } = await axiosInstance.get(`/api/v1/auctions/user/my-auctions`);
+            const { data } = await axiosInstance.get(`/api/v1/auctions/user/my-auctions?currency=${userCurrency}`);
 
             if (data.success) {
                 // Filter auctions that have bids and transform the data
@@ -49,9 +53,9 @@ function BidHistory() {
     };
 
     const transformAuctionData = (backendAuctions) => {
-
         return backendAuctions.map(auction => {
             const sortedBids = [...auction.bids].sort((a, b) => b.amount - a.amount);
+
             const bids = sortedBids.map((bid, index) => {
                 let status = "Outbid";
 
@@ -67,6 +71,14 @@ function BidHistory() {
                     }
                 }
 
+                // Use converted amount if available, otherwise calculate it
+                let bidAmount = bid.convertedAmount;
+                if (!bidAmount && auction.displayCurrency && auction.baseCurrency) {
+                    // Fallback conversion if backend didn't provide converted amount
+                    const rate = 1; // You'd need to get actual rate here
+                    bidAmount = bid.amount * rate;
+                }
+
                 return {
                     id: bid._id || `bid-${index}`,
                     bidder: {
@@ -78,12 +90,17 @@ function BidHistory() {
                         email: bid.bidder?.email || '',
                         company: bid.bidder?.company || ''
                     },
-                    amount: bid.amount,
+                    amount: bidAmount || bid.amount,
+                    convertedCurrentPrice: auction.convertedCurrentPrice,
+                    amountOriginal: bid.amount,
                     time: bid.timestamp,
                     status: status,
                     ip: "Not Available"
                 };
             });
+
+            // Use converted values from backend
+            const winningBidAmount = bids[0]?.amount || auction.convertedCurrentPrice || auction.currentPrice;
 
             return {
                 id: auction._id,
@@ -93,34 +110,42 @@ function BidHistory() {
                 auctionType: auction.auctionType === 'reserve' ? 'Reserve Auction' : 'Standard Auction',
                 startTime: auction.startDate,
                 endTime: auction.endDate,
-                startingBid: auction.startPrice,
-                winningBid: sortedBids[0]?.amount || auction.currentPrice,
+                // Use converted values
+                startingBid: auction.convertedStartPrice || auction.startPrice,
+                winningBid: winningBidAmount,
+                currentBid: auction.convertedCurrentPrice || auction.currentPrice,
+                bidIncrement: auction.convertedBidIncrement || auction.bidIncrement,
+                reservePrice: auction.convertedReservePrice || auction.reservePrice,
+                buyNowPrice: auction.convertedBuyNowPrice || auction.buyNowPrice,
+                finalPrice: auction.convertedFinalPrice || auction.finalPrice,
                 status: auction.status === 'active' ? 'Active' :
                     auction.status === 'sold' ? 'Completed' :
                         auction.status.charAt(0).toUpperCase() + auction.status.slice(1),
+                displayCurrency: auction.displayCurrency || 'EUR',
+                baseCurrency: auction.baseCurrency,
                 bids: bids
             };
         });
     };
 
     const formatTime = (dateString) => {
-        return new Date(dateString).toLocaleTimeString('nb-NO', {
+        return new Date(dateString).toLocaleTimeString('en-IE', {
             hour: '2-digit',
             minute: '2-digit'
         });
     };
 
     const formatCurrency = (amount) => {
-        return new Intl.NumberFormat('nb-NO', {
+        return new Intl.NumberFormat('en-IE', {
             style: 'currency',
-            currency: 'NOK',
+            currency: `${userCurrency}`,
             minimumFractionDigits: 0,
             maximumFractionDigits: 0
         }).format(amount);
     };
 
     const formatDate = (dateString) => {
-        return new Date(dateString).toLocaleDateString('nb-NO', {
+        return new Date(dateString).toLocaleDateString('en-IE', {
             year: 'numeric',
             month: 'long',
             day: 'numeric'

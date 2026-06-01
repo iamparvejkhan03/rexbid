@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Container } from "../components";
+import { aboutDigger, aboutExcavator, aboutHandle } from "../assets";
 
 // Intersection Observer hook for fade-in animations
 const useFadeIn = () => {
@@ -114,13 +115,13 @@ function About() {
             <div
                 ref={heroRef}
                 data-section="hero"
-                className={`relative h-[340px] md:h-[420px] overflow-hidden transition-all duration-700 ${heroVisible ? "opacity-100 scale-100" : "opacity-0 scale-105"
+                className={`relative h-[360px] md:h-[450px] overflow-hidden transition-all duration-700 ${heroVisible ? "opacity-100 scale-100" : "opacity-0 scale-105"
                     }`}
             >
                 <img
-                    src="https://images.unsplash.com/photo-1578575437130-527eed3abbec?q=80&w=1600&auto=format&fit=crop"
+                    src={aboutExcavator}
                     alt="About RexBid"
-                    className="absolute inset-0 w-full h-full object-cover"
+                    className="absolute inset-0 w-full h-full object-cover bg-center transition-transform duration-700 hover:scale-105"
                 />
                 <div className="absolute inset-0 bg-[#072342]/75"></div>
                 <Container>
@@ -200,7 +201,7 @@ function About() {
                         <div className="relative">
                             <div className="relative rounded-2xl overflow-hidden shadow-xl">
                                 <img
-                                    src="https://images.unsplash.com/photo-1519003722824-194d4455a60c?q=80&w=1200&auto=format&fit=crop"
+                                    src={aboutHandle}
                                     alt="Industrial Marketplace"
                                     className="w-full h-[400px] md:h-[520px] object-cover"
                                 />
@@ -275,7 +276,7 @@ function About() {
                     <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
                         <div className="rounded-xl overflow-hidden shadow-xl order-2 lg:order-1">
                             <img
-                                src="https://images.unsplash.com/photo-1504307651254-35680f356dfd?q=80&w=1200&auto=format&fit=crop"
+                                src={aboutDigger}
                                 alt="Industry Expertise"
                                 className="w-full h-[380px] md:h-[460px] object-cover"
                             />

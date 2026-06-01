@@ -18,9 +18,41 @@ import {
   paymentCompletedSellerEmail,
   sendBulkAuctionNotifications,
 } from "../utils/nodemailer.js";
+import { getCachedRates } from "../routes/currency.route.js";
+
+const convertPrice = (auction, targetCurrency, priceField) => {
+  const rates = getCachedRates();
+  if (!rates) return auction[priceField]; // fallback
+  const base = auction.baseCurrency;
+  const rate = rates[base].rates[targetCurrency];
+  if (!rate) return auction[priceField];
+  return auction[priceField] * rate;
+};
 
 export const getAdminStats = async (req, res) => {
   try {
+    const userCurrency = req.query.currency || 'EUR';
+    const rates = getCachedRates();
+
+    // Helper to convert amount using auction's base currency
+    const convertAmount = (amount, auction) => {
+      if (!amount || !auction) return 0;
+      if (!rates) return amount;
+      const base = auction.baseCurrency || 'EUR';
+      const rate = rates[base]?.rates[userCurrency];
+      if (!rate) return amount;
+      return parseFloat((amount * rate).toFixed(2));
+    };
+
+    // Helper to convert a raw amount when we know the base currency
+    const convertRawAmount = (amount, baseCurrency) => {
+      if (!amount) return 0;
+      if (!rates) return amount;
+      const rate = rates[baseCurrency]?.rates[userCurrency];
+      if (!rate) return amount;
+      return parseFloat((amount * rate).toFixed(2));
+    };
+
     // Get total users count
     const totalUsers = await User.countDocuments({ isActive: true });
 
@@ -44,31 +76,33 @@ export const getAdminStats = async (req, res) => {
       endDate: { $gt: new Date() },
     });
 
-    // Calculate total revenue from sold auctions
-    const revenueStats = await Auction.aggregate([
-      { $match: { status: "sold" } },
-      {
-        $group: {
-          _id: null,
-          totalRevenue: { $sum: "$finalPrice" },
-          highestSale: { $max: "$finalPrice" },
-          averageSale: { $avg: "$finalPrice" },
-          totalSold: { $sum: 1 },
-        },
-      },
-    ]);
-
-    const totalRevenue = revenueStats[0]?.totalRevenue || 0;
-    const highestSaleAmount = revenueStats[0]?.highestSale || 0;
-    const averageSalePrice = revenueStats[0]?.averageSale || 0;
-    const totalSoldAuctions = revenueStats[0]?.totalSold || 0;
-
-    // Get highest sale auction details
-    const highestSaleAuction = await Auction.findOne({ status: "sold" })
-      .sort({ finalPrice: -1 })
+    // Calculate total revenue from sold auctions (converted)
+    const soldAuctionsList = await Auction.find({ status: "sold" })
       .populate("seller", "username firstName lastName")
       .populate("winner", "username firstName lastName")
-      .select("title finalPrice seller winner createdAt");
+      .select("title finalPrice baseCurrency seller winner createdAt");
+
+    let totalRevenueConverted = 0;
+    let highestSaleAmountConverted = 0;
+    let highestSaleAuction = null;
+    let totalSalePriceSum = 0;
+    const soldCount = soldAuctionsList.length;
+
+    for (const auction of soldAuctionsList) {
+      const convertedPrice = convertAmount(auction.finalPrice, auction);
+      totalRevenueConverted += convertedPrice;
+      totalSalePriceSum += convertedPrice;
+
+      if (convertedPrice > highestSaleAmountConverted) {
+        highestSaleAmountConverted = convertedPrice;
+        highestSaleAuction = auction;
+      }
+    }
+
+    const totalRevenue = totalRevenueConverted;
+    const highestSaleAmount = highestSaleAmountConverted;
+    const averageSalePrice = soldCount > 0 ? totalSalePriceSum / soldCount : 0;
+    const totalSoldAuctions = soldCount;
 
     // Calculate success rate
     const completedAuctions = await Auction.countDocuments({
@@ -96,30 +130,30 @@ export const getAdminStats = async (req, res) => {
       createdAt: { $gte: oneWeekAgo },
     });
 
-    // Get today's revenue
+    // Get today's revenue (converted)
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    const todayRevenueStats = await Auction.aggregate([
-      {
-        $match: {
-          status: "sold",
-          updatedAt: {
-            $gte: today,
-            $lt: tomorrow,
-          },
-        },
+    const todaySoldAuctions = await Auction.find({
+      status: "sold",
+      updatedAt: {
+        $gte: today,
+        $lt: tomorrow,
       },
-      { $group: { _id: null, total: { $sum: "$finalPrice" } } },
-    ]);
+    }).select("finalPrice baseCurrency");
 
-    const todayRevenue = todayRevenueStats[0]?.total || 0;
+    let todayRevenueConverted = 0;
+    for (const auction of todaySoldAuctions) {
+      todayRevenueConverted += convertAmount(auction.finalPrice, auction);
+    }
+
+    const todayRevenue = todayRevenueConverted;
 
     // Get system metrics
     const totalComments = await Comment.countDocuments();
-    // const totalWatchlists = await Watchlist.countDocuments();
+
     const watchlistItems = await Watchlist.aggregate([
       {
         $lookup: {
@@ -154,7 +188,8 @@ export const getAdminStats = async (req, res) => {
 
     const recentBidsCount = recentBids[0]?.count || 0;
 
-    const highestBidStats = await Auction.aggregate([
+    // Get highest and average bid amounts (converted)
+    const allBidsAggregation = await Auction.aggregate([
       { $unwind: "$bids" },
       {
         $group: {
@@ -166,19 +201,54 @@ export const getAdminStats = async (req, res) => {
       },
     ]);
 
-    // Get top performing categories
-    const categoryStats = await Auction.aggregate([
-      { $match: { status: "sold" } },
-      {
-        $group: {
-          _id: "$category",
-          totalRevenue: { $sum: "$finalPrice" },
-          auctionCount: { $sum: 1 },
-          avgPrice: { $avg: "$finalPrice" },
-        },
-      },
-      { $sort: { totalRevenue: -1 } },
-    ]);
+    // Get highest bid auction for conversion
+    const highestBidAuction = await Auction.findOne({ "bids.0": { $exists: true } })
+      .sort({ "bids.amount": -1 })
+      .select("bids baseCurrency");
+
+    let highestBidAmountConverted = 0;
+    let averageBidAmountConverted = 0;
+
+    if (allBidsAggregation[0]?.highestBidAmount && highestBidAuction) {
+      highestBidAmountConverted = convertRawAmount(
+        allBidsAggregation[0].highestBidAmount,
+        highestBidAuction.baseCurrency
+      );
+    }
+
+    if (allBidsAggregation[0]?.averageBidAmount && highestBidAuction) {
+      averageBidAmountConverted = convertRawAmount(
+        allBidsAggregation[0].averageBidAmount,
+        highestBidAuction.baseCurrency
+      );
+    }
+
+    // Get top performing categories (converted)
+    const soldAuctionsForCategories = await Auction.find({ status: "sold" })
+      .select("finalPrice baseCurrency categories");
+
+    const categoryMap = new Map();
+    for (const auction of soldAuctionsForCategories) {
+      const categoryName = auction.categories?.[1] || auction.categories?.[0] || 'Uncategorized';
+      const convertedPrice = convertAmount(auction.finalPrice, auction);
+
+      if (!categoryMap.has(categoryName)) {
+        categoryMap.set(categoryName, {
+          category: categoryName,
+          totalRevenue: 0,
+          auctionCount: 0,
+          avgPrice: 0,
+        });
+      }
+
+      const cat = categoryMap.get(categoryName);
+      cat.totalRevenue += convertedPrice;
+      cat.auctionCount++;
+      cat.avgPrice = cat.totalRevenue / cat.auctionCount;
+    }
+
+    const categoryStats = Array.from(categoryMap.values())
+      .sort((a, b) => b.totalRevenue - a.totalRevenue);
 
     // Get user engagement metrics
     const totalBids = await Auction.aggregate([
@@ -210,8 +280,8 @@ export const getAdminStats = async (req, res) => {
 
     const recentOffersCount = recentOffers[0]?.count || 0;
 
-    // Calculate total offer value and average offer
-    const offerValueStats = await Auction.aggregate([
+    // Calculate total offer value and average offer (converted)
+    const allOffers = await Auction.aggregate([
       { $unwind: "$offers" },
       {
         $match: {
@@ -220,95 +290,95 @@ export const getAdminStats = async (req, res) => {
           },
         },
       },
-      {
-        $group: {
-          _id: null,
-          totalOfferValue: { $sum: "$offers.amount" },
-          avgOfferAmount: { $avg: "$offers.amount" },
-          highestOffer: { $max: "$offers.amount" },
-        },
-      },
     ]);
 
-    const totalOfferValue = offerValueStats[0]?.totalOfferValue || 0;
-    const avgOfferAmount = offerValueStats[0]?.avgOfferAmount || 0;
-    const highestOfferAmount = offerValueStats[0]?.highestOffer || 0;
+    let totalOfferValueConverted = 0;
+    let highestOfferAmountConverted = 0;
+    let totalOffersForAvg = 0;
+
+    for (const auction of allOffers) {
+      const convertedAmount = convertAmount(auction.offers.amount, auction);
+      totalOfferValueConverted += convertedAmount;
+      if (convertedAmount > highestOfferAmountConverted) {
+        highestOfferAmountConverted = convertedAmount;
+      }
+      totalOffersForAvg++;
+    }
+
+    const totalOfferValue = totalOfferValueConverted;
+    const avgOfferAmount = totalOffersForAvg > 0 ? totalOfferValueConverted / totalOffersForAvg : 0;
+    const highestOfferAmount = highestOfferAmountConverted;
+
+    // Get auctions ending today
+    const auctionsEndingToday = await Auction.countDocuments({
+      status: "active",
+      endDate: {
+        $gte: today,
+        $lt: tomorrow,
+      },
+    });
 
     const stats = {
-      // Basic counts
       totalUsers,
       totalAuctions,
       activeAuctions,
       totalSoldAuctions,
 
-      // User statistics
       userTypeStats: userTypeStats.reduce((acc, curr) => {
         acc[curr._id] = curr.count;
         return acc;
       }, {}),
 
-      // Auction statistics
       auctionStatusStats: auctionStatusStats.reduce((acc, curr) => {
         acc[curr._id] = curr.count;
         return acc;
       }, {}),
 
-      // Financial metrics
-      totalRevenue,
-      todayRevenue,
-      highestSaleAmount,
-      averageSalePrice,
+      totalRevenue: parseFloat(totalRevenue.toFixed(2)),
+      todayRevenue: parseFloat(todayRevenue.toFixed(2)),
+      highestSaleAmount: parseFloat(highestSaleAmount.toFixed(2)),
+      averageSalePrice: parseFloat(averageSalePrice.toFixed(2)),
       highestSaleAuction: highestSaleAuction
         ? {
-            title: highestSaleAuction.title,
-            amount: highestSaleAuction.finalPrice,
-            seller: highestSaleAuction.seller?.username || "Unknown",
-            winner: highestSaleAuction.winner?.username || "Unknown",
-            date: highestSaleAuction.createdAt,
-          }
+          title: highestSaleAuction.title,
+          amount: parseFloat(convertAmount(highestSaleAuction.finalPrice, highestSaleAuction).toFixed(2)),
+          amountOriginal: highestSaleAuction.finalPrice,
+          seller: highestSaleAuction.seller?.username || "Unknown",
+          winner: highestSaleAuction.winner?.username || "Unknown",
+          date: highestSaleAuction.createdAt,
+        }
         : null,
 
-      // Performance metrics
       successRate,
       pendingModeration,
       recentUsers,
 
-      // Engagement metrics
       totalComments,
       totalWatchlists,
       totalBids: totalBidsCount,
       recentBids: recentBidsCount,
-      highestBidAmount: highestBidStats[0]?.highestBidAmount || 0,
-      averageBidAmount: highestBidStats[0]?.averageBidAmount || 0,
+      highestBidAmount: parseFloat(highestBidAmountConverted.toFixed(2)),
+      averageBidAmount: parseFloat(averageBidAmountConverted.toFixed(2)),
 
-      // Engagement metrics section
       totalOffers: totalOffersCount,
       recentOffers: recentOffersCount,
       offersByStatus: offersByStatus.reduce((acc, curr) => {
         acc[curr._id] = curr.count;
         return acc;
       }, {}),
-      pendingOffers: offersByStatus.pending || 0,
-      totalOfferValue: totalOfferValue,
-      averageOfferAmount: avgOfferAmount,
-      highestOfferAmount: highestOfferAmount,
+      pendingOffers: offersByStatus.find(o => o._id === 'pending')?.count || 0,
+      totalOfferValue: parseFloat(totalOfferValue.toFixed(2)),
+      averageOfferAmount: parseFloat(avgOfferAmount.toFixed(2)),
+      highestOfferAmount: parseFloat(highestOfferAmount.toFixed(2)),
 
-      // Category performance
       categoryStats,
 
-      // System metrics (you can implement real ones based on your monitoring)
       avgResponseTime: 2.3,
       systemHealth: 99.8,
 
-      // Additional insights
       newUsersThisWeek: recentUsers,
-      auctionsEndingToday: await Auction.countDocuments({
-        status: "active",
-        endDate: {
-          $gte: today,
-          $lt: tomorrow,
-        },
-      }),
+      auctionsEndingToday,
+      displayCurrency: userCurrency,
     };
 
     res.status(200).json({
@@ -686,15 +756,14 @@ export const updateUserType = async (req, res) => {
 export const getAllAuctions = async (req, res) => {
   try {
     const { page = 1, limit = 10, search = "", filter = "all" } = req.query;
-
     const skip = (page - 1) * limit;
+    const userCurrency = req.query.currency || 'EUR';
 
     // Build search query
     let searchQuery = {
       $or: [
         { title: { $regex: search, $options: "i" } },
         { sellerUsername: { $regex: search, $options: "i" } },
-        // { category: { $regex: search, $options: "i" } },
         { categories: { $in: [new RegExp(search, "i")] } },
       ],
     };
@@ -719,6 +788,22 @@ export const getAllAuctions = async (req, res) => {
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit));
+
+    // Convert auctions using convertPrice
+    const auctionsWithConverted = auctions.map(auction => {
+      const auctionObj = auction.toObject();
+
+      return {
+        ...auctionObj,
+        convertedStartPrice: convertPrice(auction, userCurrency, 'startPrice'),
+        convertedCurrentPrice: convertPrice(auction, userCurrency, 'currentPrice'),
+        convertedBidIncrement: convertPrice(auction, userCurrency, 'bidIncrement'),
+        convertedBuyNowPrice: convertPrice(auction, userCurrency, 'buyNowPrice'),
+        convertedReservePrice: convertPrice(auction, userCurrency, 'reservePrice'),
+        convertedFinalPrice: convertPrice(auction, userCurrency, 'finalPrice'),
+        displayCurrency: userCurrency
+      };
+    });
 
     // Get total count for pagination
     const totalAuctions = await Auction.countDocuments(searchQuery);
@@ -755,7 +840,7 @@ export const getAllAuctions = async (req, res) => {
     res.status(200).json({
       success: true,
       data: {
-        auctions,
+        auctions: auctionsWithConverted,
         pagination: {
           currentPage: parseInt(page),
           totalPages: Math.ceil(totalAuctions / limit),
@@ -779,6 +864,9 @@ export const getAllAuctions = async (req, res) => {
 export const getAuctionDetails = async (req, res) => {
   try {
     const { auctionId } = req.params;
+
+    const userCurrency = req.query.currency || 'EUR';
+    const rates = getCachedRates();
 
     const auction = await Auction.findById(auctionId)
       .populate("seller", "firstName lastName username email phone")
@@ -819,12 +907,26 @@ export const getAuctionDetails = async (req, res) => {
       isReserveMet: auction.isReserveMet(),
     };
 
+    const convertedStartPrice = convertPrice(auction, userCurrency, 'startPrice');
+    const convertedCurrentPrice = convertPrice(auction, userCurrency, 'currentPrice');
+    const convertedBidIncrement = convertPrice(auction, userCurrency, 'bidIncrement');
+    const convertedBuyNowPrice = convertPrice(auction, userCurrency, 'buyNowPrice');
+    const convertedReservePrice = convertPrice(auction, userCurrency, 'reservePrice');
+    const convertedFinalPrice = convertPrice(auction, userCurrency, 'finalPrice');
+
     res.status(200).json({
       success: true,
       data: {
         auction: {
           ...auctionObject,
           stats: auctionStats,
+          convertedStartPrice,
+          convertedCurrentPrice,
+          convertedBidIncrement,
+          convertedBuyNowPrice,
+          convertedReservePrice,
+          convertedFinalPrice,
+          displayCurrency: userCurrency
         },
       },
     });
@@ -914,7 +1016,7 @@ export const approveAuction = async (req, res) => {
       // Activate immediately
       auction.status = "active";
 
-      await auction.populate("seller", "email username firstName");
+      await auction.populate("seller", "email username firstName lastName");
 
       await auctionListedEmail(auction, auction.seller);
 
@@ -937,7 +1039,7 @@ export const approveAuction = async (req, res) => {
       _id: { $ne: auction?.seller?._id }, // Exclude auction owner
       userType: { $ne: "admin" }, // Exclude admin users
       isActive: true, // Only active users
-    }).select("email username firstName preferences userType");
+    }).select("email username firstName lastName preferences userType currency");
 
     await sendBulkAuctionNotifications(bidders, auction, auction.seller);
   } catch (error) {
@@ -1079,9 +1181,9 @@ export const updateAuction = async (req, res) => {
           // Check if it's a comma-separated string
           categoriesArray = req.body.categories.includes(",")
             ? req.body.categories
-                .split(",")
-                .map((c) => c.trim())
-                .filter(Boolean)
+              .split(",")
+              .map((c) => c.trim())
+              .filter(Boolean)
             : [req.body.categories];
         }
       }
@@ -1094,8 +1196,6 @@ export const updateAuction = async (req, res) => {
         message: "At least one category is required",
       });
     }
-
-    console.log("Categories after parsing:", categoriesArray);
     // =================================================
 
     // Basic validation - check if fields exist in req.body

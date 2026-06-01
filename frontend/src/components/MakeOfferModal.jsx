@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { X, Banknote, MessageSquare, Package, Hand } from "lucide-react";
 import axiosInstance from "../utils/axiosInstance";
+import { useAuth } from "../contexts/AuthContext";
 
 const MakeOfferModal = ({
     isOpen,
@@ -18,6 +19,9 @@ const MakeOfferModal = ({
     const [commissionValue, setCommissionValue] = useState(0);
     const [isCommissionEnabled, setIsCommissionEnabled] = useState(null);
     const [commissionAppliesTo, setCommissionAppliesTo] = useState([]);
+
+    const { user } = useAuth();
+    const userCurrency = user?.currency || 'EUR';
 
     useEffect(() => {
         if (!isOpen || !offerAmount) return;
@@ -52,9 +56,9 @@ const MakeOfferModal = ({
 
     if (!isOpen) return null;
 
-    const formatNOK = (amount) => {
-        if (!amount && amount !== 0) return "0 kr";
-        return `${Number(amount).toLocaleString("nb-NO")} kr`;
+    const formatCurrency = (amount) => {
+        if (!amount && amount !== 0) return `${userCurrency === 'GBP' ? '£' : '€'}0`;
+        return `${userCurrency === 'GBP' ? '£' : '€'}${Number(amount)?.toFixed(2).toLocaleString("en-IE")}`;
     };
 
     const total = (isCommissionEnabled && commissionAppliesTo?.includes('bidder') ? Number(offerAmount) + Number(serviceFee) : Number(offerAmount));
@@ -65,7 +69,7 @@ const MakeOfferModal = ({
     };
 
     const isInvalidOffer =
-        !offerAmount || parseFloat(offerAmount) < auction?.startPrice;
+        !offerAmount || parseFloat(offerAmount) < auction?.convertedStartPrice;
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -102,14 +106,13 @@ const MakeOfferModal = ({
                                 onChange={(e) => setOfferAmount(e.target.value)}
                                 className="pl-10 block w-full border border-gray-300 rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 placeholder="Enter your offer amount"
-                                min={auction?.startPrice}
-                                step="0.01"
+                                min={auction?.convertedStartPrice?.toFixed(0)}
                                 required
                             />
                         </div>
 
-                        {auction?.startPrice && auction?.startPrice > 0 && <p className="text-sm text-gray-500 mt-1">
-                            Minimum offer: {formatNOK(auction?.startPrice)}
+                        {auction?.convertedStartPrice && auction?.convertedStartPrice > 0 && <p className="text-sm text-gray-500 mt-1">
+                            Minimum offer: {formatCurrency(auction?.convertedStartPrice)}
                         </p>}
                     </div>
 
@@ -118,19 +121,19 @@ const MakeOfferModal = ({
                         <div className="bg-gray-50 rounded-lg p-4 mb-6 space-y-2">
                             <div className="flex justify-between text-gray-700">
                                 <span>Offer Amount</span>
-                                <span>{formatNOK(offerAmount)}</span>
+                                <span>{formatCurrency(offerAmount)}</span>
                             </div>
 
 
 
                             {isCommissionEnabled && commissionAppliesTo?.includes('bidder') && <div className="flex justify-between text-gray-700">
                                 <span>Service Fee</span>
-                                <span>{formatNOK(serviceFee)}</span>
+                                <span>{formatCurrency(serviceFee)}</span>
                             </div>}
 
                             <div className="border-t pt-2 flex justify-between font-semibold text-green-600">
                                 <span>Total Payable</span>
-                                <span>{formatNOK(total)}</span>
+                                <span>{formatCurrency(total)}</span>
                             </div>
                         </div>
                     )}

@@ -43,6 +43,9 @@ function SingleAuction() {
     const [userReview, setUserReview] = useState(null);
     const [revieweeId, setRevieweeId] = useState(null);
     const [auctionReviews, setAuctionReviews] = useState([]);
+    const makingOfferRef = useRef(false);
+
+    const userCurrency = user?.currency || 'EUR';
 
     const updateAuctionState = (updatedAuction) => {
         setAuction(updatedAuction);
@@ -75,7 +78,7 @@ function SingleAuction() {
         const fetchAuction = async () => {
             try {
                 setLoading(true);
-                const { data } = await axiosInstance.get(`/api/v1/auctions/${id}`);
+                const { data } = await axiosInstance.get(`/api/v1/auctions/${id}?currency=${userCurrency}`);
                 if (data.success) {
                     setAuction(data.data.auction);
                 }
@@ -167,17 +170,29 @@ function SingleAuction() {
             return;
         }
 
-        if (!bidAmount || (parseFloat(bidAmount) <= auction.currentPrice && auction.bidCount > 0)) {
-            toast.error(`Bid must be higher than current price: ${auction.currentPrice} kr`);
+        // Calculate minimum bid in user's currency
+        let minBidInUserCurrency;
+        if (auction.bidCount === 0) {
+            // First bid: must be at least starting price
+            minBidInUserCurrency = auction.convertedStartPrice;
+        } else {
+            // Subsequent bids: current price + bid increment
+            minBidInUserCurrency = auction.convertedCurrentPrice + (auction.convertedBidIncrement || 0);
+        }
+
+        const bidValue = parseFloat(bidAmount);
+        if (!bidAmount || bidValue < minBidInUserCurrency) {
+            const currencySymbol = userCurrency === 'GBP' ? '£' : '€';
+            toast.error(`Minimum bid is ${currencySymbol}${minBidInUserCurrency.toFixed(2)}`);
             return;
         }
 
         try {
             setBidding(true);
 
-            // Place the bid after payment is handled
             const { data } = await axiosInstance.post(`/api/v1/auctions/bid/${id}`, {
-                amount: parseFloat(bidAmount)
+                amount: bidValue,
+                currency: userCurrency
             });
 
             if (data.success) {
@@ -206,7 +221,7 @@ function SingleAuction() {
             return;
         }
 
-        if (!auction.buyNowPrice) {
+        if (!auction.convertedBuyNowPrice) {
             toast.error('Buy Now is not available for this auction.');
             return;
         }
@@ -276,6 +291,8 @@ function SingleAuction() {
     // ============= MAKE OFFER HANDLER =============
     const handleMakeOffer = async (e) => {
         e.preventDefault();
+        if (makingOfferRef.current) return;   // ✅ blocks instantly
+        makingOfferRef.current = true;
 
         if (!user) {
             toast.error('You must login to make an offer.');
@@ -298,12 +315,12 @@ function SingleAuction() {
             return;
         }
 
-        if (parseFloat(offerAmount) < auction.startPrice) {
-            toast.error(`Offer must be at least ${auction.startPrice} kr`);
+        if (parseFloat(offerAmount) < auction.convertedStartPrice) {
+            toast.error(`Offer must be at least ${userCurrency === 'GBP' ? '£' : '€'}${auction.convertedStartPrice}`);
             return;
         }
 
-        if (auction.buyNowPrice && parseFloat(offerAmount) >= auction.buyNowPrice) {
+        if (auction.convertedBuyNowPrice && parseFloat(offerAmount) >= auction.convertedBuyNowPrice) {
             toast.error(`Offer is higher than Buy Now price. Consider using Buy Now instead.`);
             return;
         }
@@ -313,7 +330,8 @@ function SingleAuction() {
 
             const { data } = await axiosInstance.post(`/api/v1/offers/auction/${id}`, {
                 amount: parseFloat(offerAmount),
-                message: offerMessage
+                message: offerMessage,
+                currency: userCurrency
             });
 
             if (data.success) {
@@ -351,10 +369,10 @@ function SingleAuction() {
     };
 
     const youtubeVideoId = getYouTubeId(auction?.videoLink);
-    const minBidAmount = auction?.bidCount > 0 ? auction?.currentPrice + auction?.bidIncrement : auction?.currentPrice;
+    const minBidAmount = auction?.bidCount > 0 ? auction?.convertedCurrentPrice + auction?.convertedBidIncrement : auction?.convertedCurrentPrice;
 
     // Check if Buy Now is available - remove timer check for buy_now
-    const isBuyNowAvailable = auction?.buyNowPrice &&
+    const isBuyNowAvailable = auction?.convertedBuyNowPrice &&
         auction?.auctionType === 'buy_now' &&
         !auction?.winner &&
         auction?.status === 'active'; // Only check status, not timer
@@ -444,10 +462,10 @@ function SingleAuction() {
 
                 <div className="my-5">
                     <MobileBidStickyBar
-                        currentBid={auction.currentPrice}
+                        currentBid={auction.convertedCurrentPrice}
                         timeRemaining={countdown}
                         onBidClick={() => scrollToBidSection()}
-                        buyNowPrice={auction.buyNowPrice}
+                        convertedBuyNowPrice={auction.convertedBuyNowPrice}
                         onBuyNowClick={isBuyNowAvailable ? handleBuyNow : null}
                         onMakeOfferClick={isMakeOfferAvailable ? handleOpenMakeOfferModal : null}
                         allowOffers={auction.allowOffers}
@@ -469,7 +487,7 @@ function SingleAuction() {
 
                 {/* Image section */}
                 {/* <Suspense fallback={<LoadingSpinner />}> */}
-                <ImageLightBox isFeatured={auction.isFeatured} images={auction.photos} auctionType={auction?.auctionType} isReserveMet={auction.currentPrice >= auction.reservePrice} />
+                <ImageLightBox isFeatured={auction.isFeatured} images={auction.photos} auctionType={auction?.auctionType} isReserveMet={auction.convertedCurrentPrice >= auction.reservePrice} />
                 {/* </Suspense> */}
 
                 <hr className="my-8" />
@@ -677,6 +695,7 @@ function SingleAuction() {
                         activatedTab={activeTab}
                         onAuctionUpdate={updateAuctionState}
                         auctionReviews={auctionReviews}
+                        userCurrency={userCurrency}
                     />
                 </Suspense>
 
@@ -685,7 +704,7 @@ function SingleAuction() {
             {/* Bid Section */}
             <section ref={bidSectionRef} className="col-span-1 lg:col-span-1 border border-gray-200 bg-gray-100 rounded-lg sticky top-24">
                 {/* Timer section */}
-                <TimerDisplay countdown={countdown} auction={auction} />
+                <TimerDisplay countdown={countdown} auction={auction} userCurrency={userCurrency} />
 
                 <hr className="mx-6" />
 
@@ -697,14 +716,14 @@ function SingleAuction() {
                                 <div className="flex flex-col gap-2">
                                     <p className="font-light">{auction.bidCount > 0 ? 'Current Bid' : 'Start Bidding At'}</p>
                                     <p className="flex items-center gap-1 text-3xl sm:text-4xl font-medium">
-                                        <span> {auction.currentPrice.toLocaleString()}</span>
-                                        <span> kr</span>
+                                        <span>{userCurrency === 'GBP' ? '£' : '€'}</span>
+                                        <span> {auction.convertedCurrentPrice?.toFixed(2).toLocaleString()}</span>
                                     </p>
                                 </div>
 
                                 <p className="flex w-full justify-between border-b pb-2">
                                     <span className="text-secondary">Starting Bid</span>
-                                    <span className="font-medium">{auction.startPrice.toLocaleString()} kr</span>
+                                    <span className="font-medium">{userCurrency === 'GBP' ? '£' : '€'}{auction.convertedStartPrice?.toFixed(2).toLocaleString()}</span>
                                 </p>
 
                                 <p className="flex w-full justify-between border-b pb-2">
@@ -723,22 +742,22 @@ function SingleAuction() {
                                         <>
                                             <p className="font-light">Sold For</p>
                                             <p className="flex items-center gap-1 text-3xl sm:text-4xl font-medium">
-                                                <span>{auction.finalPrice?.toLocaleString() || auction.currentPrice?.toLocaleString()}</span>
-                                                <span> kr</span>
+                                                <span>{userCurrency === 'GBP' ? '£' : '€'}</span>
+                                                <span>{auction.convertedFinalPrice?.toFixed(2).toLocaleString() || auction.convertedCurrentPrice?.toFixed(2).toLocaleString()}</span>
                                             </p>
                                         </>
                                     ) : (
-                                        // Only show offer starting at if startPrice > 0
-                                        auction.startPrice > 0 ? (
+                                        // Only show offer starting at if convertedStartPrice > 0
+                                        auction.convertedStartPrice > 0 ? (
                                             <>
                                                 <p className="font-light">Offer Starting At</p>
                                                 <p className="flex items-center gap-1 text-3xl sm:text-4xl font-medium">
-                                                    <span>{auction.startPrice.toLocaleString()}</span>
-                                                    <span> kr</span>
+                                                    <span>{userCurrency === 'GBP' ? '£' : '€'}</span>
+                                                    <span>{auction.convertedStartPrice?.toFixed(2).toLocaleString()}</span>
                                                 </p>
                                             </>
                                         ) : (
-                                            // For items with 0 startPrice (giveaways/buy now), show make offer prompt
+                                            // For items with 0 convertedStartPrice (giveaways/buy now), show make offer prompt
                                             ''
                                         )
                                     )}
@@ -760,24 +779,24 @@ function SingleAuction() {
                         (auction.auctionType === 'reserve' || auction.auctionType === 'standard') && (
                             <p className="flex w-full justify-between border-b pb-2">
                                 <span className="text-secondary">Min. Bid Increment</span>
-                                <span className="font-medium">{auction?.bidIncrement?.toLocaleString()} kr</span>
+                                <span className="font-medium">{userCurrency === 'GBP' ? '£' : '€'}{auction?.convertedBidIncrement?.toFixed(2).toLocaleString()}</span>
                             </p>
                         )
                     }
 
                     {auction.auctionType === 'reserve' && (
-                        <p className={`${auction.currentPrice >= auction.reservePrice ? 'text-green-600' : 'text-orange-600'}`}>
-                            {auction.currentPrice >= auction.reservePrice ? 'Reserve Met' : 'Reserve Not Met'}
+                        <p className={`${auction.convertedCurrentPrice >= auction.reservePrice ? 'text-green-600' : 'text-orange-600'}`}>
+                            {auction.convertedCurrentPrice >= auction.reservePrice ? 'Reserve Met' : 'Reserve Not Met'}
                         </p>
                     )}
 
                     {/* Buy Now Price Display */}
-                    {(auction.auctionType === 'buy_now' && auction.buyNowPrice) && (
+                    {(auction.auctionType === 'buy_now' && auction.convertedBuyNowPrice) && (
                         <div className="bg-white border border-green-300 rounded-lg p-3 mb-2">
                             <div className="flex justify-between items-center">
                                 <div>
                                     <p className="text-secondary text-sm">Buy Now Price</p>
-                                    <p className="text-2xl font-bold text-green-600">{auction.buyNowPrice.toLocaleString()} kr</p>
+                                    <p className="text-2xl font-bold text-green-600">{userCurrency === 'GBP' ? '£' : '€'}{auction.convertedBuyNowPrice?.toFixed(2).toLocaleString()}</p>
                                 </div>
                                 <Zap className="text-green-500" size={24} />
                             </div>
@@ -857,8 +876,8 @@ function SingleAuction() {
                                                 value={bidAmount}
                                                 onChange={(e) => setBidAmount(e.target.value)}
                                                 className="py-3 px-5 w-full rounded-lg focus:outline-2 focus:outline-primary"
-                                                placeholder={`Bid ${auction.bidCount > 0 ? minBidAmount : auction.startPrice} kr or higher`}
-                                                min={minBidAmount}
+                                                placeholder={`Bid ${userCurrency === 'GBP' ? '£' : '€'}${auction.bidCount > 0 ? minBidAmount?.toFixed(2) : auction.convertedStartPrice?.toFixed(2)} or higher`}
+                                                min={minBidAmount?.toFixed(2)}
                                             />
                                             <button
                                                 type="button"
@@ -900,7 +919,7 @@ function SingleAuction() {
                                                 ) : (
                                                     <>
                                                         <Zap />
-                                                        <span>Buy Now {auction.buyNowPrice.toLocaleString()} kr</span>
+                                                        <span>Buy Now {userCurrency === 'GBP' ? '£' : '€'}{auction.convertedBuyNowPrice?.toFixed(2).toLocaleString()}</span>
                                                     </>
                                                 )}
                                             </button>

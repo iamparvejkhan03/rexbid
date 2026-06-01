@@ -3,7 +3,7 @@ import { Banknote, User, Clock, CheckCircle, XCircle, MessageSquare, AlertCircle
 import axiosInstance from '../utils/axiosInstance';
 import { toast } from 'react-hot-toast';
 
-const OffersSection = ({ offers, auction, onAuctionUpdate }) => {
+const OffersSection = ({ offers, auction, onAuctionUpdate, userCurrency }) => {
     const [responding, setResponding] = useState(false);
     const [selectedOfferId, setSelectedOfferId] = useState(null);
 
@@ -111,7 +111,7 @@ const OffersSection = ({ offers, auction, onAuctionUpdate }) => {
     };
 
     const formatDate = (date) => {
-        return new Date(date).toLocaleDateString('nb-NO', {
+        return new Date(date).toLocaleDateString('en-IE', {
             year: 'numeric',
             month: 'short',
             day: 'numeric',
@@ -169,7 +169,7 @@ const OffersSection = ({ offers, auction, onAuctionUpdate }) => {
                                     <div>
                                         <div className="flex items-center gap-2">
                                             <span className={`font-semibold text-xl ${offer.status === 'accepted' ? 'text-green-600' : ''}`}>
-                                                {offer.amount.toLocaleString()} kr
+                                                {userCurrency === 'GBP' ? '£' : '€'}{offer?.convertedAmount?.toFixed(2)?.toLocaleString()}
                                             </span>
                                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusConfig.color}`}>
                                                 {statusConfig.text}
@@ -214,16 +214,13 @@ const OffersSection = ({ offers, auction, onAuctionUpdate }) => {
                                     <div className="flex items-center justify-between mb-3">
                                         <div>
                                             <p className="text-2xl font-bold text-blue-700">
-                                                {offer.counterOffer.amount.toLocaleString()} kr
+                                                {userCurrency === 'GBP' ? '£' : '€'}{offer?.counterOffer?.amount?.toFixed(2)?.toLocaleString()}
                                             </p>
                                             <p className="text-sm text-blue-600">New price proposed by seller</p>
                                         </div>
 
                                         <div className="text-right">
-                                            <p className="text-sm text-gray-600">Previous: {offer.amount.toLocaleString()} kr</p>
-                                            <p className="text-sm font-medium text-blue-600">
-                                                +{(offer.counterOffer.amount - offer.amount).toLocaleString()} kr
-                                            </p>
+                                            <p className="text-sm text-gray-600">Previous: {userCurrency === 'GBP' ? '£' : '€'}{offer?.convertedAmount?.toFixed(2)?.toLocaleString()}</p>
                                         </div>
                                     </div>
 
@@ -294,7 +291,7 @@ const OffersSection = ({ offers, auction, onAuctionUpdate }) => {
                                             <p className="font-medium">Congratulations! This auction is sold to you.</p>
                                         </div>
                                         <p className="text-sm text-green-600 mt-1">
-                                            Final price: <span className="font-bold">{offer.amount.toLocaleString()} kr</span>
+                                            Final price: <span className="font-bold">{userCurrency === 'GBP' ? '£' : '€'}{offer?.convertedAmount?.toFixed(2)?.toLocaleString()}</span>
                                         </p>
                                     </div>
                                 )}
@@ -315,7 +312,6 @@ const OffersSection = ({ offers, auction, onAuctionUpdate }) => {
                     <li>• Other bidders cannot see your offers</li>
                     <li>• Pending offers expire after 48 hours</li>
                     <li>• You can withdraw pending offers anytime</li>
-                    <li>• If seller counters, you have 48 hours to respond</li>
                     <li>• Accepted offers immediately end the auction</li>
                 </ul>
             </div>

@@ -5,9 +5,11 @@ import {
     Upload, Award, Gavel, Heart, Star, TrendingUp, Bell, Newspaper,
     Target,
     DollarSign,
-    BarChart3
+    BarChart3,
+    ChevronDown
 } from "lucide-react";
 import axiosInstance from "../../utils/axiosInstance";
+import { useAuth } from "../../contexts/AuthContext";
 
 // Default preferences
 const defaultPreferences = {
@@ -28,6 +30,11 @@ function Profile() {
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState(null);
     const [stats, setStats] = useState(null);
+    const [currencies, setCurrencies] = useState([{ code: 'GBP', name: 'Pound Sterling' }, { code: 'EUR', name: 'Euro' }]);
+    const [selectedCurrency, setSelectedCurrency] = useState('');
+
+    const { user, setUser } = useAuth();
+    const userCurrency = user?.currency || 'EUR';
 
     // Fetch user data and stats on component mount
     useEffect(() => {
@@ -37,7 +44,7 @@ function Profile() {
     const fetchUserData = async () => {
         try {
             setLoading(true);
-            const { data } = await axiosInstance.get('/api/v1/users/profile');
+            const { data } = await axiosInstance.get(`/api/v1/users/profile?currency=${userCurrency}`);
             if (data.success) {
                 setUserData(data.data.user);
             } else {
@@ -98,6 +105,9 @@ function Profile() {
             formData.append('countryCode', userData.countryCode || '');
             formData.append('countryName', userData.countryName || '');
 
+            // Add currency
+            formData.append('currency', userData.currency || '');
+
             // Add image if changed
             if (imageFile) {
                 formData.append('image', imageFile);
@@ -111,6 +121,23 @@ function Profile() {
 
             if (data.success) {
                 setUserData(data.data.user);
+                const userInfo = {
+                    _id: data.data.user._id,
+                    firstName: data.data.user.firstName,
+                    lastName: data.data.user.lastName,
+                    username: data.data.user.username,
+                    userType: data.data.user.userType,
+                    email: data.data.user.email,
+                    phone: data.data.user.phone,
+                    isVerified: data.data.user.isVerified,
+                    isActive: data.data.user.isActive,
+                    image: data.data.user.image,
+                    createdAt: data.data.user.createdAt,
+                    countryName: data.data.user.countryName,
+                    countryCode: data.data.user.countryCode,
+                    currency: data.data.user.currency,
+                };
+                localStorage.setItem('user', JSON.stringify(userInfo));
                 setIsEditing(false);
                 setImagePreview(null);
                 setImageFile(null);
@@ -413,10 +440,31 @@ function Profile() {
                                                     />
                                                 </div>
                                                 <div className="space-y-1">
+                                                    <label className="text-sm font-medium leading-none text-secondary flex items-center gap-2">
+                                                        <span>Currency</span>
+                                                    </label>
+                                                    <div className="relative">
+                                                        <select
+                                                            value={userData.currency || ''}
+                                                            onChange={(e) => handleInputChange('currency', e.target.value)}
+                                                            disabled={!isEditing}
+                                                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent appearance-none disabled:bg-gray-100"
+                                                        >
+                                                            <option value="">Select currency</option>
+                                                            {currencies.map(currency => (
+                                                                <option key={currency.code} value={currency.code}>
+                                                                    {currency.name}
+                                                                </option>
+                                                            ))}
+                                                        </select>
+                                                        <ChevronDown size={20} className="absolute right-3 top-3 text-secondary pointer-events-none" />
+                                                    </div>
+                                                </div>
+                                                <div className="space-y-1">
                                                     <label className="block text-sm font-medium text-secondary">Member Since</label>
                                                     <input
                                                         type="text"
-                                                        value={new Date(userData.createdAt).toLocaleDateString('nb-NO')}
+                                                        value={new Date(userData.createdAt).toLocaleDateString('en-IE')}
                                                         disabled
                                                         className="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-gray-100"
                                                     />
@@ -478,7 +526,7 @@ function Profile() {
                                                 disabled={!isEditing}
                                                 className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent disabled:bg-gray-100"
                                             />
-                                                {/* <option value="United States">United States</option>
+                                            {/* <option value="United States">United States</option>
                                                 <option value="Canada">Canada</option>
                                                 <option value="United Kingdom">United Kingdom</option>
                                                 <option value="Germany">Germany</option>

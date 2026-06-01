@@ -7,6 +7,7 @@ import {
 import { LoadingSpinner, SellerContainer, SellerHeader, SellerSidebar } from "../../components";
 import axiosInstance from "../../utils/axiosInstance";
 import { toast } from "react-hot-toast";
+import { useAuth } from "../../contexts/AuthContext";
 
 function AllOffers() {
     const [offers, setOffers] = useState([]);
@@ -21,6 +22,9 @@ function AllOffers() {
         message: '',
         counterAmount: ''
     });
+
+    const { user } = useAuth();
+    const userCurrency = user?.currency || 'EUR';
 
     // Filters
     const [filters, setFilters] = useState({
@@ -37,8 +41,8 @@ function AllOffers() {
             setLoading(true);
 
             const [offersResponse, statsResponse] = await Promise.all([
-                axiosInstance.get(`/api/v1/offers/seller`),
-                axiosInstance.get('/api/v1/offers/seller/stats') // You'll need to create this endpoint
+                axiosInstance.get(`/api/v1/offers/seller?currency=${userCurrency}`),
+                axiosInstance.get(`/api/v1/offers/seller/stats?currency=${userCurrency}`) // You'll need to create this endpoint
             ]);
 
             if (offersResponse.data.success) {
@@ -125,9 +129,9 @@ function AllOffers() {
                 case "oldest":
                     return new Date(a.createdAt) - new Date(b.createdAt);
                 case "amount_high":
-                    return b.amount - a.amount;
+                    return b.convertedAmount - a.convertedAmount;
                 case "amount_low":
-                    return a.amount - b.amount;
+                    return a.convertedAmount - b.convertedAmount;
                 case "expiring_soon":
                     if (a.status === 'pending' && b.status === 'pending') {
                         return new Date(a.expiresAt) - new Date(b.expiresAt);
@@ -167,12 +171,12 @@ function AllOffers() {
 
         // Validate counter offer amount
         if (responseData.action === 'counter') {
-            const counterAmount = parseFloat(responseData.counterAmount);
-            if (isNaN(counterAmount) || counterAmount <= selectedOffer.amount) {
+            const counterAmount = parseFloat(responseData.convertedCounterAmount);
+            if (isNaN(counterAmount) || counterAmount <= selectedOffer.convertedAmount) {
                 toast.error('Counter offer must be higher than the original offer');
                 return;
             }
-            if (selectedOffer.auction.buyNowPrice && counterAmount >= selectedOffer.auction.buyNowPrice) {
+            if (selectedOffer.auction.convertedBuyNowPrice && counterAmount >= selectedOffer.auction.convertedBuyNowPrice) {
                 toast.error('Counter offer cannot exceed Buy Now price');
                 return;
             }
@@ -188,7 +192,7 @@ function AllOffers() {
             };
 
             if (responseData.action === 'counter') {
-                payload.counterAmount = parseFloat(responseData.counterAmount);
+                payload.convertedCounterAmount = parseFloat(responseData.convertedCounterAmount);
                 payload.counterMessage = responseData.message;
             }
 
@@ -213,16 +217,16 @@ function AllOffers() {
     };
 
     const formatCurrency = (amount) => {
-        return new Intl.NumberFormat('nb-NO', {
+        return new Intl.NumberFormat('en-IE', {
             style: 'currency',
-            currency: 'NOK',
+            currency: `${userCurrency}`,
             minimumFractionDigits: 0,
             maximumFractionDigits: 0
         }).format(amount);
     };
 
     const formatDate = (dateString) => {
-        return new Date(dateString).toLocaleDateString('nb-NO', {
+        return new Date(dateString).toLocaleDateString('en-IE', {
             year: 'numeric',
             month: 'long',
             day: 'numeric'
@@ -230,7 +234,7 @@ function AllOffers() {
     };
 
     const formatDateTime = (dateString) => {
-        return new Date(dateString).toLocaleString('nb-NO', {
+        return new Date(dateString).toLocaleString('en-IE', {
             year: 'numeric',
             month: 'long',
             day: 'numeric',
@@ -318,14 +322,14 @@ function AllOffers() {
     const statCards = [
         {
             title: "Total Offers",
-            value: stats.totalOffers?.toLocaleString('nb-NO') || "0",
+            value: stats.totalOffers?.toLocaleString('en-IE') || "0",
             change: "Across all your auctions",
             icon: <DollarSign size={24} />,
             color: "blue"
         },
         {
             title: "Pending Offers",
-            value: stats.pending?.toLocaleString('nb-NO') || "0",
+            value: stats.pending?.toLocaleString('en-IE') || "0",
             change: `Worth ${formatCurrency(stats.pendingValue || 0)}`,
             icon: <Clock size={24} />,
             color: "yellow"
@@ -499,7 +503,7 @@ function AllOffers() {
                                                                 {statusConfig.text}
                                                             </span>
                                                             <span className="text-xs font-medium text-gray-900">
-                                                                {formatCurrency(offer.amount)}
+                                                                {formatCurrency(offer.convertedAmount)}
                                                             </span>
                                                         </div>
                                                         <h4 className="font-medium text-gray-900 text-sm line-clamp-2 mb-1">
@@ -569,13 +573,13 @@ function AllOffers() {
                                                     <div className="flex justify-between items-center">
                                                         <div>
                                                             <div className="text-2xl font-bold text-blue-600">
-                                                                {formatCurrency(selectedOffer.amount)}
+                                                                {formatCurrency(selectedOffer.convertedAmount)}
                                                             </div>
                                                             <div className="text-sm text-gray-500">Offered Amount</div>
                                                         </div>
                                                         <div className="text-right">
                                                             <div className="font-medium">
-                                                                {formatCurrency(selectedOffer.auction.startPrice)}
+                                                                {formatCurrency(selectedOffer.auction.convertedStartPrice)}
                                                             </div>
                                                             <div className="text-sm text-gray-500">Starting Price</div>
                                                         </div>
@@ -633,11 +637,11 @@ function AllOffers() {
                                                     </div>
                                                 </div>
 
-                                                {selectedOffer.auction.buyNowPrice && (
+                                                {selectedOffer.auction.convertedBuyNowPrice && (
                                                     <div className="bg-green-50 p-3 rounded-lg">
                                                         <div className="text-sm text-green-700">Buy Now Price</div>
                                                         <div className="font-medium text-green-800">
-                                                            {formatCurrency(selectedOffer.auction.buyNowPrice)}
+                                                            {formatCurrency(selectedOffer.auction.convertedBuyNowPrice)}
                                                         </div>
                                                     </div>
                                                 )}
@@ -669,13 +673,13 @@ function AllOffers() {
                                                     <div>
                                                         <div className="text-sm text-blue-600">Counter Amount</div>
                                                         <div className="text-xl font-bold text-blue-700">
-                                                            {formatCurrency(selectedOffer.counterOffer.amount)}
+                                                            {formatCurrency(selectedOffer.counterOffer.convertedAmount)}
                                                         </div>
                                                     </div>
                                                     <div className="text-right">
                                                         <div className="text-sm text-gray-600">Original Offer</div>
                                                         <div className="font-medium text-gray-700">
-                                                            {formatCurrency(selectedOffer.amount)}
+                                                            {formatCurrency(selectedOffer.convertedAmount)}
                                                         </div>
                                                     </div>
                                                 </div>
@@ -817,7 +821,7 @@ function AllOffers() {
                                 <ul className="text-sm text-green-600 space-y-1 list-disc pl-4">
                                     <li>End the auction immediately</li>
                                     <li>Sell to <strong>{selectedOffer?.buyerUsername}</strong></li>
-                                    <li>Set final price to <strong>{formatCurrency(selectedOffer?.amount)}</strong></li>
+                                    <li>Set final price to <strong>{formatCurrency(selectedOffer?.convertedAmount)}</strong></li>
                                     <li>Reject all other pending offers</li>
                                 </ul>
                             </div>
@@ -829,20 +833,20 @@ function AllOffers() {
                                     Counter Offer Amount <span className="text-red-500">*</span>
                                 </label>
                                 <div className="relative">
-                                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">kr</span>
+                                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">{userCurrency === 'GBP' ? '£' : '€'}</span>
                                     <input
                                         type="number"
                                         className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                        value={responseData.counterAmount}
+                                        value={responseData.convertedCounterAmount}
                                         onChange={(e) => setResponseData(prev => ({ ...prev, counterAmount: e.target.value }))}
                                         placeholder="Enter amount"
-                                        min={selectedOffer?.amount + 1}
-                                        max={selectedOffer?.auction.buyNowPrice}
+                                        min={selectedOffer?.convertedAmount + 1}
+                                        max={selectedOffer?.auction.convertedBuyNowPrice}
                                     />
                                 </div>
                                 <p className="text-xs text-gray-500 mt-1">
-                                    Original offer: {formatCurrency(selectedOffer?.amount)}
-                                    {selectedOffer?.auction.buyNowPrice && ` • Max: ${formatCurrency(selectedOffer.auction.buyNowPrice)}`}
+                                    Original offer: {formatCurrency(selectedOffer?.convertedAmount)}
+                                    {selectedOffer?.auction.convertedBuyNowPrice && ` • Max: ${formatCurrency(selectedOffer.auction.convertedBuyNowPrice)}`}
                                 </p>
                             </div>
                         )}
@@ -876,10 +880,10 @@ function AllOffers() {
                             <button
                                 onClick={handleRespondToOffer}
                                 className={`px-4 py-2 text-white rounded-lg transition-colors flex items-center gap-2 ${responseData.action === 'accept' ? 'bg-green-600 hover:bg-green-700' :
-                                        responseData.action === 'reject' ? 'bg-red-600 hover:bg-red-700' :
-                                            'bg-blue-600 hover:bg-blue-700'
+                                    responseData.action === 'reject' ? 'bg-red-600 hover:bg-red-700' :
+                                        'bg-blue-600 hover:bg-blue-700'
                                     }`}
-                                disabled={processing || (responseData.action === 'counter' && !responseData.counterAmount)}
+                                disabled={processing || (responseData.action === 'counter' && !responseData.convertedCounterAmount)}
                             >
                                 {processing ? (
                                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>

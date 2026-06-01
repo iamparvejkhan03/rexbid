@@ -5,9 +5,12 @@ import {
     Upload, Award, Gavel, Heart, Star, TrendingUp, Bell, Newspaper,
     Clock,
     Banknote,
-    Hand
+    Hand,
+    ChevronDown
 } from "lucide-react";
 import axiosInstance from "../../utils/axiosInstance";
+import toast from "react-hot-toast";
+import { useAuth } from "../../contexts/AuthContext";
 
 // Default preferences
 const defaultPreferences = {
@@ -28,6 +31,10 @@ function Profile() {
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState(null);
     const [stats, setStats] = useState(null);
+    const [currencies, setCurrencies] = useState([{ code: 'GBP', name: 'Pound Sterling' }, { code: 'EUR', name: 'Euro' }]);
+     const [selectedCurrency, setSelectedCurrency] = useState('');
+    const { user, setUser } = useAuth();
+    const userCurrency = user?.currency || 'EUR';
 
     // Fetch user data and stats on component mount
     useEffect(() => {
@@ -38,7 +45,7 @@ function Profile() {
     const fetchUserData = async () => {
         try {
             setLoading(true);
-            const { data } = await axiosInstance.get('/api/v1/users/profile');
+            const { data } = await axiosInstance.get(`/api/v1/users/profile?currency=${userCurrency}`);
             if (data.success) {
                 setUserData(data.data.user);
             } else {
@@ -110,6 +117,9 @@ function Profile() {
             formData.append('countryCode', userData.countryCode || '');
             formData.append('countryName', userData.countryName || '');
 
+            // Add currency
+            formData.append('currency', userData.currency || '');
+
             // Add image if changed
             if (imageFile) {
                 formData.append('image', imageFile);
@@ -123,9 +133,27 @@ function Profile() {
 
             if (data.success) {
                 setUserData(data.data.user);
+                const userInfo = {
+                    _id: data.data.user._id,
+                    firstName: data.data.user.firstName,
+                    lastName: data.data.user.lastName,
+                    username: data.data.user.username,
+                    userType: data.data.user.userType,
+                    email: data.data.user.email,
+                    phone: data.data.user.phone,
+                    isVerified: data.data.user.isVerified,
+                    isActive: data.data.user.isActive,
+                    image: data.data.user.image,
+                    createdAt: data.data.user.createdAt,
+                    countryName: data.data.user.countryName,
+                    countryCode: data.data.user.countryCode,
+                    currency: data.data.user.currency,
+                };
+                localStorage.setItem('user', JSON.stringify(userInfo));
                 setIsEditing(false);
                 setImagePreview(null);
                 setImageFile(null);
+                toast.success('Profile updated successfully!')
                 // You can add a toast notification here
             }
         } catch (err) {
@@ -431,19 +459,31 @@ function Profile() {
                                                     </div>
                                                 </div>
                                                 <div className="space-y-1">
-                                                    <label className="block text-sm font-medium text-secondary">Dealership Name</label>
-                                                    <input
-                                                        type="text"
-                                                        value={userData?.address?.dealershipName || ''}
-                                                        disabled
-                                                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-gray-100"
-                                                    />
+                                                    <label className="text-sm font-medium leading-none text-secondary flex items-center gap-2">
+                                                        <span>Currency</span>
+                                                    </label>
+                                                    <div className="relative">
+                                                        <select
+                                                            value={userData.currency || ''}
+                                                            onChange={(e) => handleInputChange('currency', e.target.value)}
+                                                            disabled={!isEditing}
+                                                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent appearance-none disabled:bg-gray-100"
+                                                        >
+                                                            <option value="">Select currency</option>
+                                                            {currencies.map(currency => (
+                                                                <option key={currency.code} value={currency.code}>
+                                                                    {currency.name}
+                                                                </option>
+                                                            ))}
+                                                        </select>
+                                                        <ChevronDown size={20} className="absolute right-3 top-3 text-secondary pointer-events-none" />
+                                                    </div>
                                                 </div>
                                                 <div className="space-y-1">
                                                     <label className="block text-sm font-medium text-secondary">Member Since</label>
                                                     <input
                                                         type="text"
-                                                        value={new Date(userData.createdAt).toLocaleDateString('nb-NO')}
+                                                        value={new Date(userData.createdAt).toLocaleDateString('en-IE')}
                                                         disabled
                                                         className="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-gray-100"
                                                     />
@@ -532,7 +572,7 @@ function Profile() {
                                         </div>
                                         <div>
                                             <p className="text-sm text-gray-500">Total Bids</p>
-                                            <p className="font-semibold text-lg">{stats.totalBids?.toLocaleString('nb-NO') || 0}</p>
+                                            <p className="font-semibold text-lg">{stats.totalBids?.toLocaleString('en-IE') || 0}</p>
                                         </div>
                                     </div> */}
                                     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex items-center">
@@ -541,7 +581,7 @@ function Profile() {
                                         </div>
                                         <div>
                                             <p className="text-sm text-gray-500">Total Offers</p>
-                                            <p className="font-semibold text-lg">{stats.totalOffers?.toLocaleString('nb-NO') || 0}</p>
+                                            <p className="font-semibold text-lg">{stats.totalOffers?.toLocaleString('en-IE') || 0}</p>
                                         </div>
                                     </div>
                                     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex items-center">
@@ -550,7 +590,7 @@ function Profile() {
                                         </div>
                                         <div>
                                             <p className="text-sm text-gray-500">Auctions Won</p>
-                                            <p className="font-semibold text-lg">{stats.wonAuctions?.toLocaleString('nb-NO') || 0}</p>
+                                            <p className="font-semibold text-lg">{stats.wonAuctions?.toLocaleString('en-IE') || 0}</p>
                                         </div>
                                     </div>
                                     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex items-center">
@@ -559,7 +599,7 @@ function Profile() {
                                         </div>
                                         <div>
                                             <p className="text-sm text-gray-500">Success Rate</p>
-                                            <p className="font-semibold text-lg">{stats.successRate?.toLocaleString('nb-NO') || 0}%</p>
+                                            <p className="font-semibold text-lg">{stats.successRate?.toLocaleString('en-IE') || 0}%</p>
                                         </div>
                                     </div>
                                     {/* Additional bidder stats */}
@@ -569,7 +609,7 @@ function Profile() {
                                         </div>
                                         <div>
                                             <p className="text-sm text-gray-500">Active Bids</p>
-                                            <p className="font-semibold text-lg">{stats.activeBids?.toLocaleString('nb-NO') || 0}</p>
+                                            <p className="font-semibold text-lg">{stats.activeBids?.toLocaleString('en-IE') || 0}</p>
                                         </div>
                                     </div> */}
                                     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex items-center">
@@ -578,7 +618,7 @@ function Profile() {
                                         </div>
                                         <div>
                                             <p className="text-sm text-gray-500">Active Offers</p>
-                                            <p className="font-semibold text-lg">{stats.activeOffers?.toLocaleString('nb-NO') || 0}</p>
+                                            <p className="font-semibold text-lg">{stats.activeOffers?.toLocaleString('en-IE') || 0}</p>
                                         </div>
                                     </div>
                                     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex items-center">
@@ -587,7 +627,7 @@ function Profile() {
                                         </div>
                                         <div>
                                             <p className="text-sm text-gray-500">Watchlist Items</p>
-                                            <p className="font-semibold text-lg">{stats.watchlistCount?.toLocaleString('nb-NO') || 0}</p>
+                                            <p className="font-semibold text-lg">{stats.watchlistCount?.toLocaleString('en-IE') || 0}</p>
                                         </div>
                                     </div>
                                     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex items-center">
@@ -597,11 +637,11 @@ function Profile() {
                                         <div>
                                             <p className="text-sm text-gray-500">Total Spent</p>
                                             <p className="font-semibold text-lg">
-                                                {new Intl.NumberFormat('nb-NO', {
+                                                {new Intl.NumberFormat('en-IE', {
                                                     style: 'currency',
-                                                    currency: 'NOK',
+                                                    currency: `${userCurrency}`,
                                                     minimumFractionDigits: 0
-                                                }).format(stats.totalSpent?.toLocaleString('nb-NO')) || 0}
+                                                }).format(stats.totalSpent?.toLocaleString('en-IE')) || 0}
                                             </p>
                                         </div>
                                     </div>

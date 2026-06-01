@@ -46,6 +46,7 @@ function WonAuctions() {
     });
 
     const { user: currentUser } = useAuth();
+    const userCurrency = currentUser?.currency || 'EUR';
     const [showReviewModal, setShowReviewModal] = useState(false);
     const [userReview, setUserReview] = useState(null);
     const [revieweeId, setRevieweeId] = useState(null);
@@ -79,7 +80,7 @@ function WonAuctions() {
             setLoading(true);
             setError(null);
 
-            const { data } = await axiosInstance.get("/api/v1/auctions/won-auctions");
+            const { data } = await axiosInstance.get(`/api/v1/auctions/won-auctions?currency=${userCurrency}`);
 
             if (data.success) {
                 setAllAuctions(data.data.auctions);
@@ -119,9 +120,9 @@ function WonAuctions() {
                 case "oldest":
                     return new Date(a.endDate) - new Date(b.endDate); // Use endDate as win time
                 case "highest_bid":
-                    return (b.finalBid || b.currentPrice || 0) - (a.finalBid || a.currentPrice || 0);
+                    return (b.finalBid || b.convertedCurrentPrice || 0) - (a.finalBid || a.convertedCurrentPrice || 0);
                 case "lowest_bid":
-                    return (a.finalBid || a.currentPrice || 0) - (b.finalBid || b.currentPrice || 0);
+                    return (a.finalBid || a.convertedCurrentPrice || 0) - (b.finalBid || b.convertedCurrentPrice || 0);
                 default:
                     return new Date(b.endDate) - new Date(a.endDate); // Default to newest
             }
@@ -131,16 +132,16 @@ function WonAuctions() {
     }, [filter, searchTerm, allAuctions, sortBy]);
 
     const formatCurrency = (amount) => {
-        return new Intl.NumberFormat('nb-NO', {
+        return new Intl.NumberFormat('en-IE', {
             style: 'currency',
-            currency: 'NOK',
+            currency: `${userCurrency}`,
             minimumFractionDigits: 0,
             maximumFractionDigits: 0
         }).format(amount);
     };
 
     const formatDate = (dateString) => {
-        return new Date(dateString).toLocaleDateString('nb-NO', {
+        return new Date(dateString).toLocaleDateString('en-IE', {
             year: 'numeric',
             month: 'long',
             day: 'numeric'
@@ -153,112 +154,6 @@ function WonAuctions() {
     };
 
     const navigate = useNavigate();
-
-    // const handlePayNow = async (auction) => {
-    //     // Show loading toast
-    //     const loadingToast = toast.loading('Processing your payment...', {
-    //         duration: 5000, // Will be dismissed manually
-    //     });
-
-    //     try {
-    //         setProcessingPayment(auction._id);
-    //         setSelectedAuctionForPayment(auction);
-
-    //         const response = await axiosInstance.post("/api/v1/payments/create-won-auction-payment", {
-    //             auctionId: auction._id
-    //         });
-
-    //         if (response.data.success) {
-    //             const { paymentIntent, auction: updatedAuction } = response.data.data;
-
-    //             // Update local state
-    //             setAuctions(prevAuctions =>
-    //                 prevAuctions.map(a =>
-    //                     a._id === auction._id
-    //                         ? { ...a, paymentStatus: updatedAuction.paymentStatus }
-    //                         : a
-    //                 )
-    //             );
-
-    //             setAllAuctions(prevAuctions =>
-    //                 prevAuctions.map(a =>
-    //                     a._id === auction._id
-    //                         ? { ...a, paymentStatus: updatedAuction.paymentStatus }
-    //                         : a
-    //                 )
-    //             );
-
-    //             // Update statistics
-    //             setStatistics(prev => ({
-    //                 ...prev,
-    //                 totalSpent: prev.totalSpent + (auction.finalBid || auction.currentPrice || 0) + (auction.commissionAmount || 0)
-    //             }));
-
-    //             // Dismiss loading toast and show success toast
-    //             toast.dismiss(loadingToast);
-    //             toast.success(
-    //                 <div className="flex items-center gap-2">
-    //                     <CheckCircle size={20} className="text-green-600" />
-    //                     <div>
-    //                         <p className="font-semibold">Payment Successful!</p>
-    //                         <p className="text-sm text-gray-600">
-    //                             You have successfully paid for "{auction.title}"
-    //                         </p>
-    //                     </div>
-    //                 </div>,
-    //                 {
-    //                     duration: 5000,
-    //                     position: 'top-center',
-    //                     icon: '🎉',
-    //                 }
-    //             );
-
-    //             // Optional: Show additional success message in the UI
-    //             setPaymentStatus({
-    //                 [auction._id]: {
-    //                     success: true,
-    //                     message: "Payment completed successfully!"
-    //                 }
-    //             });
-
-    //             // Refresh auctions to get updated data
-    //             fetchWonAuctions();
-    //         }
-    //     } catch (error) {
-    //         console.error("Payment error:", error);
-
-    //         // Dismiss loading toast
-    //         toast.dismiss(loadingToast);
-
-    //         // Show error toast
-    //         toast.error(
-    //             <div className="flex items-center gap-2">
-    //                 <XCircle size={20} className="text-red-600" />
-    //                 <div>
-    //                     <p className="font-semibold">Payment Failed</p>
-    //                     <p className="text-sm text-gray-600">
-    //                         {error.response?.data?.message || "Something went wrong. Please try again."}
-    //                     </p>
-    //                 </div>
-    //             </div>,
-    //             {
-    //                 duration: 6000,
-    //                 position: 'top-center',
-    //             }
-    //         );
-
-    //         setPaymentStatus({
-    //             [auction._id]: {
-    //                 success: false,
-    //                 message: error.response?.data?.message || "Payment failed. Please try again."
-    //             }
-    //         });
-    //     } finally {
-    //         setProcessingPayment(null);
-    //     }
-    // };
-
-    // Add a retry payment function for failed payments
 
     const handlePayNow = (auction) => {
         navigate(`/checkout/${auction._id}`);
@@ -504,7 +399,7 @@ function WonAuctions() {
                                         </div>
                                         <div className="text-right">
                                             <div className="text-2xl font-bold text-green-600">
-                                                {formatCurrency(auction.finalPrice)}
+                                                {formatCurrency(auction.convertedFinalPrice)}
                                             </div>
                                             {/* <div className="text-sm text-gray-500">Winning Bid</div> */}
                                             <div className="text-sm text-gray-500">Winning Amount</div>
@@ -537,15 +432,15 @@ function WonAuctions() {
                                             {/* <p className="text-sm text-gray-500">Starting Bid</p> */}
                                             <p className="text-sm text-gray-500">Starting Price</p>
                                             <p className="font-semibold text-blue-600">
-                                                {formatCurrency(auction.startPrice)}
+                                                {formatCurrency(auction.convertedStartPrice)}
                                             </p>
                                         </div>
                                         {/* {
-                                            auction.buyNowPrice && (
+                                            auction.convertedBuyNowPrice && (
                                                 <div>
                                                     <p className="text-sm text-gray-500">Buy Now Price</p>
                                                     <p className="font-semibold">
-                                                        {formatCurrency(auction?.buyNowPrice)}
+                                                        {formatCurrency(auction?.convertedBuyNowPrice)}
                                                     </p>
                                                 </div>
                                             )

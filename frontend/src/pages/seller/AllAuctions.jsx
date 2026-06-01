@@ -4,6 +4,7 @@ import { Gavel, Eye, Award, BarChart3, TrendingUp, DollarSign, Clock, Search, Fi
 import axiosInstance from "../../utils/axiosInstance";
 import { Link } from "react-router-dom";
 import { useRef } from "react";
+import { useAuth } from "../../contexts/AuthContext";
 
 function AllAuctions() {
     const [auctions, setAuctions] = useState([]);
@@ -15,6 +16,9 @@ function AllAuctions() {
         totalPages: 1,
         totalAuctions: 0
     });
+
+    const { user } = useAuth();
+    const userCurrency = user?.currency || 'EUR';
 
     // Filter states
     const [filter, setFilter] = useState("all");
@@ -101,7 +105,8 @@ function AllAuctions() {
             const params = new URLSearchParams({
                 page: page.toString(),
                 limit: '12',
-                status: ''
+                status: '',
+                currency: userCurrency
             });
 
             const { data } = await axiosInstance.get(`/api/v1/auctions/user/my-auctions?${params}`);
@@ -189,11 +194,11 @@ function AllAuctions() {
                 case "most_bids":
                     return (b.bidCount || 0) - (a.bidCount || 0);
                 case "highest_bid":
-                    return (b.currentPrice || 0) - (a.currentPrice || 0);
+                    return (b.convertedCurrentPrice || 0) - (a.convertedCurrentPrice || 0);
                 case "newest":
                     return new Date(b.createdAt) - new Date(a.createdAt);
                 case "lowest_bid":
-                    return (a.currentPrice || 0) - (b.currentPrice || 0);
+                    return (a.convertedCurrentPrice || 0) - (b.convertedCurrentPrice || 0);
                 default:
                     return new Date(a.endDate) - new Date(b.endDate);
             }
@@ -217,7 +222,7 @@ function AllAuctions() {
     };
 
     const formatDate = (dateString) => {
-        return new Date(dateString).toLocaleDateString('nb-NO', {
+        return new Date(dateString).toLocaleDateString('en-IE', {
             year: 'numeric',
             month: 'short',
             day: 'numeric'
@@ -348,7 +353,7 @@ function AllAuctions() {
                         </div>
 
                         {/* Quick Filters with Status */}
-                        <div className="flex flex-wrap gap-3">
+                        {/* <div className="flex flex-wrap gap-3">
                             <button
                                 onClick={() => setFilter("all")}
                                 className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${filter === "all" ? "bg-orange-500 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}
@@ -379,7 +384,7 @@ function AllAuctions() {
                             >
                                 Pending
                             </button>
-                        </div>
+                        </div> */}
                     </div>
 
                     {/* Auctions Table */}
@@ -431,10 +436,10 @@ function AllAuctions() {
                                                             </div>
                                                         </div>
                                                     </td>
-                                                    <td className="py-4 px-6 text-sm text-gray-900">${auction.startPrice?.toLocaleString('nb-NO')}</td>
+                                                    <td className="py-4 px-6 text-sm text-gray-900">{userCurrency === 'GBP' ? '£' : '€'}{auction.convertedStartPrice?.toFixed(2)?.toLocaleString('en-IE')}</td>
                                                     <td className="py-4 px-6 text-sm font-medium text-green-600">
-                                                        {/* ${auction.currentPrice?.toLocaleString('nb-NO')} */}
-                                                        {auction.bids?.length > 0 ? auction.currentPrice?.toLocaleString('nb-NO') : 'No Bids'}
+                                                        {/* ${auction.convertedCurrentPrice?.toLocaleString('en-IE')} */}
+                                                        {userCurrency === 'GBP' ? '£' : '€'}{auction.bids?.length > 0 ? auction.convertedCurrentPrice?.toFixed(2)?.toLocaleString('en-IE') : 'No Bids'}
                                                     </td>
                                                     <td className="py-4 px-6 text-sm text-gray-900">
                                                         <div className="flex items-center">
@@ -495,7 +500,7 @@ function AllAuctions() {
                                                                         >
                                                                             <Star size={16} className="inline mr-2" /> Make Featured (+3% premium)
                                                                         </button>
-                                                                        <button
+                                                                        {/* <button
                                                                             onClick={() => {
                                                                                 handleShowReserveModal(auction);
                                                                                 setActiveDropdown(null);
@@ -503,7 +508,7 @@ function AllAuctions() {
                                                                             className="px-4 py-2 text-orange-600 hover:bg-orange-50 transition-colors text-left"
                                                                         >
                                                                             Lower Reserve Price
-                                                                        </button>
+                                                                        </button> */}
                                                                         <Link
                                                                             to={`/seller/auctions/edit/${auction._id}`}
                                                                             className="px-4 py-2 text-gray-700 hover:bg-gray-50 transition-colors text-left"

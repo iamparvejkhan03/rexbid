@@ -1,11 +1,12 @@
 import Auction from "../models/auction.model.js";
 import User from "../models/user.model.js";
+import { getCachedRates } from "../routes/currency.route.js";
 import //   offerMadeEmail,
-//   offerAcceptedEmail,
-//   offerRejectedEmail,
-//   offerCounteredEmail,
-//   offerWithdrawnEmail,
-"../utils/nodemailer.js";
+  //   offerAcceptedEmail,
+  //   offerRejectedEmail,
+  //   offerCounteredEmail,
+  //   offerWithdrawnEmail,
+  "../utils/nodemailer.js";
 import {
   auctionWonAdminEmail,
   newOfferNotificationEmail,
@@ -17,6 +18,37 @@ import {
   sendAuctionWonEmail,
 } from "../utils/nodemailer.js";
 
+const convertPrice = (auction, targetCurrency, priceField) => {
+  const rates = getCachedRates();
+  if (!rates) return auction[priceField]; // fallback
+  const base = auction.baseCurrency;
+  const rate = rates[base].rates[targetCurrency];
+  if (!rate) return auction[priceField];
+  return auction[priceField] * rate;
+};
+
+// This is a different function to calculate amount. It is different from the convertAmount inside controllers
+const convertAmountToBase = (amount, buyerCurrency, auction) => {
+  if (!amount) return 0;
+  const rates = getCachedRates();
+  if (!rates) return amount;
+  const base = auction.baseCurrency || 'EUR';
+  const rate = rates[buyerCurrency]?.rates[base];  // buyerCurrency -> base
+  if (!rate) return amount;
+  return parseFloat((amount * rate).toFixed(2));
+};
+
+// Add this helper at the top of your controller
+const convertRawAmount = (amount, auction, userCurrency) => {
+  if (!amount) return 0;
+  const rates = getCachedRates();
+  if (!rates) return amount;
+  const base = auction.baseCurrency;
+  const rate = rates[base]?.rates[userCurrency];
+  if (!rate) return amount;
+  return parseFloat((amount * rate).toFixed(2));
+};
+
 /**
  * @desc    Make an offer on an auction
  * @route   POST /api/v1/auctions/offer/:id
@@ -25,7 +57,7 @@ import {
 export const makeOffer = async (req, res) => {
   try {
     const { id } = req.params;
-    const { amount, message } = req.body;
+    const { amount, message, currency } = req.body;
     const buyer = req.user;
 
     // Validate auction status
@@ -38,10 +70,10 @@ export const makeOffer = async (req, res) => {
 
     // Check if user is a bidder
     if (buyer.userType !== 'bidder') {
-        return res.status(403).json({
-            success: false,
-            message: 'Only bidders can make offers'
-        });
+      return res.status(403).json({
+        success: false,
+        message: 'Only bidders can make offers'
+      });
     }
 
     // Find auction
@@ -97,20 +129,32 @@ export const makeOffer = async (req, res) => {
       });
     }
 
-    // Check minimum offer
-    if (offerAmount < auction.startPrice) {
+    // --- Currency conversion ---
+    const rates = getCachedRates();
+    if (!rates) return res.status(503).json({ success: false, message: "Rates unavailable" });
+    const base = auction.baseCurrency;
+    const buyerCurr = currency;
+    const rate = rates[buyerCurr]?.rates[base];
+    if (!rate) return res.status(400).json({ success: false, message: "Cannot convert currency" });
+    const amountInBase = parseFloat(amount) * rate;
+
+    // Check minimum offer (now using converted value)
+    if (amountInBase < auction.startPrice) {
       return res.status(400).json({
         success: false,
-        message: `Offer must be at least $${auction.startPrice.toLocaleString()}`,
+        message: `Offer must be at least ${currency === 'GBP' ? '£' : '€'}${(auction.startPrice / rate).toFixed(2)} in your currency.`,
       });
     }
 
-    // Check if buy now price exists and offer is higher
-    if (auction.buyNowPrice && offerAmount >= auction.buyNowPrice) {
-      return res.status(400).json({
-        success: false,
-        message: `Your offer is higher than the Buy Now price ($${auction.buyNowPrice.toLocaleString()}). Consider using Buy Now instead.`,
-      });
+    // Check buy now price (convert buyNowPrice to user's currency for comparison)
+    if (auction.buyNowPrice) {
+      const buyNowInUserCurrency = auction.buyNowPrice / rate;
+      if (parseFloat(amount) >= buyNowInUserCurrency) {
+        return res.status(400).json({
+          success: false,
+          message: `Your offer is higher than the Buy Now price (${currency === 'GBP' ? '£' : '€'}${buyNowInUserCurrency.toFixed(2)}). Consider using Buy Now instead.`,
+        });
+      }
     }
 
     // Check for existing pending offer from same buyer
@@ -131,7 +175,7 @@ export const makeOffer = async (req, res) => {
     await auction.makeOffer(
       buyer._id,
       buyer.username,
-      offerAmount,
+      amountInBase,
       message || ""
     );
 
@@ -143,21 +187,51 @@ export const makeOffer = async (req, res) => {
       .populate("offers.buyer", "email username firstName lastName")
       .populate("seller", "email username firstName lastName");
 
+    // --- Convert the auction prices to user's currency for response ---
+    const userCurrency = currency;   // use the currency the buyer provided
+    const auctionObj = updatedAuction.toObject();
+    const convert = (value) => (value !== null && value !== undefined) ? value * rate : null;
+
+    const convertedStartPrice = convertPrice(auction, userCurrency, 'startPrice');
+    const convertedCurrentPrice = convertPrice(auction, userCurrency, 'currentPrice');
+    const convertedBidIncrement = auctionObj.bidIncrement ? convertPrice(auction, userCurrency, 'bidIncrement') : null;
+    const convertedBuyNowPrice = auctionObj.buyNowPrice ? convertPrice(auction, userCurrency, 'buyNowPrice') : null;
+    const convertedReservePrice = auctionObj.reservePrice ? convertPrice(auction, userCurrency, 'reservePrice') : null;
+    const convertedFinalPrice = auctionObj.finalPrice ? convertPrice(auction, userCurrency, 'finalPrice') : null;
+
+    const convertedAuction = {
+      ...auctionObj,
+      convertedStartPrice: convertedStartPrice !== null ? parseFloat(convertedStartPrice.toFixed(2)) : null,
+      convertedCurrentPrice: convertedCurrentPrice !== null ? parseFloat(convertedCurrentPrice.toFixed(2)) : null,
+      convertedBidIncrement: convertedBidIncrement !== null ? parseFloat(convertedBidIncrement.toFixed(2)) : null,
+      convertedBuyNowPrice: convertedBuyNowPrice !== null ? parseFloat(convertedBuyNowPrice.toFixed(2)) : null,
+      convertedReservePrice: convertedReservePrice !== null ? parseFloat(convertedReservePrice.toFixed(2)) : null,
+      convertedFinalPrice: convertedFinalPrice !== null ? parseFloat(convertedFinalPrice.toFixed(2)) : null,
+      displayCurrency: userCurrency
+    };
+
     res.status(201).json({
       success: true,
       message: "Offer submitted successfully",
-      data: {
-        auction: updatedAuction,
-      },
+      data: { auction: convertedAuction },
     });
 
-    offerConfirmationEmail(buyer?.email, buyer?.firstName || buyer?.username, updatedAuction, offerAmount, updatedAuction?.buyNowPrice || updatedAuction?.startPrice, updatedAuction?._id).catch((error) => console.error("Failed to send buyer email:", error));
+    offerConfirmationEmail(
+      buyer?.email,
+      buyer?.firstName || buyer?.username,
+      updatedAuction,
+      offerAmount,
+      convertedStartPrice || convertedBuyNowPrice,
+      updatedAuction?._id,
+      userCurrency
+    ).catch((error) => console.error("Failed to send buyer email:", error));
 
     newOfferNotificationEmail(
       updatedAuction?.seller,
       updatedAuction,
-      offerAmount,
-      buyer
+      convertAmountToBase(offerAmount, userCurrency, auction),
+      buyer,
+      updatedAuction.baseCurrency
     ).catch((error) => console.error("Failed to send seller email:", error));
   } catch (error) {
     console.error("Make offer error:", error);
@@ -177,6 +251,7 @@ export const getMyOffers = async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user._id;
+    const userCurrency = req.query.currency || 'EUR';
 
     const auction = await Auction.findById(id).populate(
       "offers.buyer",
@@ -190,18 +265,44 @@ export const getMyOffers = async (req, res) => {
       });
     }
 
-    // Filter offers to only show user's offers
-    const userOffers = auction.offers.filter(
-      (offer) => offer.buyer._id.toString() === userId.toString()
-    );
+    const rates = getCachedRates();
+    const base = auction.baseCurrency;
+    const rate = (rates && rates[base]?.rates[userCurrency]) || 1;
+
+    // Filter user's offers and add converted amount
+    const userOffers = auction.offers
+      .filter((offer) => offer.buyer._id.toString() === userId.toString())
+      .map((offer) => ({
+        ...offer.toObject(),
+        convertedAmount: offer.amount * rate,
+        displayCurrency: userCurrency,
+        originalAmount: offer.amount,
+        originalCurrency: auction.baseCurrency,
+        // Also convert counter offer if exists
+        convertedCounterAmount: offer.counterOffer?.amount ? offer.counterOffer.amount * rate : null,
+      }));
+
+    // Convert auction prices using convertPrice
+    const auctionObj = auction.toObject();
+    const convertedStartPrice = convertPrice(auction, userCurrency, 'startPrice');
+    const convertedCurrentPrice = convertPrice(auction, userCurrency, 'currentPrice');
+    const convertedBuyNowPrice = convertPrice(auction, userCurrency, 'buyNowPrice');
 
     res.status(200).json({
       success: true,
       data: {
         offers: userOffers,
-        auctionId: auction._id,
-        auctionTitle: auction.title,
-        auctionStatus: auction.status,
+        auction: {
+          _id: auction._id,
+          title: auction.title,
+          status: auction.status,
+          convertedStartPrice,
+          convertedCurrentPrice,
+          convertedBuyNowPrice,
+          displayCurrency: userCurrency,
+        },
+        baseCurrency: auction.baseCurrency,
+        displayCurrency: userCurrency,
       },
     });
   } catch (error) {
@@ -222,6 +323,7 @@ export const getAuctionOffersForSeller = async (req, res) => {
   try {
     const { id } = req.params;
     const sellerId = req.user._id;
+    const userCurrency = req.query.currency || 'EUR';
 
     const auction = await Auction.findById(id).populate(
       "offers.buyer",
@@ -235,7 +337,6 @@ export const getAuctionOffersForSeller = async (req, res) => {
       });
     }
 
-    // Verify user is the seller
     if (auction.seller.toString() !== sellerId.toString()) {
       return res.status(403).json({
         success: false,
@@ -243,12 +344,24 @@ export const getAuctionOffersForSeller = async (req, res) => {
       });
     }
 
-    // Sort offers: pending first, then by amount descending
-    const sortedOffers = auction.offers.sort((a, b) => {
-      if (a.status === "pending" && b.status !== "pending") return -1;
-      if (a.status !== "pending" && b.status === "pending") return 1;
-      return b.amount - a.amount;
-    });
+    const rates = getCachedRates();
+    const base = auction.baseCurrency;
+    const rate = (rates && rates[base]?.rates[userCurrency]) || 1;
+
+    // Sort offers: pending first, then by amount descending (original amount)
+    const sortedOffers = auction.offers
+      .sort((a, b) => {
+        if (a.status === "pending" && b.status !== "pending") return -1;
+        if (a.status !== "pending" && b.status === "pending") return 1;
+        return b.amount - a.amount;
+      })
+      .map((offer) => ({
+        ...offer.toObject(),
+        convertedAmount: offer.amount * rate,
+        displayCurrency: userCurrency,
+        originalAmount: offer.amount,
+        originalCurrency: auction.baseCurrency,
+      }));
 
     res.status(200).json({
       success: true,
@@ -260,17 +373,16 @@ export const getAuctionOffersForSeller = async (req, res) => {
           startPrice: auction.startPrice,
           buyNowPrice: auction.buyNowPrice,
           allowOffers: auction.allowOffers,
+          baseCurrency: auction.baseCurrency,
         },
         offers: sortedOffers,
+        displayCurrency: userCurrency,
         stats: {
           total: auction.offers.length,
           pending: auction.offers.filter((o) => o.status === "pending").length,
-          accepted: auction.offers.filter((o) => o.status === "accepted")
-            .length,
-          rejected: auction.offers.filter((o) => o.status === "rejected")
-            .length,
-          countered: auction.offers.filter((o) => o.status === "countered")
-            .length,
+          accepted: auction.offers.filter((o) => o.status === "accepted").length,
+          rejected: auction.offers.filter((o) => o.status === "rejected").length,
+          countered: auction.offers.filter((o) => o.status === "countered").length,
           expired: auction.offers.filter((o) => o.status === "expired").length,
         },
       },
@@ -381,46 +493,37 @@ export const respondToOffer = async (req, res) => {
 
     // Populate updated auction
     const updatedAuction = await Auction.findById(auctionId)
-      .populate("offers.buyer", "username firstName lastName")
-      .populate("seller", "username firstName lastName")
-      .populate("winner", "username firstName lastName");
+      .populate("offers.buyer", "username firstName lastName currency")
+      .populate("seller", "username firstName lastName currency")
+      .populate("winner", "username firstName lastName currency");
 
     // Send email notification to buyer
-    // try {
-    //   if (response === "accept") {
-    //     await offerAcceptedEmail(
-    //       offer.buyer.email,
-    //       offer.buyer.firstName || offer.buyer.username,
-    //       offer.amount,
-    //       auction.title,
-    //       auction._id,
-    //       auction.seller.username
-    //     );
-    //   } else if (response === "reject") {
-    //     await offerRejectedEmail(
-    //       offer.buyer.email,
-    //       offer.buyer.firstName || offer.buyer.username,
-    //       offer.amount,
-    //       auction.title,
-    //       auction._id,
-    //       auction.seller.username
-    //     );
-    //   } else if (response === "counter") {
-    //     await offerCounteredEmail(
-    //       offer.buyer.email,
-    //       offer.buyer.firstName || offer.buyer.username,
-    //       offer.amount,
-    //       parseFloat(counterAmount),
-    //       auction.title,
-    //       auction._id,
-    //       auction.seller.username,
-    //       counterMessage || ""
-    //     );
-    //   }
-    // } catch (emailError) {
-    //   console.error("Failed to send response notification email:", emailError);
-    //   // Don't fail the request if email fails
-    // }
+    try {
+      if (response === "accept") {
+        await offerAcceptedEmail(
+          offer.buyer.email,
+          offer.buyer.firstName || offer.buyer.username,
+          offer.buyer.currency,
+          updatedAuction.seller,
+          updatedAuction,
+          offer.amount,
+          offer?._id
+        );
+      } else if (response === "reject") {
+        await offerRejectedEmail(
+          offer.buyer.email,
+          offer.buyer.firstName || offer.buyer.username,
+          offer.buyer.currency,
+          updatedAuction.seller,
+          updatedAuction,
+          offer.amount,
+          offer?._id,
+          counterMessage || "Your offer was rejected by the seller."
+        );
+      }
+    } catch (emailError) {
+      console.error("Failed to send response notification email:", emailError);
+    }
 
     res.status(200).json({
       success: true,
@@ -507,22 +610,23 @@ export const acceptCounterOffer = async (req, res) => {
       .populate("winner", "username firstName lastName");
 
     // Send email notification to seller
-    // try {
-    //   await offerAcceptedEmail(
-    //     auction.seller.email,
-    //     auction.seller.firstName || auction.seller.username,
-    //     offer.counterOffer.amount,
-    //     auction.title,
-    //     auction._id,
-    //     offer.buyer.username
-    //   );
-    // } catch (emailError) {
-    //   console.error(
-    //     "Failed to send acceptance notification email:",
-    //     emailError
-    //   );
-    //   // Don't fail the request if email fails
-    // }
+    try {
+      await offerAcceptedEmail(
+        offer.buyer.email,
+        offer.buyer.firstName || offer.buyer.username,
+        offer.buyer.currency,
+        updatedAuction.seller,
+        updatedAuction,
+        offer.amount,
+        offer?._id
+      );
+    } catch (emailError) {
+      console.error(
+        "Failed to send acceptance notification email:",
+        emailError
+      );
+      // Don't fail the request if email fails
+    }
 
     res.status(200).json({
       success: true,
@@ -641,8 +745,8 @@ export const withdrawOffer = async (req, res) => {
 export const getAllMyOffers = async (req, res) => {
   try {
     const userId = req.user._id;
+    const userCurrency = req.query.currency || 'EUR';
 
-    // Find all auctions where user has made offers
     const auctions = await Auction.find({
       "offers.buyer": userId,
     })
@@ -650,36 +754,59 @@ export const getAllMyOffers = async (req, res) => {
       .populate("seller", "username firstName lastName")
       .sort({ createdAt: -1 });
 
-    // Extract and flatten offers
-    const allOffers = [];
-    auctions.forEach((auction) => {
-      const userOffers = auction.offers.filter(
-        (offer) => offer.buyer._id.toString() === userId.toString()
-      );
+    const rates = getCachedRates();
 
-      userOffers.forEach((offer) => {
-        allOffers.push({
-          ...offer.toObject(),
-          auction: {
-            _id: auction._id,
-            title: auction.title,
-            status: auction.status,
-            auctionType: auction.auctionType,
-            startPrice: auction.startPrice,
-            buyNowPrice: auction.buyNowPrice,
-            sellerUsername: auction.sellerUsername,
-            seller: auction.seller,
-            endDate: auction.endDate,
-            photos: auction.photos,
-          },
+    // Extract and flatten offers with conversion
+    const allOffers = [];
+    for (const auction of auctions) {
+      const base = auction.baseCurrency;
+      const rate = (rates && rates[base]?.rates[userCurrency]) || 1;
+
+      const userOffers = auction.offers
+        .filter((offer) => offer.buyer._id.toString() === userId.toString())
+        .map((offer) => {
+          // Convert counter offer amount if exists
+          let convertedCounterAmount = null;
+          if (offer.counterOffer?.amount) {
+            convertedCounterAmount = offer.counterOffer.amount * rate;
+          }
+
+          return {
+            ...offer.toObject(),
+            convertedAmount: offer.amount * rate,
+            convertedCounterAmount: convertedCounterAmount,
+            displayCurrency: userCurrency,
+            originalAmount: offer.amount,
+            originalCurrency: base,
+            auction: {
+              _id: auction._id,
+              title: auction.title,
+              status: auction.status,
+              auctionType: auction.auctionType,
+              // Convert auction prices
+              convertedStartPrice: convertPrice(auction, userCurrency, 'startPrice'),
+              convertedCurrentPrice: convertPrice(auction, userCurrency, 'currentPrice'),
+              convertedBuyNowPrice: convertPrice(auction, userCurrency, 'buyNowPrice'),
+              convertedFinalPrice: convertPrice(auction, userCurrency, 'finalPrice'),
+              startPriceOriginal: auction.startPrice,
+              currentPriceOriginal: auction.currentPrice,
+              buyNowPriceOriginal: auction.buyNowPrice,
+              finalPriceOriginal: auction.finalPrice,
+              sellerUsername: auction.sellerUsername,
+              seller: auction.seller,
+              endDate: auction.endDate,
+              photos: auction.photos,
+              baseCurrency: base,
+              displayCurrency: userCurrency,
+            },
+          };
         });
-      });
-    });
+      allOffers.push(...userOffers);
+    }
 
     // Sort by creation date (newest first)
     allOffers.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
-    // Calculate stats
     const stats = {
       total: allOffers.length,
       pending: allOffers.filter((o) => o.status === "pending").length,
@@ -695,6 +822,7 @@ export const getAllMyOffers = async (req, res) => {
       data: {
         offers: allOffers,
         stats,
+        displayCurrency: userCurrency,
       },
     });
   } catch (error) {
@@ -714,37 +842,60 @@ export const getAllMyOffers = async (req, res) => {
 export const getAllOffersForSeller = async (req, res) => {
   try {
     const sellerId = req.user._id;
+    const userCurrency = req.query.currency || 'EUR';
+    const rates = getCachedRates();
 
-    // Find all auctions where user is seller
     const auctions = await Auction.find({ seller: sellerId })
       .populate("offers.buyer", "username firstName lastName email")
       .populate("seller", "username firstName lastName")
       .sort({ createdAt: -1 });
 
-    // Extract and flatten offers
     const allOffers = [];
-    auctions.forEach((auction) => {
-      auction.offers.forEach((offer) => {
-        allOffers.push({
+    for (const auction of auctions) {
+      const base = auction.baseCurrency;
+      const rate = (rates && rates[base]?.rates[userCurrency]) || 1;
+
+      const offersWithConversion = auction.offers.map((offer) => {
+        // Convert counter offer amount if exists
+        let convertedCounterAmount = null;
+        if (offer.counterOffer?.amount) {
+          convertedCounterAmount = offer.counterOffer.amount * rate;
+        }
+
+        return {
           ...offer.toObject(),
+          convertedAmount: offer.amount * rate,
+          convertedCounterAmount: convertedCounterAmount,
+          displayCurrency: userCurrency,
+          originalAmount: offer.amount,
+          originalCurrency: base,
           auction: {
             _id: auction._id,
             title: auction.title,
             status: auction.status,
             auctionType: auction.auctionType,
-            startPrice: auction.startPrice,
-            buyNowPrice: auction.buyNowPrice,
+            // Convert auction prices using convertPrice
+            convertedStartPrice: convertPrice(auction, userCurrency, 'startPrice'),
+            convertedCurrentPrice: convertPrice(auction, userCurrency, 'currentPrice'),
+            convertedBuyNowPrice: convertPrice(auction, userCurrency, 'buyNowPrice'),
+            convertedFinalPrice: convertPrice(auction, userCurrency, 'finalPrice'),
+            startPriceOriginal: auction.startPrice,
+            currentPriceOriginal: auction.currentPrice,
+            buyNowPriceOriginal: auction.buyNowPrice,
+            finalPriceOriginal: auction.finalPrice,
             endDate: auction.endDate,
             photos: auction.photos,
+            baseCurrency: base,
+            displayCurrency: userCurrency,
           },
-        });
+        };
       });
-    });
+      allOffers.push(...offersWithConversion);
+    }
 
     // Sort by creation date (newest first)
     allOffers.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
-    // Calculate stats
     const stats = {
       total: allOffers.length,
       pending: allOffers.filter((o) => o.status === "pending").length,
@@ -760,6 +911,7 @@ export const getAllOffersForSeller = async (req, res) => {
       data: {
         offers: allOffers,
         stats,
+        displayCurrency: userCurrency,
       },
     });
   } catch (error) {
@@ -835,17 +987,23 @@ export const getAdminAllOffers = async (req, res) => {
       limit = 20,
     } = req.query;
 
+    const userCurrency = req.query.currency || 'EUR';
+    const rates = getCachedRates();
+
+    // Helper to convert amount using auction's base currency
+    const convertAmount = (amount, auction) => {
+      if (!amount) return 0;
+      if (!rates) return amount;
+      const base = auction.baseCurrency || 'EUR';
+      const rate = rates[base]?.rates[userCurrency];
+      if (!rate) return amount;
+      return parseFloat((amount * rate).toFixed(2));
+    };
+
     // Build filter
     const filter = {};
-
-    if (status && status !== "all") {
-      filter.status = status;
-    }
-
-    if (category && category !== "all") {
-      filter["auction.category"] = category;
-    }
-
+    if (status !== "all") filter.status = status;
+    if (category !== "all") filter["auction.category"] = category;
     if (search) {
       filter.$or = [
         { "auction.title": { $regex: search, $options: "i" } },
@@ -856,33 +1014,50 @@ export const getAdminAllOffers = async (req, res) => {
 
     // Find all auctions with offers
     const auctions = await Auction.find({
-      "offers.0": { $exists: true }, // Only auctions with offers
+      "offers.0": { $exists: true },
     })
       .populate("seller", "username firstName lastName email company phone")
-      .populate(
-        "offers.buyer",
-        "username firstName lastName email company phone"
-      )
+      .populate("offers.buyer", "username firstName lastName email company phone")
       .populate("winner", "username firstName lastName email")
       .sort({ createdAt: -1 });
 
-    // Flatten and transform offers
+    // Flatten and transform offers with conversion
     let allOffers = [];
-    auctions.forEach((auction) => {
-      auction.offers.forEach((offer) => {
+    for (const auction of auctions) {
+      for (const offer of auction.offers) {
+        // Convert counter offer if exists
+        let convertedCounterAmount = null;
+        if (offer.counterOffer?.amount) {
+          convertedCounterAmount = convertAmount(offer.counterOffer.amount, auction);
+        }
+
         allOffers.push({
           ...offer.toObject(),
+          convertedAmount: convertAmount(offer.amount, auction),
+          convertedCounterAmount: convertedCounterAmount,
+          displayCurrency: userCurrency,
+          originalAmount: offer.amount,
+          originalCurrency: auction.baseCurrency,
           auction: {
             _id: auction._id,
             title: auction.title,
             category: auction.category,
             auctionType: auction.auctionType,
             status: auction.status,
-            startPrice: auction.startPrice,
-            buyNowPrice: auction.buyNowPrice,
-            currentPrice: auction.currentPrice,
+            // Converted auction prices
+            convertedStartPrice: convertAmount(auction.startPrice, auction),
+            convertedCurrentPrice: convertAmount(auction.currentPrice, auction),
+            convertedBuyNowPrice: convertAmount(auction.buyNowPrice, auction),
+            convertedFinalPrice: convertAmount(auction.finalPrice, auction),
+            // Original auction prices
+            startPriceOriginal: auction.startPrice,
+            currentPriceOriginal: auction.currentPrice,
+            buyNowPriceOriginal: auction.buyNowPrice,
+            finalPriceOriginal: auction.finalPrice,
             startDate: auction.startDate,
             endDate: auction.endDate,
+            baseCurrency: auction.baseCurrency,
+            displayCurrency: userCurrency,
             seller: {
               _id: auction.seller._id,
               username: auction.seller.username,
@@ -894,20 +1069,16 @@ export const getAdminAllOffers = async (req, res) => {
             allowOffers: auction.allowOffers,
           },
         });
-      });
-    });
+      }
+    }
 
-    // Apply filters
+    // Apply filters (status, category, search) on the flattened array
     if (status !== "all") {
       allOffers = allOffers.filter((offer) => offer.status === status);
     }
-
     if (category !== "all") {
-      allOffers = allOffers.filter(
-        (offer) => offer.auction.category === category
-      );
+      allOffers = allOffers.filter((offer) => offer.auction.category === category);
     }
-
     if (search) {
       const searchLower = search.toLowerCase();
       allOffers = allOffers.filter(
@@ -918,7 +1089,7 @@ export const getAdminAllOffers = async (req, res) => {
       );
     }
 
-    // Apply sorting
+    // Sorting (using converted amount for amount_high/amount_low)
     allOffers.sort((a, b) => {
       switch (sortBy) {
         case "recent":
@@ -926,9 +1097,9 @@ export const getAdminAllOffers = async (req, res) => {
         case "oldest":
           return new Date(a.createdAt) - new Date(b.createdAt);
         case "amount_high":
-          return b.amount - a.amount;
+          return b.convertedAmount - a.convertedAmount;
         case "amount_low":
-          return a.amount - b.amount;
+          return a.convertedAmount - b.convertedAmount;
         case "expiring_soon":
           if (a.status === "pending" && b.status === "pending") {
             return new Date(a.expiresAt) - new Date(b.expiresAt);
@@ -945,7 +1116,7 @@ export const getAdminAllOffers = async (req, res) => {
     const endIndex = page * limit;
     const paginatedOffers = allOffers.slice(startIndex, endIndex);
 
-    // Calculate statistics
+    // Statistics (using converted amounts for value calculations)
     const stats = {
       total: allOffers.length,
       pending: allOffers.filter((o) => o.status === "pending").length,
@@ -954,14 +1125,11 @@ export const getAdminAllOffers = async (req, res) => {
       countered: allOffers.filter((o) => o.status === "countered").length,
       expired: allOffers.filter((o) => o.status === "expired").length,
       withdrawn: allOffers.filter((o) => o.status === "withdrawn").length,
-      byCategory: {},
-      byStatus: {},
-      totalValue: allOffers.reduce((sum, offer) => sum + offer.amount, 0),
-      avgOfferAmount:
-        allOffers.length > 0
-          ? allOffers.reduce((sum, offer) => sum + offer.amount, 0) /
-            allOffers.length
-          : 0,
+      totalValue: parseFloat(allOffers.reduce((sum, offer) => sum + (offer.convertedAmount || 0), 0).toFixed(2)),
+      avgOfferAmount: allOffers.length > 0
+        ? parseFloat((allOffers.reduce((sum, offer) => sum + (offer.convertedAmount || 0), 0) / allOffers.length).toFixed(2))
+        : 0,
+      displayCurrency: userCurrency,
     };
 
     // Get categories for filter
@@ -974,16 +1142,11 @@ export const getAdminAllOffers = async (req, res) => {
       data: {
         offers: paginatedOffers,
         stats,
+        displayCurrency: userCurrency,
         filterOptions: {
           categories: ["all", ...categories],
           statuses: [
-            "all",
-            "pending",
-            "accepted",
-            "rejected",
-            "countered",
-            "expired",
-            "withdrawn",
+            "all", "pending", "accepted", "rejected", "countered", "expired", "withdrawn",
           ],
         },
         pagination: {
@@ -1012,13 +1175,12 @@ export const getAdminAllOffers = async (req, res) => {
 export const getAdminAuctionOffers = async (req, res) => {
   try {
     const { auctionId } = req.params;
+    const currency = req.query.currency || "EUR";
+    const rates = getCachedRates();
 
     const auction = await Auction.findById(auctionId)
       .populate("seller", "username firstName lastName email phone")
-      .populate(
-        "offers.buyer",
-        "username firstName lastName email phone company"
-      )
+      .populate("offers.buyer", "username firstName lastName email phone company")
       .populate("winner", "username firstName lastName");
 
     if (!auction) {
@@ -1027,6 +1189,19 @@ export const getAdminAuctionOffers = async (req, res) => {
         message: "Auction not found",
       });
     }
+
+    const base = auction.baseCurrency;
+    const rate = (rates && rates[base]?.rates[currency]) || 1;
+
+    const offersWithConversion = auction.offers
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      .map((offer) => ({
+        ...offer.toObject(),
+        convertedAmount: offer.amount * rate,
+        displayCurrency: currency,
+        originalAmount: offer.amount,
+        originalCurrency: base,
+      }));
 
     res.status(200).json({
       success: true,
@@ -1042,24 +1217,20 @@ export const getAdminAuctionOffers = async (req, res) => {
           currentPrice: auction.currentPrice,
           startDate: auction.startDate,
           endDate: auction.endDate,
+          baseCurrency: base,
           seller: auction.seller,
           allowOffers: auction.allowOffers,
         },
-        offers: auction.offers.sort(
-          (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
-        ),
+        offers: offersWithConversion,
+        displayCurrency: currency,
         stats: {
           total: auction.offers.length,
           pending: auction.offers.filter((o) => o.status === "pending").length,
-          accepted: auction.offers.filter((o) => o.status === "accepted")
-            .length,
-          rejected: auction.offers.filter((o) => o.status === "rejected")
-            .length,
-          countered: auction.offers.filter((o) => o.status === "countered")
-            .length,
+          accepted: auction.offers.filter((o) => o.status === "accepted").length,
+          rejected: auction.offers.filter((o) => o.status === "rejected").length,
+          countered: auction.offers.filter((o) => o.status === "countered").length,
           expired: auction.offers.filter((o) => o.status === "expired").length,
-          withdrawn: auction.offers.filter((o) => o.status === "withdrawn")
-            .length,
+          withdrawn: auction.offers.filter((o) => o.status === "withdrawn").length,
         },
       },
     });
@@ -1143,9 +1314,9 @@ export const adminRespondToOffer = async (req, res) => {
 
     // Populate updated data
     const updatedAuction = await Auction.findById(auctionId)
-      .populate("offers.buyer", "username firstName lastName email phone")
-      .populate("seller", "username firstName lastName email phone")
-      .populate("winner", "username firstName lastName email phone address");
+      .populate("offers.buyer", "username firstName lastName email phone currency")
+      .populate("seller", "username firstName lastName email phone currency")
+      .populate("winner", "username firstName lastName email phone address currency");
 
     res.status(200).json({
       success: true,
@@ -1162,10 +1333,11 @@ export const adminRespondToOffer = async (req, res) => {
       offerAcceptedEmail(
         offer.buyer.email,
         offer.buyer.firstName || offer.buyer.username,
+        offer.buyer.currency,
         updatedAuction.seller,
         updatedAuction,
         offer.amount,
-        offerId
+        offer?._id
       ).catch((error) =>
         console.error("Failed to send offer accepted email:", error)
       );
@@ -1178,7 +1350,7 @@ export const adminRespondToOffer = async (req, res) => {
         console.error("Failed to send buyer won auction email:", error)
       );
 
-      auctionWonAdminEmail(admin?.email, updatedAuction, offer?.buyer).catch(
+      auctionWonAdminEmail(admin?.email, admin?.currency, updatedAuction, offer?.buyer).catch(
         (error) =>
           console.error("Failed to send admin auction won email:", error)
       );
@@ -1186,13 +1358,14 @@ export const adminRespondToOffer = async (req, res) => {
       offerRejectedEmail(
         offer.buyer.email,
         offer.buyer.firstName || offer.buyer.username,
-        auction.seller,
-        auction,
+        offer.buyer.currency,
+        updatedAuction.seller,
+        updatedAuction,
         offer.amount,
-        offerId,
-        offer.sellerResponse || "No reason provided"
+        offer?._id,
+        message || "Your offer was rejected by the seller."
       ).catch((error) =>
-        console.error("Failed to send offer accepted email:", error)
+        console.error("Failed to send offer rejected email:", error)
       );
     }
   } catch (error) {
@@ -1215,8 +1388,8 @@ export const adminCancelOffer = async (req, res) => {
     const { auctionId, reason } = req.body;
 
     const auction = await Auction.findById(auctionId)
-      .populate("offers.buyer", "email username firstName lastName email")
-      .populate("seller", "email username firstName lastName email");
+      .populate("offers.buyer", "email username firstName lastName email currency")
+      .populate("seller", "email username firstName lastName email currency");
 
     if (!auction) {
       return res.status(404).json({
@@ -1238,9 +1411,8 @@ export const adminCancelOffer = async (req, res) => {
 
     // Cancel the offer
     offer.status = "withdrawn";
-    offer.sellerResponse = `Offer cancelled by administrator: ${
-      reason || "Violation of terms"
-    }`;
+    offer.sellerResponse = `Offer cancelled by administrator: ${reason || "Violation of terms"
+      }`;
     offer.updatedAt = new Date();
 
     await auction.save();
@@ -1259,6 +1431,7 @@ export const adminCancelOffer = async (req, res) => {
     offerCanceledEmail(
       offer.buyer.email,
       offer.buyer.firstName || offer.buyer.username,
+      offer.buyer.currency,
       auction.seller,
       auction,
       offer.amount,
@@ -1282,6 +1455,19 @@ export const adminCancelOffer = async (req, res) => {
  */
 export const getAdminOfferStats = async (req, res) => {
   try {
+    const userCurrency = req.query.currency || 'EUR';
+    const rates = getCachedRates();
+
+    // Helper to convert amount using auction's base currency
+    const convertAmount = (amount, auction) => {
+      if (!amount) return 0;
+      if (!rates) return amount;
+      const base = auction.baseCurrency || 'EUR';
+      const rate = rates[base]?.rates[userCurrency];
+      if (!rate) return amount;
+      return parseFloat((amount * rate).toFixed(2));
+    };
+
     // Get total offers
     const totalAuctionsWithOffers = await Auction.countDocuments({
       "offers.0": { $exists: true },
@@ -1296,47 +1482,107 @@ export const getAdminOfferStats = async (req, res) => {
 
     const totalOffers = totalOffersResult[0]?.total || 0;
 
-    // Get offers by status
-    const statusStats = await Auction.aggregate([
+    // Get offers by status with converted amounts
+    const statusStatsRaw = await Auction.aggregate([
       { $unwind: "$offers" },
       {
         $group: {
           _id: "$offers.status",
           count: { $sum: 1 },
-          totalAmount: { $sum: "$offers.amount" },
+          totalAmountOriginal: { $sum: "$offers.amount" },
         },
       },
       { $sort: { count: -1 } },
     ]);
 
-    // Get offers by category
-    const categoryStats = await Auction.aggregate([
+    // Convert status stats amounts
+    const statusStats = {};
+    for (const stat of statusStatsRaw) {
+      // To convert totalAmount, we need to find a representative auction for this status
+      // Since each offer may have different base currencies, we need to fetch the actual offers
+      const offersForStatus = await Auction.aggregate([
+        { $unwind: "$offers" },
+        { $match: { "offers.status": stat._id } },
+        { $project: { offerAmount: "$offers.amount", baseCurrency: 1 } },
+      ]);
+
+      let totalAmountConverted = 0;
+      for (const offer of offersForStatus) {
+        const converted = convertAmount(offer.offerAmount, { baseCurrency: offer.baseCurrency });
+        totalAmountConverted += converted;
+      }
+
+      statusStats[stat._id] = {
+        count: stat.count,
+        totalAmount: parseFloat(totalAmountConverted.toFixed(2)),
+        totalAmountOriginal: stat.totalAmountOriginal
+      };
+    }
+
+    // Get offers by category with converted amounts
+    const categoryStatsRaw = await Auction.aggregate([
       { $match: { "offers.0": { $exists: true } } },
       { $unwind: "$offers" },
       {
         $group: {
           _id: "$category",
           count: { $sum: 1 },
-          avgAmount: { $avg: "$offers.amount" },
+          avgAmountOriginal: { $avg: "$offers.amount" },
         },
       },
       { $sort: { count: -1 } },
     ]);
 
-    // Get recent activity
-    const recentOffers = await Auction.aggregate([
+    // Convert category stats amounts
+    const categoryStats = [];
+    for (const stat of categoryStatsRaw) {
+      // Get all offers for this category to calculate converted average
+      const offersForCategory = await Auction.aggregate([
+        { $match: { category: stat._id, "offers.0": { $exists: true } } },
+        { $unwind: "$offers" },
+        { $project: { offerAmount: "$offers.amount", baseCurrency: 1 } },
+      ]);
+
+      let totalAmountConverted = 0;
+      for (const offer of offersForCategory) {
+        totalAmountConverted += convertAmount(offer.offerAmount, { baseCurrency: offer.baseCurrency });
+      }
+
+      const avgAmountConverted = offersForCategory.length > 0 ? totalAmountConverted / offersForCategory.length : 0;
+
+      categoryStats.push({
+        category: stat._id,
+        count: stat.count,
+        avgAmount: parseFloat(avgAmountConverted.toFixed(2)),
+        avgAmountOriginal: stat.avgAmountOriginal,
+      });
+    }
+
+    // Get recent activity with converted amounts
+    const recentOffersRaw = await Auction.aggregate([
       { $match: { "offers.0": { $exists: true } } },
+      { $unwind: "$offers" },
       { $sort: { "offers.createdAt": -1 } },
       { $limit: 5 },
       {
         $project: {
           title: 1,
-          offers: { $slice: ["$offers", 5] },
+          offer: "$offers",
+          baseCurrency: 1,
         },
       },
     ]);
 
-    // Calculate success rate
+    const recentOffers = recentOffersRaw.map(item => ({
+      title: item.title,
+      offer: {
+        ...item.offer,
+        convertedAmount: convertAmount(item.offer.amount, { baseCurrency: item.baseCurrency }),
+        originalAmount: item.offer.amount,
+      },
+    }));
+
+    // Calculate success rate (no conversion needed for counts)
     const successStats = await Auction.aggregate([
       { $unwind: "$offers" },
       {
@@ -1362,10 +1608,7 @@ export const getAdminOfferStats = async (req, res) => {
       data: {
         totalAuctionsWithOffers,
         totalOffers,
-        statusStats: statusStats.reduce((acc, stat) => {
-          acc[stat._id] = { count: stat.count, totalAmount: stat.totalAmount };
-          return acc;
-        }, {}),
+        statusStats,
         categoryStats,
         recentActivity: recentOffers,
         successRate,
@@ -1373,6 +1616,7 @@ export const getAdminOfferStats = async (req, res) => {
           totalAuctionsWithOffers > 0
             ? Math.round(totalOffers / totalAuctionsWithOffers)
             : 0,
+        displayCurrency: userCurrency,
       },
     });
   } catch (error) {
@@ -1580,9 +1824,9 @@ export const reactivateOffer = async (req, res) => {
 
     // Populate updated auction
     const updatedAuction = await Auction.findById(auctionId)
-      .populate("offers.buyer", "username firstName lastName email phone")
-      .populate("seller", "username firstName lastName email phone")
-      .populate("winner", "username firstName lastName email phone");
+      .populate("offers.buyer", "username firstName lastName email phone currency")
+      .populate("seller", "username firstName lastName email phone currency")
+      .populate("winner", "username firstName lastName email phone address currency");
 
     res.status(200).json({
       success: true,
@@ -1602,10 +1846,11 @@ export const reactivateOffer = async (req, res) => {
       offerAcceptedEmail(
         offer.buyer.email,
         offer.buyer.firstName || offer.buyer.username,
+        offer.buyer.currency,
         updatedAuction.seller,
         updatedAuction,
         offer.amount,
-        offerId
+        offer?._id
       ).catch((error) =>
         console.error("Failed to send offer accepted email:", error)
       );
@@ -1620,18 +1865,6 @@ export const reactivateOffer = async (req, res) => {
       sendAuctionWonEmail(updatedAuction).catch((error) =>
         console.error("Failed to send buyer won auction email:", error)
       );
-
-      // Notify admin (if seller did it)
-      if (!isAdmin) {
-        // You might want to add a different email function for this
-        auctionWonAdminEmail(
-          process.env.ADMIN_EMAIL || "admin@example.com",
-          updatedAuction,
-          offer.buyer
-        ).catch((error) =>
-          console.error("Failed to send admin notification email:", error)
-        );
-      }
     } catch (emailError) {
       console.error("Failed to send reactivation emails:", emailError);
     }
@@ -1652,14 +1885,26 @@ export const reactivateOffer = async (req, res) => {
 export const getSellerOfferStats = async (req, res) => {
   try {
     const sellerId = req.user._id;
+    const userCurrency = req.query.currency || 'EUR';
 
     // Find all auctions where user is seller
-    const auctions = await Auction.find({ 
+    const auctions = await Auction.find({
       seller: sellerId,
-      "offers.0": { $exists: true } // Only auctions with offers
+      "offers.0": { $exists: true }
     });
 
-    // Flatten all offers
+    // Helper to convert raw amounts
+    const convertRawAmount = (amount, auction) => {
+      if (!amount) return 0;
+      const rates = getCachedRates();
+      if (!rates) return amount;
+      const base = auction.baseCurrency;
+      const rate = rates[base]?.rates[userCurrency];
+      if (!rate) return amount;
+      return parseFloat((amount * rate).toFixed(2));
+    };
+
+    // Flatten all offers with converted amounts
     let allOffers = [];
     auctions.forEach(auction => {
       auction.offers.forEach(offer => {
@@ -1667,12 +1912,16 @@ export const getSellerOfferStats = async (req, res) => {
           ...offer.toObject(),
           auctionId: auction._id,
           auctionTitle: auction.title,
-          auctionStatus: auction.status
+          auctionStatus: auction.status,
+          convertedAmount: convertRawAmount(offer.amount, auction),
+          originalAmount: offer.amount,
+          originalCurrency: auction.baseCurrency,
+          convertedCounterAmount: offer.counterOffer?.amount ? convertRawAmount(offer.counterOffer.amount, auction) : null,
         });
       });
     });
 
-    // Calculate statistics
+    // Calculate statistics using converted amounts
     const stats = {
       totalOffers: allOffers.length,
       pending: allOffers.filter(o => o.status === 'pending').length,
@@ -1681,61 +1930,72 @@ export const getSellerOfferStats = async (req, res) => {
       countered: allOffers.filter(o => o.status === 'countered').length,
       expired: allOffers.filter(o => o.status === 'expired').length,
       withdrawn: allOffers.filter(o => o.status === 'withdrawn').length,
-      
-      // Total value calculations
-      totalValue: allOffers.reduce((sum, offer) => sum + offer.amount, 0),
-      acceptedValue: allOffers
+
+      // Total value calculations (converted)
+      totalValue: parseFloat(allOffers.reduce((sum, offer) => sum + (offer.convertedAmount || 0), 0).toFixed(2)),
+      acceptedValue: parseFloat(allOffers
         .filter(o => o.status === 'accepted')
-        .reduce((sum, offer) => sum + offer.amount, 0),
-      pendingValue: allOffers
+        .reduce((sum, offer) => sum + (offer.convertedAmount || 0), 0)
+        .toFixed(2)),
+      pendingValue: parseFloat(allOffers
         .filter(o => o.status === 'pending')
-        .reduce((sum, offer) => sum + offer.amount, 0),
-      
-      // Average offer amount
-      avgOfferAmount: allOffers.length > 0 
-        ? Math.round(allOffers.reduce((sum, offer) => sum + offer.amount, 0) / allOffers.length) 
+        .reduce((sum, offer) => sum + (offer.convertedAmount || 0), 0)
+        .toFixed(2)),
+
+      // Average offer amount (converted)
+      avgOfferAmount: allOffers.length > 0
+        ? parseFloat((allOffers.reduce((sum, offer) => sum + (offer.convertedAmount || 0), 0) / allOffers.length).toFixed(2))
         : 0,
-      
-      // Success rate (accepted vs total responded)
+
+      // Success rate
       successRate: (() => {
-        const responded = allOffers.filter(o => 
+        const responded = allOffers.filter(o =>
           ['accepted', 'rejected'].includes(o.status)
         ).length;
         const accepted = allOffers.filter(o => o.status === 'accepted').length;
         return responded > 0 ? Math.round((accepted / responded) * 100) : 0;
       })(),
 
-      // Auctions with offers count
       auctionsWithOffers: auctions.length,
+      displayCurrency: userCurrency,
 
-      // By auction (for detailed breakdown)
-      byAuction: auctions.map(auction => ({
-        auctionId: auction._id,
-        auctionTitle: auction.title,
-        auctionStatus: auction.status,
-        totalOffers: auction.offers.length,
-        pending: auction.offers.filter(o => o.status === 'pending').length,
-        accepted: auction.offers.filter(o => o.status === 'accepted').length,
-        rejected: auction.offers.filter(o => o.status === 'rejected').length,
-        countered: auction.offers.filter(o => o.status === 'countered').length,
-        totalValue: auction.offers.reduce((sum, offer) => sum + offer.amount, 0),
-        highestOffer: auction.offers.length > 0 
-          ? Math.max(...auction.offers.map(o => o.amount)) 
-          : 0
-      })),
+      // By auction
+      byAuction: auctions.map(auction => {
+        let totalValue = 0;
+        let highestOffer = 0;
+
+        auction.offers.forEach(offer => {
+          const converted = convertRawAmount(offer.amount, auction);
+          totalValue += converted;
+          if (converted > highestOffer) highestOffer = converted;
+        });
+
+        return {
+          auctionId: auction._id,
+          auctionTitle: auction.title,
+          auctionStatus: auction.status,
+          totalOffers: auction.offers.length,
+          pending: auction.offers.filter(o => o.status === 'pending').length,
+          accepted: auction.offers.filter(o => o.status === 'accepted').length,
+          rejected: auction.offers.filter(o => o.status === 'rejected').length,
+          countered: auction.offers.filter(o => o.status === 'countered').length,
+          totalValue: parseFloat(totalValue.toFixed(2)),
+          highestOffer: parseFloat(highestOffer.toFixed(2)),
+        };
+      }),
 
       // Time-based stats (last 30 days)
       last30Days: (() => {
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-        
+
         const recentOffers = allOffers.filter(o => new Date(o.createdAt) >= thirtyDaysAgo);
-        
+
         return {
           total: recentOffers.length,
           pending: recentOffers.filter(o => o.status === 'pending').length,
           accepted: recentOffers.filter(o => o.status === 'accepted').length,
-          totalValue: recentOffers.reduce((sum, offer) => sum + offer.amount, 0)
+          totalValue: parseFloat(recentOffers.reduce((sum, offer) => sum + (offer.convertedAmount || 0), 0).toFixed(2)),
         };
       })(),
 
@@ -1743,23 +2003,28 @@ export const getSellerOfferStats = async (req, res) => {
       byCategory: (() => {
         const categoryMap = {};
         auctions.forEach(auction => {
-          if (!categoryMap[auction.category]) {
-            categoryMap[auction.category] = {
-              category: auction.category,
+          const categoryName = auction.categories?.[1] || auction.categories?.[0] || 'Uncategorized';
+
+          if (!categoryMap[categoryName]) {
+            categoryMap[categoryName] = {
+              category: categoryName,
               totalOffers: 0,
               totalValue: 0,
               accepted: 0
             };
           }
           auction.offers.forEach(offer => {
-            categoryMap[auction.category].totalOffers++;
-            categoryMap[auction.category].totalValue += offer.amount;
+            categoryMap[categoryName].totalOffers++;
+            categoryMap[categoryName].totalValue += convertRawAmount(offer.amount, auction);
             if (offer.status === 'accepted') {
-              categoryMap[auction.category].accepted++;
+              categoryMap[categoryName].accepted++;
             }
           });
         });
-        return Object.values(categoryMap);
+        return Object.values(categoryMap).map(cat => ({
+          ...cat,
+          totalValue: parseFloat(cat.totalValue.toFixed(2))
+        }));
       })()
     };
 

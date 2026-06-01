@@ -207,6 +207,8 @@ const CheckoutContent = () => {
     const [isCommissionEnabled, setIsCommissionEnabled] = useState(true);
     const [commissionAppliesTo, setCommissionAppliesTo] = useState(['seller']);
 
+    const userCurrency = currentUser?.currency || 'EUR';
+
     // Fetch commission settings
     const fetchCommission = async () => {
         try {
@@ -236,7 +238,7 @@ const CheckoutContent = () => {
                 setVerifying(true);
                 setLoading(true);
 
-                const { data } = await axiosInstance.get(`/api/v1/checkout/${auctionId}`);
+                const { data } = await axiosInstance.get(`/api/v1/checkout/${auctionId}?currency=${userCurrency}`);
 
                 if (data.success) {
                     setAuction(data.data.auction);
@@ -287,7 +289,7 @@ const CheckoutContent = () => {
         const loadingToast = toast.loading('Processing your payment...');
 
         try {
-            const response = await axiosInstance.post("/api/v1/payments/create-checkout-payment", {
+            const response = await axiosInstance.post(`/api/v1/payments/create-checkout-payment?currency=${userCurrency}`, {
                 auctionId: auction._id
             });
 
@@ -308,7 +310,7 @@ const CheckoutContent = () => {
         const loadingToast = toast.loading('Recording your transaction...');
 
         try {
-            const response = await axiosInstance.post("/api/v1/payments/create-bank-transfer-payment", {
+            const response = await axiosInstance.post(`/api/v1/payments/create-bank-transfer-payment?currency=${userCurrency}`, {
                 auctionId: auction._id
             });
 
@@ -347,9 +349,9 @@ const CheckoutContent = () => {
 
     // Format currency
     const formatCurrency = (amount) => {
-        return new Intl.NumberFormat('nb-NO', {
+        return new Intl.NumberFormat('en-IE', {
             style: 'currency',
-            currency: 'NOK',
+            currency: `${userCurrency}`,
             minimumFractionDigits: 2
         }).format(amount);
     };

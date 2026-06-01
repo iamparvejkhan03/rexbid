@@ -23,6 +23,7 @@ import axiosInstance from "../../utils/axiosInstance";
 import { Link } from "react-router-dom";
 import { useDebounce } from "../../hooks/useDebounce";
 import toast from "react-hot-toast";
+import { useAuth } from "../../contexts/AuthContext";
 
 function MyOffers() {
     const [offers, setOffers] = useState([]);
@@ -43,6 +44,9 @@ function MyOffers() {
         expired: 0,
         withdrawn: 0
     });
+
+    const { user } = useAuth();
+    const userCurrency = user?.currency || 'EUR';
 
     // Fetch all offers on component mount
     useEffect(() => {
@@ -74,9 +78,9 @@ function MyOffers() {
                 case "recent":
                     return new Date(b.createdAt) - new Date(a.createdAt);
                 case "amount_high":
-                    return b.amount - a.amount;
+                    return b.convertedAmount - a.convertedAmount;
                 case "amount_low":
-                    return a.amount - b.amount;
+                    return a.convertedAmount - b.convertedAmount;
                 case "expiring_soon":
                     if (a.status === 'pending' && b.status === 'pending') {
                         return new Date(a.expiresAt) - new Date(b.expiresAt);
@@ -95,7 +99,7 @@ function MyOffers() {
             setLoading(true);
             setError(null);
 
-            const { data } = await axiosInstance.get("/api/v1/offers/my");
+            const { data } = await axiosInstance.get(`/api/v1/offers/my?currency=${userCurrency}`);
 
             if (data.success) {
                 setAllOffers(data.data.offers);
@@ -203,16 +207,16 @@ function MyOffers() {
     };
 
     const formatCurrency = (amount) => {
-        return new Intl.NumberFormat('nb-NO', {
+        return new Intl.NumberFormat('en-IE', {
             style: 'currency',
-            currency: 'NOK',
+            currency: `${userCurrency}`,
             minimumFractionDigits: 0,
             maximumFractionDigits: 0
         }).format(amount);
     };
 
     const formatDate = (dateString) => {
-        return new Date(dateString).toLocaleDateString('nb-NO', {
+        return new Date(dateString).toLocaleDateString('en-IE', {
             year: 'numeric',
             month: 'long',
             day: 'numeric'
@@ -398,7 +402,7 @@ function MyOffers() {
                                 <div>
                                     <p className="text-purple-100 text-sm">Total Value</p>
                                     <p className="text-2xl font-bold mt-1">
-                                        {formatCurrency(offers.reduce((sum, offer) => sum + offer.amount, 0))}
+                                        {formatCurrency(offers.reduce((sum, offer) => sum + offer.convertedAmount, 0))}
                                     </p>
                                     <p className="text-purple-200 text-xs mt-1">Across all offers</p>
                                 </div>
@@ -448,28 +452,28 @@ function MyOffers() {
                                 onClick={() => setFilter("all")}
                                 className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${filter === "all" ? "bg-blue-600 text-white shadow-lg" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}
                             >
-                                All Offers ({statistics.total?.toLocaleString('nb-NO')})
+                                All Offers ({statistics.total?.toLocaleString('en-IE')})
                             </button>
                             <button
                                 onClick={() => setFilter("pending")}
                                 className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${filter === "pending" ? "bg-yellow-100 text-yellow-800 border border-yellow-200 shadow-lg" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}
                             >
                                 <Clock size={14} className="inline mr-1" />
-                                Pending ({statistics.pending?.toLocaleString('nb-NO')})
+                                Pending ({statistics.pending?.toLocaleString('en-IE')})
                             </button>
                             <button
                                 onClick={() => setFilter("accepted")}
                                 className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${filter === "accepted" ? "bg-green-100 text-green-800 border border-green-200 shadow-lg" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}
                             >
                                 <CheckCircle size={14} className="inline mr-1" />
-                                Accepted ({statistics.accepted?.toLocaleString('nb-NO')})
+                                Accepted ({statistics.accepted?.toLocaleString('en-IE')})
                             </button>
                             <button
                                 onClick={() => setFilter("rejected")}
                                 className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${filter === "rejected" ? "bg-red-100 text-red-800 border border-red-200 shadow-lg" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}
                             >
                                 <XCircle size={14} className="inline mr-1" />
-                                Rejected ({statistics.rejected?.toLocaleString('nb-NO')})
+                                Rejected ({statistics.rejected?.toLocaleString('en-IE')})
                             </button>
                         </div>
                     </div>
@@ -530,11 +534,11 @@ function MyOffers() {
                                                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm mb-4">
                                                                 <div>
                                                                     <p className="text-gray-500">Your Offer</p>
-                                                                    <p className="font-semibold text-lg text-blue-600">{formatCurrency(offer.amount)}</p>
+                                                                    <p className="font-semibold text-lg text-blue-600">{formatCurrency(offer.convertedAmount)}</p>
                                                                 </div>
                                                                 <div>
                                                                     <p className="text-gray-500">Auction Starting Price</p>
-                                                                    <p className="font-semibold">{formatCurrency(offer.auction.startPrice)}</p>
+                                                                    <p className="font-semibold">{formatCurrency(offer.auction.convertedStartPrice)}</p>
                                                                 </div>
                                                                 <div>
                                                                     <p className="text-gray-500">Submitted On</p>
@@ -552,14 +556,14 @@ function MyOffers() {
                                                                     <div className="flex items-center justify-between">
                                                                         <div>
                                                                             <p className="text-xl font-bold text-blue-700">
-                                                                                {formatCurrency(offer.counterOffer.amount)}
+                                                                                {formatCurrency(offer.counterOffer.convertedAmount)}
                                                                             </p>
                                                                             <p className="text-sm text-blue-600">New price proposed by seller</p>
                                                                         </div>
                                                                         <div className="text-right">
-                                                                            <p className="text-sm text-gray-600">Previous: {formatCurrency(offer.amount)}</p>
+                                                                            <p className="text-sm text-gray-600">Previous: {formatCurrency(offer.convertedAmount)}</p>
                                                                             <p className="text-sm font-medium text-blue-600">
-                                                                                +{formatCurrency(offer.counterOffer.amount - offer.amount)}
+                                                                                +{formatCurrency(offer.counterOffer.convertedAmount - offer.convertedAmount)}
                                                                             </p>
                                                                         </div>
                                                                     </div>
@@ -668,7 +672,7 @@ function MyOffers() {
                                                                         <p className="font-medium">Auction Won!</p>
                                                                     </div>
                                                                     <p className="text-sm text-green-600">
-                                                                        Final price: <span className="font-bold">{formatCurrency(offer.amount)}</span>
+                                                                        Final price: <span className="font-bold">{formatCurrency(offer.convertedAmount)}</span>
                                                                     </p>
                                                                 </div>
                                                             )}
@@ -720,7 +724,7 @@ function MyOffers() {
                             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-center">
                                 <div>
                                     <p className="text-sm text-gray-600">Total Offers Made</p>
-                                    <p className="text-2xl font-bold text-gray-900">{statistics.total?.toLocaleString('nb-NO')}</p>
+                                    <p className="text-2xl font-bold text-gray-900">{statistics.total?.toLocaleString('en-IE')}</p>
                                 </div>
                                 <div>
                                     <p className="text-sm text-gray-600">Success Rate</p>
@@ -735,7 +739,7 @@ function MyOffers() {
                                     <p className="text-2xl font-bold text-blue-600">
                                         {formatCurrency(
                                             offers.length > 0
-                                                ? offers.reduce((sum, offer) => sum + offer.amount, 0) / offers.length
+                                                ? offers.reduce((sum, offer) => sum + offer.convertedAmount, 0) / offers.length
                                                 : 0
                                         )}
                                     </p>

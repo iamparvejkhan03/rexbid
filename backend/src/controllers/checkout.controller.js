@@ -1,5 +1,15 @@
 import Auction from "../models/auction.model.js";
 import User from "../models/user.model.js";
+import { getCachedRates } from "../routes/currency.route.js";
+
+const convertPrice = (auction, targetCurrency, priceField) => {
+    const rates = getCachedRates();
+    if (!rates) return auction[priceField]; // fallback
+    const base = auction.baseCurrency;
+    const rate = rates[base].rates[targetCurrency];
+    if (!rate) return auction[priceField];
+    return auction[priceField] * rate;
+};
 
 /**
  * Get checkout data for a won auction
@@ -10,6 +20,18 @@ export const getCheckoutData = async (req, res) => {
     try {
         const { auctionId } = req.params;
         const userId = req.user._id;
+        const userCurrency = req.query.currency || 'EUR';
+        const rates = getCachedRates();
+
+        // Helper to convert amount using auction's base currency
+        const convertAmount = (amount, auction) => {
+            if (!amount) return 0;
+            if (!rates) return amount;
+            const base = auction.baseCurrency || 'EUR';
+            const rate = rates[base]?.rates[userCurrency];
+            if (!rate) return amount;
+            return parseFloat((amount * rate).toFixed(2));
+        };
 
         // Find the auction and populate necessary fields
         const auction = await Auction.findById(auctionId)
@@ -79,7 +101,6 @@ export const getCheckoutData = async (req, res) => {
                 city: seller.address.city || "",
                 state: seller.address.state || "",
                 zip: seller.address.postCode || "",
-                //   country: seller.address.country || "US",
                 country: seller.countryCode || "US",
                 phone: seller.phone || "",
                 email: seller.email || "",
@@ -96,24 +117,33 @@ export const getCheckoutData = async (req, res) => {
                 city: bidder.address.city || "",
                 state: bidder.address.state || "",
                 zip: bidder.address.postCode || "",
-                //   country: bidder.address.country || "US",
                 country: bidder.countryCode || "US",
                 phone: bidder.phone || "",
                 email: bidder.email || "",
             }
             : null;
 
-        // Prepare auction data for response
+        // Convert auction prices
+        const convertedFinalPrice = convertAmount(auction.finalPrice || auction.currentPrice, auction);
+        const convertedCommissionAmount = convertAmount(auction.commissionAmount, auction);
+        const convertedTotalAmount = convertedFinalPrice + convertedCommissionAmount;
+
+        // Prepare auction data for response with converted amounts
         const auctionData = {
             _id: auction._id,
             title: auction.title,
             description: auction.description,
-            finalPrice: auction.finalPrice || 0,
-            commissionAmount: auction.commissionAmount || 0,
+            // Original values
+            finalPriceOriginal: auction.finalPrice || 0,
+            commissionAmountOriginal: auction.commissionAmount || 0,
+            // Converted values
+            finalPrice: convertedFinalPrice,
+            commissionAmount: convertedCommissionAmount,
             auctionType: auction.auctionType,
             status: auction.status,
             paymentStatus: auction.paymentStatus,
-            // Include basic info for display
+            baseCurrency: auction.baseCurrency,
+            displayCurrency: userCurrency,
             photos: auction.photos?.length > 0 ? [auction.photos[0]] : [],
             endDate: auction.endDate,
             createdAt: auction.createdAt,
@@ -148,9 +178,7 @@ export const getCheckoutData = async (req, res) => {
             email: seller.email,
             phone: seller.phone,
             memberSince: seller.createdAt,
-            // Include address
             address: sellerAddress,
-            // Include bank transfer details if available
             payoutMethods: seller.payoutMethods
                 ? {
                     bankTransfer: seller.payoutMethods.bankTransfer
@@ -175,10 +203,6 @@ export const getCheckoutData = async (req, res) => {
         // Prepare bidder address data for response
         const bidderAddressData = bidderAddress;
 
-        // Calculate total amount
-        const totalAmount =
-            (auction.finalPrice || 0) + (auction.commissionAmount || 0);
-
         return res.status(200).json({
             success: true,
             message: "Checkout data retrieved successfully",
@@ -199,11 +223,14 @@ export const getCheckoutData = async (req, res) => {
                         : null,
                 },
                 totals: {
-                    winningBid: auction.finalPrice || 0,
-                    commission: auction.commissionAmount || 0,
-                    subtotal: totalAmount,
+                    winningBid: convertedFinalPrice,
+                    winningBidOriginal: auction.finalPrice || 0,
+                    commission: convertedCommissionAmount,
+                    commissionOriginal: auction.commissionAmount || 0,
+                    subtotal: parseFloat(convertedTotalAmount.toFixed(2)),
+                    subtotalOriginal: (auction.finalPrice || 0) + (auction.commissionAmount || 0),
+                    displayCurrency: userCurrency,
                 },
-                // ✅ Add admin bank details for bank transfer payments
                 adminBankDetails: adminBankDetails,
             },
         });

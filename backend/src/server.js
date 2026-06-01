@@ -21,6 +21,7 @@ import checkoutRouter from "./routes/checkout.route.js";
 import paymentRouter from "./routes/payment.route.js";
 import payoutRouter from "./routes/payout.route.js";
 import reviewRouter from "./routes/review.route.js";
+import currencyRouter from "./routes/currency.route.js";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -76,6 +77,7 @@ app.use("/api/v1/checkout", checkoutRouter);
 app.use('/api/v1/payments', paymentRouter);
 app.use("/api/v1/payouts", payoutRouter);
 app.use("/api/v1/reviews", reviewRouter);
+app.use("/api/v1/currency", currencyRouter);
 
 // 404 handler - SIMPLIFIED VERSION
 app.use((req, res, next) => {

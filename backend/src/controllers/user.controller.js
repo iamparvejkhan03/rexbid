@@ -8,6 +8,18 @@ import {
 } from "../utils/nodemailer.js";
 import crypto from "crypto";
 import BidPayment from "../models/bidPayment.model.js";
+import Review from "../models/review.model.js";
+import Auction from "../models/auction.model.js";
+import { getCachedRates } from "../routes/currency.route.js";
+
+const convertPrice = (auction, targetCurrency, priceField) => {
+  const rates = getCachedRates();
+  if (!rates) return auction[priceField]; // fallback
+  const base = auction.baseCurrency;
+  const rate = rates[base].rates[targetCurrency];
+  if (!rate) return auction[priceField];
+  return auction[priceField] * rate;
+};
 
 // Helper function to generate tokens and set cookies
 const generateTokensAndRespond = async (user, req, res, message) => {
@@ -66,6 +78,7 @@ export const registerUser = async (req, res) => {
       userType,
       countryCode,
       countryName,
+      currency,
       phone = "",
       image = "",
       street = "",
@@ -138,6 +151,7 @@ export const registerUser = async (req, res) => {
       userType,
       countryCode,
       countryName,
+      currency,
       phone,
       image,
       stripeCustomerId,
@@ -650,18 +664,15 @@ export const updatePaymentMethod = async (req, res) => {
   }
 };
 
-
-import Review from "../models/review.model.js";
-import Auction from "../models/auction.model.js";
-
 /**
  * Get seller stats for a user (items sold, average rating, total reviews)
  */
 export const getSellerStats = async (req, res) => {
   try {
     const { userId } = req.params;
+    const userCurrency = req.query.currency || 'EUR';
 
-    const user = await User.findById(userId).select("username firstName lastName countryName isVerified identificationStatus image email phone");
+    const user = await User.findById(userId).select("username firstName lastName countryName isVerified identificationStatus image email phone currency");
     if (!user) {
       return res.status(404).json({ success: false, message: "User not found" });
     }
@@ -688,6 +699,26 @@ export const getSellerStats = async (req, res) => {
     // Determine verified status: user.isVerified or identificationStatus === 'verified'
     const isVerified = user.isVerified || user.identificationStatus === "verified";
 
+    // Optional: Calculate total revenue from sold auctions (converted to user's currency)
+    let totalRevenueConverted = 0;
+    let averageSalePriceConverted = 0;
+
+    if (itemsSold > 0) {
+      const soldAuctions = await Auction.find({
+        seller: userId,
+        status: "sold"
+      }).select("finalPrice baseCurrency currentPrice");
+
+      for (const auction of soldAuctions) {
+        const finalPrice = auction.finalPrice || auction.currentPrice;
+        if (finalPrice) {
+          const convertedPrice = convertPrice(auction, userCurrency, 'finalPrice') || convertPrice(auction, userCurrency, 'currentPrice');
+          totalRevenueConverted += convertedPrice || 0;
+        }
+      }
+      averageSalePriceConverted = totalRevenueConverted / itemsSold;
+    }
+
     res.status(200).json({
       success: true,
       data: {
@@ -696,6 +727,8 @@ export const getSellerStats = async (req, res) => {
         phone: user?.phone,
         fullName: `${user.firstName || ""} ${user.lastName || ""}`.trim(),
         country: user.countryName || "Not specified",
+        currency: user?.currency || userCurrency,
+        displayCurrency: userCurrency,
         isVerified,
         itemsSold,
         itemsAdded,
@@ -703,6 +736,9 @@ export const getSellerStats = async (req, res) => {
         averageRating: parseFloat(averageRating.toFixed(2)),
         totalReviews,
         positivePercentage: parseFloat(positivePercentage.toFixed(2)),
+        // Optional revenue stats (converted)
+        totalRevenue: parseFloat(totalRevenueConverted.toFixed(2)),
+        averageSalePrice: parseFloat(averageSalePriceConverted.toFixed(2)),
       },
     });
   } catch (error) {

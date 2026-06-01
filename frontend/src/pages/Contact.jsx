@@ -139,8 +139,8 @@ function Contact() {
                                 </div>
                                 <div>
                                     <p className="text-sm text-white/60">Phone</p>
-                                    <Link to={`tel:${otherData?.phone}`} className="hover:text-[#D19F3E] transition">
-                                        {otherData.phone}
+                                    <Link to={`tel:${otherData?.phoneCode}${otherData?.phone}`} className="hover:text-[#D19F3E] transition">
+                                        {otherData?.phoneCode} {otherData?.formatPhone(otherData?.phone)}
                                     </Link>
                                 </div>
                             </div>
@@ -201,7 +201,7 @@ function Contact() {
                                 </label>
                                 <input
                                     type="tel"
-                                    placeholder="+47 xxx xxxxx"
+                                    placeholder={`${otherData?.phoneCode} (xxx) xxx xxxx`}
                                     className="w-full border border-gray-200 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#D19F3E]/50 focus:border-[#D19F3E] transition"
                                     {...register("phone")}
                                 />
@@ -252,7 +252,7 @@ function Contact() {
             {/* Info Cards Row – simple, animated */}
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 my-14">
                 {[
-                    { icon: Phone, title: "Phone", content: otherData.phone, delay: 0 },
+                    { icon: Phone, title: "Phone", content: `${otherData?.phoneCode} ${otherData?.formatPhone?.(otherData?.phone) || ''}`, delay: 0 },
                     { icon: Mail, title: "Email", content: otherData.email, delay: 1 },
                     { icon: MapPin, title: "Location", content: otherData.address, delay: 2 },
                     { icon: Clock, title: "Hours", content: "Mon-Fri: 9AM–5PM\nSat: 9AM–2:30PM", delay: 3 },

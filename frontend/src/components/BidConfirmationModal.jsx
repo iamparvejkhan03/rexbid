@@ -1,5 +1,6 @@
 import { forwardRef, useEffect, useState } from "react";
 import axiosInstance from "../utils/axiosInstance";
+import { useAuth } from "../contexts/AuthContext";
 
 const BidConfirmationModal = forwardRef((props, ref) => {
     const {
@@ -15,6 +16,9 @@ const BidConfirmationModal = forwardRef((props, ref) => {
     const [isCommissionEnabled, setIsCommissionEnabled] = useState(null);
     const [commissionAppliesTo, setCommissionAppliesTo] = useState([]);
     const [serviceFee, setServiceFee] = useState(0);
+
+    const { user } = useAuth();
+    const userCurrency = user?.currency || 'EUR';
 
     useEffect(() => {
         if (!isOpen) return;
@@ -48,9 +52,9 @@ const BidConfirmationModal = forwardRef((props, ref) => {
 
     if (!isOpen) return null;
 
-    const formatNOK = (amount) => {
-        if (!amount && amount !== 0) return "0 kr";
-        return `${Number(amount).toLocaleString("nb-NO")} kr`;
+    const formatCurrency = (amount) => {
+        if (!amount && amount !== 0) return `${userCurrency === 'GBP' ? '£' : '€'}0`;
+        return `${userCurrency === 'GBP' ? '£' : '€'}${Number(amount).toLocaleString("en-IE")}`;
     };
 
     const total = (isCommissionEnabled && commissionAppliesTo?.includes('bidder') ? Number(bidAmount) + Number(serviceFee) : Number(bidAmount));
@@ -87,19 +91,19 @@ const BidConfirmationModal = forwardRef((props, ref) => {
                             <tr>
                                 <td className="text-gray-600">Bid Amount:</td>
                                 <td className="text-right text-gray-900">
-                                    {formatNOK(bidAmount)}
+                                    {formatCurrency(bidAmount)}
                                 </td>
                             </tr>
                             {isCommissionEnabled && commissionAppliesTo?.includes('bidder') && <tr>
                                 <td className="text-gray-600">Service Fee:</td>
                                 <td className="text-right text-gray-900">
-                                    {formatNOK(serviceFee)}
+                                    {formatCurrency(serviceFee)}
                                 </td>
                             </tr>}
                             <tr className="border-t border-gray-200">
                                 <td className="py-3 font-semibold text-gray-900">Total:</td>
                                 <td className="py-3 text-right font-semibold text-gray-900">
-                                    {formatNOK(total)}
+                                    {formatCurrency(total)}
                                 </td>
                             </tr>
                         </tbody>

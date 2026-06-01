@@ -5,6 +5,7 @@ import { about } from "../../assets";
 import axiosInstance from "../../utils/axiosInstance";
 import { useWatchlist } from "../../hooks/useWatchlist";
 import { Link } from "react-router-dom";
+import { useAuth } from "../../contexts/AuthContext";
 
 function Watchlist() {
     const [watchlist, setWatchlist] = useState([]);
@@ -16,11 +17,14 @@ function Watchlist() {
     const [sortBy, setSortBy] = useState("timeLeft");
     const [loadingMore, setLoadingMore] = useState(false);
 
+    const { user } = useAuth();
+    const userCurrency = user?.currency || 'EUR';
+
     // Fetch watchlist from API
     const fetchWatchlist = async () => {
         try {
             setLoading(true);
-            const { data } = await axiosInstance.get('/api/v1/watchlist/my-watchlist');
+            const { data } = await axiosInstance.get(`/api/v1/watchlist/my-watchlist?currency=${userCurrency}`);
             if (data.success) {
                 setWatchlist(data.data.watchlist || []);
                 setPagination(data.data.pagination || []);
@@ -83,14 +87,14 @@ function Watchlist() {
                 title: auction.title,
                 description: auction.description,
                 category: auction.category,
-                currentBid: auction.currentPrice || auction.startingPrice,
-                startingBid: auction.startPrice,
+                currentBid: auction.convertedCurrentPrice || auction.convertedStartPrice,
+                startingBid: auction.convertedStartPrice,
                 bids: auction.bidCount || 0,
                 watchers: auction.watchlistCount || 0,
                 timeLeft: calculateTimeLeft(auction.endDate),
                 endTime: auction.endDate,
                 image: auction.photos?.[0] || about,
-                auctionType: auction.reservePrice ? "Reserve Auction" : "Standard Auction",
+                auctionType: auction.convertedReservePrice ? "Reserve Auction" : "Standard Auction",
                 notifications: true, // You can add this field to your model if needed
                 condition: auction.condition || "Good",
                 location: auction.location || "Unknown",
@@ -311,6 +315,7 @@ function Watchlist() {
                                     key={item.id}
                                     item={item}
                                     onRemove={removeFromWatchlist}
+                                    userCurrency={userCurrency}
                                 />
                             ))
                         ) : (
@@ -358,7 +363,7 @@ function Watchlist() {
 }
 
 // Separate component for individual watchlist items to use the useWatchlist hook
-function WatchlistItem({ item, onRemove }) {
+function WatchlistItem({ item, onRemove, userCurrency }) {
     const { isWatchlisted, toggleWatchlist, loading } = useWatchlist(item.id);
 
     const handleRemove = () => {
@@ -437,10 +442,10 @@ function WatchlistItem({ item, onRemove }) {
                         {/* Bid Information */}
                         <div className="lg:text-right">
                             <div className="text-2xl font-bold text-green-600 mb-1">
-                                {item.currentBid.toLocaleString('nb-NO')} kr
+                                {userCurrency === 'GBP' ? '£' : '€'}{item.currentBid.toLocaleString('en-IE')}
                             </div>
                             <div className="text-sm text-gray-500 mb-3">
-                                Starting: {item.startingBid.toLocaleString('nb-NO')} kr
+                                Starting: {userCurrency === 'GBP' ? '£' : '€'}{item.startingBid.toLocaleString('en-IE')}
                             </div>
                             <div className={`flex items-center justify-center lg:justify-end text-sm font-medium ${getTimeLeftColor(item.timeLeft)}`}>
                                 <Clock size={14} className="mr-1" />

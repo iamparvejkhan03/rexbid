@@ -5,6 +5,7 @@ import axiosInstance from "../../utils/axiosInstance";
 import { useState } from "react";
 import { TrendingUp, Users, Gavel, Banknote, Settings, Crown, Heart, MessageCircle, Hand, Store, UserCog, CheckSquare } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useAuth } from "../../contexts/AuthContext";
 
 function Dashboard() {
     const [loading, setLoading] = useState(false);
@@ -17,10 +18,13 @@ function Dashboard() {
         successRate: 0,
     });
 
+    const { user } = useAuth();
+    const userCurrency = user?.currency || 'EUR';
+
     const fetchAdminStats = async () => {
         setLoading(true);
         try {
-            const { data } = await axiosInstance.get('/api/v1/admin/stats');
+            const { data } = await axiosInstance.get(`/api/v1/admin/stats?currency=${userCurrency}`);
             if (data.success) {
                 setAdminStats(data.data);
             }
@@ -39,7 +43,7 @@ function Dashboard() {
     const statsData = [
         {
             title: "Total Users",
-            value: adminStats.totalUsers?.toLocaleString('nb-NO'),
+            value: adminStats.totalUsers?.toLocaleString('en-IE'),
             change: `+${adminStats.recentUsers || 0} this week`,
             icon: <Users size={24} />,
             trend: "up",
@@ -47,7 +51,7 @@ function Dashboard() {
         },
         {
             title: "Total Bidders",
-            value: adminStats?.userTypeStats?.bidder?.toLocaleString('nb-NO') || 0,
+            value: adminStats?.userTypeStats?.bidder?.toLocaleString('en-IE') || 0,
             change: `+${adminStats.recentUsers || 0} this week`,
             icon: <Hand size={24} />,
             trend: "up",
@@ -55,7 +59,7 @@ function Dashboard() {
         },
         {
             title: "Total Sellers",
-            value: adminStats?.userTypeStats?.seller?.toLocaleString('nb-NO') || 0,
+            value: adminStats?.userTypeStats?.seller?.toLocaleString('en-IE') || 0,
             change: `+${adminStats.recentUsers || 0} this week`,
             icon: <Store size={24} />,
             trend: "up",
@@ -63,7 +67,7 @@ function Dashboard() {
         },
         {
             title: "Total Admins",
-            value: adminStats?.userTypeStats?.admin?.toLocaleString('nb-NO'),
+            value: adminStats?.userTypeStats?.admin?.toLocaleString('en-IE'),
             change: `+${adminStats.recentUsers || 0} this week`,
             icon: <UserCog size={24} />,
             trend: "up",
@@ -103,78 +107,78 @@ function Dashboard() {
         },
         {
             title: "Total Offers",
-            value: adminStats?.totalOffers?.toLocaleString('nb-NO'),
-            change: `Today: ${adminStats?.totalOffers?.toLocaleString('nb-NO') || 0} kr`,
+            value: adminStats?.totalOffers?.toLocaleString('en-IE'),
+            change: `Today: ${userCurrency === 'GBP' ? '£' : '€'}${adminStats?.totalOffers?.toLocaleString('en-IE') || 0}`,
             icon: <Hand size={24} />,
             trend: "up",
             description: "All-time offers received"
         },
         {
             title: "Total Offer Value",
-            value: adminStats?.totalOfferValue?.toLocaleString('nb-NO'),
-            change: `Today: ${adminStats?.totalOfferValue?.toLocaleString('nb-NO') || 0} kr`,
+            value: adminStats?.totalOfferValue?.toLocaleString('en-IE'),
+            change: `Today: ${userCurrency === 'GBP' ? '£' : '€'}${adminStats?.totalOfferValue?.toLocaleString('en-IE') || 0}`,
             icon: <Hand size={24} />,
             trend: "up",
-            currency: " kr",
+            currency: userCurrency === 'GBP' ? '£' : '€',
             description: "Total value of all offers"
         },
         {
             title: "Highest Offer",
-            value: adminStats?.highestOfferAmount?.toLocaleString('nb-NO'),
-            change: `Today: ${adminStats?.highestOfferAmount?.toLocaleString('nb-NO') || 0} kr`,
+            value: adminStats?.highestOfferAmount?.toLocaleString('en-IE'),
+            change: `Today: ${userCurrency === 'GBP' ? '£' : '€'}${adminStats?.highestOfferAmount?.toLocaleString('en-IE') || 0}`,
             icon: <Hand size={24} />,
             trend: "up",
-            currency: " kr",
+            currency: userCurrency === 'GBP' ? '£' : '€',
             description: "All-time highest offer"
         },
         {
             title: "Average Offer",
-            value: adminStats?.averageOfferAmount?.toFixed(0)?.toLocaleString('nb-NO'),
-            change: `Today: ${adminStats?.averageOfferAmount?.toLocaleString('nb-NO') || 0} kr`,
+            value: adminStats?.averageOfferAmount?.toFixed(0)?.toLocaleString('en-IE'),
+            change: `Today: ${userCurrency === 'GBP' ? '£' : '€'}${adminStats?.averageOfferAmount?.toLocaleString('en-IE') || 0}`,
             icon: <Hand size={24} />,
             trend: "up",
-            currency: " kr",
+            currency: userCurrency === 'GBP' ? '£' : '€',
             description: "Average offer amount"
         },
         {
             title: "Total Sales",
-            value: adminStats.totalRevenue?.toLocaleString('nb-NO'),
-            change: `Today: ${adminStats.todayRevenue?.toLocaleString('nb-NO') || 0} kr`,
+            value: adminStats.totalRevenue?.toLocaleString('en-IE'),
+            change: `Today: ${userCurrency === 'GBP' ? '£' : '€'}${adminStats.todayRevenue?.toLocaleString('en-IE') || 0}`,
             icon: <Banknote size={24} />,
             trend: "up",
-            currency: " kr",
+            currency: userCurrency === 'GBP' ? '£' : '€',
             description: "All-time platform revenue"
         },
         {
             title: "Today Sales",
-            value: adminStats?.todayRevenue?.toLocaleString('nb-NO'),
-            change: `Today: ${adminStats.todayRevenue?.toLocaleString('nb-NO') || 0} kr`,
+            value: adminStats?.todayRevenue?.toLocaleString('en-IE'),
+            change: `Today: ${userCurrency === 'GBP' ? '£' : '€'}${adminStats.todayRevenue?.toLocaleString('en-IE') || 0}`,
             icon: <Banknote size={24} />,
             trend: "up",
-            currency: " kr",
+            currency: userCurrency === 'GBP' ? '£' : '€',
             description: "Today's Platform Revenue"
         },
         {
             title: "Highest Sale",
-            value: adminStats.highestSaleAmount?.toLocaleString('nb-NO'),
+            value: adminStats.highestSaleAmount?.toLocaleString('en-IE'),
             change: "Record sale",
             icon: <Crown size={24} />,
             trend: "up",
-            currency: " kr",
+            currency: userCurrency === 'GBP' ? '£' : '€',
             description: adminStats.highestSaleAuction?.title || "No sales yet"
         },
         {
             title: "Average Sale",
-            value: adminStats?.averageSalePrice?.toLocaleString('nb-NO'),
+            value: adminStats?.averageSalePrice?.toLocaleString('en-IE'),
             change: "Record sale",
             icon: <Banknote size={24} />,
             trend: "up",
-            currency: " kr",
+            currency: userCurrency === 'GBP' ? '£' : '€',
             description: `${adminStats?.totalSoldAuctions} Sold Auctions`
         },
         {
             title: "Total Bids",
-            value: adminStats?.totalBids?.toLocaleString('nb-NO'),
+            value: adminStats?.totalBids?.toLocaleString('en-IE'),
             change: "Record sale",
             icon: <Gavel size={24} />,
             trend: "up",
@@ -182,7 +186,7 @@ function Dashboard() {
         },
         {
             title: "Recent Bids",
-            value: adminStats?.recentBids?.toLocaleString('nb-NO'),
+            value: adminStats?.recentBids?.toLocaleString('en-IE'),
             change: "Newly placed",
             icon: <Gavel size={24} />,
             trend: "up",
@@ -190,33 +194,33 @@ function Dashboard() {
         },
         {
             title: "Highest Bid Amount",
-            value: adminStats?.highestBidAmount?.toLocaleString('nb-NO'),
+            value: adminStats?.highestBidAmount?.toLocaleString('en-IE'),
             change: "Highest bid",
             icon: <Banknote size={24} />,
             trend: "up",
-            currency: " kr",
+            currency: userCurrency === 'GBP' ? '£' : '€',
             description: `On ${adminStats?.totalAuctions} Auctions`
         },
         {
             title: "Average Bid Amount",
-            value: adminStats?.averageBidAmount?.toFixed(0)?.toLocaleString('nb-NO'),
+            value: adminStats?.averageBidAmount?.toFixed(0)?.toLocaleString('en-IE'),
             change: "Average bid",
             icon: <Banknote size={24} />,
             trend: "up",
-            currency: " kr",
+            currency: userCurrency === 'GBP' ? '£' : '€',
             description: `On ${adminStats?.totalAuctions} Auctions`
         },
         {
             title: "Pending Offers",
-            value: adminStats?.pendingOffers?.toLocaleString('nb-NO'),
-            change: `Today: ${adminStats?.pendingOffers?.toLocaleString('nb-NO') || 0} kr`,
+            value: adminStats?.pendingOffers?.toLocaleString('en-IE'),
+            change: `Today: ${adminStats?.pendingOffers?.toLocaleString('en-IE') || 0} kr`,
             icon: <Hand size={24} />,
             trend: "down",
             description: "Offers awaiting review"
         },
         {
             title: "Total Comments",
-            value: adminStats?.totalComments?.toLocaleString('nb-NO'),
+            value: adminStats?.totalComments?.toLocaleString('en-IE'),
             change: "Record sale",
             icon: <MessageCircle size={24} />,
             trend: "up",
@@ -224,7 +228,7 @@ function Dashboard() {
         },
         {
             title: "Watchlist",
-            value: adminStats?.totalWatchlists?.toLocaleString('nb-NO'),
+            value: adminStats?.totalWatchlists?.toLocaleString('en-IE'),
             change: "Record sale",
             icon: <Heart size={24} />,
             trend: "up",
@@ -271,8 +275,8 @@ function Dashboard() {
                                             <div>
                                                 <p className="text-sm text-gray-500">{stat.title}</p>
                                                 <h3 className="text-2xl font-bold mt-1">
-                                                    {stat.value}
                                                     {stat.currency && <span>{stat.currency}</span>}
+                                                    {stat.value}
                                                     {stat.suffix && <span>{stat.suffix}</span>}
                                                 </h3>
                                                 <p className="text-xs text-gray-400 mt-1">{stat.description}</p>
@@ -299,13 +303,13 @@ function Dashboard() {
                                                 <h3 className="text-lg font-semibold text-[#1e2d3b]">Highest Sale Record</h3>
                                             </div>
                                             <p className="text-2xl font-bold text-[#1e2d3b]">
-                                                {adminStats.highestSaleAmount?.toLocaleString('nb-NO')} kr
+                                                {userCurrency === 'GBP' ? '£' : '€'}{adminStats.highestSaleAmount?.toLocaleString('en-IE')}
                                             </p>
                                             <p className="text-sm text-[#1e2d3b] mt-1">{adminStats.highestSaleAuction.title}</p>
                                             <div className="flex gap-4 mt-2 text-xs text-[#1e2d3b]">
                                                 <span>Seller: {adminStats.highestSaleAuction.seller}</span>
                                                 <span>Buyer: {adminStats.highestSaleAuction.winner}</span>
-                                                <span>Date: {new Date(adminStats.highestSaleAuction.date).toLocaleDateString('nb-NO')}</span>
+                                                <span>Date: {new Date(adminStats.highestSaleAuction.date).toLocaleDateString('en-IE')}</span>
                                             </div>
                                         </div>
                                         <div className="hidden md:block bg-[#1e2d3b]/10 p-3 rounded-lg">

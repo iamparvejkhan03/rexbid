@@ -17,7 +17,7 @@ const Login = () => {
     const { login, user } = useAuth();
 
     useEffect(() => {
-        if (user) {
+        if (user && user?.userType) {
             navigate(`/${user.userType}/dashboard`);
         }
     }, [user])

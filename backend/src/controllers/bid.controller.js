@@ -1,6 +1,16 @@
 import { StripeService } from '../services/stripeService.js';
 import User from '../models/user.model.js';
 import Auction from '../models/auction.model.js';
+import { getCachedRates } from '../routes/currency.route.js';
+
+const convertPrice = (auction, targetCurrency, priceField) => {
+    const rates = getCachedRates();
+    if (!rates) return auction[priceField]; // fallback
+    const base = auction.baseCurrency;
+    const rate = rates[base].rates[targetCurrency];
+    if (!rate) return auction[priceField];
+    return auction[priceField] * rate;
+};
 
 export const chargeWinningBidder = async (req, res) => {
     try {
@@ -112,147 +122,116 @@ export const getMyBids = async (req, res) => {
     try {
         const userId = req.user._id;
         const { page = 1, limit = 12, status, search, sortBy = 'recent' } = req.query;
+        const userCurrency = req.query.currency || 'EUR';
+        const rates = getCachedRates();
 
         // Build base query for all user bids
-        const baseQuery = {
-            'bids.bidder': userId
-        };
-
-        // Get total count
+        const baseQuery = { 'bids.bidder': userId };
         const total = await Auction.countDocuments(baseQuery);
 
-        // Get paginated auctions for display
+        // Get auctions without pagination for stats (or keep as is)
         const auctions = await Auction.find(baseQuery)
             .populate('seller', 'username firstName lastName')
             .populate('currentBidder', 'username firstName')
             .populate('winner', 'username firstName lastName')
-            .sort({ 'bids.timestamp': -1 })
-            // .limit(limit * 1)
-            // .skip((page - 1) * limit);
+            .sort({ 'bids.timestamp': -1 });
 
-        // CALCULATE STATISTICS USING AGGREGATION PIPELINE
-        const statsPipeline = [
-            { $match: { 'bids.bidder': userId } },
-            {
-                $facet: {
-                    // Total auctions user has bid on
-                    totalAuctions: [
-                        { $count: 'count' }
-                    ],
-                    // Active bids (winning + outbid)
-                    activeBids: [
-                        { 
-                            $match: { 
-                                status: 'active',
-                                'bids.bidder': userId 
-                            } 
-                        },
-                        {
-                            $project: {
-                                isWinning: {
-                                    $eq: ['$currentBidder', userId]
-                                }
-                            }
-                        },
-                        {
-                            $group: {
-                                _id: null,
-                                totalWinning: {
-                                    $sum: { $cond: ['$isWinning', 1, 0] }
-                                },
-                                totalOutbid: {
-                                    $sum: { $cond: ['$isWinning', 0, 1] }
-                                }
-                            }
-                        }
-                    ],
-                    // Won auctions and their total amount
-                    wonAuctions: [
-                        { 
-                            $match: { 
-                                winner: userId,
-                                status: { $in: ['sold', 'ended'] }
-                            } 
-                        },
-                        {
-                            $group: {
-                                _id: null,
-                                count: { $sum: 1 },
-                                totalAmount: { $sum: '$finalPrice' }
-                            }
-                        }
-                    ],
-                    // Lost auctions count
-                    lostAuctions: [
-                        { 
-                            $match: { 
-                                winner: { $ne: userId },
-                                status: { $in: ['sold', 'ended', 'reserve_not_met'] },
-                                'bids.bidder': userId
-                            } 
-                        },
-                        { $count: 'count' }
-                    ]
-                }
-            }
-        ];
+        // ------------------------- STATISTICS (with conversion) -------------------------
+        let totalWonAmountConverted = 0;
+        let totalWonCount = 0;
+        let totalLostCount = 0;
+        let totalWinningCount = 0;
+        let totalOutbidCount = 0;
 
-        const statsResult = await Auction.aggregate(statsPipeline);
-        const stats = statsResult[0];
-
-        // Extract values from aggregation results
-        const totalBids = stats.totalAuctions[0]?.count || 0;
-        const totalActiveBids = (stats.activeBids[0]?.totalWinning || 0) + (stats.activeBids[0]?.totalOutbid || 0);
-        const totalWinning = stats.activeBids[0]?.totalWinning || 0;
-        const totalWon = stats.wonAuctions[0]?.count || 0;
-        const totalWonAmount = stats.wonAuctions[0]?.totalAmount || 0; // This is the winning amounts total
-        const totalLost = stats.lostAuctions[0]?.count || 0;
-
-        // Success rate
-        const completedAuctions = totalWon + totalLost;
-        const successRate = completedAuctions > 0 ? 
-            Math.round((totalWon / completedAuctions) * 100) : 0;
-
-        // Transform paginated data for response
-        const transformedBids = auctions.map(auction => {
-            const userBids = auction.bids.filter(bid => 
-                bid.bidder.toString() === userId.toString()
-            );
-            const latestUserBid = userBids.reduce((latest, bid) => 
-                bid.timestamp > latest.timestamp ? bid : latest, userBids[0]
-            );
+        for (const auction of auctions) {
+            const base = auction.baseCurrency;
+            const rate = (rates && rates[base]?.rates[userCurrency]) || 1;
+            const userBids = auction.bids.filter(bid => bid.bidder.toString() === userId.toString());
+            const latestUserBid = userBids.reduce((latest, bid) => bid.timestamp > latest.timestamp ? bid : latest, userBids[0]);
+            if (!latestUserBid) continue;
 
             // Determine bid status
-            let status = 'outbid';
-            
+            let bidStatus = 'outbid';
             if (auction.status === 'sold' || auction.status === 'ended') {
-                if (auction.winner && auction.winner?._id.toString() === userId.toString()) {
-                    status = 'won';
+                if (auction.winner && auction.winner._id.toString() === userId.toString()) {
+                    bidStatus = 'won';
+                    totalWonCount++;
+                    // Convert finalPrice to user's currency
+                    const convertedFinal = (auction.finalPrice || 0) * rate;
+                    totalWonAmountConverted += convertedFinal;
                 } else {
-                    status = 'lost';
+                    bidStatus = 'lost';
+                    totalLostCount++;
                 }
             } else if (auction.status === 'active') {
-                if (auction.currentBidder && auction.currentBidder?._id.toString() === userId.toString()) {
-                    status = 'winning';
+                if (auction.currentBidder && auction.currentBidder._id.toString() === userId.toString()) {
+                    bidStatus = 'winning';
+                    totalWinningCount++;
                 } else {
-                    status = 'outbid';
+                    bidStatus = 'outbid';
+                    totalOutbidCount++;
                 }
+            } else if (auction.status === 'reserve_not_met') {
+                bidStatus = 'lost';
+                totalLostCount++;
+            }
+        }
+
+        const totalBids = auctions.length;
+        const totalActiveBids = totalWinningCount + totalOutbidCount;
+        const completedAuctions = totalWonCount + totalLostCount;
+        const successRate = completedAuctions > 0 ? Math.round((totalWonCount / completedAuctions) * 100) : 0;
+        const avgWinAmount = totalWonCount > 0 ? Math.round(totalWonAmountConverted / totalWonCount) : 0;
+
+        // ------------------------- TRANSFORM BIDS WITH CONVERSION -------------------------
+        const transformedBids = auctions.map(auction => {
+            const base = auction.baseCurrency;
+            const rate = (rates && rates[base]?.rates[userCurrency]) || 1;
+
+            const userBids = auction.bids.filter(bid => bid.bidder.toString() === userId.toString());
+            const latestUserBid = userBids.reduce((latest, bid) => bid.timestamp > latest.timestamp ? bid : latest, userBids[0]);
+
+            // Determine bid status (same logic as above)
+            let status = 'outbid';
+            if (auction.status === 'sold' || auction.status === 'ended') {
+                if (auction.winner && auction.winner._id.toString() === userId.toString()) status = 'won';
+                else status = 'lost';
+            } else if (auction.status === 'active') {
+                if (auction.currentBidder && auction.currentBidder._id.toString() === userId.toString()) status = 'winning';
+                else status = 'outbid';
             } else if (auction.status === 'reserve_not_met') {
                 status = 'lost';
             }
 
-            const nextMinBid = auction.status === 'active' ? 
-                auction.currentPrice + auction.bidIncrement : null;
+            // Convert all price fields
+            const myBidConverted = latestUserBid.amount * rate;
+            const currentPriceConverted = auction.currentPrice * rate;
+            const startPriceConverted = auction.startPrice * rate;
+            const bidIncrementConverted = (auction.bidIncrement || 0) * rate;
+            let nextMinBidConverted = null;
+            if (auction.status === 'active') {
+                nextMinBidConverted = (auction.currentPrice + (auction.bidIncrement || 0)) * rate;
+            }
 
             return {
-                id: auction?._id.toString(),
-                auctionId: `AU${auction?._id.toString().slice(-6).toUpperCase()}`,
+                id: auction._id.toString(),
+                auctionId: `AU${auction._id.toString().slice(-6).toUpperCase()}`,
                 title: auction.title,
                 description: auction.description,
-                category: auction.category,
-                myBidAmount: latestUserBid.amount,
-                currentBid: auction.currentPrice,
-                startingBid: auction.startPrice,
+                category: auction.categories?.[0] || '',
+                // Original amounts (in base currency)
+                myBidAmountOriginal: latestUserBid.amount,
+                currentBidOriginal: auction.currentPrice,
+                startingBidOriginal: auction.startPrice,
+                bidIncrementOriginal: auction.bidIncrement,
+                nextMinBidOriginal: nextMinBidConverted ? (auction.currentPrice + auction.bidIncrement) : null,
+                // Converted amounts
+                myBidAmount: parseFloat(myBidConverted.toFixed(2)),
+                currentBid: parseFloat(currentPriceConverted.toFixed(2)),
+                startingBid: parseFloat(startPriceConverted.toFixed(2)),
+                bidIncrement: parseFloat(bidIncrementConverted.toFixed(2)),
+                nextMinBid: nextMinBidConverted ? parseFloat(nextMinBidConverted.toFixed(2)) : null,
+                // Status and metadata
                 status: status,
                 bidTime: latestUserBid.timestamp,
                 endTime: auction.endDate,
@@ -260,63 +239,63 @@ export const getMyBids = async (req, res) => {
                 watchers: auction.watchlistCount,
                 image: auction.photos.length > 0 ? auction.photos[0].url : '/api/placeholder/400/300',
                 location: auction.location,
-                sellerRating: 4.5,
+                sellerRating: 4.5, // placeholder
                 timeLeft: calculateTimeLeft(auction.endDate),
-                bidIncrement: auction.bidIncrement,
-                nextMinBid: nextMinBid,
                 auctionStatus: auction.status,
                 winnerInfo: auction.winner ? {
-                    id: auction.winner?._id.toString(),
-                    name: auction.winner.firstName + ' ' + auction.winner.lastName
+                    id: auction.winner._id.toString(),
+                    name: `${auction.winner.firstName} ${auction.winner.lastName}`.trim()
                 } : null,
                 currentBidderInfo: auction.currentBidder ? {
                     id: auction.currentBidder._id.toString(),
                     name: auction.currentBidder.firstName
-                } : null
+                } : null,
+                // Currency info
+                displayCurrency: userCurrency,
+                baseCurrency: auction.baseCurrency
             };
         });
 
-        // Apply filtering and sorting to paginated results
+        // Apply filtering and sorting (same as before, but using converted amounts where needed)
         let filteredBids = transformedBids.filter(bid => {
             const matchesStatus = !status || status === 'all' || bid.status === status;
-            const matchesSearch = !search || 
+            const matchesSearch = !search ||
                 bid.title.toLowerCase().includes(search.toLowerCase()) ||
                 bid.description.toLowerCase().includes(search.toLowerCase());
             return matchesStatus && matchesSearch;
         });
 
         filteredBids.sort((a, b) => {
-            switch(sortBy) {
-                case 'recent':
-                    return new Date(b.bidTime) - new Date(a.bidTime);
-                case 'ending_soon':
-                    return new Date(a.endTime) - new Date(b.endTime);
-                case 'bid_amount':
-                    return b.myBidAmount - a.myBidAmount;
-                case 'auction_value':
-                    return b.currentBid - a.currentBid;
-                default:
-                    return new Date(b.bidTime) - new Date(a.bidTime);
+            switch (sortBy) {
+                case 'recent': return new Date(b.bidTime) - new Date(a.bidTime);
+                case 'ending_soon': return new Date(a.endTime) - new Date(b.endTime);
+                case 'bid_amount': return b.myBidAmount - a.myBidAmount;
+                case 'auction_value': return b.currentBid - a.currentBid;
+                default: return new Date(b.bidTime) - new Date(a.bidTime);
             }
         });
+
+        // Paginate
+        const start = (parseInt(page) - 1) * parseInt(limit);
+        const paginatedBids = filteredBids.slice(start, start + parseInt(limit));
 
         res.status(200).json({
             success: true,
             data: {
-                bids: filteredBids,
+                bids: paginatedBids,
                 statistics: {
-                    totalBids: totalBids,
-                    totalActiveBids: totalActiveBids,
-                    totalWinning: totalWinning,
-                    totalWon: totalWon,
-                    totalLost: totalLost,
-                    totalWonAmount: totalWonAmount, // Total amount of won auctions
-                    successRate: successRate,
-                    avgWinAmount: totalWon > 0 ? Math.round(totalWonAmount / totalWon) : 0
+                    totalBids,
+                    totalActiveBids,
+                    totalWinning: totalWinningCount,
+                    totalWon: totalWonCount,
+                    totalLost: totalLostCount,
+                    totalWonAmount: parseFloat(totalWonAmountConverted.toFixed(2)),   // now converted to user's currency
+                    successRate,
+                    avgWinAmount: parseFloat(avgWinAmount.toFixed(2))
                 },
                 pagination: {
                     currentPage: parseInt(page),
-                    totalPages: Math.ceil(total / limit),
+                    totalPages: Math.ceil(filteredBids.length / limit),
                     totalBids: total
                 }
             }
@@ -440,9 +419,11 @@ export const getSellerBidHistory = async (req, res) => {
     try {
         const sellerId = req.user._id;
         const { auctionId, page = 1, limit = 50 } = req.query;
+        const userCurrency = req.query.currency || 'EUR';
+        const rates = getCachedRates();
 
         let filter = { seller: sellerId };
-        
+
         // Filter by specific auction if provided
         if (auctionId) {
             filter._id = auctionId;
@@ -451,13 +432,120 @@ export const getSellerBidHistory = async (req, res) => {
         const auctions = await Auction.find(filter)
             .populate('bids.bidder', 'username firstName lastName email company')
             .populate('winner', 'username firstName lastName email company')
-            .sort({ endDate: -1 })
-            // .limit(limit * 1)
-            // .skip((page - 1) * limit);
+            .sort({ endDate: -1 });
+
+        // Convert each auction and its bids
+        const convertedAuctions = auctions.map(auction => {
+            const auctionObj = auction.toObject();
+            const base = auction.baseCurrency;
+            const rate = (rates && rates[base]?.rates[userCurrency]) || 1;
+
+            // Helper to convert a single price field
+            const convert = (value) => (value !== null && value !== undefined) ? parseFloat((value * rate).toFixed(2)) : null;
+
+            // Convert auction prices
+            const convertedStartPrice = convert(auction.startPrice);
+            const convertedCurrentPrice = convert(auction.currentPrice);
+            const convertedFinalPrice = convert(auction.finalPrice);
+            const convertedReservePrice = convert(auction.reservePrice);
+            const convertedBidIncrement = convert(auction.bidIncrement);
+            const convertedBuyNowPrice = convert(auction.buyNowPrice);
+
+            // Convert all bids in this auction
+            const convertedBids = auction.bids.map(bid => ({
+                ...bid.toObject(),
+                convertedAmount: convert(bid.amount),
+                originalAmount: bid.amount,
+                originalCurrency: base,
+                bidder: bid.bidder
+            }));
+
+            // Calculate bid statistics for this auction
+            const totalBids = auction.bids.length;
+            const highestBid = auction.bids.length > 0
+                ? Math.max(...auction.bids.map(b => b.amount))
+                : 0;
+            const convertedHighestBid = convert(highestBid);
+
+            // Get unique bidders count
+            const uniqueBidders = new Set(auction.bids.map(bid => bid.bidder?._id?.toString())).size;
+
+            // Check if reserve was met
+            const reserveMet = auction.reservePrice ? auction.currentPrice >= auction.reservePrice : true;
+
+            return {
+                ...auctionObj,
+                // Original values
+                startPriceOriginal: auction.startPrice,
+                currentPriceOriginal: auction.currentPrice,
+                finalPriceOriginal: auction.finalPrice,
+                reservePriceOriginal: auction.reservePrice,
+                bidIncrementOriginal: auction.bidIncrement,
+                buyNowPriceOriginal: auction.buyNowPrice,
+                // Converted values
+                convertedStartPrice,
+                convertedCurrentPrice,
+                convertedFinalPrice,
+                convertedReservePrice,
+                convertedBidIncrement,
+                convertedBuyNowPrice,
+                displayCurrency: userCurrency,
+                // Converted bids array
+                bids: convertedBids,
+                // Bid statistics (converted)
+                bidStats: {
+                    totalBids,
+                    uniqueBidders,
+                    highestBid: convertedHighestBid,
+                    highestBidOriginal: highestBid,
+                    averageBid: totalBids > 0 ? convert(auction.bids.reduce((sum, b) => sum + b.amount, 0) / totalBids) : null,
+                    reserveMet
+                },
+                winner: auction.winner,
+                endDate: auction.endDate,
+                status: auction.status,
+                title: auction.title
+            };
+        });
+
+        // Pagination (after conversion)
+        const start = (parseInt(page) - 1) * parseInt(limit);
+        const paginatedAuctions = convertedAuctions.slice(start, start + parseInt(limit));
+        const total = convertedAuctions.length;
+
+        // Calculate overall seller statistics
+        let totalWonAmount = 0;
+        let totalSoldCount = 0;
+        let totalBidsReceived = 0;
+
+        for (const auction of convertedAuctions) {
+            if (auction.status === 'sold' && auction.winner) {
+                totalWonAmount += auction.convertedFinalPrice || auction.convertedCurrentPrice || 0;
+                totalSoldCount++;
+            }
+            totalBidsReceived += auction.bidStats.totalBids;
+        }
 
         res.status(200).json({
             success: true,
-            data: { auctions }
+            data: {
+                auctions: paginatedAuctions,
+                statistics: {
+                    totalAuctions: total,
+                    totalSold: totalSoldCount,
+                    totalRevenue: parseFloat(totalWonAmount.toFixed(2)),
+                    averageSalePrice: totalSoldCount > 0 ? parseFloat((totalWonAmount / totalSoldCount).toFixed(2)) : 0,
+                    totalBidsReceived,
+                    averageBidsPerAuction: total > 0 ? Math.round(totalBidsReceived / total) : 0
+                },
+                pagination: {
+                    currentPage: parseInt(page),
+                    totalPages: Math.ceil(total / limit),
+                    totalAuctions: total,
+                    hasNextPage: start + paginatedAuctions.length < total,
+                    hasPrevPage: start > 0
+                }
+            }
         });
 
     } catch (error) {
@@ -472,25 +560,37 @@ export const getSellerBidHistory = async (req, res) => {
 export const getAdminBidHistory = async (req, res) => {
     try {
         const { page = 1, limit = 12, status, search, category, seller, sortBy = 'recent' } = req.query;
+        const userCurrency = req.query.currency || 'EUR';
+        const rates = getCachedRates();
+
+        // Helper to convert amount using auction's base currency
+        const convertAmount = (amount, auction) => {
+            if (!amount) return 0;
+            if (!rates) return amount;
+            const base = auction.baseCurrency || 'EUR';
+            const rate = rates[base]?.rates[userCurrency];
+            if (!rate) return amount;
+            return parseFloat((amount * rate).toFixed(2));
+        };
 
         // Build filter object
         const filter = {};
-        
+
         // Status filter
         if (status && status !== 'all') {
             filter.status = status;
         }
-        
+
         // Category filter
         if (category && category !== 'all') {
             filter.category = category;
         }
-        
+
         // Seller filter
         if (seller && seller !== 'all') {
             filter.seller = seller;
         }
-        
+
         // Search filter
         if (search) {
             filter.$or = [
@@ -505,15 +605,13 @@ export const getAdminBidHistory = async (req, res) => {
             ...filter,
             'bids.0': { $exists: true } // Only auctions with at least one bid
         })
-        .populate('seller', 'username firstName lastName email company')
-        .populate('currentBidder', 'username firstName lastName email')
-        .populate('winner', 'username firstName lastName email')
-        .populate('bids.bidder', 'username firstName lastName email company')
-        .sort({ createdAt: -1 })
-        // .limit(limit * 1)
-        // .skip((page - 1) * limit);
+            .populate('seller', 'username firstName lastName email company')
+            .populate('currentBidder', 'username firstName lastName email')
+            .populate('winner', 'username firstName lastName email')
+            .populate('bids.bidder', 'username firstName lastName email company')
+            .sort({ createdAt: -1 });
 
-        // Transform data for admin view
+        // Transform data for admin view with converted amounts
         const transformedAuctions = auctions.map(auction => {
             // Sort bids by amount (highest first) and then by time
             const sortedBids = [...auction.bids].sort((a, b) => {
@@ -525,7 +623,7 @@ export const getAdminBidHistory = async (req, res) => {
 
             const bidsWithStatus = sortedBids.map((bid, index) => {
                 let status = "Outbid";
-                
+
                 if (auction.status === 'active') {
                     if (index === 0) {
                         status = "Winning";
@@ -548,11 +646,20 @@ export const getAdminBidHistory = async (req, res) => {
                         company: bid.bidder?.company || 'N/A'
                     },
                     amount: bid.amount,
+                    convertedAmount: convertAmount(bid.amount, auction),
                     time: bid.timestamp,
                     status: status,
                     isHighest: index === 0
                 };
             });
+
+            // Convert auction prices
+            const convertedStartingBid = convertAmount(auction.startPrice, auction);
+            const convertedReservePrice = convertAmount(auction.reservePrice, auction);
+            const convertedCurrentPrice = convertAmount(auction.currentPrice, auction);
+            const convertedWinningBid = convertAmount(sortedBids[0]?.amount || auction.currentPrice, auction);
+            const convertedCommissionAmount = convertAmount(auction.commissionAmount, auction);
+            const convertedFinalPrice = convertAmount(auction.finalPrice, auction);
 
             return {
                 id: auction?._id.toString(),
@@ -563,10 +670,21 @@ export const getAdminBidHistory = async (req, res) => {
                 auctionType: auction.auctionType === 'reserve' ? 'Reserve Auction' : 'Standard Auction',
                 startTime: auction.startDate,
                 endTime: auction.endDate,
-                startingBid: auction.startPrice,
-                reservePrice: auction.reservePrice || 0,
-                currentPrice: auction.currentPrice,
-                winningBid: sortedBids[0]?.amount || auction.currentPrice,
+                // Original values
+                startingBidOriginal: auction.startPrice,
+                reservePriceOriginal: auction.reservePrice || 0,
+                currentPriceOriginal: auction.currentPrice,
+                winningBidOriginal: sortedBids[0]?.amount || auction.currentPrice,
+                commissionAmountOriginal: auction.commissionAmount || 0,
+                finalPriceOriginal: auction.finalPrice || 0,
+                // Converted values
+                convertedStartingBid,
+                convertedReservePrice,
+                convertedCurrentPrice,
+                convertedWinningBid,
+                convertedCommissionAmount,
+                convertedFinalPrice,
+                displayCurrency: userCurrency,
                 status: auction.status,
                 seller: {
                     id: auction.seller?._id.toString(),
@@ -583,15 +701,13 @@ export const getAdminBidHistory = async (req, res) => {
                 totalBids: auction.bidCount,
                 uniqueBidders: new Set(auction.bids.map(bid => bid.bidder?._id.toString())).size,
                 bids: bidsWithStatus,
-                commissionAmount: auction.commissionAmount || 0,
-                finalPrice: auction.finalPrice || 0,
                 createdAt: auction.createdAt
             };
         });
 
-        // Apply additional sorting
+        // Apply additional sorting (using converted values where applicable)
         transformedAuctions.sort((a, b) => {
-            switch(sortBy) {
+            switch (sortBy) {
                 case 'recent':
                     return new Date(b.createdAt) - new Date(a.createdAt);
                 case 'ending_soon':
@@ -599,7 +715,7 @@ export const getAdminBidHistory = async (req, res) => {
                 case 'most_bids':
                     return b.totalBids - a.totalBids;
                 case 'highest_bid':
-                    return b.winningBid - a.winningBid;
+                    return b.convertedWinningBid - a.convertedWinningBid;
                 case 'seller_name':
                     return a.seller?.name.localeCompare(b.seller?.name);
                 default:
@@ -607,9 +723,9 @@ export const getAdminBidHistory = async (req, res) => {
             }
         });
 
-        // Calculate admin statistics
+        // Calculate admin statistics (with converted revenue)
         const totalAuctionsWithBids = await Auction.countDocuments({
-            'bids.0': { $exists: true },
+            'bids.0': { $exists: true },  // ✅ Fixed
             ...filter
         });
 
@@ -619,10 +735,16 @@ export const getAdminBidHistory = async (req, res) => {
             { $count: 'totalBids' }
         ]);
 
-        const totalRevenue = await Auction.aggregate([
-            { $match: { status: 'sold' } },
-            { $group: { _id: null, total: { $sum: '$commissionAmount' } } }
-        ]);
+        // Calculate total revenue from commissions (converted)
+        const soldAuctionsWithCommission = await Auction.find({
+            status: 'sold',
+            commissionAmount: { $gt: 0 }
+        }).select('commissionAmount baseCurrency');
+
+        let totalRevenueConverted = 0;
+        for (const auction of soldAuctionsWithCommission) {
+            totalRevenueConverted += convertAmount(auction.commissionAmount, auction);
+        }
 
         const activeAuctionsWithBids = await Auction.countDocuments({
             status: 'active',
@@ -632,16 +754,17 @@ export const getAdminBidHistory = async (req, res) => {
         const statistics = {
             totalAuctionsWithBids,
             totalBids: totalBidsAll[0]?.totalBids || 0,
-            totalRevenue: totalRevenue[0]?.total || 0,
+            totalRevenue: parseFloat(totalRevenueConverted.toFixed(2)),
             activeAuctionsWithBids,
-            averageBidsPerAuction: totalAuctionsWithBids > 0 ? 
-                Math.round((totalBidsAll[0]?.totalBids || 0) / totalAuctionsWithBids) : 0
+            averageBidsPerAuction: totalAuctionsWithBids > 0 ?
+                Math.round((totalBidsAll[0]?.totalBids || 0) / totalAuctionsWithBids) : 0,
+            displayCurrency: userCurrency
         };
 
         // Get unique categories and sellers for filters
         const categories = await Auction.distinct('category', { 'bids.0': { $exists: true } });
         const sellers = await Auction.distinct('seller', { 'bids.0': { $exists: true } });
-        
+
         const sellersPopulated = await Auction.populate(sellers.map(sellerId => ({ _id: sellerId })), {
             path: 'seller',
             select: 'username firstName lastName'
@@ -658,16 +781,22 @@ export const getAdminBidHistory = async (req, res) => {
             ]
         };
 
+        // Pagination
+        const start = (parseInt(page) - 1) * parseInt(limit);
+        const paginatedAuctions = transformedAuctions.slice(start, start + parseInt(limit));
+
         res.status(200).json({
             success: true,
             data: {
-                auctions: transformedAuctions,
+                auctions: paginatedAuctions,
                 statistics,
                 filterOptions,
                 pagination: {
                     currentPage: parseInt(page),
                     totalPages: Math.ceil(totalAuctionsWithBids / limit),
-                    totalAuctions: totalAuctionsWithBids
+                    totalAuctions: totalAuctionsWithBids,
+                    hasNextPage: start + paginatedAuctions.length < totalAuctionsWithBids,
+                    hasPrevPage: start > 0
                 }
             }
         });
@@ -704,7 +833,7 @@ export const getAdminBidStats = async (req, res) => {
         // Revenue statistics
         const revenueStats = await Auction.aggregate([
             { $match: { status: 'sold' } },
-            { 
+            {
                 $group: {
                     _id: null,
                     totalRevenue: { $sum: '$commissionAmount' },

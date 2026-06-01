@@ -34,7 +34,8 @@ import {
 import { RTE, AdminContainer, AdminHeader, AdminSidebar } from '../../components';
 import toast from 'react-hot-toast';
 import axiosInstance from '../../utils/axiosInstance.js';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext.jsx';
 
 // Drag and Drop item types
 const ItemTypes = {
@@ -371,6 +372,9 @@ const CreateAuction = () => {
     const [loadingFields, setLoadingFields] = useState(false);
     const [loadingCategories, setLoadingCategories] = useState(true);
 
+    const { user } = useAuth();
+    const userCurrency = user?.currency || 'EUR';
+
     const {
         register,
         handleSubmit,
@@ -557,7 +561,7 @@ const CreateAuction = () => {
     const nextStep = async () => {
         let isValid = true;
 
-        scrollTo({top: 0, behavior: 'smooth'});
+        scrollTo({ top: 0, behavior: 'smooth' });
 
         if (step === 1) {
             const fieldsToValidate = [
@@ -625,7 +629,7 @@ const CreateAuction = () => {
 
     const prevStep = () => {
         setStep(step - 1);
-        scrollTo({top: 0, behavior: 'smooth'});
+        scrollTo({ top: 0, behavior: 'smooth' });
     };
 
     const handlePhotoUpload = (e) => {
@@ -678,6 +682,9 @@ const CreateAuction = () => {
             formData.append('description', auctionData.description);
             formData.append('location', auctionData.location || '');
             formData.append('videoLink', auctionData.video || '');
+
+            // Currency selection (add this line)
+            formData.append('baseCurrency', user?.currency || 'EUR');
 
             // Categories - Store BOTH parent and subcategory for better filtering
             // Your auction model expects an array of strings
@@ -753,7 +760,7 @@ const CreateAuction = () => {
             });
 
             const { data } = await axiosInstance.post(
-                '/api/v1/auctions/create',
+                `/api/v1/auctions/create?currency=${userCurrency}`,
                 formData,
                 {
                     headers: {
@@ -1116,6 +1123,8 @@ const CreateAuction = () => {
                                             Pricing & Bidding
                                         </h2>
 
+                                        <p className='mb-2 text-gray-500 text-xs'>Note: Your saved currency {user?.currency === 'GBP' ? 'Pound Sterling' : 'Euro'} ({user?.currency}) will be used for prices. You can change it from <Link to={`/${user?.userType}/profile`} className='underline font-medium'>profile settings</Link>.</p>
+
                                         <div className="mb-6">
                                             <label className="block text-sm font-medium text-secondary mb-1">Auction Type *</label>
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4"> {/* Changed from grid-cols-3 to grid-cols-4 */}
@@ -1157,7 +1166,7 @@ const CreateAuction = () => {
                                                         <div>
                                                             <label htmlFor="startPrice" className="block text-sm font-medium text-secondary mb-1">Start Price *</label>
                                                             <div className="relative">
-                                                                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600">kr</span>
+                                                                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600">{user?.currency === 'GBP' ? '£' : '€'}</span>
                                                                 <input
                                                                     {...register('startPrice', {
                                                                         required: watch('auctionType') !== 'giveaway' ? 'Start price is required' : false,
@@ -1178,7 +1187,7 @@ const CreateAuction = () => {
                                                         <div>
                                                             <label htmlFor="bidIncrement" className="block text-sm font-medium text-secondary mb-1">Bid Increment *</label>
                                                             <div className="relative">
-                                                                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600">kr</span>
+                                                                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600">{user?.currency === 'GBP' ? '£' : '€'}</span>
                                                                 <input
                                                                     {...register('bidIncrement', {
                                                                         required: (watch('auctionType') === 'standard' || watch('auctionType') === 'reserve') ? 'Bid increment is required' : false,
@@ -1201,7 +1210,7 @@ const CreateAuction = () => {
                                                     <div className="mb-6">
                                                         <label htmlFor="reservePrice" className="block text-sm font-medium text-secondary mb-1">Reserve Price *</label>
                                                         <div className="relative">
-                                                            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600">kr</span>
+                                                            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600">{user?.currency === 'GBP' ? '£' : '€'}</span>
                                                             <input
                                                                 {...register('reservePrice', {
                                                                     required: watch('auctionType') === 'reserve' ? 'Reserve price is required' : false,
@@ -1231,7 +1240,7 @@ const CreateAuction = () => {
                                                             Buy Now Price *
                                                         </label>
                                                         <div className="relative">
-                                                            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600">kr</span>
+                                                            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600">{user?.currency === 'GBP' ? '£' : '€'}</span>
                                                             <input
                                                                 {...register('buyNowPrice', {
                                                                     required: watch('auctionType') === 'buy_now' ? 'Buy Now price is required' : false,
@@ -1444,20 +1453,20 @@ const CreateAuction = () => {
                                                         <div className="space-y-2">
                                                             <div>
                                                                 <p className="text-xs text-secondary">Start Price</p>
-                                                                <p className="font-medium">${watch('startPrice') || '0.00'}</p>
+                                                                <p className="font-medium">{user?.currency === 'GBP' ? '£' : '€'}{watch('startPrice') || '0.00'}</p>
                                                             </div>
 
                                                             {watch('auctionType') === 'buy_now' && (
                                                                 <div>
                                                                     <p className="text-xs text-secondary">Buy Now Price</p>
-                                                                    <p className="font-medium text-blue-600">${watch('buyNowPrice') || '0.00'}</p>
+                                                                    <p className="font-medium text-blue-600">{user?.currency === 'GBP' ? '£' : '€'}{watch('buyNowPrice') || '0.00'}</p>
                                                                 </div>
                                                             )}
 
                                                             {watch('bidIncrement') > 0 && (
                                                                 <div>
                                                                     <p className="text-xs text-secondary">Bid Increment</p>
-                                                                    <p className="font-medium">${watch('bidIncrement')}</p>
+                                                                    <p className="font-medium">{user?.currency === 'GBP' ? '£' : '€'}{watch('bidIncrement')}</p>
                                                                 </div>
                                                             )}
                                                         </div>

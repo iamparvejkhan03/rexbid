@@ -8,6 +8,7 @@ import {
 import axiosInstance from "../../utils/axiosInstance";
 import { toast } from "react-hot-toast";
 import { AdminContainer, AdminHeader, AdminSidebar } from "../../components";
+import { useAuth } from "../../contexts/AuthContext";
 
 function AllOffers() {
     const [offers, setOffers] = useState([]);
@@ -26,6 +27,9 @@ function AllOffers() {
     });
     const [cancelReason, setCancelReason] = useState('');
 
+    const { user } = useAuth();
+    const userCurrency = user?.currency || 'EUR';
+
     // Filters
     const [filters, setFilters] = useState({
         status: "all",
@@ -41,8 +45,8 @@ function AllOffers() {
             setLoading(true);
 
             const [offersResponse, statsResponse] = await Promise.all([
-                axiosInstance.get(`/api/v1/offers/admin/all`),
-                axiosInstance.get('/api/v1/offers/admin/stats')
+                axiosInstance.get(`/api/v1/offers/admin/all?currency=${userCurrency}`),
+                axiosInstance.get(`/api/v1/offers/admin/stats?currency=${userCurrency}`)
             ]);
 
             if (offersResponse.data.success) {
@@ -119,9 +123,9 @@ function AllOffers() {
                 case "oldest":
                     return new Date(a.createdAt) - new Date(b.createdAt);
                 case "amount_high":
-                    return b.amount - a.amount;
+                    return b.convertedAmount - a.convertedAmount;
                 case "amount_low":
-                    return a.amount - b.amount;
+                    return a.convertedAmount - b.convertedAmount;
                 case "expiring_soon":
                     if (a.status === 'pending' && b.status === 'pending') {
                         return new Date(a.expiresAt) - new Date(b.expiresAt);
@@ -156,16 +160,16 @@ function AllOffers() {
     };
 
     const formatCurrency = (amount) => {
-        return new Intl.NumberFormat('nb-NO', {
+        return new Intl.NumberFormat('en-IE', {
             style: 'currency',
-            currency: 'NOK',
+            currency: `${userCurrency}`,
             minimumFractionDigits: 0,
             maximumFractionDigits: 0
         }).format(amount);
     };
 
     const formatDate = (dateString) => {
-        return new Date(dateString).toLocaleDateString('nb-NO', {
+        return new Date(dateString).toLocaleDateString('en-IE', {
             year: 'numeric',
             month: 'long',
             day: 'numeric'
@@ -304,7 +308,7 @@ function AllOffers() {
     const handleReactivateOffer = async () => {
         if (!selectedOffer) return;
 
-        if (!window.confirm(`Are you sure you want to reactivate and accept this offer for ${formatCurrency(selectedOffer.amount)}?\nThis will end the auction and sell it to ${selectedOffer.buyerUsername}.`)) {
+        if (!window.confirm(`Are you sure you want to reactivate and accept this offer for ${formatCurrency(selectedOffer.convertedAmount)}?\nThis will end the auction and sell it to ${selectedOffer.buyerUsername}.`)) {
             return;
         }
 
@@ -333,14 +337,14 @@ function AllOffers() {
     const statCards = [
         {
             title: "Total Offers",
-            value: stats.totalOffers?.toLocaleString('nb-NO') || "0",
+            value: stats.totalOffers?.toLocaleString('en-IE') || "0",
             change: "Across all auctions",
             icon: <Banknote size={24} />,
             color: "blue"
         },
         {
             title: "Pending Offers",
-            value: (stats.statusStats?.pending?.count || 0).toLocaleString('nb-NO'),
+            value: (stats.statusStats?.pending?.count || 0).toLocaleString('en-IE'),
             change: "Awaiting response",
             icon: <Clock size={24} />,
             color: "yellow"
@@ -526,7 +530,7 @@ function AllOffers() {
                                                                 {statusConfig.text}
                                                             </span>
                                                             <span className="text-xs text-gray-600">
-                                                                {formatCurrency(offer.amount)}
+                                                                {formatCurrency(offer.convertedAmount)}
                                                             </span>
                                                         </div>
                                                         <h4 className="font-medium text-gray-900 text-sm line-clamp-2 mb-1">
@@ -601,13 +605,13 @@ function AllOffers() {
                                                     <div className="flex justify-between items-center">
                                                         <div>
                                                             <div className="text-2xl font-bold text-blue-600">
-                                                                {formatCurrency(selectedOffer.amount)}
+                                                                {formatCurrency(selectedOffer.convertedAmount)}
                                                             </div>
                                                             <div className="text-sm text-gray-500">Offered Amount</div>
                                                         </div>
                                                         <div className="text-right">
                                                             <div className="font-medium">
-                                                                {formatCurrency(selectedOffer.auction.startPrice)}
+                                                                {formatCurrency(selectedOffer.auction.convertedStartPrice)}
                                                             </div>
                                                             <div className="text-sm text-gray-500">Starting Price</div>
                                                         </div>
@@ -736,13 +740,13 @@ function AllOffers() {
                                                     <div>
                                                         <div className="text-sm text-blue-600">Counter Amount</div>
                                                         <div className="text-xl font-bold text-blue-700">
-                                                            {formatCurrency(selectedOffer.counterOffer.amount)}
+                                                            {formatCurrency(selectedOffer.counterOffer.convertedAmount)}
                                                         </div>
                                                     </div>
                                                     <div className="text-right">
                                                         <div className="text-sm text-gray-600">Difference</div>
                                                         <div className="font-medium text-blue-600">
-                                                            +{formatCurrency(selectedOffer.counterOffer.amount - selectedOffer.amount)}
+                                                            +{formatCurrency(selectedOffer.counterOffer.convertedAmount - selectedOffer.convertedAmount)}
                                                         </div>
                                                     </div>
                                                 </div>
@@ -844,7 +848,7 @@ function AllOffers() {
                                 <ul className="text-sm text-blue-600 space-y-1 list-disc pl-4">
                                     <li>End the auction immediately</li>
                                     <li>Declare <strong>{selectedOffer?.buyerUsername}</strong> as winner</li>
-                                    <li>Set final price to <strong>{formatCurrency(selectedOffer?.amount)}</strong></li>
+                                    <li>Set final price to <strong>{formatCurrency(selectedOffer?.convertedAmount)}</strong></li>
                                     <li>Reject all other pending offers</li>
                                 </ul>
                             </div>

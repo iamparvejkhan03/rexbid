@@ -239,8 +239,8 @@ const Commissions = () => {
                                         <label className="block text-sm font-medium text-gray-700 mb-3">
                                             Commission Type
                                         </label>
-                                        <div className="grid grid-cols-2 gap-3">
-                                            <button
+                                        <div className="grid grid-cols-1 gap-3">
+                                            {/* <button
                                                 onClick={() => handleCommissionTypeChange('fixed')}
                                                 className={`flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 transition-all ${commission.commissionType === 'fixed'
                                                     ? 'border-green-600 bg-green-50 text-green-700'
@@ -249,7 +249,7 @@ const Commissions = () => {
                                             >
                                                 <Banknote size={20} />
                                                 <span className="font-medium">Fixed Amount</span>
-                                            </button>
+                                            </button> */}
                                             <button
                                                 onClick={() => handleCommissionTypeChange('percentage')}
                                                 className={`flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 transition-all ${commission.commissionType === 'percentage'
