@@ -253,7 +253,7 @@ function Hero() {
 
             {/* Right Column - Dynamic Hot Listing Card */}
             <div className="relative hidden lg:block">
-              <div className="relative w-full max-w-xl mx-auto">
+              <div className="relative w-[90%] max-w-xl mx-auto">
                 {loading ? (
                   // Loading state
                   <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-3xl p-12 flex flex-col items-center justify-center">
@@ -379,8 +379,8 @@ function Hero() {
                       <Store size={20} className="text-[#D19F3E]" />
                     </div>
                     <div>
-                      <p className="text-xs text-gray-400">Inspection</p>
-                      <p className="font-semibold text-white text-sm">Verified Seller</p>
+                      <p className="text-xs text-gray-400">Verified</p>
+                      <p className="font-semibold text-white text-sm">Sellers</p>
                     </div>
                   </div>
                 </div>

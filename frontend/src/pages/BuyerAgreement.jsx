@@ -5,13 +5,7 @@ import { otherData } from "../assets";
 const { phone, email, address } = otherData;
 
 const BuyerAgreement = () => {
-    const currentDate = new Date();
-
-    const formattedDate = currentDate.toLocaleDateString('en-IE', {
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric'
-    });
+    const formattedDate = "1 June 2026";
 
     return (
         <section className="pt-28 pb-16 bg-white">

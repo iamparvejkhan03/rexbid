@@ -87,12 +87,14 @@ const TabSection = forwardRef(
       });
     }
 
-    tabs.push({
+    if (auctionReviews && auctionReviews.length > 0) {
+      tabs.push({
         id: "reviews",
         label: "Reviews",
         icon: <Star size={18} />,
         component: <ReviewsSection auction={auction} auctionReviews={auctionReviews} />,
       });
+    }
 
     return (
       <div className="bg-white rounded-lg shadow-md border border-gray-200">

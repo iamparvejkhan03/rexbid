@@ -135,20 +135,6 @@ const FeaturedListings = () => {
                         Premium machinery and vehicles handpicked by RexBid
                     </p>
                 </div>
-
-                <div className="flex items-center gap-3">
-                    {/* Sort dropdown */}
-                    <select
-                        value={sortBy}
-                        onChange={(e) => setSortBy(e.target.value)}
-                        className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:ring-[#D19F3E] focus:border-[#D19F3E]"
-                    >
-                        <option value="highestBid">Highest Price</option>
-                        <option value="mostBids">Most Bids</option>
-                        <option value="endingSoon">Ending Soon</option>
-                        <option value="newest">Newly Listed</option>
-                    </select>
-                </div>
             </div>
 
             {/* Listings grid/list */}

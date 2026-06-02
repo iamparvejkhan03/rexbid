@@ -522,89 +522,98 @@ export const getTopLiveAuctions = async (req, res) => {
   try {
     const {
       category,
-      status = "active", // Default to active auctions
+      status = "active",
       limit = 4,
-      sortBy = "highestBid", // highestBid, mostBids, endingSoon, newest
+      sortBy = "highestBid",
     } = req.query;
 
-    // Build filter object
     const filter = {};
 
     // Status filtering
     if (status === "active") {
       filter.status = "active";
-      filter.endDate = { $gt: new Date() }; // Only auctions that haven't ended
+      filter.endDate = { $gt: new Date() };
     } else if (status === "ending_soon") {
       filter.status = "active";
       filter.endDate = {
         $gt: new Date(),
-        $lt: new Date(Date.now() + 24 * 60 * 60 * 1000), // Ending in next 24 hours
+        $lt: new Date(Date.now() + 24 * 60 * 60 * 1000),
       };
     } else if (status === "sold") {
-      // Filter for sold, ended, and reserve_not_met statuses
-      filter.status = { $in: ["sold", "ended", "reserve_not_met"] };
-    } else if (status === "upcoming") {
+      filter.status = {
+        $in: ["sold", "ended", "reserve_not_met"],
+      };
+    } else if (status === "approved" || status === "upcoming") {
+      // Support both frontend and backend naming
       filter.status = "active";
-      filter.startDate = { $gt: new Date() }; // Haven't started yet
+      filter.startDate = { $gt: new Date() };
     } else {
-      // For any other status, use it directly
       filter.status = status;
     }
 
-    // Add category filter if provided
+    // Category filter
     if (category && category !== "all") {
       filter.category = category;
     }
 
-    // Build sort options based on sortBy parameter
+    // Sort options
     const sortOptions = {};
+
     switch (sortBy) {
       case "highestBid":
         sortOptions.currentPrice = -1;
         sortOptions.bidCount = -1;
         break;
+
       case "mostBids":
         sortOptions.bidCount = -1;
         sortOptions.currentPrice = -1;
         break;
+
       case "endingSoon":
         sortOptions.endDate = 1;
         sortOptions.currentPrice = -1;
         break;
+
       case "newest":
         sortOptions.createdAt = -1;
         sortOptions.currentPrice = -1;
         break;
+
       case "lowestBid":
         sortOptions.currentPrice = 1;
         sortOptions.bidCount = -1;
         break;
+
       default:
         sortOptions.currentPrice = -1;
         sortOptions.bidCount = -1;
     }
 
-    const userCurrency = req.query.currency || 'EUR';
-
+    const userCurrency = req.query.currency || "EUR";
     const rates = getCachedRates();
 
-    // Get auctions based on filters and sort
     let auctions = await Auction.find(filter)
       .populate("seller", "username firstName lastName")
       .populate("currentBidder", "username firstName")
       .sort(sortOptions)
       .limit(parseInt(limit));
 
-    // If we don't have enough auctions and we're looking for active/ending_soon,
-    // try to fill with other active auctions
+    /**
+     * Fallback logic
+     *
+     * Only for ACTIVE listings.
+     * Do NOT fallback for ending_soon because
+     * that would show auctions ending weeks later.
+     */
     if (
       auctions.length < parseInt(limit) &&
-      (status === "active" || status === "ending_soon")
+      status === "active"
     ) {
       const additionalFilter = {
         status: "active",
         endDate: { $gt: new Date() },
-        _id: { $nin: auctions.map((a) => a._id) }, // Exclude already fetched auctions
+        _id: { $nin: auctions.map((a) => a._id) },
       };
 
       if (category && category !== "all") {
@@ -615,7 +624,7 @@ export const getTopLiveAuctions = async (req, res) => {
         .populate("seller", "username firstName lastName")
         .populate("currentBidder", "username firstName")
         .sort({
-          createdAt: -1, // Get newest first as fallback
+          createdAt: -1,
           startDate: 1,
         })
         .limit(parseInt(limit) - auctions.length);
@@ -623,10 +632,9 @@ export const getTopLiveAuctions = async (req, res) => {
       auctions.push(...additionalAuctions);
     }
 
-    const auctionsWithConverted = auctions.map(auction => {
-      const auctionObj = auction.toObject(); // convert mongoose doc to plain object
+    const auctionsWithConverted = auctions.map((auction) => {
+      const auctionObj = auction.toObject();
 
-      // Default to original values if conversion fails
       let convertedStartPrice = auctionObj.startPrice;
       let convertedCurrentPrice = auctionObj.currentPrice;
       let convertedBidIncrement = auctionObj.bidIncrement;
@@ -635,10 +643,11 @@ export const getTopLiveAuctions = async (req, res) => {
       let convertedFinalPrice = auctionObj.finalPrice;
 
       if (rates && auctionObj.baseCurrency) {
-        const base = auctionObj.baseCurrency;   // e.g., 'EUR'
-        const target = userCurrency;            // e.g., 'GBP'
+        const base = auctionObj.baseCurrency;
+        const target = userCurrency;
         const rate = rates[base]?.rates[target];
-        if (rate && typeof rate === 'number') {
+
+        if (rate && typeof rate === "number") {
           convertedStartPrice = auctionObj.startPrice * rate;
           convertedCurrentPrice = auctionObj.currentPrice * rate;
           convertedBidIncrement = auctionObj.bidIncrement * rate;
@@ -656,7 +665,7 @@ export const getTopLiveAuctions = async (req, res) => {
         convertedBuyNowPrice: parseFloat(convertedBuyNowPrice.toFixed(2)),
         convertedReservePrice: parseFloat(convertedReservePrice.toFixed(2)),
         convertedFinalPrice: parseFloat(convertedFinalPrice.toFixed(2)),
-        displayCurrency: userCurrency
+        displayCurrency: userCurrency,
       };
     });
 
@@ -675,13 +684,13 @@ export const getTopLiveAuctions = async (req, res) => {
     });
   } catch (error) {
     console.error("Get top live auctions error:", error);
+
     res.status(500).json({
       success: false,
       message: "Internal server error while fetching top live auctions",
     });
   }
 };
-
 
 // export const getTopLiveAuctions = async (req, res) => {
 //   try {
@@ -863,7 +872,10 @@ export const getAuction = async (req, res) => {
     auction.views += 1;
     await auction.save();
 
-    const auctionObj = auction.toObject();
+    // const auctionObj = auction.toObject();
+    const auctionObj = auction.toObject({
+      flattenMaps: true,
+    });
 
     res.json({
       success: true,
@@ -1763,6 +1775,13 @@ export const placeBid = async (req, res) => {
     const userCurrency = currency;   // the currency the user bid in
     const auctionObj = auction.toObject();
 
+    // Convert bids
+      const convertedBids = auction.bids.map(bid => ({
+        ...bid.toObject(),
+        convertedAmount: parseFloat((bid.amount * rate).toFixed(2)),
+        originalAmount: bid.amount
+      }));
+
     const convertedStartPrice = convertPrice(auction, userCurrency, 'startPrice');
     const convertedCurrentPrice = convertPrice(auction, userCurrency, 'currentPrice');
     const convertedBidIncrement = auctionObj.bidIncrement ? convertPrice(auction, userCurrency, 'bidIncrement') : null;
@@ -1776,6 +1795,7 @@ export const placeBid = async (req, res) => {
       data: {
         auction: {
           ...auctionObj,
+          bids: convertedBids,
           convertedStartPrice,
           convertedCurrentPrice,
           convertedBidIncrement,
@@ -2216,7 +2236,7 @@ export const getSoldAuctions = async (req, res) => {
 
     const filter = {
       seller: sellerId,
-      status: { $in: ["sold", "ended", "reserve_not_met"] },
+      status: { $in: ["sold"] },
     };
 
     if (status && status !== "all") {
@@ -2847,7 +2867,7 @@ export const getHotListing = async (req, res) => {
 
     if (!listings.length) {
       // Fallback 1: try ended but sold listings (for demo/empty state)
-      listings = await Auction.find({ status: "sold" })
+      listings = await Auction.find({ status: "approved" })
         .populate("seller", "username firstName lastName location")
         .populate("winner", "username firstName")
         .sort({ finalPrice: -1 })

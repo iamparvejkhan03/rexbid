@@ -572,38 +572,6 @@ function SingleAuction() {
                     {/* Dynamic Specifications Section */}
                     <SpecificationsSection auction={auction} />
                 </div>
-
-                {/* Seller info section */}
-                {/* {auction?.seller && <div>
-                    <hr className="my-8" />
-                    <h3 className="my-5 text-primary text-xl font-semibold">Seller Information</h3>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-5 gap-y-10">
-                        <div className="flex items-center gap-3">
-                            <User className="flex-shrink-0 w-7 h-7 md:w-8 md:h-8" strokeWidth={1} />
-                            <div>
-                                <p className="text-secondary text-sm">Name</p>
-                                <p className="text-base capitalize">{auction?.seller?.firstName} {auction?.seller?.lastName}</p>
-                            </div>
-                        </div>
-
-                        <div className="flex items-center gap-3">
-                            <Phone className="flex-shrink-0 w-6 h-6 md:w-7 md:h-7" strokeWidth={1} />
-                            <div>
-                                <p className="text-secondary text-sm">Phone</p>
-                                <p className="text-base">{auction?.seller?.phone}</p>
-                            </div>
-                        </div>
-
-                        <div className="flex items-center gap-3">
-                            <Mail className="flex-shrink-0 w-7 h-7 md:w-8 md:h-8" strokeWidth={1} />
-                            <div>
-                                <p className="text-secondary text-sm">Email</p>
-                                <p className="text-base">{auction?.seller?.email}</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>} */}
-
                 {/* Features Section */}
                 {auction.features && (
                     <>

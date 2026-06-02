@@ -42,16 +42,16 @@ const SellerStatsCard = ({ sellerId }) => {
             <div className="bg-white border border-gray-200 rounded-lg p-5 shadow-sm">
                 {/* Seller name & location */}
                 <div className="mb-3">
-                    <div className="flex items-center gap-5">
-                        <img src={stats.sellerImage || dummyUserImg} alt="seller image" className="h-12 w-12 object-cover" />
+                    <div className="flex items-start md:items-center gap-5">
+                        <img src={stats.sellerImage || dummyUserImg} alt="seller image" className="h-12 w-12 object-cover rounded-full flex-shrink-0" />
                         <div>
-                            <div className="flex items-center gap-5">
+                            <div className="flex items-center flex-wrap gap-5">
                                 <h3 className="text-lg font-semibold text-gray-700 flex items-center gap-5">
                                     <span>{stats.fullName}</span>
                                 </h3>
 
-                                <div className="flex items-center gap-3 text-gray-500 text-sm">
-                                        <a className="flex items-center gap-2" href={`mailto:${stats?.email}`}>
+                                <div className="flex items-center flex-wrap gap-3 text-gray-500 text-sm">
+                                        <a className="flex items-center break-all gap-2" href={`mailto:${stats?.email}`}>
                                             <Mail size={18} /> <span className="underline">{stats?.email}</span>
                                         </a>
 
@@ -76,7 +76,7 @@ const SellerStatsCard = ({ sellerId }) => {
                 </div >
 
                 {/* Stats row */}
-                < div className="flex items-center justify-between border rounded-md py-4 border-gray-200 mt-4" >
+                < div className="grid grid-cols-2 md:grid-cols-4 gap-2 items-center justify-between border rounded-md py-4 border-gray-200 mt-4" >
                     {/* Items Added */}
                     < div className="text-center flex-1" >
                         <div className="flex items-center justify-center gap-1 text-gray-600">
@@ -104,7 +104,7 @@ const SellerStatsCard = ({ sellerId }) => {
                         <div className="flex items-center justify-center gap-1">
                             <p className="text-xl font-bold text-gray-800">{stats.averageRating}</p>
                             <span className="text-sm text-gray-500">/5</span>
-                            <p className="text-xs text-gray-500">({stats.positivePercentage}% positive)</p>
+                            {/* <p className="text-xs text-gray-500">({stats.positivePercentage}% positive)</p> */}
                         </div>
 
                     </div >

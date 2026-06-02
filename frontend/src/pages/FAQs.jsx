@@ -118,7 +118,7 @@ function FAQsPage() {
     return (
         <section className="bg-white text-[#072342] overflow-hidden">
             {/* HERO SECTION - White background */}
-            <section className="relative pt-32 bg-white border-b border-gray-100">
+            <section className="relative pt-32 pb-10 bg-white border-b border-gray-100">
                 <Container>
                     <div className="max-w-full text-center">
                         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#D19F3E]/10 text-[#D19F3E] text-sm font-medium">

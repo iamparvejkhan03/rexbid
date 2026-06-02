@@ -217,54 +217,6 @@ function About() {
                 </Container>
             </div>
 
-            {/* FEATURES SECTION */}
-            <div
-                ref={featuresRef}
-                data-section="features"
-                className={`bg-white transition-all duration-700 delay-200 ${featuresVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
-                    }`}
-            >
-                <Container>
-                    <div className="text-center max-w-2xl mx-auto">
-                        <span className="text-[#D19F3E] uppercase tracking-[3px] text-sm font-semibold">
-                            Why Choose Us
-                        </span>
-                        <h2 className="text-3xl md:text-4xl lg:text-4xl font-bold text-[#072342] leading-tight mt-2">
-                            A Simpler Way to{" "}
-                            <span className="relative inline-block">
-                                <span className="relative z-10 text-transparent bg-clip-text bg-gradient-to-r from-[#D19F3E] to-[#E8B86B]">
-                                    Buy & Sell Across Ireland
-                                </span>
-                                <svg className="absolute -bottom-3 left-0 w-full" height="12" viewBox="0 0 200 12" fill="none">
-                                    <path d="M2 9.5C50 4.5 130 2.5 198 9.5" stroke="#D19F3E" strokeWidth="2.5" strokeLinecap="round" strokeDasharray="4 6" />
-                                </svg>
-                            </span>
-                        </h2>
-                    </div>
-                    <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-7 mt-12 md:mt-16">
-                        {features.map((item, i) => {
-                            const Icon = item.icon;
-                            return (
-                                <div
-                                    key={i}
-                                    className="bg-[#FAFAFA] hover:bg-[#072342] border border-gray-200 hover:border-[#072342] rounded-xl p-6 transition-all duration-300 group"
-                                >
-                                    <div className="w-12 h-12 rounded-xl bg-[#D19F3E]/10 flex items-center justify-center">
-                                        <Icon size={24} className="text-[#D19F3E]" />
-                                    </div>
-                                    <h3 className="text-lg font-semibold mt-5 group-hover:text-white transition">
-                                        {item.title}
-                                    </h3>
-                                    <p className="text-[#072342]/65 group-hover:text-white/70 mt-2 leading-relaxed text-sm transition">
-                                        {item.desc}
-                                    </p>
-                                </div>
-                            );
-                        })}
-                    </div>
-                </Container>
-            </div>
-
             {/* EXPERTISE SECTION */}
             <div
                 ref={expertiseRef}
@@ -322,6 +274,54 @@ function About() {
                                 <ArrowRight size={16} />
                             </Link>
                         </div>
+                    </div>
+                </Container>
+            </div>
+
+            {/* FEATURES SECTION */}
+            <div
+                ref={featuresRef}
+                data-section="features"
+                className={`bg-white pb-14 transition-all duration-700 delay-200 ${featuresVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
+                    }`}
+            >
+                <Container>
+                    <div className="text-center max-w-2xl mx-auto">
+                        <span className="text-[#D19F3E] uppercase tracking-[3px] text-sm font-semibold">
+                            Why Choose Us
+                        </span>
+                        <h2 className="text-3xl md:text-4xl lg:text-4xl font-bold text-[#072342] leading-tight mt-2">
+                            A Simpler Way to{" "}
+                            <span className="relative inline-block">
+                                <span className="relative z-10 text-transparent bg-clip-text bg-gradient-to-r from-[#D19F3E] to-[#E8B86B]">
+                                    Buy & Sell Across Ireland
+                                </span>
+                                <svg className="absolute -bottom-3 left-0 w-full" height="12" viewBox="0 0 200 12" fill="none">
+                                    <path d="M2 9.5C50 4.5 130 2.5 198 9.5" stroke="#D19F3E" strokeWidth="2.5" strokeLinecap="round" strokeDasharray="4 6" />
+                                </svg>
+                            </span>
+                        </h2>
+                    </div>
+                    <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-7 mt-12 md:mt-16">
+                        {features.map((item, i) => {
+                            const Icon = item.icon;
+                            return (
+                                <div
+                                    key={i}
+                                    className="bg-[#FAFAFA] hover:bg-[#072342] border border-gray-200 hover:border-[#072342] rounded-xl p-6 transition-all duration-300 group"
+                                >
+                                    <div className="w-12 h-12 rounded-xl bg-[#D19F3E]/10 flex items-center justify-center">
+                                        <Icon size={24} className="text-[#D19F3E]" />
+                                    </div>
+                                    <h3 className="text-lg font-semibold mt-5 group-hover:text-white transition">
+                                        {item.title}
+                                    </h3>
+                                    <p className="text-[#072342]/65 group-hover:text-white/70 mt-2 leading-relaxed text-sm transition">
+                                        {item.desc}
+                                    </p>
+                                </div>
+                            );
+                        })}
                     </div>
                 </Container>
             </div>

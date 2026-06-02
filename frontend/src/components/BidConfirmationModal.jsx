@@ -60,7 +60,7 @@ const BidConfirmationModal = forwardRef((props, ref) => {
     const total = (isCommissionEnabled && commissionAppliesTo?.includes('bidder') ? Number(bidAmount) + Number(serviceFee) : Number(bidAmount));
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50">
+        <div className="fixed max-w-full inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50">
             <div className="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
 
                 {/* Header */}
@@ -113,9 +113,9 @@ const BidConfirmationModal = forwardRef((props, ref) => {
                 {/* Information Text */}
                 <div className="py-3 px-6 md:p-6 border-b border-gray-200 space-y-4">
                     <p className="text-sm text-gray-600">
-                        For more info,{" "}
+                        For more info, read our{" "}
                         <a href="/faqs" className="text-blue-600 hover:text-blue-800 underline">
-                            read about FAQs
+                            FAQs
                         </a>{" "}
                         or{" "}
                         <a href="/contact" className="text-blue-600 hover:text-blue-800 underline">
@@ -126,10 +126,10 @@ const BidConfirmationModal = forwardRef((props, ref) => {
                 </div>
 
                 {/* Action Buttons */}
-                <div className="py-3 px-6 md:p-6 flex gap-3">
+                <div className="py-3 px-6 md:p-6 flex flex-col sm:flex-row gap-3">
                     <button
                         onClick={onClose}
-                        className="flex-1 py-2 px-4 md:py-3 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 font-medium transition-colors"
+                        className="flex-1 order-2 sm:order-1 py-2 px-4 md:py-3 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 font-medium transition-colors"
                     >
                         Cancel
                     </button>
@@ -138,7 +138,7 @@ const BidConfirmationModal = forwardRef((props, ref) => {
                         ref={ref}
                         onClick={onConfirm}
                         type="submit"
-                        className="flex-1 py-2 px-4 md:py-3 bg-black text-white rounded-md hover:bg-gray-900 font-medium transition-colors"
+                        className="flex-1 order-1 sm:order-2 py-2 px-4 md:py-3 bg-black text-white rounded-md hover:bg-gray-900 font-medium transition-colors"
                     >
                         Place Bid
                     </button>

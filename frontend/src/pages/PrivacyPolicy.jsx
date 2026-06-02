@@ -5,12 +5,7 @@ import { otherData } from "../assets";
 const { phone, email, address } = otherData;
 
 const PrivacyPolicy = () => {
-    const currentDate = new Date();
-    const formattedDate = currentDate.toLocaleDateString('en-IE', {
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric'
-    });
+    const formattedDate = "1 June 2026";
 
     return (
         <section className="pt-28 pb-16 bg-white">
@@ -58,7 +53,6 @@ const PrivacyPolicy = () => {
                                 <li>Business address and company information</li>
                                 <li>Email address and telephone number</li>
                                 <li>Payment and billing details</li>
-                                <li>Identification documents where required for verification</li>
                             </ul>
 
                             <h3 className="font-semibold text-gray-800 mb-2 mt-4">Platform & Transaction Data</h3>

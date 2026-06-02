@@ -70,7 +70,7 @@ function Home() {
     const [auctions, setAuctions] = useState([]);
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
-    const [activeTab, setActiveTab] = useState('ending_soon'); // 'sold', 'active', 'approved'
+    const [activeTab, setActiveTab] = useState('active'); // 'sold', 'active', 'approved'
     const [viewMode, setViewMode] = useState("grid"); // "grid" or "list"
 
     const { user } = useAuth();
@@ -80,7 +80,7 @@ function Home() {
     const tabStatusMap = {
         'sold': 'sold',
         'active': 'active',
-        'approved': 'approved',
+        'approved': 'upcoming',
         'ending_soon': 'ending_soon',
     };
 
@@ -129,7 +129,7 @@ function Home() {
     };
 
     useEffect(() => {
-        fetchAuctions('ending_soon'); // Load sold auctions by default
+        fetchAuctions('active'); // Load active auctions by default
     }, []);
 
     const handleLoadByStatus = () => {
@@ -341,7 +341,7 @@ function Home() {
             </Container>
 
             {/* Who we are section */}
-            <Container className="mb-8 md:mb-0">
+            <Container className="mt-8 md:mb-0">
                 <Suspense fallback={<LoadingSpinner />}>
                     <About />
                 </Suspense>

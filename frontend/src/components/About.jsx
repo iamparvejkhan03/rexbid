@@ -40,7 +40,7 @@ function About() {
     ];
 
     return (
-        <section ref={ref} className="relative mb-14 overflow-hidden bg-white">
+        <section ref={ref} className="relative overflow-hidden py-14">
             {/* Background decorative elements with brand colors */}
             <div className="absolute inset-0 pointer-events-none">
                 <div className="absolute top-0 left-0 w-96 h-96 bg-[#D19F3E]/5 rounded-full blur-3xl" />
@@ -72,18 +72,18 @@ function About() {
                                         <Users className="w-5 h-5 text-[#D19F3E]" />
                                     </div>
                                     <div>
-                                        <p className="text-2xl font-bold text-[#072342]">4,500+</p>
+                                        <p className="text-2xl font-bold text-[#072342]">500+</p>
                                         <p className="text-xs text-gray-500">Active Members</p>
                                     </div>
                                 </div>
                             </div>
 
                             {/* Floating second image - New position and styling */}
-                            <div className="absolute -bottom-8 -right-8 lg:-bottom-12 lg:-right-12 w-48 lg:w-64 rounded-2xl border-4 border-white shadow-2xl rotate-3 transition-all duration-500 hover:rotate-0 hover:scale-105">
+                            <div className="absolute hidden lg:block -bottom-8 -right-8 lg:-bottom-12 lg:-right-12 w-48 lg:w-56 rounded-2xl border-4 border-white shadow-2xl rotate-3 transition-all duration-500 hover:rotate-0 hover:scale-105">
                                 <img
                                     src={aboutCar}
                                     alt="Equipment inspection"
-                                    className="w-full h-36 lg:h-48 object-cover rounded-xl"
+                                    className="w-full h-36 lg:h-36 object-cover rounded-xl"
                                 />
                                 <div className="absolute inset-0 bg-gradient-to-t from-[#D19F3E]/30 to-transparent rounded-xl pointer-events-none" />
                             </div>
@@ -99,7 +99,7 @@ function About() {
                     } transition-all duration-700`}>
                         {/* Section label */}
                         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#D19F3E]/10 border border-[#D19F3E]/20">
-                            <span className="text-xs font-semibold tracking-wider text-[#D19F3E] uppercase">Our Story</span>
+                            <span className="text-xs font-semibold tracking-wider text-[#D19F3E] uppercase">About Us</span>
                         </div>
 
                         {/* Headline */}
@@ -142,7 +142,7 @@ function About() {
                         </div>
 
                         {/* CTA Button - new addition */}
-                        <button onClick={() => navigate('/about')} className="group inline-flex items-center gap-2 px-6 py-3 bg-[#072342] text-white rounded-full font-semibold shadow-md hover:bg-[#072342]/90 hover:shadow-lg transition-all">
+                        <button onClick={() => navigate('/about')} className="group inline-flex items-center gap-2 px-6 py-3 bg-[#072342] text-white rounded-full font-semibold shadow-md hover:bg-[#072342]/90 hover:shadow-lg transition-all text-sm">
                             Learn More About Us
                             <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
                         </button>

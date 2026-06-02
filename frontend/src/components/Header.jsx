@@ -16,14 +16,14 @@ const navLinks = [
         name: 'About',
         href: '/about'
     },
-    {
-        name: 'Contact',
-        href: '/contact'
-    },
-    {
-        name: 'FAQs',
-        href: '/faqs'
-    },
+    // {
+    //     name: 'Contact',
+    //     href: '/contact'
+    // },
+    // {
+    //     name: 'FAQs',
+    //     href: '/faqs'
+    // },
 ];
 
 const auctionTypes = [

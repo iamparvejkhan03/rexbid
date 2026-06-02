@@ -175,7 +175,7 @@ const SpecificationsSection = ({ auction }) => {
 
     return (
         <div className="mt-8">
-            {/* <h3 className="text-xl font-semibold mb-4">Specifications</h3> */}
+            <h3 className="text-xl font-semibold mb-4">Specifications</h3>
             
             {Object.entries(groupedFields).map(([groupName, fields]) => (
                 <div key={groupName} className="mb-6 bg-gray-50 p-6 rounded-lg border border-gray-200">
