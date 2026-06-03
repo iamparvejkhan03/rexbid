@@ -1732,12 +1732,12 @@ export const placeBid = async (req, res) => {
     }
 
     // Check if user is a bidder
-    if (bidder.userType !== "bidder") {
-      return res.status(403).json({
-        success: false,
-        message: "Only bidders can place bids",
-      });
-    }
+    // if (bidder.userType !== "bidder") {
+    //   return res.status(403).json({
+    //     success: false,
+    //     message: "Only bidders can place bids",
+    //   });
+    // }
 
     const auction = await Auction.findById(id);
 
@@ -2555,12 +2555,12 @@ export const buyNow = async (req, res) => {
     }
 
     // Check if user is a bidder
-    if (buyer?.userType !== "bidder") {
-      return res.status(403).json({
-        success: false,
-        message: "Only bidders can buy items",
-      });
-    }
+    // if (buyer?.userType !== "bidder") {
+    //   return res.status(403).json({
+    //     success: false,
+    //     message: "Only bidders can buy items",
+    //   });
+    // }
 
     // Find auction
     const auction = await Auction.findById(id)

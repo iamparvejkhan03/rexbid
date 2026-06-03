@@ -49,6 +49,7 @@ const CardSection = () => {
                                         iconColor: '#fa755a',
                                     },
                                 },
+                                hidePostalCode: true
                             }}
                         />
                     </div>

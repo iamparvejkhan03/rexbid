@@ -34,6 +34,7 @@ const CardSection = ({ isUpdating }) => {
                                     iconColor: '#fa755a',
                                 },
                             },
+                            hidePostalCode: true
                         }}
                     />
                 </div>
