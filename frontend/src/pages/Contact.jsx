@@ -133,7 +133,7 @@ function Contact() {
                                     </Link>
                                 </div>
                             </div>
-                            <div className="flex items-center gap-4">
+                            {/* <div className="flex items-center gap-4">
                                 <div className="w-10 h-10 rounded-full bg-[#D19F3E]/20 flex items-center justify-center">
                                     <Phone size={18} className="text-[#D19F3E]" />
                                 </div>
@@ -143,7 +143,7 @@ function Contact() {
                                         {otherData?.phoneCode} {otherData?.formatPhone(otherData?.phone)}
                                     </Link>
                                 </div>
-                            </div>
+                            </div> */}
                             <div className="flex items-center gap-4">
                                 <div className="w-10 h-10 rounded-full bg-[#D19F3E]/20 flex items-center justify-center">
                                     <MapPin size={18} className="text-[#D19F3E]" />
@@ -250,9 +250,9 @@ function Contact() {
             </div>
 
             {/* Info Cards Row – simple, animated */}
-            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 my-14">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 my-14">
                 {[
-                    { icon: Phone, title: "Phone", content: `${otherData?.phoneCode} ${otherData?.formatPhone?.(otherData?.phone) || ''}`, delay: 0 },
+                    // { icon: Phone, title: "Phone", content: `${otherData?.phoneCode} ${otherData?.formatPhone?.(otherData?.phone) || ''}`, delay: 0 },
                     { icon: Mail, title: "Email", content: otherData.email, delay: 1 },
                     { icon: MapPin, title: "Location", content: otherData.address, delay: 2 },
                     { icon: Clock, title: "Hours", content: "Mon-Fri: 9AM–5PM\nSat: 9AM–2:30PM", delay: 3 },

@@ -51,9 +51,9 @@ const SellerStatsCard = ({ sellerId }) => {
                                 </h3>
 
                                 <div className="flex items-center flex-wrap gap-3 text-gray-500 text-sm">
-                                        <a className="flex items-center break-all gap-2" href={`mailto:${stats?.email}`}>
+                                        {/* <a className="flex items-center break-all gap-2" href={`mailto:${stats?.email}`}>
                                             <Mail size={18} /> <span className="underline">{stats?.email}</span>
-                                        </a>
+                                        </a> */}
 
                                         <a className="flex items-center gap-2" href={`mailto:${stats?.phone}`}>
                                             <PhoneCall size={18} /> <span className="underline">{stats?.phone}</span>

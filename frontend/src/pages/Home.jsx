@@ -352,11 +352,9 @@ function Home() {
             {/* </Container> */}
 
             {/* Testimonials */}
-            {/* <Container> */}
-            <Suspense fallback={<LoadingSpinner />}>
+            {/* <Suspense fallback={<LoadingSpinner />}>
                 <TestimonialSection />
-            </Suspense>
-            {/* </Container> */}
+            </Suspense> */}
 
             <CTA />
         </>
