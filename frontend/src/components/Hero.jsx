@@ -366,7 +366,7 @@ function Hero() {
                       {/* Seller / Commission Note */}
                       <div className="flex items-center justify-center gap-2 text-xs text-gray-400 pt-2">
                         <ShieldCheck size={14} className="text-[#D19F3E]" />
-                        <span>3% seller commission • No buyer fees</span>
+                        <span>No seller & buyer fees</span>
                       </div>
                     </div>
                   </div>

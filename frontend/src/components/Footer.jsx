@@ -145,7 +145,7 @@ function Footer() {
                             Reach Out
                         </p>
                         <ul className='mt-3 flex flex-col gap-2'>
-                            <li className="flex items-center gap-2">
+                            {/* <li className="flex items-center gap-2">
                                 <Phone size={18} className="text-white" />
                                 <Link 
                                     className="text-white hover:text-[#D19F3E] transition-colors" 
@@ -153,7 +153,7 @@ function Footer() {
                                 >
                                     {otherData?.phoneCode} {otherData?.formatPhone(otherData?.phone)}
                                 </Link>
-                            </li>
+                            </li> */}
                             <li className="flex items-center gap-2">
                                 <Mail size={18} className="text-white" />
                                 <Link 

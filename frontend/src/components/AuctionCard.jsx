@@ -236,7 +236,7 @@ function AuctionCard({ auction }) {
                     </div> */}
 
                     <div className="text-center p-2 bg-gray-50 rounded-lg">
-                        <div className="text-xs text-gray-600 mb-1">{auction.status === 'sold' ? 'Final Price' : 'Starting Price'}</div>
+                        <div className="text-xs text-gray-600 mb-1">{auction.status === 'sold' ? 'Final Bid' : auction.bidCount > 0 ? 'Current Bid' : 'Starting Bid'}</div>
                         <div className="font-bold text-lg text-green-600">
                             {userCurrency === 'GBP' ? '£' : '€'}{(auction.convertedCurrentPrice || auction.convertedStartPrice)?.toLocaleString()}
                         </div>
