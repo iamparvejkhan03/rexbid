@@ -10,6 +10,7 @@ import { loadStripe } from '@stripe/stripe-js';
 import { useStripe, useElements, CardElement, Elements } from '@stripe/react-stripe-js';
 import axiosInstance from '../utils/axiosInstance';
 import useCountryStates from '../hooks/useCountryStates';
+import PilotPhaseModal from '../components/PilotPhaseModal';
 
 // Initialize Stripe
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
@@ -74,12 +75,23 @@ const Register = () => {
     const [selectedCountry, setSelectedCountry] = useState('');
     const [selectedCurrency, setSelectedCurrency] = useState('');
 
+    // Pilot phase
+    const [isPilotModalOpen, setIsPilotModalOpen] = useState(true);
+    const [showRegisterForm, setShowRegisterForm] = useState(false);
+
     useEffect(() => {
         const fetchCountries = async () => {
             setCountries(await useCountries());
         };
         fetchCountries();
+
+        setIsPilotModalOpen(true);
     }, []);
+
+    const handlePilotModalClose = () => {
+        setIsPilotModalOpen(false);
+        navigate('/');
+    };
 
     useEffect(() => {
         if (user && user?.userType) {
@@ -167,40 +179,40 @@ const Register = () => {
 
             // Handle bidder card verification
             // if (registrationData.userType === 'bidder') {
-                if (!stripe || !elements) {
-                    toast.error('Stripe not initialized properly');
-                    setIsLoading(false);
-                    return;
-                }
+            if (!stripe || !elements) {
+                toast.error('Stripe not initialized properly');
+                setIsLoading(false);
+                return;
+            }
 
-                const cardElement = elements.getElement(CardElement);
-                if (!cardElement) {
-                    toast.error('Please enter your card details');
-                    setIsLoading(false);
-                    return;
-                }
+            const cardElement = elements.getElement(CardElement);
+            if (!cardElement) {
+                toast.error('Please enter your card details');
+                setIsLoading(false);
+                return;
+            }
 
-                const { error, paymentMethod } = await stripe.createPaymentMethod({
-                    type: 'card',
-                    card: cardElement,
-                    billing_details: {
-                        name: `${registrationData.firstName} ${registrationData.lastName}`,
-                        email: registrationData.email,
-                        phone: registrationData.phone,
-                        address: {
-                            country: registrationData.country,
-                        }
+            const { error, paymentMethod } = await stripe.createPaymentMethod({
+                type: 'card',
+                card: cardElement,
+                billing_details: {
+                    name: `${registrationData.firstName} ${registrationData.lastName}`,
+                    email: registrationData.email,
+                    phone: registrationData.phone,
+                    address: {
+                        country: registrationData.country,
                     }
-                });
-
-                if (error) {
-                    toast.error(`Payment error: ${error.message}`);
-                    setIsLoading(false);
-                    return;
                 }
+            });
 
-                paymentMethodId = paymentMethod.id;
-                formData.append('paymentMethodId', paymentMethodId);
+            if (error) {
+                toast.error(`Payment error: ${error.message}`);
+                setIsLoading(false);
+                return;
+            }
+
+            paymentMethodId = paymentMethod.id;
+            formData.append('paymentMethodId', paymentMethodId);
             // }
 
             const { data } = await axiosInstance.post(
@@ -247,6 +259,11 @@ const Register = () => {
                     <img src={darkLogo} alt="logo" className='h-12' />
                     <p className="text-black text-lg">Create your account</p>
                 </div>
+
+                <PilotPhaseModal
+                    isOpen={isPilotModalOpen}
+                    onClose={handlePilotModalClose}
+                />
 
                 {/* Registration Form */}
                 <div className="p-5 sm:p-8">

@@ -150,10 +150,10 @@ function Hero() {
               {/* Headline - Bold and dynamic */}
               <div className="space-y-5">
                 <h1 className="text-4xl lg:text-5xl xl:text-6xl font-bold text-white leading-tight tracking-tight">
-                  Ireland’s{" "}
+                  Your Machinery. {" "}
                   <span className="relative inline-block">
                     <span className="relative z-10 text-transparent bg-clip-text bg-gradient-to-r from-[#D19F3E] to-[#E8B86B]">
-                      Marketplace
+                      Your Auction.
                     </span>
                     <svg
                       className="absolute -bottom-2 left-0 w-full"
@@ -171,11 +171,13 @@ function Hero() {
                       />
                     </svg>
                   </span>{" "}
-                  <span className="text-gray-300">for Machinery & Commercials</span>
+                  <span className="text-gray-300">Your Control.</span>
                 </h1>
                 <p className="md:text-lg text-base text-gray-300 leading-relaxed max-w-lg">
-                  Browse quality machinery, commercials, tractors, and vehicles from trusted sellers throughout Ireland with secure bidding and straightforward transactions.
+                  No expensive transport costs. No hidden auctioneer premiums. Just secure, transparent online auctions run straight from your own premises.
                 </p>
+
+                <p className="text-sm text-[#E8B86B]">🚀 Browse our exclusive, fee-free pilot listings. Bidding opens soon!</p>
               </div>
 
               {/* Enhanced Search Form with Category Dropdown */}

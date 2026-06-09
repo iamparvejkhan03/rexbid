@@ -8,6 +8,7 @@ import { toast } from "react-hot-toast";
 import { useComments } from "../hooks/useComments";
 import { useWatchlist } from "../hooks/useWatchlist";
 import { useAuth } from "../contexts/AuthContext";
+import PilotPhaseModal from "../components/PilotPhaseModal";
 
 const YouTubeEmbed = lazy(() => import('../components/YouTubeEmbed'));
 const ImageLightBox = lazy(() => import('../components/ImageLightBox'));
@@ -44,6 +45,8 @@ function SingleAuction() {
     const [revieweeId, setRevieweeId] = useState(null);
     const [auctionReviews, setAuctionReviews] = useState([]);
     const makingOfferRef = useRef(false);
+    // Pilot phase
+    const [isPilotModalOpen, setIsPilotModalOpen] = useState(false);
 
     const userCurrency = user?.currency || 'EUR';
 
@@ -52,7 +55,8 @@ function SingleAuction() {
     };
 
     const handleOpenBidModal = () => {
-        setIsBidModalOpen(true);
+        // setIsBidModalOpen(true);
+        setIsPilotModalOpen(true);
     };
 
     const handleConfirmBid = (e) => {
@@ -64,8 +68,14 @@ function SingleAuction() {
         setIsBidModalOpen(false);
     };
 
+    const handlePilotModalClose = () => {
+        setIsPilotModalOpen(false);
+        navigate('/');
+    };
+
     const handleOpenMakeOfferModal = () => {
-        setIsMakeOfferModalOpen(true);
+        // setIsMakeOfferModalOpen(true);
+        setIsPilotModalOpen(true);
     };
 
     const handleCloseMakeOfferModal = () => {
@@ -1047,6 +1057,11 @@ function SingleAuction() {
                     )}
                 </div>
             </section>
+
+            <PilotPhaseModal
+                isOpen={isPilotModalOpen}
+                onClose={handlePilotModalClose}
+            />
         </Container>
     );
 }
