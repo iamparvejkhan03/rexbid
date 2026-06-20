@@ -1153,6 +1153,8 @@ export const updateAuction = async (req, res) => {
       reservePrice,
       buyNowPrice,
       allowOffers,
+      paymentCollectionPreference,
+      vatIncluded,
       startDate,
       endDate,
       removedPhotos,
@@ -1218,6 +1220,22 @@ export const updateAuction = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "Start price is required and must be positive",
+      });
+    }
+
+    // Validate payment collection preference
+    if (!paymentCollectionPreference) {
+      return res.status(400).json({
+        success: false,
+        message: "Payment collection preference is required",
+      });
+    }
+
+    const validPaymentMethods = ["bank_transfer", "credit_card", "buyer_decides"];
+    if (!validPaymentMethods.includes(paymentCollectionPreference)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid payment collection preference",
       });
     }
 
@@ -1860,6 +1878,8 @@ export const updateAuction = async (req, res) => {
       startPrice: parseFloat(startPrice),
       auctionType,
       allowOffers: allowOffers === "true" || allowOffers === true,
+      paymentCollectionPreference: paymentCollectionPreference || "buyer_decides",
+      vatIncluded: vatIncluded === "true" || vatIncluded === true,
       startDate: start,
       endDate: end,
       photos: finalPhotos,

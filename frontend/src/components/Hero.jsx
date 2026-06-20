@@ -149,11 +149,11 @@ function Hero() {
 
               {/* Headline - Bold and dynamic */}
               <div className="space-y-5">
-                <h1 className="text-4xl lg:text-5xl xl:text-6xl font-bold text-white leading-tight tracking-tight">
-                  Your Machinery. {" "}
+                <h1 className="text-4xl lg:text-5xl xl:text-5xl font-bold text-white leading-tight tracking-tight">
+                  Premium Marketplace. {" "}
                   <span className="relative inline-block">
                     <span className="relative z-10 text-transparent bg-clip-text bg-gradient-to-r from-[#D19F3E] to-[#E8B86B]">
-                      Your Auction.
+                      Auction Advantage.
                     </span>
                     <svg
                       className="absolute -bottom-2 left-0 w-full"
@@ -171,13 +171,13 @@ function Hero() {
                       />
                     </svg>
                   </span>{" "}
-                  <span className="text-gray-300">Your Control.</span>
+                  {/* <span className="text-gray-300">Your Control.</span> */}
                 </h1>
                 <p className="md:text-lg text-base text-gray-300 leading-relaxed max-w-lg">
-                  No expensive transport costs. No hidden auctioneer premiums. Just secure, transparent online auctions run straight from your own premises.
+                  Buying and selling, simplified. Upload your listing and control your own auction. Browse listings and bid with ease.
                 </p>
 
-                <p className="text-sm text-[#E8B86B]">🚀 Browse our exclusive, fee-free pilot listings. Bidding opens soon!</p>
+                <p className="text-sm text-[#E8B86B]">🚀 Buy-Sell-Bid, with RexBid. Bidding opens soon.</p>
               </div>
 
               {/* Enhanced Search Form with Category Dropdown */}

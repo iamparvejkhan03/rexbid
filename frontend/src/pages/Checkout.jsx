@@ -285,6 +285,42 @@ const CheckoutContent = () => {
         }
     }, [auctionId, navigate]);
 
+    // Determine which payment methods to show based on seller's preference
+    const getAvailablePaymentMethods = () => {
+        if (!auction) return [];
+
+        const preference = auction.paymentCollectionPreference || 'buyer_decides';
+
+        const methods = [];
+        if (preference === 'buyer_decides') {
+            methods.push('stripe', 'bank');
+        } else if (preference === 'credit_card') {
+            methods.push('stripe');
+        } else if (preference === 'bank_transfer') {
+            methods.push('bank');
+        }
+
+        return methods;
+    };
+
+    const availableMethods = getAvailablePaymentMethods();
+    const showBothMethods = availableMethods.length === 2;
+    const showStripe = availableMethods.includes('stripe');
+    const showBank = availableMethods.includes('bank');
+
+    // Set default payment method based on available options
+    useEffect(() => {
+        if (availableMethods.length > 0) {
+            // If only one method available, set it as default
+            if (availableMethods.length === 1) {
+                setPaymentMethod(availableMethods[0]);
+            } else {
+                // If both available, default to stripe
+                setPaymentMethod('stripe');
+            }
+        }
+    }, [auction]);
+
     const handleOneClickPayment = async () => {
         const loadingToast = toast.loading('Processing your payment...');
 
@@ -446,8 +482,8 @@ const CheckoutContent = () => {
                                 </h3>
 
                                 <div className="space-y-4">
-                                    {/* Stripe Option - Radio style */}
-                                    {hasSavedCard && (
+                                    {/* Show Stripe option only if available */}
+                                    {showStripe && hasSavedCard && (
                                         <label className={`flex items-center p-4 border-2 rounded-lg cursor-pointer transition-all ${paymentMethod === 'stripe' ? 'border-blue-600 bg-blue-50' : 'border-gray-200'
                                             }`}>
                                             <input
@@ -457,6 +493,7 @@ const CheckoutContent = () => {
                                                 checked={paymentMethod === 'stripe'}
                                                 onChange={() => setPaymentMethod('stripe')}
                                                 className="w-4 h-4 text-blue-600"
+                                                disabled={!showBothMethods}
                                             />
                                             <div className="ml-3 flex-1">
                                                 <div className="flex items-center gap-2">
@@ -476,39 +513,41 @@ const CheckoutContent = () => {
                                         </label>
                                     )}
 
-                                    {/* Bank Transfer Option - Radio style */}
-                                    <label className={`flex items-center p-4 border-2 rounded-lg cursor-pointer transition-all ${paymentMethod === 'bank' ? 'border-blue-600 bg-blue-50' : 'border-gray-200'
-                                        }`}>
-                                        <input
-                                            type="radio"
-                                            name="paymentMethod"
-                                            value="bank"
-                                            checked={paymentMethod === 'bank'}
-                                            onChange={() => setPaymentMethod('bank')}
-                                            className="w-4 h-4 text-blue-600"
-                                        />
-                                        <div className="ml-3 flex-1">
-                                            <div className="flex items-center gap-2">
-                                                <Banknote size={18} />
-                                                <span className="font-medium">Handle Payment Yourself</span>
+                                    {/* Show Bank Transfer option only if available */}
+                                    {showBank && (
+                                        <label className={`flex items-center p-4 border-2 rounded-lg cursor-pointer transition-all ${paymentMethod === 'bank' ? 'border-blue-600 bg-blue-50' : 'border-gray-200'
+                                            }`}>
+                                            <input
+                                                type="radio"
+                                                name="paymentMethod"
+                                                value="bank"
+                                                checked={paymentMethod === 'bank'}
+                                                onChange={() => setPaymentMethod('bank')}
+                                                className="w-4 h-4 text-blue-600"
+                                                disabled={!showBothMethods}
+                                            />
+                                            <div className="ml-3 flex-1">
+                                                <div className="flex items-center gap-2">
+                                                    <Banknote size={18} />
+                                                    <span className="font-medium">Handle Payment Yourself</span>
+                                                </div>
+                                                <p className="text-sm text-gray-600 mt-1">
+                                                    Pay in cash to seller or transfer directly to their bank account.
+                                                </p>
                                             </div>
-                                            <p className="text-sm text-gray-600 mt-1">
-                                                Pay in cash to seller or transfer directly to his bank account.
+                                            <Globe size={20} className="text-blue-600" />
+                                        </label>
+                                    )}
+
+                                    {/* Show message if no payment methods available */}
+                                    {availableMethods.length === 0 && (
+                                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                                            <p className="text-sm text-yellow-800">
+                                                No payment methods available for this auction.
                                             </p>
                                         </div>
-                                        <Globe size={20} className="text-blue-600" />
-                                    </label>
+                                    )}
                                 </div>
-
-                                {/* Bank Transfer Details - Show when selected */}
-                                {/* {paymentMethod === 'bank' && bankDetails && (
-                                    <div className="mt-6">
-                                        <BankTransferDetails
-                                            bankDetails={bankDetails}
-                                            onCopy={(field) => setCopiedField(field)}
-                                        />
-                                    </div>
-                                )} */}
                             </div>
                         </div>
 
@@ -570,6 +609,16 @@ const CheckoutContent = () => {
                                             </>
                                         )}
                                     </button>
+
+                                    {/* VAT Note */}
+                                    {auction?.vatIncluded && (
+                                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-3">
+                                            <p className="text-sm text-gray-500 flex items-start gap-2">
+                                                <Info size={16} className="flex-shrink-0 mt-0.5" />
+                                                <span>VAT is applicable on this purchase.</span>
+                                            </p>
+                                        </div>
+                                    )}
 
                                     {/* Payment Info */}
                                     <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">

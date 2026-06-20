@@ -60,6 +60,8 @@ export const createAuction = async (req, res) => {
       reservePrice,
       buyNowPrice,
       allowOffers,
+      paymentCollectionPreference,
+      vatIncluded,
       startDate,
       endDate,
     } = req.body;
@@ -109,6 +111,22 @@ export const createAuction = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "Start price is required and must be positive",
+      });
+    }
+
+    // Validate payment collection preference
+    if (!paymentCollectionPreference) {
+      return res.status(400).json({
+        success: false,
+        message: "Payment collection preference is required",
+      });
+    }
+
+    const validPaymentMethods = ["bank_transfer", "credit_card", "buyer_decides"];
+    if (!validPaymentMethods.includes(paymentCollectionPreference)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid payment collection preference",
       });
     }
 
@@ -294,6 +312,8 @@ export const createAuction = async (req, res) => {
       endDate: end,
       auctionType,
       allowOffers: allowOffers === "true" || allowOffers === true,
+      paymentCollectionPreference: paymentCollectionPreference || "buyer_decides",
+      vatIncluded: vatIncluded === "true" || vatIncluded === true,
       seller: seller._id,
       sellerUsername: seller.username,
       photos: uploadedPhotos,
@@ -950,6 +970,8 @@ export const updateAuction = async (req, res) => {
       reservePrice,
       buyNowPrice,
       allowOffers,
+      paymentCollectionPreference,
+      vatIncluded,
       startDate,
       endDate,
       removedPhotos,
@@ -1001,6 +1023,22 @@ export const updateAuction = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "Start price is required and must be positive",
+      });
+    }
+
+    // Validate payment collection preference
+    if (!paymentCollectionPreference) {
+      return res.status(400).json({
+        success: false,
+        message: "Payment collection preference is required",
+      });
+    }
+
+    const validPaymentMethods = ["bank_transfer", "credit_card", "buyer_decides"];
+    if (!validPaymentMethods.includes(paymentCollectionPreference)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid payment collection preference",
       });
     }
 
@@ -1560,6 +1598,8 @@ export const updateAuction = async (req, res) => {
       startPrice: parseFloat(startPrice),
       auctionType,
       allowOffers: allowOffers === "true" || allowOffers === true,
+      paymentCollectionPreference: paymentCollectionPreference || "buyer_decides",
+      vatIncluded: vatIncluded === "true" || vatIncluded === true,
       startDate: start,
       endDate: end,
       photos: finalPhotos,
@@ -1776,11 +1816,11 @@ export const placeBid = async (req, res) => {
     const auctionObj = auction.toObject();
 
     // Convert bids
-      const convertedBids = auction.bids.map(bid => ({
-        ...bid.toObject(),
-        convertedAmount: parseFloat((bid.amount * rate).toFixed(2)),
-        originalAmount: bid.amount
-      }));
+    const convertedBids = auction.bids.map(bid => ({
+      ...bid.toObject(),
+      convertedAmount: parseFloat((bid.amount * rate).toFixed(2)),
+      originalAmount: bid.amount
+    }));
 
     const convertedStartPrice = convertPrice(auction, userCurrency, 'startPrice');
     const convertedCurrentPrice = convertPrice(auction, userCurrency, 'currentPrice');

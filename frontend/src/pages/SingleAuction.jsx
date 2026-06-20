@@ -55,8 +55,8 @@ function SingleAuction() {
     };
 
     const handleOpenBidModal = () => {
-        // setIsBidModalOpen(true);
-        setIsPilotModalOpen(true);
+        setIsBidModalOpen(true);
+        // setIsPilotModalOpen(true);
     };
 
     const handleConfirmBid = (e) => {

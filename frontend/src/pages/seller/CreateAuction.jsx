@@ -705,6 +705,8 @@ const CreateAuction = () => {
             // Auction settings
             formData.append('auctionType', auctionData.auctionType);
             formData.append('allowOffers', auctionData.allowOffers || false);
+            formData.append('paymentCollectionPreference', auctionData.paymentCollectionPreference || 'buyer_decides');
+            formData.append('vatIncluded', Boolean(auctionData.vatIncluded));
             formData.append('features', auctionData.features || '');
             formData.append('startDate', new Date(auctionData.startDate).toISOString());
             formData.append('endDate', new Date(auctionData.endDate).toISOString());
@@ -1265,6 +1267,30 @@ const CreateAuction = () => {
                                                     </div>
                                                 )}
 
+                                                {/* Payment Collection Preference */}
+                                                <div className="mb-6">
+                                                    <label htmlFor="paymentCollectionPreference" className="block text-sm font-medium text-secondary mb-1">
+                                                        Payment Collection Method *
+                                                    </label>
+                                                    <select
+                                                        {...register('paymentCollectionPreference', {
+                                                            required: 'Please select a payment collection method'
+                                                        })}
+                                                        id="paymentCollectionPreference"
+                                                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
+                                                    >
+                                                        <option value="buyer_decides">Buyer Decides</option>
+                                                        <option value="bank_transfer">Bank Transfer</option>
+                                                        <option value="credit_card">Credit Card</option>
+                                                    </select>
+                                                    {errors.paymentCollectionPreference && (
+                                                        <p className="text-red-500 text-sm mt-1">{errors.paymentCollectionPreference.message}</p>
+                                                    )}
+                                                    <p className="text-sm text-secondary mt-1">
+                                                        Choose how you prefer to collect payment from the winning buyer
+                                                    </p>
+                                                </div>
+
                                                 {/* Allow Offers Toggle */}
                                                 <div className="mb-6">
                                                     <label className="flex items-center cursor-pointer">
@@ -1282,6 +1308,35 @@ const CreateAuction = () => {
                                                             <span className="font-medium text-secondary">Allow Offers</span>
                                                             <p className="text-sm text-secondary mt-1">
                                                                 Enable buyers to make purchase offers during the auction
+                                                            </p>
+                                                        </div>
+                                                    </label>
+                                                </div>
+
+                                                {/* VAT Applicable Checkbox */}
+                                                <div className="mb-6">
+                                                    <label className="flex items-center cursor-pointer">
+                                                        <div className="relative">
+                                                            <input
+                                                                type="checkbox"
+                                                                {...register('vatIncluded')}
+                                                                id="vatIncluded"
+                                                                className="sr-only"
+                                                                // Remove the 'value' attribute and use proper boolean
+                                                                checked={!!watch('vatIncluded')}
+                                                                onChange={(e) => {
+                                                                    const checked = e.target.checked;
+                                                                    setValue('vatIncluded', checked);
+                                                                    trigger('vatIncluded');
+                                                                }}
+                                                            />
+                                                            <div className={`block w-14 h-8 rounded-full ${watch('vatIncluded') ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                                                            <div className={`dot absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition ${watch('vatIncluded') ? 'transform translate-x-6' : ''}`}></div>
+                                                        </div>
+                                                        <div className="ml-3">
+                                                            <span className="font-medium text-secondary">VAT Applicable</span>
+                                                            <p className="text-sm text-secondary mt-1">
+                                                                Check this box if VAT will be charged on this item
                                                             </p>
                                                         </div>
                                                     </label>
@@ -1374,6 +1429,7 @@ const CreateAuction = () => {
 
                                                 {/* Auction Details */}
                                                 <div className="space-y-4">
+                                                    {/* Auction Details */}
                                                     <div className="bg-white p-4 rounded-lg shadow-sm">
                                                         <h4 className="font-medium mb-3">Auction Details</h4>
                                                         <div className="space-y-2">
@@ -1398,6 +1454,22 @@ const CreateAuction = () => {
                                                                     <p className="font-medium text-green-600">Yes</p>
                                                                 </div>
                                                             )}
+                                                            {/* NEW: Display Payment Collection Method */}
+                                                            <div>
+                                                                <p className="text-xs text-secondary">Payment Collection Method</p>
+                                                                <p className="font-medium">
+                                                                    {watch('paymentCollectionPreference') === 'buyer_decides' && 'Buyer Decides'}
+                                                                    {watch('paymentCollectionPreference') === 'bank_transfer' && 'Bank Transfer'}
+                                                                    {watch('paymentCollectionPreference') === 'credit_card' && 'Credit Card'}
+                                                                </p>
+                                                            </div>
+                                                            {/* NEW: Display VAT status */}
+                                                            <div>
+                                                                <p className="text-xs text-secondary">VAT Applicable</p>
+                                                                <p className="font-medium">
+                                                                    {watch('vatIncluded') ? 'Yes' : 'No'}
+                                                                </p>
+                                                            </div>
                                                             <div>
                                                                 <p className="text-xs text-secondary">Start Date</p>
                                                                 <p className="font-medium">

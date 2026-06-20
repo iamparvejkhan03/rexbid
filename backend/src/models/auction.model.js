@@ -169,6 +169,10 @@ const auctionSchema = new Schema(
       type: Boolean,
       default: false,
     },
+    vatIncluded: {
+      type: Boolean,
+      default: false,
+    },
 
     // Timing
     startDate: {
@@ -336,6 +340,12 @@ const auctionSchema = new Schema(
       enum: ["credit_card", "bank_transfer", "paypal", "other", null],
       default: null,
     },
+    paymentCollectionPreference: {
+      type: String,
+      enum: ["bank_transfer", "credit_card", "buyer_decides"],
+      required: true,
+      default: "buyer_decides",
+    },
     paymentDate: {
       type: Date,
     },
@@ -382,6 +392,19 @@ auctionSchema.virtual('isTimedAuction').get(function () {
 auctionSchema.virtual('isAlwaysAvailable').get(function () {
   // Buy now and giveaway are always available until purchased
   return this.auctionType === 'buy_now' || this.auctionType === 'giveaway';
+});
+
+// Virtual for VAT calculation
+auctionSchema.virtual("hasVat").get(function () {
+  return this.vatIncluded === true;
+});
+
+// Virtual for price including/excluding VAT
+auctionSchema.virtual("priceWithVat").get(function () {
+  if (!this.vatIncluded) return this.currentPrice;
+  // If you have a VAT rate, you can calculate it here
+  // For now, just return the current price
+  return this.currentPrice;
 });
 
 // Check if auction is about to end
@@ -999,6 +1022,10 @@ auctionSchema.pre("save", function (next) {
     return next(
       new Error("Buy Now price must be greater than or equal to reserve price"),
     );
+  }
+
+  if (!this.paymentCollectionPreference) {
+    this.paymentCollectionPreference = "buyer_decides";
   }
 
   next();

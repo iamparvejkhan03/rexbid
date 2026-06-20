@@ -142,6 +142,8 @@ export const getCheckoutData = async (req, res) => {
             auctionType: auction.auctionType,
             status: auction.status,
             paymentStatus: auction.paymentStatus,
+            vatIncluded: auction.vatIncluded,
+            paymentCollectionPreference: auction.paymentCollectionPreference,
             baseCurrency: auction.baseCurrency,
             displayCurrency: userCurrency,
             photos: auction.photos?.length > 0 ? [auction.photos[0]] : [],
