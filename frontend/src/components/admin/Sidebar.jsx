@@ -25,7 +25,8 @@ import {
     Tags,
     PoundSterling,
     BanknoteArrowUp,
-    BanknoteArrowDown
+    BanknoteArrowDown,
+    UserLock
 } from "lucide-react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { logo } from "../../assets";
@@ -42,6 +43,11 @@ const navigation = [
         name: 'Users',
         path: '/admin/users',
         icon: <Users size={20} />
+    },
+    {
+        name: 'Pilot Users',
+        path: '/admin/pilot-users',
+        icon: <UserLock size={20} />
     },
     {
         name: 'Auctions',

@@ -68,6 +68,7 @@ const BidderBilling = lazy(() => import('./pages/bidder/Billing'));
 const AdminLayout = lazy(() => import('./pages/admin/Layout'));
 const AdminDashboard = lazy(() => import('./pages/admin/Dashboard'));
 const AllUsers = lazy(() => import('./pages/admin/AllUsers'));
+const PilotUsers = lazy(() => import('./pages/admin/PilotUsers'));
 const AdminAllAuctions = lazy(() => import('./pages/admin/AllAuctions'));
 const AdminCreateAuction = lazy(() => import('./pages/admin/CreateAuction'));
 const AdminEditAuction = lazy(() => import('./pages/admin/EditAuction'));
@@ -447,6 +448,16 @@ createRoot(document.getElementById('root')).render(
                             element={
                                 <Suspense fallback={<LoadingSpinner height={'750px'} />}>
                                     <AllUsers />
+                                </Suspense>
+                            }
+                        />
+
+                        {/* Admin Pilot Users */}
+                        <Route
+                            path='/admin/pilot-users'
+                            element={
+                                <Suspense fallback={<LoadingSpinner height={'750px'} />}>
+                                    <PilotUsers />
                                 </Suspense>
                             }
                         />
