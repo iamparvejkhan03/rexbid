@@ -5,13 +5,14 @@ const MobileBidStickyBar = ({
   currentBid,
   timeRemaining,
   onBidClick,
-  buyNowPrice,
+  convertedBuyNowPrice,  // Changed from buyNowPrice
   onBuyNowClick,
   onMakeOfferClick,
   allowOffers,
   auctionType,
   status,
-  auction // Pass the full auction object to get more details
+  auction,
+  userCurrency = 'EUR' // Default to EUR if not provided
 }) => {
   const { days, hours, minutes, seconds, status: timeStatus } = timeRemaining;
   const isActive = timeStatus === 'counting-down' || timeStatus === 'always-available';
@@ -70,17 +71,25 @@ const MobileBidStickyBar = ({
     }
   }, [days, hours, minutes, seconds, isActive, timeStatus]);
 
+  // Updated currency formatter with user's currency
   const formatCurrency = (amount) => {
+    if (amount === undefined || amount === null) return '0.00';
+    
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 1
+      currency: userCurrency || 'EUR',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
     }).format(amount);
   };
 
+  // Get currency symbol
+  const getCurrencySymbol = () => {
+    return userCurrency === 'GBP' ? '£' : '€';
+  };
+
   // Determine if buttons should be shown
-  const showBuyNow = auctionType === 'buy_now' && buyNowPrice && isActive && !auction?.winner && auction?.status === 'active';
+  const showBuyNow = auctionType === 'buy_now' && convertedBuyNowPrice && isActive && !auction?.winner && auction?.status === 'active';
   const showMakeOffer = allowOffers && isActive && !auction?.winner && auction?.status === 'active';
   const showBidForm = (auctionType === 'standard' || auctionType === 'reserve') && isActive && !auction?.winner && auction?.status === 'active';
   const isGiveaway = auctionType === 'giveaway';
@@ -117,7 +126,7 @@ const MobileBidStickyBar = ({
     <div className="lg:hidden bg-gradient-to-b from-bg-primary/[0.03] to-transparent dark:from-white/[0.03] dark:to-transparent border border-gray-200 dark:border-bg-primary-light rounded-lg shadow-sm mb-6 sticky top-16">
       <div className="p-4">
         {/* Top Row: Current Bid/Price and Timer */}
-        <div className="flex w-full justify-between items-center mb-3">
+        <div className="flex flex-wrap w-full justify-between items-center mb-3">
           <div>
             <p className="text-xs text-text-secondary dark:text-text-secondary-dark font-light">
               {isGiveaway ? 'FREE GIVEAWAY' :
@@ -127,8 +136,12 @@ const MobileBidStickyBar = ({
             <p className="text-lg font-semibold text-text-primary dark:text-text-primary-dark">
               {isGiveaway ? (
                 <span className="flex items-center gap-1 text-green-600 dark:text-green-400">FREE 🎁</span>
-              ) : auction?.auctionType === 'buy_now' ? formatCurrency(auction?.buyNowPrice) : (
-                `${formatCurrency(currentBid) || 0}`
+              ) : auctionType === 'buy_now' ? (
+                // Use convertedBuyNowPrice with proper formatting
+                formatCurrency(auction?.convertedBuyNowPrice || convertedBuyNowPrice)
+              ) : (
+                // Use currentBid which should already be converted
+                formatCurrency(currentBid)
               )}
             </p>
           </div>
@@ -160,8 +173,8 @@ const MobileBidStickyBar = ({
         {/* Reserve Status - Only for reserve auctions */}
         {auctionType === 'reserve' && auction && (
           <div className="mb-3 text-sm">
-            <span className={`${auction.currentPrice >= auction.reservePrice ? 'text-green-600 dark:text-green-400' : 'text-orange-600 dark:text-orange-400'}`}>
-              {auction.currentPrice >= auction.reservePrice ? '✓ Reserve Met' : '⚠ Reserve Not Met'}
+            <span className={`${(auction.convertedCurrentPrice || auction.currentPrice) >= auction.reservePrice ? 'text-green-600 dark:text-green-400' : 'text-orange-600 dark:text-orange-400'}`}>
+              {(auction.convertedCurrentPrice || auction.currentPrice) >= auction.reservePrice ? '✓ Reserve Met' : '⚠ Reserve Not Met'}
             </span>
           </div>
         )}
@@ -194,7 +207,7 @@ const MobileBidStickyBar = ({
               className="bg-green-600 hover:bg-green-700 text-white py-3 px-4 rounded-md cursor-pointer flex items-center gap-2 text-sm font-medium w-full justify-center"
             >
               <Zap size={18} />
-              <span>Buy Now {formatCurrency(buyNowPrice)}</span>
+              <span>Buy Now {formatCurrency(convertedBuyNowPrice)}</span>
             </button>
           )}
 

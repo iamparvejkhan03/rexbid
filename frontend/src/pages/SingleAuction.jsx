@@ -1,4 +1,4 @@
-import { CalendarDays, CheckSquare, Clock, Download, File, Fuel, Gauge, Gavel, Heart, Loader, MapPin, MessageCircle, PaintBucket, Plane, ShieldCheck, Tag, User, Users, Weight, Zap, Banknote, MessageSquare, Mail, Phone, Star, CreditCard } from "lucide-react";
+import { CalendarDays, CheckSquare, Clock, Download, File, Fuel, Gauge, Gavel, Heart, Loader, MapPin, MessageCircle, PaintBucket, Plane, ShieldCheck, Tag, User, Users, Weight, Zap, Banknote, MessageSquare, Mail, Phone, Star, CreditCard, Info } from "lucide-react";
 import { BidConfirmationModal, BuyNowModal, Container, LoadingSpinner, MobileBidStickyBar, RatingStars, ReviewModal, SellerStatsCard, SpecificationsSection, TabSection, TimerDisplay, WatchlistButton } from "../components";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { lazy, Suspense, useRef, useState, useEffect } from "react";
@@ -55,8 +55,8 @@ function SingleAuction() {
     };
 
     const handleOpenBidModal = () => {
-        // setIsBidModalOpen(true);
-        setIsPilotModalOpen(true);
+        setIsBidModalOpen(true);
+        // setIsPilotModalOpen(true);
     };
 
     const handleConfirmBid = (e) => {
@@ -74,8 +74,8 @@ function SingleAuction() {
     };
 
     const handleOpenMakeOfferModal = () => {
-        // setIsMakeOfferModalOpen(true);
-        setIsPilotModalOpen(true);
+        setIsMakeOfferModalOpen(true);
+        // setIsPilotModalOpen(true);
     };
 
     const handleCloseMakeOfferModal = () => {
@@ -482,6 +482,7 @@ function SingleAuction() {
                         auctionType={auction.auctionType}
                         status={countdown.status}
                         auction={auction}
+                        userCurrency={userCurrency}
                     />
                 </div>
 
@@ -846,6 +847,7 @@ function SingleAuction() {
                             {/* ACTIVE STATES - Show for both counting-down and always-available */}
                             {(countdown.status === 'counting-down' || countdown.status === 'always-available') && (
                                 <>
+                                    <p className="bg-blue-100 text-blue-600 py-2 px-4 rounded-md text-sm flex items-center gap-2"><Info size={14} />{auction?.vatIncluded ? 'VAT to be added' : 'No VAT  to be added'}</p>
                                     {/* Bid Form for standard/reserve - only show for timed auctions */}
                                     {(auction.auctionType === 'standard' || auction.auctionType === 'reserve') && (
                                         <form ref={formRef} onSubmit={handleBid} className="flex flex-col gap-4">
