@@ -1,5 +1,5 @@
 import { useState, Suspense, lazy, useEffect, forwardRef } from "react";
-import { MessageSquare, Gavel, Notebook, PoundSterling, Star } from "lucide-react";
+import { MessageSquare, Gavel, Notebook, PoundSterling, Star, Euro } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 
 const LoadingSpinner = lazy(() => import("./LoadingSpinner"));
@@ -75,7 +75,7 @@ const TabSection = forwardRef(
       tabs.push({
         id: "offers",
         label: "My Offers",
-        icon: <PoundSterling size={18} />,
+        icon: <Euro size={18} />,
         component: (
           <OffersSection
             offers={getUserOffers()}

@@ -1,4 +1,4 @@
-import { UserCheck, Tractor, DollarSign, Rocket, ArrowRight, Sparkles } from "lucide-react";
+import { UserCheck, Tractor, DollarSign, Rocket, ArrowRight, Sparkles, Euro } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -30,7 +30,7 @@ function HowItWorks() {
         stepNumber: "02",
     },
     {
-        icon: DollarSign,
+        icon: Euro,
         title: "Place Your Bid",
         description: "Bid with confidence and connect directly with trusted sellers.",
         stepNumber: "03",

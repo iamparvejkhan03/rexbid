@@ -256,7 +256,7 @@ const BuyerAgreement = () => {
                                     </a>
                                 </p>
 
-                                <p className="text-gray-700 text-sm">
+                                {/* <p className="text-gray-700 text-sm">
                                     Phone:{" "}
                                     <a
                                         href={`tel:${phone}`}
@@ -264,7 +264,7 @@ const BuyerAgreement = () => {
                                     >
                                         {phone}
                                     </a>
-                                </p>
+                                </p> */}
                             </div>
                         </div>
 

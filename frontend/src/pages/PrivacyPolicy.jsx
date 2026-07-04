@@ -265,7 +265,7 @@ const PrivacyPolicy = () => {
                                     </a>
                                 </p>
 
-                                <p className="text-gray-700 text-sm">
+                                {/* <p className="text-gray-700 text-sm">
                                     Phone:{" "}
                                     <a
                                         href={`tel:${phone}`}
@@ -273,7 +273,7 @@ const PrivacyPolicy = () => {
                                     >
                                         {phone}
                                     </a>
-                                </p>
+                                </p> */}
                             </div>
 
                             <p className="text-gray-600 text-sm mt-4">

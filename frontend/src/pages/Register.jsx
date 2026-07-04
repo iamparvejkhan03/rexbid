@@ -76,7 +76,7 @@ const Register = () => {
     const [selectedCurrency, setSelectedCurrency] = useState('');
 
     // Pilot phase
-    const [isPilotModalOpen, setIsPilotModalOpen] = useState(true);
+    const [isPilotModalOpen, setIsPilotModalOpen] = useState(false);
     const [showRegisterForm, setShowRegisterForm] = useState(false);
 
     useEffect(() => {
@@ -85,7 +85,7 @@ const Register = () => {
         };
         fetchCountries();
 
-        setIsPilotModalOpen(true);
+        // setIsPilotModalOpen(true);
     }, []);
 
     const handlePilotModalClose = () => {
@@ -260,10 +260,10 @@ const Register = () => {
                     <p className="text-black text-lg">Create your account</p>
                 </div>
 
-                <PilotPhaseModal
+                {/* <PilotPhaseModal
                     isOpen={isPilotModalOpen}
                     onClose={handlePilotModalClose}
-                />
+                /> */}
 
                 {/* Registration Form */}
                 <div className="p-5 sm:p-8">
