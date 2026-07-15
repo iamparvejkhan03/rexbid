@@ -88,9 +88,7 @@ const PilotPhaseModal = forwardRef((props, ref) => {
                                     </div>
                                     <div className="ml-3">
                                         <p className="text-sm text-yellow-700">
-                                            RexBid is currently in a closed pilot phase. Bidding opens in July.
-                                            Enter your email and phone number below to get an SMS alert the second
-                                            the bidding window cracks open.
+                                            Please enter your email address and phone number to be notified when RexBid opens for bidding.
                                         </p>
                                     </div>
                                 </div>
