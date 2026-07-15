@@ -85,7 +85,7 @@ const Register = () => {
         };
         fetchCountries();
 
-        // setIsPilotModalOpen(true);
+        setIsPilotModalOpen(true);
     }, []);
 
     const handlePilotModalClose = () => {
@@ -260,10 +260,10 @@ const Register = () => {
                     <p className="text-black text-lg">Create your account</p>
                 </div>
 
-                {/* <PilotPhaseModal
+                <PilotPhaseModal
                     isOpen={isPilotModalOpen}
                     onClose={handlePilotModalClose}
-                /> */}
+                />
 
                 {/* Registration Form */}
                 <div className="p-5 sm:p-8">

@@ -55,8 +55,8 @@ function SingleAuction() {
     };
 
     const handleOpenBidModal = () => {
-        setIsBidModalOpen(true);
-        // setIsPilotModalOpen(true);
+        // setIsBidModalOpen(true);
+        setIsPilotModalOpen(true);
     };
 
     const handleConfirmBid = (e) => {
@@ -74,8 +74,8 @@ function SingleAuction() {
     };
 
     const handleOpenMakeOfferModal = () => {
-        setIsMakeOfferModalOpen(true);
-        // setIsPilotModalOpen(true);
+        // setIsMakeOfferModalOpen(true);
+        setIsPilotModalOpen(true);
     };
 
     const handleCloseMakeOfferModal = () => {
