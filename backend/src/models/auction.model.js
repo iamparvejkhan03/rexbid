@@ -256,6 +256,30 @@ const auctionSchema = new Schema(
     // Offers - NEW: Array of offers
     offers: [offerSchema],
 
+    participants: [{
+      user: {
+        type: Schema.Types.ObjectId,
+        ref: "User",
+        required: false, // Not required since guest users can participate
+      },
+      email: {
+        type: String,
+        required: true,
+      },
+      phoneNumber: {
+        type: String,
+        required: true,
+      },
+      participatedAt: {
+        type: Date,
+        default: Date.now,
+      },
+      isWinner: {
+        type: Boolean,
+        default: false,
+      },
+    }],
+
     // Status
     status: {
       type: String,

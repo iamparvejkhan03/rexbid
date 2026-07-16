@@ -25,12 +25,12 @@ const TimerDisplay = ({ countdown, auction, userCurrency }) => {
                 <div className={`text-lg font-semibold mb-2 ${
                     auction.auctionType === 'buy_now' ? 'text-green-600' : 'text-purple-600'
                 }`}>
-                    {auction.auctionType === 'buy_now' ? '💰 Buy Now Available' : '🎁 Free Giveaway'}
+                    {auction.auctionType === 'buy_now' ? '💰 Buy Now Available' : '🎁 Giveaway'}
                 </div>
                 <div className="text-md text-gray-600">
                     {auction.auctionType === 'buy_now' 
                         ? `Available until purchased`
-                        : 'Available until claimed'
+                        : 'No bidding required. Just fill your email and phone number to participate.'
                     }
                 </div>
             </div>

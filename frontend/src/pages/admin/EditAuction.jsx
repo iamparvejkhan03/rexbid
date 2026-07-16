@@ -1715,12 +1715,12 @@ const EditAuction = () => {
 
                                         <div className="mb-6">
                                             <label className="block text-sm font-medium text-secondary mb-1">Auction Type *</label>
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4"> {/* Changed from grid-cols-3 to grid-cols-4 */}
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4"> {/* Changed from grid-cols-3 to grid-cols-4 */}
                                                 {[
                                                     { value: 'standard', label: 'Standard Auction' },
                                                     { value: 'reserve', label: 'Reserve Price Auction' },
                                                     // { value: 'buy_now', label: 'Buy Now Auction' },
-                                                    // { value: 'giveaway', label: 'Free Giveaway' },
+                                                    { value: 'giveaway', label: 'Free Giveaway' },
                                                 ].map((type) => (
                                                     <label key={type.value} className="flex items-center p-4 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
                                                         <input
@@ -1741,7 +1741,7 @@ const EditAuction = () => {
                                             <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4">
                                                 <p className="text-green-700 flex items-center gap-2">
                                                     <Zap size={18} />
-                                                    <span>This auction will start immediately upon creation.</span>
+                                                    <span>This ad type will not require bidding. Anyone can participate as soon as it's created.</span>
                                                 </p>
                                             </div>
                                         )}
@@ -1931,7 +1931,7 @@ const EditAuction = () => {
                                         )}
 
                                         {/* Show giveaway info */}
-                                        {watch('auctionType') === 'giveaway' && (
+                                        {/* {watch('auctionType') === 'giveaway' && (
                                             <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-6">
                                                 <h3 className="text-lg font-semibold text-green-700 mb-2 flex items-center gap-2">
                                                     <span>🎁 Free Giveaway</span>
@@ -1943,7 +1943,7 @@ const EditAuction = () => {
                                                     No pricing needed. The auction will end as soon as someone claims it.
                                                 </p>
                                             </div>
-                                        )}
+                                        )} */}
                                     </div>
                                 )}
 
@@ -2045,34 +2045,36 @@ const EditAuction = () => {
                                                                     <p className="font-medium text-green-600">Yes</p>
                                                                 </div>
                                                             )}
-                                                            {/* NEW: Display Payment Collection Method */}
-                                                            <div>
-                                                                <p className="text-xs text-secondary">Payment Collection Method</p>
-                                                                <p className="font-medium">
-                                                                    {watch('paymentCollectionPreference') === 'buyer_decides' && 'Buyer Decides'}
-                                                                    {watch('paymentCollectionPreference') === 'bank_transfer' && 'Bank Transfer'}
-                                                                    {watch('paymentCollectionPreference') === 'credit_card' && 'Credit Card'}
-                                                                </p>
-                                                            </div>
-                                                            {/* NEW: Display VAT status */}
-                                                            <div>
-                                                                <p className="text-xs text-secondary">VAT Applicable</p>
-                                                                <p className="font-medium">
-                                                                    {watch('vatIncluded') ? 'Yes' : 'No'}
-                                                                </p>
-                                                            </div>
-                                                            <div>
-                                                                <p className="text-xs text-secondary">Start Date</p>
-                                                                <p className="font-medium">
-                                                                    {watch('startDate') ? new Date(watch('startDate')).toLocaleString('en-IE') : 'Not provided'}
-                                                                </p>
-                                                            </div>
-                                                            <div>
-                                                                <p className="text-xs text-secondary">End Date</p>
-                                                                <p className="font-medium">
-                                                                    {watch('endDate') ? new Date(watch('endDate')).toLocaleString('en-IE') : 'Not provided'}
-                                                                </p>
-                                                            </div>
+                                                            {watch('auctionType') !== 'giveaway' && (
+                                                                <>
+                                                                    <div>
+                                                                        <p className="text-xs text-secondary">Payment Collection Method</p>
+                                                                        <p className="font-medium">
+                                                                            {watch('paymentCollectionPreference') === 'buyer_decides' && 'Buyer Decides'}
+                                                                            {watch('paymentCollectionPreference') === 'bank_transfer' && 'Bank Transfer'}
+                                                                            {watch('paymentCollectionPreference') === 'credit_card' && 'Credit Card'}
+                                                                        </p>
+                                                                    </div>
+                                                                    <div>
+                                                                        <p className="text-xs text-secondary">VAT Applicable</p>
+                                                                        <p className="font-medium">
+                                                                            {watch('vatIncluded') ? 'Yes' : 'No'}
+                                                                        </p>
+                                                                    </div>
+                                                                    <div>
+                                                                        <p className="text-xs text-secondary">Start Date</p>
+                                                                        <p className="font-medium">
+                                                                            {watch('startDate') ? new Date(watch('startDate')).toLocaleString('en-IE') : 'Not provided'}
+                                                                        </p>
+                                                                    </div>
+                                                                    <div>
+                                                                        <p className="text-xs text-secondary">End Date</p>
+                                                                        <p className="font-medium">
+                                                                            {watch('endDate') ? new Date(watch('endDate')).toLocaleString('en-IE') : 'Not provided'}
+                                                                        </p>
+                                                                    </div>
+                                                                </>
+                                                            )}
                                                         </div>
                                                     </div>
 

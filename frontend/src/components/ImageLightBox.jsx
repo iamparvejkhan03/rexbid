@@ -73,7 +73,7 @@ const ImageLightBox = ({ isFeatured = false, images = [], captions = [], auction
 
         if (auctionType === 'giveaway') {
             badges.push({
-                label: 'Free Giveaway',
+                label: 'Giveaway',
                 icon: HelpingHand,
                 color: 'bg-blue-100 text-blue-700 border-blue-200'
             });

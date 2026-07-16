@@ -334,7 +334,7 @@ function AuctionCard({ auction }) {
                         auction.auctionType === 'buy_now' ? <ShoppingCart size={18} className="text-white" /> : auction.auctionType === 'giveaway' ? <HandGrab size={18} className="text-white flex-shrink-0" /> : <Gavel size={18} className="text-white" />
                     }
                     <span className="font-medium text-white">
-                        {!isAuctionActive ? 'View Auction' : auction?.auctionType === 'buy_now' ? 'Buy Now' : auction?.auctionType === 'giveaway' ? 'Claim Now' : 'Place Bid'}
+                        {!isAuctionActive ? 'View Auction' : auction?.auctionType === 'buy_now' ? 'Buy Now' : auction?.auctionType === 'giveaway' ? 'Enter Now' : 'Place Bid'}
                     </span>
                 </button>
 

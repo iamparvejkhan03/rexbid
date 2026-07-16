@@ -129,13 +129,13 @@ const MobileBidStickyBar = ({
         <div className="flex flex-wrap w-full justify-between items-center mb-3">
           <div>
             <p className="text-xs text-text-secondary dark:text-text-secondary-dark font-light">
-              {isGiveaway ? 'FREE GIVEAWAY' :
+              {isGiveaway ? '' :
                 auctionType === 'buy_now' ? 'BUY NOW PRICE' :
                   auction?.bidCount > 0 ? 'CURRENT BID' : 'STARTING BID'}
             </p>
             <p className="text-lg font-semibold text-text-primary dark:text-text-primary-dark">
               {isGiveaway ? (
-                <span className="flex items-center gap-1 text-green-600 dark:text-green-400">FREE 🎁</span>
+                <span className="flex items-center gap-1 text-green-600 dark:text-green-400">GIVEAWAY 🎁</span>
               ) : auctionType === 'buy_now' ? (
                 // Use convertedBuyNowPrice with proper formatting
                 formatCurrency(auction?.convertedBuyNowPrice || convertedBuyNowPrice)
@@ -196,7 +196,7 @@ const MobileBidStickyBar = ({
               className="bg-purple-600 hover:bg-purple-700 text-white py-3 px-4 rounded-md cursor-pointer flex items-center gap-2 text-sm font-medium w-full justify-center"
             >
               <Gift size={18} />
-              <span>Claim for Free 🎁</span>
+              <span>Enter Giveaway 🎁</span>
             </button>
           )}
 

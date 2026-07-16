@@ -15,10 +15,13 @@ import {
     getAuctionCommission,
     markAsFeatured,
     getHotListing,
-    getFeaturedListings
+    getFeaturedListings,
+    participateInGiveaway,
+    getGiveawayParticipants,
+    selectGiveawayWinner
 } from '../controllers/auction.controller.js';
 import upload from '../middlewares/multer.middleware.js';
-import { auth, authBidder, authSeller } from '../middlewares/auth.middleware.js';
+import { auth, authAdmin, authBidder, authSeller } from '../middlewares/auth.middleware.js';
 
 const auctionRouter = Router();
 
@@ -50,5 +53,10 @@ auctionRouter.get('/hot', getHotListing);
 auctionRouter.get('/featured', getFeaturedListings);
 auctionRouter.get('/:id', getAuction);
 auctionRouter.get('/:id/commission', auth, getAuctionCommission);
+
+// Giveaway routes
+auctionRouter.post('/:id/participate', participateInGiveaway);
+auctionRouter.get('/:id/participants', authAdmin, getGiveawayParticipants);
+auctionRouter.post('/:id/select-winner', authAdmin, selectGiveawayWinner);
 
 export default auctionRouter;

@@ -3083,3 +3083,235 @@ export const getFeaturedListings = async (req, res) => {
     });
   }
 };
+
+/**
+ * @desc    Participate in a giveaway auction
+ * @route   POST /api/v1/auctions/:id/participate
+ * @access  Public
+ */
+export const participateInGiveaway = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { email, phoneNumber } = req.body;
+    const userId = req.user?._id;
+
+    // Validate required fields
+    if (!email || !phoneNumber) {
+      return res.status(400).json({
+        success: false,
+        message: "Email and phone number are required",
+      });
+    }
+
+    // Find the auction
+    const auction = await Auction.findById(id);
+
+    if (!auction) {
+      return res.status(404).json({
+        success: false,
+        message: "Auction not found",
+      });
+    }
+
+    // Verify it's a giveaway auction
+    if (auction.auctionType !== "giveaway") {
+      return res.status(400).json({
+        success: false,
+        message: "This is not a giveaway auction",
+      });
+    }
+
+    // Check if auction is still active/available
+    if (auction.status !== "active") {
+      return res.status(400).json({
+        success: false,
+        message: "This giveaway is no longer active",
+      });
+    }
+
+    // Check if already has a winner
+    if (auction.winner) {
+      return res.status(400).json({
+        success: false,
+        message: "This giveaway has already been claimed",
+      });
+    }
+
+    // Check if user/email already participated
+    const existingParticipant = auction.participants.find(
+      p => p.email.toLowerCase() === email.toLowerCase() || 
+           (userId && p.user && p.user.toString() === userId.toString())
+    );
+
+    if (existingParticipant) {
+      return res.status(400).json({
+        success: false,
+        message: "You have already participated in this giveaway",
+      });
+    }
+
+    // Add participant
+    auction.participants.push({
+      user: userId || null,
+      email: email.toLowerCase(),
+      phoneNumber,
+      participatedAt: new Date(),
+      isWinner: false,
+    });
+
+    await auction.save();
+
+    // Populate for response
+    await auction.populate("participants.user", "username email phone");
+
+    res.status(200).json({
+      success: true,
+      message: "Successfully entered the giveaway!",
+      data: {
+        participants: auction.participants,
+        totalParticipants: auction.participants.length,
+      },
+    });
+
+  } catch (error) {
+    console.error("Giveaway participation error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error while participating in giveaway",
+    });
+  }
+};
+
+/**
+ * @desc    Select winner for giveaway (Admin only)
+ * @route   POST /api/v1/auctions/:id/select-winner
+ * @access  Private (Admin)
+ */
+export const selectGiveawayWinner = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { participantId } = req.body; // Optional - can select specific participant
+
+    const auction = await Auction.findById(id);
+
+    if (!auction) {
+      return res.status(404).json({
+        success: false,
+        message: "Auction not found",
+      });
+    }
+
+    if (auction.auctionType !== "giveaway") {
+      return res.status(400).json({
+        success: false,
+        message: "This is not a giveaway.",
+      });
+    }
+
+    if (auction.winner) {
+      return res.status(400).json({
+        success: false,
+        message: "This giveaway already has a winner",
+      });
+    }
+
+    if (auction.participants.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "No participants to select a winner from",
+      });
+    }
+
+    let selectedParticipant;
+
+    if (participantId) {
+      // Select specific participant
+      selectedParticipant = auction.participants.id(participantId);
+      if (!selectedParticipant) {
+        return res.status(404).json({
+          success: false,
+          message: "Participant not found",
+        });
+      }
+    } else {
+      // Randomly select a winner
+      const randomIndex = Math.floor(Math.random() * auction.participants.length);
+      selectedParticipant = auction.participants[randomIndex];
+    }
+
+    // Mark as winner
+    selectedParticipant.isWinner = true;
+
+    // Set auction details
+    auction.winner = selectedParticipant.user || null;
+    auction.status = "sold";
+    auction.finalPrice = 0; // Giveaway is free
+    auction.endDate = new Date();
+
+    await auction.save();
+
+    // Populate for response
+    await auction.populate("winner", "username email phone");
+
+    res.status(200).json({
+      success: true,
+      message: "Winner selected successfully!",
+      data: {
+        winner: selectedParticipant,
+        auction,
+      },
+    });
+
+  } catch (error) {
+    console.error("Select giveaway winner error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error while selecting winner",
+    });
+  }
+};
+
+/**
+ * @desc    Get giveaway participants
+ * @route   GET /api/v1/auctions/:id/participants
+ * @access  Private (Admin)
+ */
+export const getGiveawayParticipants = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const auction = await Auction.findById(id)
+      .populate("participants.user", "username email phone");
+
+    if (!auction) {
+      return res.status(404).json({
+        success: false,
+        message: "Auction not found",
+      });
+    }
+
+    if (auction.auctionType !== "giveaway") {
+      return res.status(400).json({
+        success: false,
+        message: "This is not a giveaway.",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: {
+        totalParticipants: auction.participants.length,
+        participants: auction.participants,
+        hasWinner: !!auction.winner,
+        winner: auction.winner,
+      },
+    });
+
+  } catch (error) {
+    console.error("Get participants error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error while fetching participants",
+    });
+  }
+};

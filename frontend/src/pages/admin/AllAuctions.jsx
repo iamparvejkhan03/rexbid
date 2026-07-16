@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { AdminContainer, AdminHeader, AdminSidebar, LoadingSpinner, PaymentStatusDropdown } from "../../components";
-import { Search, Filter, Gavel, Clock, Eye, Edit, Shield, TrendingUp, User, Award, MoreVertical, Trash2, AlertTriangle, CheckCircle, Star, Crown, Plus, FileText, Banknote, RefreshCcw } from "lucide-react";
+import { Search, Filter, Gavel, Clock, Eye, Edit, Shield, TrendingUp, User, Award, MoreVertical, Trash2, AlertTriangle, CheckCircle, Star, Crown, Plus, FileText, Banknote, RefreshCcw, Users, Mail, Phone } from "lucide-react";
 import { about } from "../../assets";
 import toast from "react-hot-toast";
 import axiosInstance from "../../utils/axiosInstance";
@@ -15,6 +15,11 @@ function AllAuctions() {
     const [selectedAuction, setSelectedAuction] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [activeDropdown, setActiveDropdown] = useState(null);
+    const [showParticipantsModal, setShowParticipantsModal] = useState(false);
+    const [participants, setParticipants] = useState([]);
+    const [participantsLoading, setParticipantsLoading] = useState(false);
+    const [selectedWinner, setSelectedWinner] = useState(null);
+    const [declaringWinner, setDeclaringWinner] = useState(false);
     const navigate = useNavigate();
     const [stats, setStats] = useState({
         total: 0,
@@ -237,6 +242,50 @@ function AllAuctions() {
         }
     };
 
+    const fetchParticipants = async (auctionId) => {
+        setParticipantsLoading(true);
+        try {
+            const { data } = await axiosInstance.get(`/api/v1/auctions/${auctionId}/participants`);
+            if (data.success) {
+                setParticipants(data.data);
+            }
+        } catch (err) {
+            console.error('Fetch participants error:', err);
+            toast.error("Failed to load participants");
+        } finally {
+            setParticipantsLoading(false);
+        }
+    };
+
+    const declareWinner = async (auctionId, participantId) => {
+        setDeclaringWinner(true);
+        try {
+            const { data } = await axiosInstance.post(`/api/v1/auctions/${auctionId}/select-winner`, {
+                participantId
+            });
+
+            if (data.success) {
+                toast.success(data.message || 'Winner declared successfully!');
+                setShowParticipantsModal(false);
+                // Refresh the auction list
+                fetchAuctions();
+            }
+        } catch (err) {
+            console.error('Declare winner error:', err);
+            toast.error(err.response?.data?.message || "Failed to declare winner");
+        } finally {
+            setDeclaringWinner(false);
+        }
+    };
+
+    const openParticipantsModal = async (auction) => {
+        if (auction.auctionType === 'giveaway') {
+            await fetchParticipants(auction._id);
+            setSelectedAuction(auction);
+            setShowParticipantsModal(true);
+        }
+    };
+
     useEffect(() => {
         fetchAuctions();
     }, []);
@@ -288,6 +337,10 @@ function AllAuctions() {
         ) : auctionType === 'standard' ? (
             <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
                 Standard
+            </span>
+        ) : auctionType === 'giveaway' ? (
+            <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                Giveaway
             </span>
         ) : (
             <span className="px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
@@ -612,6 +665,17 @@ function AllAuctions() {
 
                                                 <td className="py-4 px-6">
                                                     <div className="flex items-center gap-1">
+                                                        {/* Participants Button - Only for Giveaway */}
+                                                        {auction?.auctionType === 'giveaway' && (
+                                                            <button
+                                                                onClick={() => openParticipantsModal(auction)}
+                                                                className="p-2 text-gray-400 hover:text-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
+                                                                title="View Participants"
+                                                            >
+                                                                <Users size={16} />
+                                                            </button>
+                                                        )}
+
                                                         <button
                                                             onClick={() => openAuctionModal(auction)}
                                                             className="p-2 text-gray-400 hover:text-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
@@ -725,20 +789,21 @@ function AllAuctions() {
                                                                     )} */}
 
                                                                     {/* Featured Toggle */}
-                                                                    <div className="border-t border-gray-100 my-1"></div>
-                                                                    <div className="px-3 py-2 text-xs font-medium text-gray-500 border-b border-gray-100">
-                                                                        Featured Status
-                                                                    </div>
-                                                                    <button
-                                                                        onClick={() => {
-                                                                            toggleFeatured(auction._id, auction.isFeatured);
-                                                                            setActiveDropdown(null);
-                                                                        }}
-                                                                        className="flex items-center gap-3 w-full px-4 py-2 text-sm text-amber-600 hover:bg-amber-50 transition-colors"
-                                                                    >
-                                                                        <Star size={16} fill={auction.isFeatured ? "currentColor" : "none"} />
-                                                                        <span>{auction.isFeatured ? "Remove Featured" : "Make Featured"}</span>
-                                                                    </button>
+                                                                    {auction?.auctionType !== 'giveaway' && (
+                                                                        <>
+                                                                            <div className="border-t border-gray-100 my-1"></div>
+                                                                            <button
+                                                                                onClick={() => {
+                                                                                    toggleFeatured(auction._id, auction.isFeatured);
+                                                                                    setActiveDropdown(null);
+                                                                                }}
+                                                                                className="flex items-center gap-3 w-full px-4 py-2 text-sm text-amber-600 hover:bg-amber-50 transition-colors"
+                                                                            >
+                                                                                <Star size={16} fill={auction.isFeatured ? "currentColor" : "none"} />
+                                                                                <span>{auction.isFeatured ? "Remove Featured" : "Make Featured"}</span>
+                                                                            </button>
+                                                                        </>
+                                                                    )}
 
                                                                     {/* Delete Action */}
                                                                     <div className="border-t border-gray-100 my-1"></div>
@@ -1088,29 +1153,42 @@ function AllAuctions() {
                                     )}
 
                                     {/* Action Buttons */}
-                                    <div className="flex gap-3 pt-6 border-t border-gray-200">
+                                    <div className="flex flex-wrap gap-3 pt-6 border-t border-gray-200">
                                         <button
                                             onClick={() => handleEditAuction(selectedAuction)}
-                                            className="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
+                                            className="flex-1 min-w-[120px] bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
                                         >
                                             <Edit size={18} />
                                             Edit Auction
                                         </button>
+
                                         <Link
                                             to={`/auction/${selectedAuction._id}`}
                                             target="_blank"
-                                            className="flex-1 border border-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-50 transition-colors text-center"
+                                            className="flex-1 min-w-[120px] border border-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-50 transition-colors text-center"
                                         >
-                                            View Auction Page
+                                            View Auction
                                         </Link>
-                                        {/* Additional action for offers if applicable */}
+
+                                        {/* Participants Button - Only for Giveaway */}
+                                        {selectedAuction.auctionType === 'giveaway' && (
+                                            <button
+                                                onClick={() => openParticipantsModal(selectedAuction)}
+                                                className="flex-1 min-w-[120px] bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center gap-2"
+                                            >
+                                                <Users size={18} />
+                                                Participants ({selectedAuction.participants?.length || 0})
+                                            </button>
+                                        )}
+
+                                        {/* Offers Button - Only for auctions with offers */}
                                         {selectedAuction.allowOffers && selectedAuction.offers?.length > 0 && (
                                             <Link
                                                 to={`/admin/offers`}
-                                                className="flex-1 bg-[#1e2d3b]/90 text-white py-2 px-4 rounded-lg hover:bg-[#1e2d3b] transition-colors flex items-center justify-center gap-2"
+                                                className="flex-1 min-w-[120px] bg-[#1e2d3b]/90 text-white py-2 px-4 rounded-lg hover:bg-[#1e2d3b] transition-colors flex items-center justify-center gap-2"
                                             >
                                                 <Banknote size={18} />
-                                                View Offers ({selectedAuction.offers.filter(o => o.status === 'pending').length})
+                                                Offers ({selectedAuction.offers.filter(o => o.status === 'pending').length})
                                             </Link>
                                         )}
                                     </div>
@@ -1120,6 +1198,195 @@ function AllAuctions() {
                     )}
                 </AdminContainer>
             </div>
+
+            {/* Participants Modal - For Giveaway Auctions */}
+            {showParticipantsModal && selectedAuction && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl shadow-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+                        <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center sticky top-0 bg-white z-10">
+                            <div>
+                                <h3 className="text-lg font-semibold">Giveaway Participants</h3>
+                                <p className="text-sm text-gray-500">{selectedAuction.title}</p>
+                            </div>
+                            <button
+                                onClick={() => {
+                                    setShowParticipantsModal(false);
+                                    setParticipants([]);
+                                    setSelectedWinner(null);
+                                }}
+                                className="text-gray-400 hover:text-gray-600 text-xl"
+                            >
+                                &times;
+                            </button>
+                        </div>
+
+                        <div className="p-6">
+                            {participantsLoading ? (
+                                <div className="flex justify-center items-center py-12">
+                                    <LoadingSpinner />
+                                </div>
+                            ) : (
+                                <>
+                                    {/* Stats */}
+                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+                                        <div className="bg-gray-50 rounded-lg p-4 text-center">
+                                            <div className="text-2xl font-bold text-gray-900">{participants.totalParticipants || 0}</div>
+                                            <div className="text-sm text-gray-500">Total Entries</div>
+                                        </div>
+                                        <div className="bg-gray-50 rounded-lg p-4 text-center">
+                                            <div className="text-2xl font-bold text-green-600">
+                                                {participants.hasWinner ? '✅' : '—'}
+                                            </div>
+                                            <div className="text-sm text-gray-500">Winner Selected</div>
+                                        </div>
+                                        {participants.winner && (
+                                            <div className="bg-purple-50 rounded-lg p-4 text-center border border-purple-200">
+                                                <div className="text-sm font-medium text-purple-700">🏆 Winner</div>
+                                                <div className="text-sm text-gray-700">
+                                                    {participants.winner.email || participants.winner.phoneNumber}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Participants List */}
+                                    {participants.participants?.length > 0 ? (
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full">
+                                                <thead className="bg-gray-50">
+                                                    <tr>
+                                                        <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">#</th>
+                                                        <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Participant</th>
+                                                        <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Joined</th>
+                                                        <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                                        <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-gray-200">
+                                                    {participants.participants.map((participant, index) => (
+                                                        <tr key={participant._id || index} className="hover:bg-gray-50">
+                                                            <td className="py-3 px-4 text-sm text-gray-500">{index + 1}</td>
+                                                            <td className="py-3 px-4">
+                                                                <div className="space-y-1">
+                                                                    {/* <div className="flex items-center gap-2">
+                                                                        <User size={14} className="text-gray-400" />
+                                                                        <span className="text-sm font-medium text-gray-900">
+                                                                            {participant.user?.username || 'Guest'}
+                                                                        </span>
+                                                                    </div> */}
+                                                                    <div className="flex items-center gap-2 text-xs text-gray-500">
+                                                                        <Mail size={12} />
+                                                                        <span>{participant.email}</span>
+                                                                    </div>
+                                                                    <div className="flex items-center gap-2 text-xs text-gray-500">
+                                                                        <Phone
+                                                                            size={12} />
+                                                                        <span>{participant.phoneNumber}</span>
+                                                                    </div>
+                                                                </div>
+                                                            </td>
+                                                            <td className="py-3 px-4 text-sm text-gray-500">
+                                                                {new Date(participant.participatedAt).toLocaleDateString('en-IE', {
+                                                                    day: '2-digit',
+                                                                    month: 'short',
+                                                                    year: 'numeric'
+                                                                })}
+                                                                <br />
+                                                                <span className="text-xs text-gray-400">
+                                                                    {new Date(participant.participatedAt).toLocaleTimeString('en-IE', {
+                                                                        hour: '2-digit',
+                                                                        minute: '2-digit'
+                                                                    })}
+                                                                </span>
+                                                            </td>
+                                                            <td className="py-3 px-4">
+                                                                {participant.isWinner ? (
+                                                                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
+                                                                        <Award size={12} />
+                                                                        Winner
+                                                                    </span>
+                                                                ) : (
+                                                                    <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded-full text-xs font-medium">
+                                                                        Participant
+                                                                    </span>
+                                                                )}
+                                                            </td>
+                                                            <td className="py-3 px-4">
+                                                                {!participant.isWinner && !participants.hasWinner && (
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            setSelectedWinner(participant);
+                                                                            declareWinner(selectedAuction._id, participant._id);
+
+                                                                        }}
+                                                                        disabled={declaringWinner}
+                                                                        className="inline-flex items-center gap-1 px-3 py-1.5 bg-purple-600 text-white rounded-md text-xs font-medium hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                                    >
+                                                                        <Award size={12} />
+                                                                        Declare Winner
+                                                                    </button>
+                                                                )}
+                                                                {participants.hasWinner && participant.isWinner && (
+                                                                    <span className="text-xs text-green-600 font-medium">🎉 Won!</span>
+                                                                )}
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    ) : (
+                                        <div className="text-center py-12">
+                                            <Users size={48} className="mx-auto text-gray-300 mb-3" />
+                                            <p className="text-gray-500">No participants have entered this giveaway yet</p>
+                                        </div>
+                                    )}
+
+                                    {/* Footer Actions */}
+                                    {!participants.hasWinner && participants.participants?.length > 0 && (
+                                        <div className="mt-6 pt-4 border-t border-gray-200 flex justify-between items-center">
+                                            <p className="text-sm text-gray-500">
+                                                {participants.participants.length} participants ready
+                                            </p>
+                                            {/* <button
+                                                onClick={() => {
+                                                    if (window.confirm('Select a random winner from all participants?')) {
+                                                        declareWinner(selectedAuction._id, null); // null for random selection
+                                                    }
+                                                }}
+                                                disabled={declaringWinner}
+                                                className="px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg hover:from-purple-700 hover:to-purple-800 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                            >
+                                                {declaringWinner ? (
+                                                    <LoadingSpinner size="small" />
+                                                ) : (
+                                                    <>
+                                                        <Crown size={18} />
+                                                        Pick Random Winner
+                                                    </>
+                                                )}
+                                            </button> */}
+                                        </div>
+                                    )}
+
+                                    {participants.hasWinner && (
+                                        <div className="mt-6 pt-4 border-t border-gray-200">
+                                            <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
+                                                <CheckCircle size={24} className="text-green-600 mx-auto mb-2" />
+                                                <p className="text-green-700 font-medium">Winner has been declared!</p>
+                                                <p className="text-sm text-green-600 mt-1">
+                                                    The giveaway has ended and a winner has been selected.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    )}
+                                </>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
         </section>
     );
 }

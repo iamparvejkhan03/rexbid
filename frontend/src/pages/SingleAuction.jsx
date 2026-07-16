@@ -1,5 +1,5 @@
 import { CalendarDays, CheckSquare, Clock, Download, File, Fuel, Gauge, Gavel, Heart, Loader, MapPin, MessageCircle, PaintBucket, Plane, ShieldCheck, Tag, User, Users, Weight, Zap, Banknote, MessageSquare, Mail, Phone, Star, CreditCard, Info } from "lucide-react";
-import { BidConfirmationModal, BuyNowModal, Container, LoadingSpinner, MobileBidStickyBar, RatingStars, ReviewModal, SellerStatsCard, SpecificationsSection, TabSection, TimerDisplay, WatchlistButton } from "../components";
+import { BidConfirmationModal, BuyNowModal, Container, GiveawayClaimModal, LoadingSpinner, MobileBidStickyBar, RatingStars, ReviewModal, SellerStatsCard, SpecificationsSection, TabSection, TimerDisplay, WatchlistButton } from "../components";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { lazy, Suspense, useRef, useState, useEffect } from "react";
 import useAuctionCountdown from "../hooks/useAuctionCountDown";
@@ -39,7 +39,9 @@ function SingleAuction() {
     const { user } = useAuth();
     const navigate = useNavigate();
     const [showBuyNowModal, setShowBuyNowModal] = useState(false);
+    const [showGiveawayModal, setShowGiveawayModal] = useState(false);
     const [claiming, setClaiming] = useState(false);
+    const [isClaimingGiveaway, setIsClaimingGiveaway] = useState(false);
     const [showReviewModal, setShowReviewModal] = useState(false);
     const [userReview, setUserReview] = useState(null);
     const [revieweeId, setRevieweeId] = useState(null);
@@ -136,6 +138,17 @@ function SingleAuction() {
         };
         fetchReviews();
     }, [auction]);
+
+    const handleGiveawayClaimSuccess = async () => {
+        try {
+            const { data } = await axiosInstance.get(`/api/v1/auctions/${id}?currency=${userCurrency}`);
+            if (data.success) {
+                setAuction(data.data.auction);
+            }
+        } catch (error) {
+            console.error("Error refreshing auction:", error);
+        }
+    };
 
     const scrollToBidSection = () => {
         bidSectionRef.current?.scrollIntoView({
@@ -262,43 +275,71 @@ function SingleAuction() {
         }
     };
 
-    const handleClaimNow = async () => {
+    // const handleClaimNow = async () => {
+    //     if (!user) {
+    //         toast.error('You must login to claim this item.');
+    //         navigate('/login');
+    //         return;
+    //     }
+
+    //     if (user._id?.toString() === auction?.seller?._id?.toString()) {
+    //         toast.error(`You can't claim your own giveaway.`);
+    //         return;
+    //     }
+
+    //     if (auction.winner) {
+    //         toast.error('This item has already been claimed.');
+    //         return;
+    //     }
+
+    //     try {
+    //         setClaiming(true);
+
+    //         const { data } = await axiosInstance.post(`/api/v1/buy-now/${id}`);
+
+    //         if (data.success) {
+    //             setAuction(data.data.auction);
+    //             toast.success('🎉 Congratulations! You have claimed this item for free!');
+    //             setShowBuyNowModal(false);
+    //             window.scrollTo({ top: 0, behavior: 'smooth' });
+    //         }
+    //     } catch (error) {
+    //         toast.error(error?.response?.data?.message || 'Failed to claim item');
+    //         console.error('Claim error:', error);
+    //     } finally {
+    //         setClaiming(false);
+    //     }
+    // };
+
+    // ============= GIVEAWAY HANDLER =============
+
+    const handleClaimGiveaway = async () => {
         if (!user) {
-            toast.error('You must login to claim this item.');
+            toast.error('You must be logged in to participate in this giveaway.');
             navigate('/login');
             return;
         }
 
         if (user._id?.toString() === auction?.seller?._id?.toString()) {
-            toast.error(`You can't claim your own giveaway.`);
+            toast.error(`You can't participate in your own giveaway.`);
             return;
         }
 
         if (auction.winner) {
-            toast.error('This item has already been claimed.');
+            toast.error('This item has already been given away.');
             return;
         }
 
         try {
-            setClaiming(true);
-
-            const { data } = await axiosInstance.post(`/api/v1/buy-now/${id}`);
-
-            if (data.success) {
-                setAuction(data.data.auction);
-                toast.success('🎉 Congratulations! You have claimed this item for free!');
-                setShowBuyNowModal(false);
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            }
+            setIsClaimingGiveaway(true);
         } catch (error) {
             toast.error(error?.response?.data?.message || 'Failed to claim item');
             console.error('Claim error:', error);
         } finally {
-            setClaiming(false);
+            setIsClaimingGiveaway(false);
         }
-    };
+    }
 
-    // ============= MAKE OFFER HANDLER =============
     const handleMakeOffer = async (e) => {
         e.preventDefault();
         if (makingOfferRef.current) return;   // ✅ blocks instantly
@@ -564,7 +605,7 @@ function SingleAuction() {
                             <div>
                                 <p className="text-secondary text-sm">Auction Type</p>
                                 <p className="text-base capitalize">
-                                    {auction.auctionType === 'reserve' ? 'Reserve Price' : 'Standard'}
+                                    {auction.auctionType === 'reserve' ? 'Reserve Price' : auction.auctionType === 'standard' ? 'Standard' : auction.auctionType === 'giveaway' ? 'Giveaway' : 'Buy Now'}
                                 </p>
                             </div>
                         </div>
@@ -787,8 +828,8 @@ function SingleAuction() {
                         <div className="bg-green-50 border border-green-300 rounded-lg p-3 mb-2">
                             <div className="flex justify-between items-center">
                                 <div>
-                                    <p className="text-secondary text-sm">Free Giveaway</p>
-                                    <p className="text-2xl font-bold text-green-600">FREE</p>
+                                    {/* <p className="text-secondary text-sm">Giveaway</p> */}
+                                    <p className="text-2xl font-bold text-green-600">Giveaway</p>
                                     {auction.winner && (
                                         <p className="text-sm text-green-600 mt-1">
                                             Claimed by: {auction.winner.username}
@@ -803,30 +844,28 @@ function SingleAuction() {
                     {/* Conditional Action Buttons based on auction status */}
 
                     {/* GIVEAWAY HANDLING - This should be first */}
-                    {auction.auctionType === 'giveaway' && !auction.winner && countdown?.status === 'always-available' && (
+                    {auction.auctionType === 'giveaway' && !auction.status == 'sold' && countdown?.status === 'always-available' && (
                         <>
                             <button
-                                onClick={() => setShowBuyNowModal(true)}
-                                disabled={claiming}
+                                onClick={() => setShowGiveawayModal(true)}
+                                disabled={isClaimingGiveaway}
                                 className="flex items-center justify-center gap-2 w-full bg-purple-600 text-white py-3 px-6 cursor-pointer rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-purple-700 transition-colors text-lg font-semibold"
                             >
-                                {claiming ? (
+                                {isClaimingGiveaway ? (
                                     <Loader size={20} className="animate-spin-slow" />
                                 ) : (
                                     <>
                                         <span>🎁</span>
-                                        <span>Claim for Free</span>
+                                        <span>Enter Giveaway</span>
                                     </>
                                 )}
                             </button>
 
-                            <BuyNowModal
-                                isOpen={showBuyNowModal}
-                                onClose={() => setShowBuyNowModal(false)}
-                                onConfirm={handleClaimNow}
-                                auction={auction}
-                                loading={claiming}
-                                isGiveaway={true}
+                            <GiveawayClaimModal
+                                isOpen={showGiveawayModal}
+                                onClose={() => setShowGiveawayModal(false)}
+                                onSuccess={handleGiveawayClaimSuccess}
+                                auctionId={auction._id}
                             />
                         </>
                     )}

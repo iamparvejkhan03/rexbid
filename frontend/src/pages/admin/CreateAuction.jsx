@@ -1129,12 +1129,12 @@ const CreateAuction = () => {
 
                                         <div className="mb-6">
                                             <label className="block text-sm font-medium text-secondary mb-1">Auction Type *</label>
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4"> {/* Changed from grid-cols-3 to grid-cols-4 */}
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4"> {/* Changed from grid-cols-3 to grid-cols-4 */}
                                                 {[
                                                     { value: 'standard', label: 'Standard Auction' },
                                                     { value: 'reserve', label: 'Reserve Price Auction' },
                                                     // { value: 'buy_now', label: 'Buy Now Auction' },
-                                                    // { value: 'giveaway', label: 'Free Giveaway' },
+                                                    { value: 'giveaway', label: 'Free Giveaway' },
                                                 ].map((type) => (
                                                     <label key={type.value} className="flex items-center p-4 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
                                                         <input
@@ -1152,10 +1152,10 @@ const CreateAuction = () => {
 
                                         {/* Show immediate start message for buy_now and giveaway */}
                                         {(watch('auctionType') === 'buy_now' || watch('auctionType') === 'giveaway') && (
-                                            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                                            <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
                                                 <p className="text-green-700 flex items-center gap-2">
                                                     <Zap size={18} />
-                                                    <span>This auction will start immediately upon creation.</span>
+                                                    <span>This ad type will not require bidding. Anyone can participate as soon as it's created.</span>
                                                 </p>
                                             </div>
                                         )}
@@ -1346,10 +1346,10 @@ const CreateAuction = () => {
                                         )}
 
                                         {/* Show giveaway info */}
-                                        {watch('auctionType') === 'giveaway' && (
+                                        {/* {watch('auctionType') === 'giveaway' && (
                                             <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-6">
                                                 <h3 className="text-lg font-semibold text-green-700 mb-2 flex items-center gap-2">
-                                                    <span>🎁 Free Giveaway</span>
+                                                    <span>🎁 Giveaway</span>
                                                 </h3>
                                                 <p className="text-green-600 mb-2">
                                                     This item will be given away for free. The first user who clicks "Claim" will win it immediately.
@@ -1358,7 +1358,7 @@ const CreateAuction = () => {
                                                     No pricing needed. The auction will end as soon as someone claims it.
                                                 </p>
                                             </div>
-                                        )}
+                                        )} */}
                                     </div>
                                 )}
 
@@ -1446,7 +1446,7 @@ const CreateAuction = () => {
                                                                     {watch('auctionType') === 'reserve' && 'Reserve Auction'}
                                                                 </p>
                                                                 <p className="font-medium">
-                                                                    {watch('auctionType') === 'giveaway' && 'Free Giveaway'}
+                                                                    {watch('auctionType') === 'giveaway' && 'Giveaway'}
                                                                 </p>
                                                             </div>
                                                             {watch('allowOffers') && (
@@ -1455,7 +1455,7 @@ const CreateAuction = () => {
                                                                     <p className="font-medium text-green-600">Yes</p>
                                                                 </div>
                                                             )}
-                                                            {/* NEW: Display Payment Collection Method */}
+                                                            {watch('auctionType') !== 'giveaway' && <>
                                                             <div>
                                                                 <p className="text-xs text-secondary">Payment Collection Method</p>
                                                                 <p className="font-medium">
@@ -1464,7 +1464,6 @@ const CreateAuction = () => {
                                                                     {watch('paymentCollectionPreference') === 'credit_card' && 'Credit Card'}
                                                                 </p>
                                                             </div>
-                                                            {/* NEW: Display VAT status */}
                                                             <div>
                                                                 <p className="text-xs text-secondary">VAT Applicable</p>
                                                                 <p className="font-medium">
@@ -1482,7 +1481,7 @@ const CreateAuction = () => {
                                                                 <p className="font-medium">
                                                                     {watch('endDate') ? new Date(watch('endDate')).toLocaleString('en-IE') : 'Not provided'}
                                                                 </p>
-                                                            </div>
+                                                            </div></>}
                                                         </div>
                                                     </div>
 
@@ -1520,7 +1519,7 @@ const CreateAuction = () => {
                                                     </div>
 
                                                     {/* Pricing */}
-                                                    <div className="bg-white p-4 rounded-lg shadow-sm">
+                                                    {watch('auctionType') === 'standard' || watch('auctionType') === 'reserve' || watch('auctionType') === 'buy_now' ? (<div className="bg-white p-4 rounded-lg shadow-sm">
                                                         <h4 className="font-medium mb-3">Pricing</h4>
                                                         <div className="space-y-2">
                                                             <div>
@@ -1542,7 +1541,7 @@ const CreateAuction = () => {
                                                                 </div>
                                                             )}
                                                         </div>
-                                                    </div>
+                                                    </div>) : null}
                                                 </div>
                                             </div>
 

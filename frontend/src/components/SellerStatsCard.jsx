@@ -47,7 +47,7 @@ const SellerStatsCard = ({ sellerId }) => {
                         <div>
                             <div className="flex items-center flex-wrap gap-5">
                                 <h3 className="text-lg font-semibold text-gray-700 flex items-center gap-5">
-                                    <span>{stats.fullName}</span>
+                                    <span>{stats.username}</span>
                                 </h3>
 
                                 <div className="flex items-center flex-wrap gap-3 text-gray-500 text-sm">

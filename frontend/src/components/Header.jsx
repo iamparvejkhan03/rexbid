@@ -30,7 +30,7 @@ const auctionTypes = [
     { name: "Standard Auction", slug: "standard", icon: Gavel },
     { name: "Reserve Auction", slug: "reserve", icon: Clock },
     // { name: "Buy Now", slug: "buy_now", icon: DollarSign },
-    // { name: "Free Giveaway", slug: "giveaway", icon: Gift }
+    { name: "Giveaway", slug: "giveaway", icon: Gift }
 ];
 
 const currencies = [

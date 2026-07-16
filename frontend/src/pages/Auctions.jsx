@@ -263,7 +263,7 @@ const FiltersSection = ({
 
                 {/* Price Range */}
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Price Range (kr)</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Price Range</label>
                     <div className="flex gap-2">
                         <input
                             type="number"
@@ -317,6 +317,7 @@ const FiltersSection = ({
                             <option value="">All Types</option>
                             <option value="standard">Standard Auction</option>
                             <option value="reserve">Reserve Auction</option>
+                            <option value="giveaway">Giveaway</option>
                         </select>
                     </div>
 
