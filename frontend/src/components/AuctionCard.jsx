@@ -225,96 +225,81 @@ function AuctionCard({ auction }) {
                     <span className="truncate">{auction.location}</span>
                 </div>
 
-                {/* Auction Info Grid */}
-                <div className="grid grid-cols-2 gap-3 mb-4">
-                    {/* Current Bid */}
-                    {/* <div className="text-center p-2 bg-gray-50 rounded-lg">
-                        <div className="text-xs text-gray-600 mb-1">{auction.status === 'sold' ? 'Final Bid' : auction.bidCount > 0 ? 'Current Bid' : 'Starting Bid'}</div>
-                        <div className="font-bold text-lg text-green-600">
-                            ${(auction.convertedCurrentPrice || auction.convertedStartPrice).toLocaleString()}
+                {/* Auction Info Grid For Non Giveaway */}
+                {auction?.auctionType !== 'giveaway' &&
+                    <>
+                        <div className="grid grid-cols-2 gap-3 mb-4">
+
+                            <div className="text-center p-2 bg-gray-50 rounded-lg">
+                                <div className="text-xs text-gray-600 mb-1">{auction.status === 'sold' ? 'Final Bid' : auction.bidCount > 0 ? 'Current Bid' : 'Starting Bid'}</div>
+                                <div className="font-bold text-lg text-green-600">
+                                    {userCurrency === 'GBP' ? '£' : '€'}{(auction.convertedCurrentPrice || auction.convertedStartPrice)?.toLocaleString()}
+                                </div>
+                            </div>
+
+                            {
+                                auction.auctionType !== 'buy_now' && (
+                                    <div className="text-center p-2 bg-gray-50 rounded-lg">
+                                        <div className="text-xs text-gray-600 mb-1">Bids</div>
+                                        <div className="font-bold text-lg text-primary flex items-center justify-center gap-1">
+                                            <Users size={16} />
+                                            {auction.bidCount || 0}
+                                        </div>
+                                    </div>
+                                )
+                            }
+
+                            {
+                                (auction.auctionType === 'buy_now') && (
+                                    <div className="text-center p-2 bg-gray-50 rounded-lg">
+                                        <div className="text-xs text-gray-600 mb-1">Buy Now</div>
+                                        <div className="font-bold text-lg text-primary flex items-center justify-center gap-1">
+                                            {userCurrency === 'GBP' ? '£' : '€'}{auction?.convertedBuyNowPrice?.toLocaleString()}
+                                        </div>
+                                    </div>
+                                )
+                            }
                         </div>
-                    </div> */}
 
-                    <div className="text-center p-2 bg-gray-50 rounded-lg">
-                        <div className="text-xs text-gray-600 mb-1">{auction.status === 'sold' ? 'Final Bid' : auction.bidCount > 0 ? 'Current Bid' : 'Starting Bid'}</div>
-                        <div className="font-bold text-lg text-green-600">
-                            {userCurrency === 'GBP' ? '£' : '€'}{(auction.convertedCurrentPrice || auction.convertedStartPrice)?.toLocaleString()}
-                        </div>
-                    </div>
-
-                    {/* Bid Count */}
-                    {
-                        auction.auctionType !== 'buy_now' && (
-                            <div className="text-center p-2 bg-gray-50 rounded-lg">
-                                <div className="text-xs text-gray-600 mb-1">Bids</div>
-                                <div className="font-bold text-lg text-primary flex items-center justify-center gap-1">
-                                    <Users size={16} />
-                                    {auction.bidCount || 0}
-                                </div>
-                            </div>
-                        )
-                    }
-
-                    {/* {
-                        (auction.auctionType === 'buy_now' && auction?.allowOffers) && (
-                            <div className="text-center p-2 bg-gray-50 rounded-lg">
-                                <div className="text-xs text-gray-600 mb-1">Offers</div>
-                                <div className="font-bold text-lg text-primary flex items-center justify-center gap-1">
-                                    <Users size={16} />
-                                    {auction?.offers?.filter(o => o.status === 'pending').length || 0}
-                                </div>
-                            </div>
-                        )
-                    } */}
-
-                    {
-                        (auction.auctionType === 'buy_now') && (
-                            <div className="text-center p-2 bg-gray-50 rounded-lg">
-                                <div className="text-xs text-gray-600 mb-1">Buy Now</div>
-                                <div className="font-bold text-lg text-primary flex items-center justify-center gap-1">
-                                    {userCurrency === 'GBP' ? '£' : '€'}{auction?.convertedBuyNowPrice?.toLocaleString()}
-                                </div>
-                            </div>
-                        )
-                    }
-                </div>
-
-                {/* Reserve Price Info */}
-                {/* {auction.auctionType === 'reserve' && (
-                    <div className={`p-2 rounded-lg text-sm text-center mb-3 ${isReserveMet
-                        ? 'bg-green-50 text-green-700 border border-green-200'
-                        : 'bg-orange-50 text-orange-700 border border-orange-200'
-                        }`}>
-                        {isReserveMet ? (
-                            <span>✅ Reserve met at ${auction.convertedReservePrice?.toLocaleString()}</span>
-                        ) : (
-                            <span>⚠️ Reserve: ${auction.convertedReservePrice?.toLocaleString()}</span>
-                        )}
-                    </div>
-                )} */}
-
-                {/* Bid Increment */}
-                <div className="text-xs text-gray-500 text-center flex items-center justify-around">
-                    <div>
-                        Bid increment: {userCurrency === 'GBP' ? '£' : '€'}{auction.convertedBidIncrement?.toFixed(2)?.toLocaleString()}
-                    </div>
-                    <div className="text-xs text-gray-500 text-center">
-                        {auction.watchlistCount || 0} user{auction.watchlistCount !== 1 ? 's' : ''} watching
-                    </div>
-                </div>
-
-                {/* <div className="text-xs text-gray-500 text-center flex items-center justify-around">
-                    {
-                        auction.auctionType === 'buy_now' && (
+                        <div className="text-xs text-gray-500 text-center flex items-center justify-around">
                             <div>
-                                Buy Now: {userCurrency === 'GBP' ? '£' : '€'}{auction?.convertedBuyNowPrice?.toLocaleString()}
+                                Bid increment: {userCurrency === 'GBP' ? '£' : '€'}{auction.convertedBidIncrement?.toFixed(2)?.toLocaleString()}
                             </div>
-                        )
-                    }
-                    <div className="text-xs text-gray-500 text-center">
-                        {auction.watchlistCount || 0} user{auction.watchlistCount !== 1 ? 's' : ''} watching
-                    </div>
-                </div> */}
+                            <div className="text-xs text-gray-500 text-center">
+                                {auction.watchlistCount || 0} user{auction.watchlistCount !== 1 ? 's' : ''} watching
+                            </div>
+                        </div>
+                    </>
+                }
+
+                {/* Auction Info Grid For Giveaway */}
+                {auction?.auctionType === 'giveaway' &&
+                    <>
+                        <div className="grid grid-cols-2 gap-3 mb-4">
+
+                            <div className="text-center p-2 bg-gray-50 rounded-lg">
+                                <div className="text-xs text-gray-600 mb-1">{auction.status === 'sold' ? 'Final Price' : auction.bidCount > 0 ? 'Starting Price' : 'Starting Price'}</div>
+                                <div className="font-bold text-lg text-green-600">
+                                    FREE
+                                </div>
+                            </div>
+
+                            <div className="text-center p-2 bg-gray-50 rounded-lg">
+                                <div className="text-xs text-gray-600 mb-1">Participants</div>
+                                <div className="font-bold text-lg text-primary flex items-center justify-center gap-1">
+                                    <Users size={16} />
+                                    {auction?.participants?.length || 0}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="text-xs text-gray-500 text-center flex items-center justify-around">
+                            <div className="text-xs text-gray-500 text-center">
+                                {auction.watchlistCount || 0} user{auction.watchlistCount !== 1 ? 's' : ''} watching
+                            </div>
+                        </div>
+                    </>
+                }
             </div>
 
             {/* Button Section */}

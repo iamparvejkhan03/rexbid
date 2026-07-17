@@ -841,10 +841,8 @@ function SingleAuction() {
                         </div>
                     )}
 
-                    {/* Conditional Action Buttons based on auction status */}
-
                     {/* GIVEAWAY HANDLING - This should be first */}
-                    {auction.auctionType === 'giveaway' && !auction.status == 'sold' && countdown?.status === 'always-available' && (
+                    {auction.auctionType === 'giveaway' && auction.status !== 'sold' && countdown?.status === 'always-available' && (
                         <>
                             <button
                                 onClick={() => setShowGiveawayModal(true)}

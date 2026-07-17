@@ -497,6 +497,22 @@ function AllUsers() {
                                                     </div>
                                                 </div>
 
+                                                {selectedUser?.userType === 'company' && <div className="flex items-center gap-3">
+                                                    <Building size={18} className="text-gray-400" />
+                                                    <div>
+                                                        <div className="text-sm text-gray-500">Company Name</div>
+                                                        <div className="font-medium">{selectedUser?.companyName || 'Not provided'}</div>
+                                                    </div>
+                                                </div>}
+
+                                                {selectedUser?.userType === 'company' && <div className="flex items-center gap-3">
+                                                    <Building size={18} className="text-gray-400" />
+                                                    <div>
+                                                        <div className="text-sm text-gray-500">VAT Numnber</div>
+                                                        <div className="font-medium">{selectedUser?.companyVATNumber || 'Not provided'}</div>
+                                                    </div>
+                                                </div>}
+
                                                 {/* Add Address Information */}
                                                 {selectedUser.address && (
                                                     <>
@@ -511,21 +527,12 @@ function AllUsers() {
                                                         )}
 
                                                         <div className="flex items-center gap-3">
-                                                            <Home size={18} className="text-gray-400" />
+                                                            <MapPin size={18} className="text-gray-400" />
                                                             <div>
                                                                 <div className="text-sm text-gray-500">Address</div>
                                                                 <div className="font-medium">
                                                                     {selectedUser.address.buildingNameNo && `${selectedUser.address.buildingNameNo}, `}
-                                                                    {selectedUser.address.street}
-                                                                </div>
-                                                            </div>
-                                                        </div>
-
-                                                        <div className="flex items-center gap-3">
-                                                            <MapPin size={18} className="text-gray-400" />
-                                                            <div>
-                                                                <div className="text-sm text-gray-500">Location</div>
-                                                                <div className="font-medium">
+                                                                    {selectedUser.address.street && `${selectedUser.address.street}, `}
                                                                     {selectedUser.address.city && `${selectedUser.address.city}, `}
                                                                     {selectedUser.address.county && `${selectedUser.address.county}, `}
                                                                     {selectedUser.address.postCode && `${selectedUser.address.postCode}, `}
@@ -546,25 +553,6 @@ function AllUsers() {
                                                         </div>
                                                     </div>
                                                 )}
-
-                                                <div className="flex items-center gap-3">
-                                                    <Calendar size={18} className="text-gray-400" />
-                                                    <div>
-                                                        <div className="text-sm text-gray-500">Member Since</div>
-                                                        <div className="font-medium">{formatDate(selectedUser.createdAt)}</div>
-                                                    </div>
-                                                </div>
-
-                                                {/* Add Username if it exists */}
-                                                {selectedUser.username && (
-                                                    <div className="flex items-center gap-3">
-                                                        <User size={18} className="text-gray-400" />
-                                                        <div>
-                                                            <div className="text-sm text-gray-500">Username</div>
-                                                            <div className="font-medium">{selectedUser.username}</div>
-                                                        </div>
-                                                    </div>
-                                                )}
                                             </div>
                                         </div>
 
@@ -572,7 +560,7 @@ function AllUsers() {
                                         <div className="space-y-4">
                                             <h5 className="font-semibold text-gray-900">User Statistics</h5>
                                             <div className="space-y-3">
-                                                {selectedUser.userType === 'seller' && selectedUser.stats && (
+                                                {(selectedUser.userType === 'seller' || selectedUser?.userType === 'company') && selectedUser.stats && (
                                                     <>
                                                         <div className="flex items-center gap-3">
                                                             <Gavel size={18} className="text-blue-500" />
