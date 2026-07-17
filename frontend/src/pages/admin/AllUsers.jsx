@@ -169,6 +169,7 @@ function AllUsers() {
             seller: { color: "bg-blue-100 text-blue-800", text: "Seller" },
             bidder: { color: "bg-green-100 text-green-800", text: "Bidder" },
             broker: { color: "bg-orange-100 text-orange-800", text: "Broker" },
+            company: { color: "bg-orange-100 text-orange-800", text: "Company" },
         };
         const { color, text } = config[type];
         return <span className={`px-2 py-1 rounded-full text-xs font-medium ${color}`}>{text}</span>;
