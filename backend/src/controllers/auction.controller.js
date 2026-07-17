@@ -10,6 +10,8 @@ import {
   auctionSubmittedForApprovalEmail,
   auctionWonAdminEmail,
   bidConfirmationEmail,
+  giveawayParticipationEmail,
+  giveawayWinnerEmail,
   newBidNotificationEmail,
   outbidNotificationEmail,
   sendAuctionEndedSellerEmail,
