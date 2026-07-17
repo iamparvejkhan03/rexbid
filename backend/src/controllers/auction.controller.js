@@ -3168,10 +3168,10 @@ export const participateInGiveaway = async (req, res) => {
     // Populate for response
     await auction.populate("participants.user", "username companyName email phone");
 
-    await giveawayParticipationEmail(
-      email,
-      auction
-    );
+    // await giveawayParticipationEmail(
+    //   email,
+    //   auction
+    // );
 
     res.status(200).json({
       success: true,
@@ -3262,11 +3262,11 @@ export const selectGiveawayWinner = async (req, res) => {
     // Populate for response
     await auction.populate("winner", "username companyName email phone");
 
-    await giveawayWinnerEmail(
-      auction?.winner?.email,
-      auction?.winner.firstName || winner.companyName || winner.username,
-      auction
-    );
+    // await giveawayWinnerEmail(
+    //   auction?.winner?.email,
+    //   auction?.winner.firstName || winner.companyName || winner.username,
+    //   auction
+    // );
 
     res.status(200).json({
       success: true,
