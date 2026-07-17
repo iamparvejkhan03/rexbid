@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock, Eye, EyeOff, User, Phone, ChevronDown, Gavel, Store, Handshake, Banknote } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, User, Phone, ChevronDown, Gavel, Store, Handshake, Banknote, Building2, FileText } from 'lucide-react';
 import { darkLogo, otherData } from '../assets';
 import axios from "axios";
 import { toast } from "react-hot-toast";
@@ -15,7 +15,7 @@ import PilotPhaseModal from '../components/PilotPhaseModal';
 // Initialize Stripe
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 
-// CardSection component (same as before)
+// CardSection component
 const CardSection = () => {
     const stripe = useStripe();
     const elements = useElements();
@@ -77,7 +77,6 @@ const Register = () => {
 
     // Pilot phase
     const [isPilotModalOpen, setIsPilotModalOpen] = useState(false);
-    const [showRegisterForm, setShowRegisterForm] = useState(false);
 
     useEffect(() => {
         const fetchCountries = async () => {
@@ -85,7 +84,7 @@ const Register = () => {
         };
         fetchCountries();
 
-        setIsPilotModalOpen(true);
+        // setIsPilotModalOpen(true);
     }, []);
 
     const handlePilotModalClose = () => {
@@ -111,19 +110,20 @@ const Register = () => {
             username: '',
             firstName: '',
             lastName: '',
-            // Add new address fields
             street: '',
             city: '',
             postCode: '',
             country: '',
             currency: '',
-            userType: 'bidder'
+            userType: 'bidder',
+            companyName: '',
+            companyVATNumber: '',
+            termsConditions: false
         }
     });
 
     const password = watch('password');
 
-    // Update form value when userType changes
     const handleUserTypeChange = (type) => {
         setUserType(type);
         setValue('userType', type);
@@ -133,8 +133,8 @@ const Register = () => {
         const countryCode = e.target.value;
         setSelectedCountry(countryCode);
         setValue('country', countryCode);
-        setValue('state', ''); // Reset state when country changes
-        setStates([]); // Clear states
+        setValue('state', '');
+        setStates([]);
 
         if (countryCode) {
             try {
@@ -177,8 +177,12 @@ const Register = () => {
             formData.append('country', countries.find(c => c.code === registrationData.country)?.name || registrationData.country);
             formData.append('currency', registrationData.currency);
 
+            if (registrationData.userType === 'company') {
+                formData.append('companyName', registrationData.companyName);
+                formData.append('companyVATNumber', registrationData.companyVATNumber || '');
+            }
+
             // Handle bidder card verification
-            // if (registrationData.userType === 'bidder') {
             if (!stripe || !elements) {
                 toast.error('Stripe not initialized properly');
                 setIsLoading(false);
@@ -213,7 +217,6 @@ const Register = () => {
 
             paymentMethodId = paymentMethod.id;
             formData.append('paymentMethodId', paymentMethodId);
-            // }
 
             const { data } = await axiosInstance.post(
                 `${import.meta.env.VITE_DOMAIN_URL}/api/v1/users/register`,
@@ -237,7 +240,9 @@ const Register = () => {
 
                 const redirectPath = data.data.user.userType === 'seller'
                     ? '/seller/dashboard'
-                    : '/bidder/dashboard';
+                    : data.data.user.userType === 'company'
+                        ? '/company/dashboard'
+                        : '/bidder/dashboard';
 
                 navigate(redirectPath);
                 toast.success(data.message);
@@ -272,7 +277,7 @@ const Register = () => {
                         <div className="space-y-4">
                             <h3 className="text-lg font-semibold text-gray-800">Account Information</h3>
 
-                            <div className={`grid grid-cols-1 md:grid-cols-2 gap-4`}>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className={`${errors.email && 'mb-3'}`}>
                                     <label className="block text-sm font-medium text-gray-700 mb-2">
                                         Email *
@@ -397,51 +402,172 @@ const Register = () => {
                             </div>
                         </div>
 
-                        {/* Personal Information */}
+                        {/* User Type Selection - Moved to top */}
+                        <div className={`border-t pt-6 ${errors.email && 'mb-3'}`}>
+                            <label className="text-sm font-medium leading-none text-gray-700 flex items-center gap-2 mb-4">
+                                <User size={20} />
+                                <span>User Type</span>
+                            </label>
+
+                            <div className="flex flex-col sm:flex-row lg:flex-col xl:flex-row items-stretch gap-3 my-2">
+                                <label
+                                    className={`flex items-center gap-5 border py-3 px-5 rounded cursor-pointer transition-colors ${userType === 'bidder' ? 'border-primary bg-blue-50' : 'border-gray-200 hover:border-gray-300'
+                                        }`}
+                                >
+                                    <input
+                                        type="radio"
+                                        value="bidder"
+                                        {...register('userType', { required: 'Please select user type' })}
+                                        className="hidden"
+                                        onChange={() => handleUserTypeChange('bidder')}
+                                    />
+                                    <Gavel size={40} className={`flex-shrink-0 p-2 rounded ${userType === 'bidder' ? 'bg-orange-500 text-white' : 'bg-gray-200 text-gray-600'
+                                        }`} />
+                                    <div>
+                                        <p className="text-sm font-semibold">I'm a bidder</p>
+                                        <p className="text-sm text-gray-600">I want to bid on the listings on the platform.</p>
+                                    </div>
+                                </label>
+
+                                <label
+                                    className={`flex items-center gap-5 border py-3 px-5 rounded cursor-pointer transition-colors ${userType === 'seller' ? 'border-primary bg-blue-50' : 'border-gray-200 hover:border-gray-300'
+                                        }`}
+                                >
+                                    <input
+                                        type="radio"
+                                        value="seller"
+                                        {...register('userType', { required: 'Please select user type' })}
+                                        className="hidden"
+                                        onChange={() => handleUserTypeChange('seller')}
+                                    />
+                                    <Store size={40} className={`flex-shrink-0 p-2 rounded ${userType === 'seller' ? 'bg-orange-500 text-white' : 'bg-gray-200 text-gray-600'
+                                        }`} />
+                                    <div>
+                                        <p className="text-sm font-semibold">I'm a private seller</p>
+                                        <p className="text-sm text-gray-600">I want to list things on the platform.</p>
+                                    </div>
+                                </label>
+
+                                {/* New Company Option */}
+                                <label
+                                    className={`flex items-center gap-5 border py-3 px-5 rounded cursor-pointer transition-colors ${userType === 'company' ? 'border-primary bg-blue-50' : 'border-gray-200 hover:border-gray-300'
+                                        }`}
+                                >
+                                    <input
+                                        type="radio"
+                                        value="company"
+                                        {...register('userType', { required: 'Please select user type' })}
+                                        className="hidden"
+                                        onChange={() => handleUserTypeChange('company')}
+                                    />
+                                    <Building2 size={40} className={`flex-shrink-0 p-2 rounded ${userType === 'company' ? 'bg-orange-500 text-white' : 'bg-gray-200 text-gray-600'
+                                        }`} />
+                                    <div>
+                                        <p className="text-sm font-semibold">I'm a company</p>
+                                        <p className="text-sm text-gray-600">I want to buy or sell on behalf of my company.</p>
+                                    </div>
+                                </label>
+                            </div>
+                            {errors.userType && (
+                                <p className="text-red-500 text-sm mt-1 absolute">{errors.userType.message}</p>
+                            )}
+                        </div>
+
+                        {/* Personal Information - Changes based on user type */}
                         <div className="space-y-4 border-t pt-6">
-                            <h3 className="text-lg font-semibold text-gray-800">Personal Information</h3>
+                            <h3 className="text-lg font-semibold text-gray-800">
+                                {userType === 'company' ? 'Company Information' : 'Personal Information'}
+                            </h3>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {/* For company, show Company Name first */}
+                                {userType === 'company' && (
+                                    <>
+                                        <div className="md:col-span-2">
+                                            <div className={`${errors.companyName && 'mb-3'}`}>
+                                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                    Company Name *
+                                                </label>
+                                                <div className="relative">
+                                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                                        <Building2 size={20} className="text-gray-400" />
+                                                    </div>
+                                                    <input
+                                                        type="text"
+                                                        {...register('companyName', {
+                                                            required: userType === 'company' ? 'Company name is required' : false
+                                                        })}
+                                                        className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                                                        placeholder="Enter company name"
+                                                    />
+                                                    {errors.companyName && (
+                                                        <p className="text-red-500 text-sm mt-1 absolute">{errors.companyName.message}</p>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="md:col-span-2">
+                                            <div className={`${errors.companyVATNumber && 'mb-3'}`}>
+                                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                    VAT Number
+                                                </label>
+                                                <div className="relative">
+                                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                                        <FileText size={20} className="text-gray-400" />
+                                                    </div>
+                                                    <input
+                                                        type="text"
+                                                        {...register('companyVATNumber')}
+                                                        className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                                                        placeholder="Enter VAT number (optional)"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
+
+                                {/* First Name - Always shown, but label changes for company */}
                                 <div className={`${errors.firstName && 'mb-3'}`}>
                                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        First name *
+                                        {userType === 'company' ? 'Contact First Name *' : 'First Name *'}
                                     </label>
                                     <input
                                         type="text"
                                         {...register('firstName', {
-                                            required: 'First name is required',
-                                            minLength: { value: 2, message: 'First name must be at least 2 characters' }
+                                            required: `${userType === 'company' ? 'Contact first' : 'First'} name is required`,
+                                            minLength: { value: 2, message: 'Name must be at least 2 characters' }
                                         })}
                                         className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                                        placeholder="First name"
+                                        placeholder={userType === 'company' ? "Contact's first name" : "First name"}
                                     />
                                     {errors.firstName && (
                                         <p className="text-red-500 text-sm mt-1 absolute">{errors.firstName.message}</p>
                                     )}
                                 </div>
 
+                                {/* Last Name - Always shown, but label changes for company */}
                                 <div className={`${errors.lastName && 'mb-3'}`}>
                                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Last name *
+                                        {userType === 'company' ? 'Contact Last Name *' : 'Last Name *'}
                                     </label>
                                     <input
                                         type="text"
                                         {...register('lastName', {
-                                            required: 'Last name is required',
-                                            minLength: { value: 2, message: 'Last name must be at least 2 characters' }
+                                            required: `${userType === 'company' ? 'Contact last' : 'Last'} name is required`,
+                                            minLength: { value: 2, message: 'Name must be at least 2 characters' }
                                         })}
                                         className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                                        placeholder="Last name"
+                                        placeholder={userType === 'company' ? "Contact's last name" : "Last name"}
                                     />
                                     {errors.lastName && (
                                         <p className="text-red-500 text-sm mt-1 absolute">{errors.lastName.message}</p>
                                     )}
                                 </div>
-                            </div>
 
-                            {/* Add new address fields */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="md:col-span-1">
+                                {/* Username - Always shown */}
+                                <div className="md:col-span-2">
                                     <label className="block text-sm font-medium text-text-secondary dark:text-text-secondary-dark mb-2">
                                         Username <span className='text-red-600'>*</span>
                                     </label>
@@ -460,14 +586,21 @@ const Register = () => {
                                                 }
                                             })}
                                             className="block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-bg-primary-light bg-bg-secondary dark:bg-bg-primary text-text-primary dark:text-text-primary-dark rounded-lg focus:ring-2 focus:ring-secondary-darktext-bg-secondary-dark dark:focus:ring-gray-500 focus:border-transparent"
-                                            placeholder="What others see when you bid"
+                                            placeholder="Choose a username"
                                         />
                                     </div>
                                     {errors.username && (
                                         <p className="text-red-500 text-sm mt-1">{errors.username.message}</p>
                                     )}
                                 </div>
+                            </div>
+                        </div>
 
+                        {/* Address Information - Same for all user types */}
+                        <div className="space-y-4 border-t pt-6">
+                            <h3 className="text-lg font-semibold text-gray-800">Address Information</h3>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {/* Country field */}
                                 <div className="md:col-span-1">
                                     <div className={`${errors.country && 'mb-3'}`}>
@@ -503,6 +636,7 @@ const Register = () => {
                                     </label>
                                     <div className="relative">
                                         {states.length > 0 ? (
+
                                             <select
                                                 {...register('state', {
                                                     required: selectedCountry ? 'State is required' : false
@@ -535,7 +669,7 @@ const Register = () => {
                                     </div>
                                 </div>
 
-                                {/* Street field - spans full width on mobile, half on desktop */}
+                                {/* Street field */}
                                 <div className="md:col-span-1">
                                     <div className={`${errors.street && 'mb-3'}`}>
                                         <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -591,58 +725,6 @@ const Register = () => {
                                     )}
                                 </div>
                             </div>
-                            {/* <p className='text-gray-500 text-xs'>Note: These details will be used for shipping rates calculation.</p> */}
-                        </div>
-
-                        {/* User Type Selection */}
-                        <div className={`border-t pt-6 ${errors.email && 'mb-3'}`}>
-                            <label className="text-sm font-medium leading-none text-gray-700 flex items-center gap-2 mb-4">
-                                <User size={20} />
-                                <span>User Type</span>
-                            </label>
-
-                            <div className="flex flex-col sm:flex-row lg:flex-col xl:flex-row items-stretch gap-3 my-2">
-                                <label
-                                    className={`flex items-center gap-5 border py-3 px-5 rounded cursor-pointer transition-colors ${userType === 'bidder' ? 'border-primary bg-blue-50' : 'border-gray-200 hover:border-gray-300'
-                                        }`}
-                                >
-                                    <input
-                                        type="radio"
-                                        value="bidder"
-                                        {...register('userType', { required: 'Please select user type' })}
-                                        className="hidden"
-                                        onChange={() => handleUserTypeChange('bidder')}
-                                    />
-                                    <Gavel size={40} className={`flex-shrink-0 p-2 rounded ${userType === 'bidder' ? 'bg-orange-500 text-white' : 'bg-gray-200 text-gray-600'
-                                        }`} />
-                                    <div>
-                                        <p className="text-sm font-semibold">I'm a bidder</p>
-                                        <p className="text-sm text-gray-600">I want to bid on the listings on the platform.</p>
-                                    </div>
-                                </label>
-
-                                <label
-                                    className={`flex items-center gap-5 border py-3 px-5 rounded cursor-pointer transition-colors ${userType === 'seller' ? 'border-primary bg-blue-50' : 'border-gray-200 hover:border-gray-300'
-                                        }`}
-                                >
-                                    <input
-                                        type="radio"
-                                        value="seller"
-                                        {...register('userType', { required: 'Please select user type' })}
-                                        className="hidden"
-                                        onChange={() => handleUserTypeChange('seller')}
-                                    />
-                                    <Store size={40} className={`flex-shrink-0 p-2 rounded ${userType === 'seller' ? 'bg-orange-500 text-white' : 'bg-gray-200 text-gray-600'
-                                        }`} />
-                                    <div>
-                                        <p className="text-sm font-semibold">I'm a seller</p>
-                                        <p className="text-sm text-gray-600">I want to list things on the platform.</p>
-                                    </div>
-                                </label>
-                            </div>
-                            {errors.userType && (
-                                <p className="text-red-500 text-sm mt-1 absolute">{errors.userType.message}</p>
-                            )}
                         </div>
 
                         {/* Currency Selection */}
@@ -717,8 +799,8 @@ const Register = () => {
                         © {new Date().getFullYear()} RexBid. All rights reserved.
                     </p>
                 </div>
-            </div>
-        </div>
+            </div >
+        </div >
     );
 };
 

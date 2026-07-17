@@ -18,10 +18,10 @@ export const createWonAuctionPayment = async (req, res) => {
 
         // Find the auction
         const auction = await Auction.findById(auctionId)
-            .populate("seller", "email username firstName lastName")
+            .populate("seller", "email username companyName firstName lastName")
             .populate(
                 "winner",
-                "email username firstName lastName stripeCustomerId paymentMethodId",
+                "email username companyName firstName lastName stripeCustomerId paymentMethodId",
             );
 
         if (!auction) {
@@ -490,10 +490,10 @@ export const createCheckoutPayment = async (req, res) => {
 
         // 1. Find auction and verify winner
         const auction = await Auction.findById(auctionId)
-            .populate("seller", "email username firstName lastName")
+            .populate("seller", "email username companyName firstName lastName")
             .populate(
                 "winner",
-                "email username firstName lastName stripeCustomerId paymentMethodId cardLast4 cardBrand",
+                "email username companyName firstName lastName stripeCustomerId paymentMethodId cardLast4 cardBrand",
             );
 
         if (!auction) {
@@ -844,7 +844,7 @@ export const paySellerCommission = async (req, res) => {
         // 1. Find auction and verify seller
         const auction = await Auction.findById(auctionId).populate(
             "seller",
-            "stripeCustomerId paymentMethodId email username"
+            "stripeCustomerId paymentMethodId email username companyName"
         );
 
         if (!auction) {

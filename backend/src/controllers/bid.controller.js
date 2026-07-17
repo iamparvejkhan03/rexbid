@@ -131,9 +131,9 @@ export const getMyBids = async (req, res) => {
 
         // Get auctions without pagination for stats (or keep as is)
         const auctions = await Auction.find(baseQuery)
-            .populate('seller', 'username firstName lastName')
-            .populate('currentBidder', 'username firstName')
-            .populate('winner', 'username firstName lastName')
+            .populate('seller', 'username companyName firstName lastName')
+            .populate('currentBidder', 'username companyName firstName')
+            .populate('winner', 'username companyName firstName lastName')
             .sort({ 'bids.timestamp': -1 });
 
         // ------------------------- STATISTICS (with conversion) -------------------------
@@ -430,8 +430,8 @@ export const getSellerBidHistory = async (req, res) => {
         }
 
         const auctions = await Auction.find(filter)
-            .populate('bids.bidder', 'username firstName lastName email company')
-            .populate('winner', 'username firstName lastName email company')
+            .populate('bids.bidder', 'username companyName firstName lastName email company')
+            .populate('winner', 'username companyName firstName lastName email company')
             .sort({ endDate: -1 });
 
         // Convert each auction and its bids
@@ -605,10 +605,10 @@ export const getAdminBidHistory = async (req, res) => {
             ...filter,
             'bids.0': { $exists: true } // Only auctions with at least one bid
         })
-            .populate('seller', 'username firstName lastName email company')
-            .populate('currentBidder', 'username firstName lastName email')
-            .populate('winner', 'username firstName lastName email')
-            .populate('bids.bidder', 'username firstName lastName email company')
+            .populate('seller', 'username companyName firstName lastName email company')
+            .populate('currentBidder', 'username companyName firstName lastName email')
+            .populate('winner', 'username companyName firstName lastName email')
+            .populate('bids.bidder', 'username companyName firstName lastName email company')
             .sort({ createdAt: -1 });
 
         // Transform data for admin view with converted amounts
@@ -640,8 +640,9 @@ export const getAdminBidHistory = async (req, res) => {
                     id: bid?._id.toString(),
                     bidder: {
                         id: bid.bidder?._id.toString(),
-                        name: `${bid.bidder?.firstName} ${bid.bidder?.lastName}`.trim() || bid.bidder?.username,
-                        username: bid.bidder?.username,
+                        name: `${bid.bidder?.firstName} ${bid.bidder?.lastName}`.trim() || bid.bidder?.username || bid.bidder?.companyName,
+                        username: bid.bidder?.username || '',
+                        companyName: bid.bidder?.companyName || '',
                         email: bid.bidder?.email,
                         company: bid.bidder?.company || 'N/A'
                     },
@@ -688,15 +689,16 @@ export const getAdminBidHistory = async (req, res) => {
                 status: auction.status,
                 seller: {
                     id: auction.seller?._id.toString(),
-                    name: `${auction.seller?.firstName} ${auction.seller?.lastName}`.trim() || auction.seller?.username,
-                    username: auction.seller?.username,
+                    name: `${auction.seller?.firstName} ${auction.seller?.lastName}`.trim() || auction.seller?.username || auction.seller?.companyName,
+                    username: auction.seller?.username || '',
+                    companyName: auction.seller?.companyName || '',
                     email: auction.seller?.email,
                     company: auction.seller?.company || 'N/A',
                     rating: 0
                 },
                 winner: auction.winner ? {
                     id: auction.winner?._id.toString(),
-                    name: `${auction.winner.firstName} ${auction.winner.lastName}`.trim() || auction.winner.username
+                    name: `${auction.winner.firstName} ${auction.winner.lastName}`.trim() || auction.winner.username || auction.winner?.companyName
                 } : null,
                 totalBids: auction.bidCount,
                 uniqueBidders: new Set(auction.bids.map(bid => bid.bidder?._id.toString())).size,
@@ -774,7 +776,7 @@ export const getAdminBidHistory = async (req, res) => {
             categories: ['all', ...categories],
             sellers: ['all', ...sellersPopulated.map(s => ({
                 id: s?._id.toString(),
-                name: `${s.seller?.firstName} ${s.seller?.lastName}`.trim() || s.seller?.username
+                name: `${s.seller?.firstName} ${s.seller?.lastName}`.trim() || s.seller?.username || s.seller?.companyName
             }))],
             statuses: [
                 'all', 'active', 'sold', 'ended', 'reserve_not_met', 'cancelled'

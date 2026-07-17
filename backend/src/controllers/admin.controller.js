@@ -78,8 +78,8 @@ export const getAdminStats = async (req, res) => {
 
     // Calculate total revenue from sold auctions (converted)
     const soldAuctionsList = await Auction.find({ status: "sold" })
-      .populate("seller", "username firstName lastName")
-      .populate("winner", "username firstName lastName")
+      .populate("seller", "username firstName lastName companyName")
+      .populate("winner", "username firstName lastName companyName")
       .select("title finalPrice baseCurrency seller winner createdAt");
 
     let totalRevenueConverted = 0;
@@ -343,8 +343,8 @@ export const getAdminStats = async (req, res) => {
           title: highestSaleAuction.title,
           amount: parseFloat(convertAmount(highestSaleAuction.finalPrice, highestSaleAuction).toFixed(2)),
           amountOriginal: highestSaleAuction.finalPrice,
-          seller: highestSaleAuction.seller?.username || "Unknown",
-          winner: highestSaleAuction.winner?.username || "Unknown",
+          seller: highestSaleAuction.seller?.username || highestSaleAuction.seller?.companyName || "Unknown",
+          winner: highestSaleAuction.winner?.username || highestSaleAuction.winner?.companyName || "Unknown",
           date: highestSaleAuction.createdAt,
         }
         : null,
@@ -408,6 +408,7 @@ export const getAllUsers = async (req, res) => {
         { lastName: { $regex: search, $options: "i" } },
         { email: { $regex: search, $options: "i" } },
         { username: { $regex: search, $options: "i" } },
+        { companyName: { $regex: search, $options: "i" } },
       ],
     };
 
@@ -784,7 +785,7 @@ export const getAllAuctions = async (req, res) => {
 
     // Get auctions with pagination and populate seller info
     const auctions = await Auction.find(searchQuery)
-      .populate("seller", "firstName lastName username phone email")
+      .populate("seller", "firstName lastName username companyName phone email")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit));
@@ -869,9 +870,9 @@ export const getAuctionDetails = async (req, res) => {
     const rates = getCachedRates();
 
     const auction = await Auction.findById(auctionId)
-      .populate("seller", "firstName lastName username email phone")
-      .populate("winner", "firstName lastName username")
-      .populate("currentBidder", "firstName lastName username");
+      .populate("seller", "firstName lastName username companyName email phone")
+      .populate("winner", "firstName lastName username companyName")
+      .populate("currentBidder", "firstName lastName username companyName");
 
     if (!auction) {
       return res.status(404).json({
@@ -952,7 +953,7 @@ export const updateAuctionStatus = async (req, res) => {
     const auction = await Auction.findByIdAndUpdate(auctionId, updateData, {
       new: true,
       runValidators: true,
-    }).populate("seller", "firstName lastName username");
+    }).populate("seller", "firstName lastName username companyName");
 
     if (!auction) {
       return res.status(404).json({
@@ -1016,7 +1017,7 @@ export const approveAuction = async (req, res) => {
       // Activate immediately
       auction.status = "active";
 
-      await auction.populate("seller", "email username firstName lastName");
+      await auction.populate("seller", "email username companyName firstName lastName");
 
       await auctionListedEmail(auction, auction.seller);
 
@@ -1039,7 +1040,7 @@ export const approveAuction = async (req, res) => {
       _id: { $ne: auction?.seller?._id }, // Exclude auction owner
       userType: { $ne: "admin" }, // Exclude admin users
       isActive: true, // Only active users
-    }).select("email username firstName lastName preferences userType currency");
+    }).select("email username companyName firstName lastName preferences userType currency");
 
     await sendBulkAuctionNotifications(bidders, auction, auction.seller);
   } catch (error) {
@@ -1942,7 +1943,7 @@ export const updateAuction = async (req, res) => {
     const updatedAuction = await Auction.findByIdAndUpdate(id, updateData, {
       new: true,
       runValidators: true,
-    }).populate("seller", "username firstName lastName");
+    }).populate("seller", "username companyName firstName lastName");
 
     // ========== RESCHEDULE JOBS ==========
 
@@ -1998,8 +1999,8 @@ export const updatePaymentStatus = async (req, res) => {
 
     // Find auction with populated data
     const auction = await Auction.findById(id)
-      .populate("seller", "email username firstName lastName")
-      .populate("winner", "email username firstName lastName");
+      .populate("seller", "email username companyName firstName lastName")
+      .populate("winner", "email username companyName firstName lastName");
 
     if (!auction) {
       return res.status(404).json({
@@ -2089,8 +2090,8 @@ export const updatePaymentStatus = async (req, res) => {
 
     // Populate updated auction
     const updatedAuction = await Auction.findById(id)
-      .populate("seller", "username firstName lastName email phone address")
-      .populate("winner", "username firstName lastName email phone address");
+      .populate("seller", "username companyName firstName lastName email phone address")
+      .populate("winner", "username companyName firstName lastName email phone address");
 
     res.status(200).json({
       success: true,

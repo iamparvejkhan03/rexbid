@@ -599,7 +599,7 @@ export const getAllCategories = async (req, res) => {
 
     // Get categories
     const categories = await Category.find(filter)
-      .populate("createdBy", "username email")
+      .populate("createdBy", "username companyName email")
       .sort(sort)
       .skip(skip)
       .limit(parseInt(limit));
@@ -640,7 +640,7 @@ export const getCategoryById = async (req, res) => {
 
     const category = await Category.findById(id).populate(
       "createdBy",
-      "username email",
+      "username companyName email",
     );
 
     if (!category) {

@@ -41,7 +41,7 @@ export const validateRegistration = [
         }),
     
     body('userType')
-        .isIn(['bidder', 'seller'])
+        .isIn(['bidder', 'seller', 'company'])
         .withMessage('User type must be either bidder or seller'),
     
     body('country')

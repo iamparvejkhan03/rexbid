@@ -300,6 +300,7 @@ export const getAdminTransactions = async (req, res) => {
                 { 'bidder.username': { $regex: search, $options: 'i' } },
                 { 'bidder.firstName': { $regex: search, $options: 'i' } },
                 { 'bidder.lastName': { $regex: search, $options: 'i' } },
+                { 'bidder.companyName': { $regex: search, $options: 'i' } },
                 { paymentIntentId: { $regex: search, $options: 'i' } }
             ];
         }
@@ -307,7 +308,7 @@ export const getAdminTransactions = async (req, res) => {
         // Find transactions with populated data
         const transactions = await BidPayment.find(filter)
             .populate('auction', 'title category startPrice currentPrice status winner startDate endDate')
-            .populate('bidder', 'username firstName lastName email company stripeCustomerId')
+            .populate('bidder', 'username companyName firstName lastName email company stripeCustomerId')
             .sort({ createdAt: -1 })
             .limit(limit * 1)
             .skip((page - 1) * limit);
@@ -349,7 +350,7 @@ export const getAdminTransactions = async (req, res) => {
             // Safe bidder name construction
             const bidderName = bidder.firstName && bidder.lastName 
                 ? `${bidder.firstName} ${bidder.lastName}`.trim()
-                : bidder.username || 'Unknown User';
+                : bidder.username ? bidder.username : bidder.companyName || 'Unknown User';
 
             return {
                 id: transaction._id.toString(),
@@ -377,7 +378,7 @@ export const getAdminTransactions = async (req, res) => {
                 bidder: {
                     id: bidder._id ? bidder._id.toString() : 'N/A',
                     name: bidderName,
-                    username: bidder.username || 'N/A',
+                    username: bidder.username || bidder.companyName || 'N/A',
                     email: bidder.email || 'N/A',
                     company: bidder.company || 'N/A',
                     stripeCustomerId: bidder.stripeCustomerId || 'N/A'

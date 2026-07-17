@@ -221,8 +221,8 @@ export const getMyWatchlist = async (req, res) => {
                 path: 'auction',
                 match: auctionFilter,
                 populate: [
-                    { path: 'seller', select: 'username firstName lastName' },
-                    { path: 'currentBidder', select: 'username' }
+                    { path: 'seller', select: 'username companyName firstName lastName' },
+                    { path: 'currentBidder', select: 'username companyName' }
                 ]
             })
             .sort({ addedAt: -1 });
@@ -346,7 +346,7 @@ export const getAuctionWatchlistUsers = async (req, res) => {
         }
 
         const watchlistUsers = await Watchlist.find({ auction: auctionId })
-            .populate('user', 'username firstName lastName email')
+            .populate('user', 'username companyName firstName lastName email')
             .sort({ addedAt: -1 });
 
         res.status(200).json({

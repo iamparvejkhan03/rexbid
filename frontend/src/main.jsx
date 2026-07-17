@@ -22,7 +22,7 @@ const SingleAuction = lazy(() => import('./pages/SingleAuction'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 const FAQs = lazy(() => import('./pages/FAQs'));
 const Checkout = lazy(() => import('./pages/Checkout'));
-const SellerReviews = lazy(() => import ('./pages/SellerReviews'));
+const SellerReviews = lazy(() => import('./pages/SellerReviews'));
 
 {/* Seller Pages */ }
 const SellerLayout = lazy(() => import('./pages/seller/Layout'));
@@ -38,6 +38,21 @@ const SellerNotifications = lazy(() => import('./pages/seller/Notifications'));
 const SellerBilling = lazy(() => import('./pages/seller/Billing'));
 const SellerPayoutMethods = lazy(() => import('./pages/seller/PayoutMethods'));
 const SellerPayouts = lazy(() => import('./pages/seller/Payouts'));
+
+{/* Company Pages */ }
+const CompanyLayout = lazy(() => import('./pages/company/Layout'));
+const CompanyDashboard = lazy(() => import('./pages/company/Dashboard'));
+const CreateAuctionCompany = lazy(() => import('./pages/company/CreateAuction'));
+const EditAuctionCompany = lazy(() => import('./pages/company/EditAuction'));
+const CompanyAllAuctions = lazy(() => import('./pages/company/AllAuctions'));
+const CompanyAllOffers = lazy(() => import('./pages/company/AllOffers'));
+const SoldAuctionsCompany = lazy(() => import('./pages/company/SoldAuctions'));
+const BidHistoryCompany = lazy(() => import('./pages/company/BidHistory'));
+const CompanyProfile = lazy(() => import('./pages/company/Profile'));
+const CompanyNotifications = lazy(() => import('./pages/company/Notifications'));
+const CompanyBilling = lazy(() => import('./pages/company/Billing'));
+const CompanyPayoutMethods = lazy(() => import('./pages/company/PayoutMethods'));
+const CompanyPayouts = lazy(() => import('./pages/company/Payouts'));
 
 {/* Broker Pages */ }
 const BrokerLayout = lazy(() => import('./pages/broker/Layout'));
@@ -209,7 +224,7 @@ createRoot(document.getElementById('root')).render(
                                 </Suspense>
                             }
                         /> */}
-                        
+
                         {/* Seller Profile */}
                         <Route
                             path='/seller/profile'
@@ -231,13 +246,129 @@ createRoot(document.getElementById('root')).render(
 
                         {/* Seller Billing */}
                         <Route
-                                path='/seller/billing'
+                            path='/seller/billing'
+                            element={
+                                <Suspense fallback={<LoadingSpinner height={'750px'} />}>
+                                    <SellerBilling />
+                                </Suspense>
+                            }
+                        />
+                    </Route>
+
+                    {/* Company Layout */}
+                    <Route path='/company' element={<Protected authetication={true} userType='company'><CompanyLayout /></Protected>}>
+                        {/* Company Dashboard */}
+                        <Route
+                            path='/company/dashboard'
+                            index={true}
+                            element={
+                                <Suspense fallback={<LoadingSpinner height={'750px'} />}>
+                                    <CompanyDashboard />
+                                </Suspense>
+                            }
+                        />
+                        {/* Company Create Auction */}
+                        <Route
+                            path='/company/auctions/create'
+                            element={
+                                <Suspense fallback={<LoadingSpinner height={'750px'} />}>
+                                    <CreateAuctionCompany />
+                                </Suspense>
+                            }
+                        />
+                        {/* Company Edit Auction */}
+                        <Route
+                            path='/company/auctions/edit/:auctionId'
+                            element={
+                                <Suspense fallback={<LoadingSpinner height={'750px'} />}>
+                                    <EditAuctionCompany />
+                                </Suspense>
+                            }
+                        />
+                        {/* Company Live Auctions */}
+                        <Route
+                            path='/company/auctions/all'
+                            element={
+                                <Suspense fallback={<LoadingSpinner height={'750px'} />}>
+                                    <CompanyAllAuctions />
+                                </Suspense>
+                            }
+                        />
+                        {/* Company All Offers */}
+                        <Route
+                            path='/company/offers/all'
+                            element={
+                                <Suspense fallback={<LoadingSpinner height={'750px'} />}>
+                                    <CompanyAllOffers />
+                                </Suspense>
+                            }
+                        />
+                        {/* Company Won Auctions */}
+                        <Route
+                            path='/company/auctions/sold'
+                            element={
+                                <Suspense fallback={<LoadingSpinner height={'750px'} />}>
+                                    <SoldAuctionsCompany />
+                                </Suspense>
+                            }
+                        />
+                        {/* Company Auctions Bid History */}
+                        <Route
+                            path='/company/bids/history'
+                            element={
+                                <Suspense fallback={<LoadingSpinner height={'750px'} />}>
+                                    <BidHistoryCompany />
+                                </Suspense>
+                            }
+                        />
+                        {/* Company Payout methods */}
+                        {/* <Route
+                            path='/company/payout-methods'
+                            element={
+                                <Suspense fallback={<LoadingSpinner height={'750px'} />}>
+                                    <CompanyPayoutMethods />
+                                </Suspense>
+                            }
+                        /> */}
+
+                        {/* Company Payouts */}
+                        {/* <Route
+                            path='/company/payouts'
+                            element={
+                                <Suspense fallback={<LoadingSpinner height={'750px'} />}>
+                                    <CompanyPayouts />
+                                </Suspense>
+                            }
+                        /> */}
+
+                        {/* Company Profile */}
+                        <Route
+                            path='/company/profile'
+                            element={
+                                <Suspense fallback={<LoadingSpinner height={'750px'} />}>
+                                    <CompanyProfile />
+                                </Suspense>
+                            }
+                        />
+                        {/* Company Notifications */}
+                        {/* <Route
+                                path='/company/notifications'
                                 element={
                                     <Suspense fallback={<LoadingSpinner height={'750px'} />}>
-                                        <SellerBilling />
+                                        <CompanyNotifications />
                                     </Suspense>
                                 }
-                            />
+                            /> */}
+
+                        {/* Company Billing */}
+                        <Route
+                            path='/company/billing'
+                            element={
+                                <Suspense fallback={<LoadingSpinner height={'750px'} />}>
+                                    <CompanyBilling />
+                                </Suspense>
+                            }
+                        />
                     </Route>
 
                     {/* Broker Layout */}

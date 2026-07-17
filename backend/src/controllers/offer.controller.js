@@ -78,8 +78,8 @@ export const makeOffer = async (req, res) => {
 
     // Find auction
     const auction = await Auction.findById(id)
-      .populate("seller", "username firstName lastName email")
-      .populate("offers.buyer", "username firstName lastName email");
+      .populate("seller", "username companyName firstName lastName email")
+      .populate("offers.buyer", "username companyName firstName lastName email");
 
     if (!auction) {
       return res.status(404).json({
@@ -174,7 +174,7 @@ export const makeOffer = async (req, res) => {
     // Make the offer
     await auction.makeOffer(
       buyer._id,
-      buyer.username,
+      buyer.username || buyer.companyName,
       amountInBase,
       message || ""
     );
@@ -184,8 +184,8 @@ export const makeOffer = async (req, res) => {
 
     // Populate updated auction
     const updatedAuction = await Auction.findById(id)
-      .populate("offers.buyer", "email username firstName lastName")
-      .populate("seller", "email username firstName lastName");
+      .populate("offers.buyer", "email username companyName firstName lastName")
+      .populate("seller", "email username companyName firstName lastName");
 
     // --- Convert the auction prices to user's currency for response ---
     const userCurrency = currency;   // use the currency the buyer provided
@@ -218,7 +218,7 @@ export const makeOffer = async (req, res) => {
 
     offerConfirmationEmail(
       buyer?.email,
-      buyer?.firstName || buyer?.username,
+      buyer?.firstName || buyer?.username || buyer?.companyName,
       updatedAuction,
       offerAmount,
       convertedStartPrice || convertedBuyNowPrice,
@@ -255,7 +255,7 @@ export const getMyOffers = async (req, res) => {
 
     const auction = await Auction.findById(id).populate(
       "offers.buyer",
-      "username firstName lastName"
+      "username companyName firstName lastName"
     );
 
     if (!auction) {
@@ -327,7 +327,7 @@ export const getAuctionOffersForSeller = async (req, res) => {
 
     const auction = await Auction.findById(id).populate(
       "offers.buyer",
-      "username firstName lastName email"
+      "username companyName firstName lastName email"
     );
 
     if (!auction) {
@@ -409,8 +409,8 @@ export const respondToOffer = async (req, res) => {
 
     // Find auction
     const auction = await Auction.findById(auctionId)
-      .populate("offers.buyer", "username firstName lastName email")
-      .populate("seller", "username firstName lastName email");
+      .populate("offers.buyer", "username companyName firstName lastName email")
+      .populate("seller", "username companyName firstName lastName email");
 
     if (!auction) {
       return res.status(404).json({
@@ -493,16 +493,16 @@ export const respondToOffer = async (req, res) => {
 
     // Populate updated auction
     const updatedAuction = await Auction.findById(auctionId)
-      .populate("offers.buyer", "username firstName lastName currency")
-      .populate("seller", "username firstName lastName currency")
-      .populate("winner", "username firstName lastName currency");
+      .populate("offers.buyer", "username companyName firstName lastName currency")
+      .populate("seller", "username companyName firstName lastName currency")
+      .populate("winner", "username companyName firstName lastName currency");
 
     // Send email notification to buyer
     try {
       if (response === "accept") {
         await offerAcceptedEmail(
           offer.buyer.email,
-          offer.buyer.firstName || offer.buyer.username,
+          offer.buyer.firstName || offer.buyer.username || offer.buyer.companyName,
           offer.buyer.currency,
           updatedAuction.seller,
           updatedAuction,
@@ -512,7 +512,7 @@ export const respondToOffer = async (req, res) => {
       } else if (response === "reject") {
         await offerRejectedEmail(
           offer.buyer.email,
-          offer.buyer.firstName || offer.buyer.username,
+          offer.buyer.firstName || offer.buyer.username || offer.buyer.companyName,
           offer.buyer.currency,
           updatedAuction.seller,
           updatedAuction,
@@ -554,8 +554,8 @@ export const acceptCounterOffer = async (req, res) => {
 
     // Find auction
     const auction = await Auction.findById(auctionId)
-      .populate("offers.buyer", "username firstName lastName email")
-      .populate("seller", "username firstName lastName email");
+      .populate("offers.buyer", "username companyName firstName lastName email")
+      .populate("seller", "username companyName firstName lastName email");
 
     if (!auction) {
       return res.status(404).json({
@@ -605,15 +605,15 @@ export const acceptCounterOffer = async (req, res) => {
 
     // Populate updated auction
     const updatedAuction = await Auction.findById(auctionId)
-      .populate("offers.buyer", "username firstName lastName")
-      .populate("seller", "username firstName lastName")
-      .populate("winner", "username firstName lastName");
+      .populate("offers.buyer", "username companyName firstName lastName")
+      .populate("seller", "username companyName firstName lastName")
+      .populate("winner", "username companyName firstName lastName");
 
     // Send email notification to seller
     try {
       await offerAcceptedEmail(
         offer.buyer.email,
-        offer.buyer.firstName || offer.buyer.username,
+        offer.buyer.firstName || offer.buyer.username || offer.buyer.companyName,
         offer.buyer.currency,
         updatedAuction.seller,
         updatedAuction,
@@ -657,8 +657,8 @@ export const withdrawOffer = async (req, res) => {
 
     // Find auction
     const auction = await Auction.findById(auctionId)
-      .populate("offers.buyer", "username firstName lastName email")
-      .populate("seller", "username firstName lastName email");
+      .populate("offers.buyer", "username companyName firstName lastName email")
+      .populate("seller", "username companyName firstName lastName email");
 
     if (!auction) {
       return res.status(404).json({
@@ -700,8 +700,8 @@ export const withdrawOffer = async (req, res) => {
 
     // Populate updated auction
     const updatedAuction = await Auction.findById(auctionId)
-      .populate("offers.buyer", "username firstName lastName")
-      .populate("seller", "username firstName lastName");
+      .populate("offers.buyer", "username companyName firstName lastName")
+      .populate("seller", "username companyName firstName lastName");
 
     // Send email notification to seller
     // try {
@@ -750,8 +750,8 @@ export const getAllMyOffers = async (req, res) => {
     const auctions = await Auction.find({
       "offers.buyer": userId,
     })
-      .populate("offers.buyer", "username firstName lastName")
-      .populate("seller", "username firstName lastName")
+      .populate("offers.buyer", "username companyName firstName lastName")
+      .populate("seller", "username companyName firstName lastName")
       .sort({ createdAt: -1 });
 
     const rates = getCachedRates();
@@ -792,7 +792,7 @@ export const getAllMyOffers = async (req, res) => {
               currentPriceOriginal: auction.currentPrice,
               buyNowPriceOriginal: auction.buyNowPrice,
               finalPriceOriginal: auction.finalPrice,
-              sellerUsername: auction.sellerUsername,
+              sellerUsername: auction.sellerUsername || auction.seller?.companyName || '',
               seller: auction.seller,
               endDate: auction.endDate,
               photos: auction.photos,
@@ -846,8 +846,8 @@ export const getAllOffersForSeller = async (req, res) => {
     const rates = getCachedRates();
 
     const auctions = await Auction.find({ seller: sellerId })
-      .populate("offers.buyer", "username firstName lastName email")
-      .populate("seller", "username firstName lastName")
+      .populate("offers.buyer", "username companyName firstName lastName email")
+      .populate("seller", "username companyName firstName lastName")
       .sort({ createdAt: -1 });
 
     const allOffers = [];
@@ -1016,9 +1016,9 @@ export const getAdminAllOffers = async (req, res) => {
     const auctions = await Auction.find({
       "offers.0": { $exists: true },
     })
-      .populate("seller", "username firstName lastName email company phone")
-      .populate("offers.buyer", "username firstName lastName email company phone")
-      .populate("winner", "username firstName lastName email")
+      .populate("seller", "username companyName firstName lastName email company phone")
+      .populate("offers.buyer", "username companyName firstName lastName email company phone")
+      .populate("winner", "username companyName firstName lastName email")
       .sort({ createdAt: -1 });
 
     // Flatten and transform offers with conversion
@@ -1060,7 +1060,8 @@ export const getAdminAllOffers = async (req, res) => {
             displayCurrency: userCurrency,
             seller: {
               _id: auction.seller._id,
-              username: auction.seller.username,
+              username: auction.seller.username || auction.seller.companyName || '',
+              companyName: auction.seller.companyName || '',
               name: `${auction.seller.firstName} ${auction.seller.lastName}`.trim(),
               email: auction.seller.email,
               phone: auction.seller.phone,
@@ -1085,7 +1086,8 @@ export const getAdminAllOffers = async (req, res) => {
         (offer) =>
           offer.auction.title.toLowerCase().includes(searchLower) ||
           offer.buyerUsername.toLowerCase().includes(searchLower) ||
-          offer.auction.seller.username.toLowerCase().includes(searchLower)
+          offer.auction.seller.username.toLowerCase().includes(searchLower) ||
+          offer.auction.seller.companyName.toLowerCase().includes(searchLower)
       );
     }
 
@@ -1179,9 +1181,9 @@ export const getAdminAuctionOffers = async (req, res) => {
     const rates = getCachedRates();
 
     const auction = await Auction.findById(auctionId)
-      .populate("seller", "username firstName lastName email phone")
-      .populate("offers.buyer", "username firstName lastName email phone company")
-      .populate("winner", "username firstName lastName");
+      .populate("seller", "username companyName firstName lastName email phone")
+      .populate("offers.buyer", "username companyName firstName lastName email phone company")
+      .populate("winner", "username companyName firstName lastName");
 
     if (!auction) {
       return res.status(404).json({
@@ -1268,8 +1270,8 @@ export const adminRespondToOffer = async (req, res) => {
 
     // Find auction
     const auction = await Auction.findById(auctionId)
-      .populate("offers.buyer", "username firstName lastName email phone")
-      .populate("seller", "username firstName lastName email phone");
+      .populate("offers.buyer", "username companyName firstName lastName email phone")
+      .populate("seller", "username companyName firstName lastName email phone");
 
     if (!auction) {
       return res.status(404).json({
@@ -1314,9 +1316,9 @@ export const adminRespondToOffer = async (req, res) => {
 
     // Populate updated data
     const updatedAuction = await Auction.findById(auctionId)
-      .populate("offers.buyer", "username firstName lastName email phone currency")
-      .populate("seller", "username firstName lastName email phone currency")
-      .populate("winner", "username firstName lastName email phone address currency");
+      .populate("offers.buyer", "companyName companyName firstName lastName email phone currency")
+      .populate("seller", "username companyName firstName lastName email phone currency")
+      .populate("winner", "username companyName firstName lastName email phone address currency");
 
     res.status(200).json({
       success: true,
@@ -1332,7 +1334,7 @@ export const adminRespondToOffer = async (req, res) => {
     if (response === "accept") {
       offerAcceptedEmail(
         offer.buyer.email,
-        offer.buyer.firstName || offer.buyer.username,
+        offer.buyer.firstName || offer.buyer.username || offer.buyer.companyName || '',
         offer.buyer.currency,
         updatedAuction.seller,
         updatedAuction,
@@ -1357,7 +1359,7 @@ export const adminRespondToOffer = async (req, res) => {
     } else {
       offerRejectedEmail(
         offer.buyer.email,
-        offer.buyer.firstName || offer.buyer.username,
+        offer.buyer.firstName || offer.buyer.username || offer.buyer.companyName || '',
         offer.buyer.currency,
         updatedAuction.seller,
         updatedAuction,
@@ -1388,8 +1390,8 @@ export const adminCancelOffer = async (req, res) => {
     const { auctionId, reason } = req.body;
 
     const auction = await Auction.findById(auctionId)
-      .populate("offers.buyer", "email username firstName lastName email currency")
-      .populate("seller", "email username firstName lastName email currency");
+      .populate("offers.buyer", "email username companyName firstName lastName email currency")
+      .populate("seller", "email username companyName firstName lastName email currency");
 
     if (!auction) {
       return res.status(404).json({
@@ -1430,7 +1432,7 @@ export const adminCancelOffer = async (req, res) => {
     // Send email to buyer in background
     offerCanceledEmail(
       offer.buyer.email,
-      offer.buyer.firstName || offer.buyer.username,
+      offer.buyer.firstName || offer.buyer.username || offer.buyer.companyName || '',
       offer.buyer.currency,
       auction.seller,
       auction,
@@ -1641,9 +1643,9 @@ export const adminEndAuctionWithOffer = async (req, res) => {
 
     // Find auction
     const auction = await Auction.findById(auctionId)
-      .populate("offers.buyer", "username firstName lastName email phone")
-      .populate("seller", "username firstName lastName email phone")
-      .populate("currentBidder", "username firstName lastName email phone");
+      .populate("offers.buyer", "username companyName firstName lastName email phone")
+      .populate("seller", "username companyName firstName lastName email phone")
+      .populate("currentBidder", "username companyName firstName lastName email phone");
 
     if (!auction) {
       return res.status(404).json({
@@ -1691,10 +1693,10 @@ export const adminEndAuctionWithOffer = async (req, res) => {
 
     // Populate updated auction
     const updatedAuction = await Auction.findById(auctionId)
-      .populate("offers.buyer", "username firstName lastName email phone")
-      .populate("seller", "username firstName lastName email phone")
-      .populate("winner", "username firstName lastName email phone")
-      .populate("endedBy", "username firstName lastName");
+      .populate("offers.buyer", "username companyName firstName lastName email phone")
+      .populate("seller", "username companyName firstName lastName email phone")
+      .populate("winner", "username companyName firstName lastName email phone")
+      .populate("endedBy", "username companyName firstName lastName");
 
     // Handle bid payments cleanup if there were bids
     if (auction.bidCount > 0) {
@@ -1769,7 +1771,7 @@ export const adminEndAuctionWithOffer = async (req, res) => {
         auction: updatedAuction,
         offer: updatedAuction.offers.id(offerId),
         action: {
-          performedBy: req.user.username,
+          performedBy: req.user.username || req.user.companyName || req.user.firstName || '',
           reason: reason || "Administrative action",
           timestamp: new Date(),
         },
@@ -1798,8 +1800,8 @@ export const reactivateOffer = async (req, res) => {
 
     // Find auction
     const auction = await Auction.findById(auctionId)
-      .populate("offers.buyer", "username firstName lastName email phone")
-      .populate("seller", "username firstName lastName email phone");
+      .populate("offers.buyer", "username companyName firstName lastName email phone")
+      .populate("seller", "username companyName firstName lastName email phone");
 
     if (!auction) {
       return res.status(404).json({
@@ -1824,9 +1826,9 @@ export const reactivateOffer = async (req, res) => {
 
     // Populate updated auction
     const updatedAuction = await Auction.findById(auctionId)
-      .populate("offers.buyer", "username firstName lastName email phone currency")
-      .populate("seller", "username firstName lastName email phone currency")
-      .populate("winner", "username firstName lastName email phone address currency");
+      .populate("offers.buyer", "username companyName firstName lastName email phone currency")
+      .populate("seller", "username companyName firstName lastName email phone currency")
+      .populate("winner", "username companyName firstName lastName email phone address currency");
 
     res.status(200).json({
       success: true,
@@ -1834,7 +1836,7 @@ export const reactivateOffer = async (req, res) => {
       data: {
         auction: updatedAuction,
         offer: updatedAuction.offers.id(offerId),
-        reactivatedBy: user.username,
+        reactivatedBy: user.username || user.companyName || user.firstName,
         reactivatedAt: new Date(),
       },
     });
@@ -1845,7 +1847,7 @@ export const reactivateOffer = async (req, res) => {
       // Notify buyer
       offerAcceptedEmail(
         offer.buyer.email,
-        offer.buyer.firstName || offer.buyer.username,
+        offer.buyer.firstName || offer.buyer.username || offer.buyer.companyName || '',
         offer.buyer.currency,
         updatedAuction.seller,
         updatedAuction,

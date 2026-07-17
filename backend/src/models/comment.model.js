@@ -130,7 +130,7 @@ commentSchema.statics.getCommentsForAuction = function (auctionId, page = 1, lim
         parentComment: parentCommentId,
         status: 'active'
     })
-        .populate('user', 'username firstName lastName avatar')
+        .populate('user', 'username companyName firstName lastName avatar')
         .sort({ createdAt: -1 })
         .limit(limit)
         .skip(skip);

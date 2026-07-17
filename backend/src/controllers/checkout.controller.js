@@ -37,11 +37,11 @@ export const getCheckoutData = async (req, res) => {
         const auction = await Auction.findById(auctionId)
             .populate(
                 "seller",
-                "firstName lastName username email phone address countryName countryCode payoutMethods",
+                "firstName lastName username companyName email phone address countryName countryCode payoutMethods",
             )
             .populate(
                 "winner",
-                "firstName lastName username email phone address countryName countryCode stripeCustomerId paymentMethodId cardLast4 cardBrand cardExpMonth cardExpYear isPaymentVerified",
+                "firstName lastName username companyName email phone address countryName countryCode stripeCustomerId paymentMethodId cardLast4 cardBrand cardExpMonth cardExpYear isPaymentVerified",
             );
 
         if (!auction) {
@@ -176,7 +176,8 @@ export const getCheckoutData = async (req, res) => {
             _id: seller._id,
             firstName: seller.firstName,
             lastName: seller.lastName,
-            username: seller.username,
+            username: seller.username || '',
+            companyName: seller.companyName,
             email: seller.email,
             phone: seller.phone,
             memberSince: seller.createdAt,

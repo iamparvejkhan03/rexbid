@@ -26,6 +26,9 @@ import Protected from "./Protected";
 import SellerHeader from "./seller/Header";
 import SellerContainer from "./seller/Container";
 import SellerSidebar from "./seller/Sidebar";
+import CompanyHeader from "./company/Header";
+import CompanyContainer from "./company/Container";
+import CompanySidebar from "./company/Sidebar";
 import StatCard from "./StatCard";
 import RecentActivity from "./seller/RecentActivity";
 import QuickActions from "./seller/QuickActions";
@@ -94,6 +97,9 @@ export {
     SellerHeader,
     SellerContainer,
     SellerSidebar,
+    CompanyHeader,
+    CompanyContainer,
+    CompanySidebar,
     StatCard,
     RecentActivity,
     QuickActions,

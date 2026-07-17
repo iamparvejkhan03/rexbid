@@ -47,7 +47,8 @@ export const addComment = async (req, res) => {
         const comment = await Comment.create({
             auction: auctionId,
             user: userId,
-            userName: req.user.username,
+            userName: req.user.username || '',
+            companyName: req.user.companyName || '',
             userAvatar: req.user.avatar || '',
             content: content.trim(),
             contentHtml: contentHtml || content.trim(),
@@ -55,7 +56,7 @@ export const addComment = async (req, res) => {
         });
 
         // Populate user info for response
-        await comment.populate('user', 'username firstName lastName avatar');
+        await comment.populate('user', 'username companyName firstName lastName avatar');
 
         res.status(201).json({
             success: true,
@@ -66,10 +67,10 @@ export const addComment = async (req, res) => {
         // Populate the comment with necessary data
         const populatedComment = await Comment.findById(comment._id)
             .populate('auction')
-            .populate('user', 'firstName lastName username email userType');
+            .populate('user', 'firstName lastName username companyName email userType');
 
         // Populate the auction's seller
-        await populatedComment.auction.populate('seller', 'email username firstName');
+        await populatedComment.auction.populate('seller', 'email username companyName firstName');
 
         // 1. Notify the seller (if comment author is not the seller)
         if (populatedComment.auction.seller._id.toString() !== userId.toString()) {
@@ -157,7 +158,7 @@ export const getComments = async (req, res) => {
             parentComment: parentCommentId,
             status: 'active'
         })
-            .populate('user', 'username firstName lastName avatar')
+            .populate('user', 'username companyName firstName lastName avatar')
             .sort(sortOptions)
             .limit(parseInt(limit))
             .skip(skip);
@@ -400,7 +401,7 @@ export const flagComment = async (req, res) => {
         const adminUsers = await User.find({ userType: 'admin' });
         const commentWithAuction = await Comment.findById(commentId)
             .populate('auction')
-            .populate('user', 'firstName lastName username email userType createdAt');
+            .populate('user', 'firstName lastName username companyName email userType createdAt');
 
         // Get the user who reported (from req.user)
         const reportedByUser = req.user;
@@ -468,9 +469,9 @@ export const getFlaggedComments = async (req, res) => {
 
         // Get comments with populated data
         const comments = await Comment.find(filter)
-            .populate('user', 'username firstName lastName avatar email isActive')
+            .populate('user', 'username companyName firstName lastName avatar email isActive')
             .populate('auction', 'title itemName images')
-            .populate('flags.user', 'username firstName lastName')
+            .populate('flags.user', 'username companyName firstName lastName')
             .sort(sortOptions)
             .limit(parseInt(limit))
             .skip(skip)
@@ -519,7 +520,7 @@ export const adminDeleteComment = async (req, res) => {
         const { deleteReason } = req.body;
 
         const comment = await Comment.findById(commentId)
-            .populate('user', 'username');
+            .populate('user', 'username companyName');
 
         if (!comment) {
             return res.status(404).json({
@@ -541,7 +542,7 @@ export const adminDeleteComment = async (req, res) => {
             message: 'Comment deleted successfully',
             data: {
                 commentId,
-                userName: comment.user.username
+                userName: comment.user.username || comment.user.companyName || ''
             }
         });
 

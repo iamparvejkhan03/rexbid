@@ -424,7 +424,7 @@ const welcomeEmail = async (user) => {
     try {
         const content = `
             <div style="text-align: center; margin-bottom: 20px;">
-                <h2 style="text-align: center;">Welcome to ${BRAND_NAME}, ${user.firstName || user.username}!</h2>
+                <h2 style="text-align: center;">Welcome to ${BRAND_NAME}, ${user.firstName || user.companyName || user.username}!</h2>
             </div>
             
             <p>We're thrilled to welcome you to ${BRAND_NAME}. Your ${user.userType || 'bidder'} account has been successfully created.</p>
@@ -447,12 +447,12 @@ const welcomeEmail = async (user) => {
             <p>Need help getting started? Check out our FAQ section or contact our support team - we're here to help!</p>
         `;
 
-        const html = baseTemplate(content, `Welcome, ${user.firstName || user.username}`);
+        const html = baseTemplate(content, `Welcome, ${user.firstName || user.companyName || user.username}`);
 
         const info = await transporter.sendMail({
             from: `"${BRAND_NAME}" <${process.env.EMAIL_USER}>`,
             to: user.email,
-            subject: `Welcome to ${BRAND_NAME}, ${user.firstName || user.username}!`,
+            subject: `Welcome to ${BRAND_NAME}, ${user.firstName || user.companyName || user.username}!`,
             html
         });
 
@@ -476,7 +476,7 @@ const newUserRegistrationEmail = async (adminEmail, user) => {
             ${createInfoCard(`
                 <p style="margin: 0 0 12px 0;"><strong>User Information</strong></p>
                 ${createSummaryRow('Full Name:', `${user.firstName || ''} ${user.lastName || ''}`)}
-                ${createSummaryRow('Username:', user.username || 'Not provided')}
+                ${createSummaryRow('Username:', user.username || user.companyName || 'Not provided')}
                 ${createSummaryRow('Email:', user.email)}
                 ${createSummaryRow('Account Type:', userTypeDisplay)}
                 ${createSummaryRow('Phone Number:', user.phone || 'Not provided')}
@@ -589,8 +589,8 @@ const auctionSubmittedForApprovalEmail = async (adminEmail, auction, seller) => 
             
             <div style="background: ${BRAND_COLORS.grayBg}; padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 4px solid ${BRAND_COLORS.primary};">
                 <p style="margin: 0 0 12px 0;"><strong>Seller Information</strong></p>
-                ${createSummaryRow('Name:', `${seller.firstName || seller.username} ${seller.lastName || ''}`)}
-                ${createSummaryRow('Username:', seller.username)}
+                ${createSummaryRow('Name:', `${seller.firstName || seller.companyName || seller.username} ${seller.lastName || ''}`)}
+                ${createSummaryRow('Username:', seller.username || seller.companyName)}
             </div>
             
             <div style="background: ${BRAND_COLORS.secondary}; color: #ffffff; padding: 20px; border-radius: 8px; margin: 25px 0; text-align: center;">
@@ -789,7 +789,7 @@ const newAuctionNotificationEmail = async (bidder, listing, seller) => {
             
             <div style="background: ${BRAND_COLORS.grayBg}; padding: 20px; border-radius: 8px; margin: 25px 0;">
                 <p style="margin: 0 0 8px 0;"><strong>Seller Information</strong></p>
-                <p style="margin: 0;">${seller?.username}</p>
+                <p style="margin: 0;">${seller?.companyName || seller?.username}</p>
                 <p style="margin: 0;">${seller?.firstName} ${seller?.lastName}</p>
             </div>
             
@@ -939,7 +939,7 @@ const newBidNotificationEmail = async (seller, listing, bidAmount, bidder, userC
             ${bidder ? `
                 <div style="background: ${BRAND_COLORS.grayBg}; padding: 20px; border-radius: 8px; margin: 25px 0;">
                     <p style="margin: 0 0 8px 0;"><strong>Bidder Information</strong></p>
-                    <p style="margin: 0;">${bidder.username}</p>
+                    <p style="margin: 0;">${bidder.username || bidder.companyName}</p>
                     <p style="margin: 0;">${bidder.firstName} ${bidder.lastName}</p>
                 </div>
             ` : ''}
@@ -1053,7 +1053,7 @@ const newOfferNotificationEmail = async (seller, listing, offerAmount, bidder, u
                 <div style="background: ${BRAND_COLORS.grayBg}; padding: 20px; border-radius: 8px; margin: 25px 0;">
                     <p style="margin: 0 0 8px 0;"><strong>Bidder Information</strong></p>
                     <p style="margin: 0;">Full Name: ${bidder?.firstName} ${bidder?.lastName}</p>
-                    <p style="margin: 0;">Username: ${bidder?.username}</p>
+                    <p style="margin: 0;">Username: ${bidder?.username || bidder?.companyName}</p>
                 </div>
             ` : ''}
             
@@ -1201,7 +1201,7 @@ const sendOutbidNotifications = async (
             try {
                 await outbidNotificationEmail(
                     user.email,
-                    user.username || `${user.firstName} ${user.lastName}`,
+                    user.username || user?.companyName || `${user.firstName} ${user.lastName}`,
                     auction,
                     newBidAmount,
                     auctionUrl,
@@ -1336,7 +1336,7 @@ const sendAuctionEndedSellerEmail = async (listing) => {
                 </div>
             `}
             
-            <p>Dear ${listing?.seller?.firstName || listing?.seller?.username},</p>
+            <p>Dear ${listing?.seller?.firstName || listing?.seller?.companyName || listing?.seller?.username},</p>
             <p>Your listing for <strong>${listing?.title}</strong> on ${BRAND_NAME} has ended.</p>
         `;
 
@@ -1444,8 +1444,8 @@ const auctionWonAdminEmail = async (adminEmail, adminCurrency, listing, buyer) =
             
             <div style="background: ${BRAND_COLORS.grayBg}; padding: 20px; border-radius: 8px; margin: 25px 0;">
                 <p style="margin: 0 0 12px 0;"><strong>Buyer Information</strong></p>
-                ${createSummaryRow('Name:', buyer?.firstName || buyer?.username)}
-                ${createSummaryRow('Username:', buyer?.username)}
+                ${createSummaryRow('Name:', buyer?.firstName || buyer?.companyName || buyer?.username)}
+                ${createSummaryRow('Username:', buyer?.username || buyer?.companyName)}
                 ${createSummaryRow('Email:', buyer?.email)}
                 ${createSummaryRow('Phone:', buyer?.phone || 'Not provided')}
             </div>
@@ -1512,7 +1512,7 @@ const auctionEndedAdminEmail = async (adminEmail, adminCurrency, listing) => {
             ${listing?.seller ? `
                 <div style="background: ${BRAND_COLORS.grayBg}; padding: 20px; border-radius: 8px; margin: 25px 0;">
                     <p style="margin: 0 0 8px 0;"><strong>Seller Information</strong></p>
-                    ${createSummaryRow('Name:', listing?.seller?.firstName || listing?.seller?.username)}
+                    ${createSummaryRow('Name:', listing?.seller?.firstName || listing?.seller?.companyName || listing?.seller?.username)}
                     ${createSummaryRow('Email:', listing?.seller?.email)}
                     ${listing?.seller?.phone ? createSummaryRow('Phone:', listing?.seller?.phone) : ''}
                 </div>
@@ -1521,7 +1521,7 @@ const auctionEndedAdminEmail = async (adminEmail, adminCurrency, listing) => {
             ${listing.winner && isSold ? `
                 <div style="background: ${BRAND_COLORS.grayBg}; padding: 20px; border-radius: 8px; margin: 25px 0;">
                     <p style="margin: 0 0 8px 0;"><strong>Buyer Information</strong></p>
-                    ${createSummaryRow('Name:', listing?.winner?.firstName || listing?.winner?.username)}
+                    ${createSummaryRow('Name:', listing?.winner?.firstName || listing?.winner?.companyName || listing?.winner?.username)}
                     ${createSummaryRow('Email:', listing?.winner?.email)}
                     ${listing?.winner?.phone ? createSummaryRow('Phone:', listing?.winner?.phone) : ''}
                 </div>
@@ -1721,7 +1721,7 @@ const paymentCompletedEmail = async (user, listing) => {
     try {
         const content = `
             <h2 style="text-align: center;">Payment Confirmed</h2>
-            <p style="text-align: center;">Thank you for your payment, ${user?.firstName || user?.username}!</p>
+            <p style="text-align: center;">Thank you for your payment, ${user?.firstName || user?.companyName || user?.username}!</p>
             
             ${createInfoCard(`
                 <p style="margin: 0 0 12px 0; font-size: 18px; font-weight: bold; color: ${BRAND_COLORS.secondary};">${listing?.title}</p>
@@ -1764,7 +1764,7 @@ const paymentSuccessEmail = async (user, listing) => {
     try {
         const content = `
             <h2 style="text-align: center;">Payment Successful</h2>
-            <p style="text-align: center;">Your payment has been processed successfully, ${user.firstName || user.username}!</p>
+            <p style="text-align: center;">Your payment has been processed successfully, ${user.firstName || user?.companyName || user.username}!</p>
             
             ${createInfoCard(`
                 <p style="margin: 0 0 12px 0; font-size: 18px; font-weight: bold; color: ${BRAND_COLORS.secondary};">${listing.title}</p>
@@ -1807,7 +1807,7 @@ const paymentCompletedSellerEmail = async (seller, listing, buyer) => {
     try {
         const content = `
             <h2 style="text-align: center;">Payment Received</h2>
-            <p style="text-align: center;">Great news, ${seller?.firstName || seller?.username}!</p>
+            <p style="text-align: center;">Great news, ${seller?.firstName || seller?.companyName || seller?.username}!</p>
             
             ${createInfoCard(`
                 <p style="margin: 0 0 12px 0; font-size: 18px; font-weight: bold; color: ${BRAND_COLORS.secondary};">${listing?.title}</p>
@@ -1826,7 +1826,7 @@ const paymentCompletedSellerEmail = async (seller, listing, buyer) => {
             ${buyer ? `
                 <div style="background: ${BRAND_COLORS.grayBg}; padding: 20px; border-radius: 8px; margin: 25px 0;">
                     <p style="margin: 0 0 12px 0;"><strong>Buyer Information</strong></p>
-                    ${createSummaryRow('Name:', `${buyer?.firstName || buyer?.username} ${buyer?.lastName || ''}`)}
+                    ${createSummaryRow('Name:', `${buyer?.firstName || buyer?.companyName || buyer?.username} ${buyer?.lastName || ''}`)}
                     ${buyer?.email ? createSummaryRow('Email:', buyer.email) : ''}
                     ${buyer?.phone ? createSummaryRow('Phone:', buyer.phone) : ''}
                 </div>
@@ -1882,8 +1882,8 @@ const flaggedCommentAdminEmail = async (
             
             <div style="background: ${BRAND_COLORS.grayBg}; padding: 20px; border-radius: 8px; margin: 25px 0;">
                 <p style="margin: 0 0 12px 0;"><strong>Comment Author</strong></p>
-                ${createSummaryRow('Name:', `${comment?.user?.firstName || comment?.userName || 'N/A'} ${comment?.user?.lastName || ''}`)}
-                ${createSummaryRow('Username:', comment?.user?.username || comment?.userName || 'N/A')}
+                ${createSummaryRow('Name:', `${comment?.user?.firstName || comment?.user?.companyName || comment?.userName || 'N/A'} ${comment?.user?.lastName || ''}`)}
+                ${createSummaryRow('Username:', comment?.user?.username || comment?.user?.companyName || comment?.userName || 'N/A')}
                 ${createSummaryRow('Email:', comment?.user?.email || 'N/A')}
                 ${createSummaryRow('Account Type:', comment?.user?.userType || 'N/A')}
             </div>
@@ -1891,7 +1891,7 @@ const flaggedCommentAdminEmail = async (
             <div style="background: ${BRAND_COLORS.grayBg}; padding: 20px; border-radius: 8px; margin: 25px 0;">
                 <p style="margin: 0 0 12px 0;"><strong>Reported By</strong></p>
                 ${createSummaryRow('Name:', `${reportedByUser?.firstName} ${reportedByUser?.lastName}`)}
-                ${createSummaryRow('Username:', reportedByUser?.username)}
+                ${createSummaryRow('Username:', reportedByUser?.username || reportedByUser?.companyName)}
                 ${createSummaryRow('Email:', reportedByUser?.email)}
                 ${createSummaryRow('Account Type:', reportedByUser?.userType)}
             </div>
@@ -1923,7 +1923,7 @@ const newCommentSellerEmail = async (seller, listing, comment, commentAuthor) =>
     try {
         const content = `
             <h2 style="text-align: center;">New Comment on Your Listing</h2>
-            <p style="text-align: center;">${commentAuthor?.firstName || commentAuthor?.username} has commented on your listing.</p>
+            <p style="text-align: center;">${commentAuthor?.firstName || commentAuthor?.companyName || commentAuthor?.username} has commented on your listing.</p>
             
             ${createInfoCard(`
                 <p style="margin: 0 0 12px 0; font-size: 18px; font-weight: bold; color: ${BRAND_COLORS.secondary};">${listing?.title}</p>
@@ -1968,7 +1968,7 @@ const newCommentBidderEmail = async (bidder, listing, comment, commentAuthor) =>
     try {
         const content = `
             <h2 style="text-align: center;">New Activity on Listing</h2>
-            <p style="text-align: center;">${commentAuthor?.firstName || commentAuthor?.username} has added a comment on a listing you're interested in.</p>
+            <p style="text-align: center;">${commentAuthor?.firstName || commentAuthor?.companyName || commentAuthor?.username} has added a comment on a listing you're interested in.</p>
             
             ${createInfoCard(`
                 <p style="margin: 0 0 12px 0; font-size: 18px; font-weight: bold; color: ${BRAND_COLORS.secondary};">${listing?.title}</p>
@@ -2079,10 +2079,10 @@ const payoutInitiatedEmail = async (seller, auction, payout) => {
                         <div class="content">
                             <div class="info-box">
                                 <div class="info-title">💰 PAYOUT INITIATED</div>
-                                <p style="text-align: center; font-size: 16px;">Good news, ${seller.firstName || seller.username}!</p>
+                                <p style="text-align: center; font-size: 16px;">Good news, ${seller.firstName || seller?.companyName || seller.username}!</p>
                             </div>
                             
-                            <p>Dear <span class="highlight">${seller.firstName || seller.username}</span>,</p>
+                            <p>Dear <span class="highlight">${seller.firstName || seller?.companyName || seller.username}</span>,</p>
                             
                             <p>We're pleased to inform you that the payout process for your sold item has been initiated by our admin team. Your payment is now being processed.</p>
                             
@@ -2202,10 +2202,10 @@ const payoutCompletedEmail = async (seller, auction, payout) => {
                         <div class="content">
                             <div class="success-box">
                                 <div class="success-title">✅ PAYMENT SENT</div>
-                                <p style="font-size: 18px; color: #155724;">Your payout has been processed, ${seller.firstName || seller.username}!</p>
+                                <p style="font-size: 18px; color: #155724;">Your payout has been processed, ${seller.firstName || seller?.companyName || seller.username}!</p>
                             </div>
                             
-                            <p>Dear <span class="highlight">${seller.firstName || seller.username}</span>,</p>
+                            <p>Dear <span class="highlight">${seller.firstName || seller?.companyName || seller.username}</span>,</p>
                             
                             <p>Great news! Your payout has been successfully processed and the payment has been sent to your ${payout.payoutMethod} account.</p>
                             
@@ -2316,7 +2316,7 @@ const payoutFailedEmail = async (seller, payout) => {
                                 <p style="font-size: 16px;">We encountered an issue with your payout</p>
                             </div>
                             
-                            <p>Dear <span class="highlight">${seller.firstName || seller.username}</span>,</p>
+                            <p>Dear <span class="highlight">${seller.firstName || seller?.companyName || seller.username}</span>,</p>
                             
                             <p>We regret to inform you that there was an issue processing your payout of <strong>${payout.formattedSellerAmount}</strong> via ${payout.payoutMethod}.</p>
                             
@@ -2345,6 +2345,104 @@ const payoutFailedEmail = async (seller, payout) => {
         return !!info;
     } catch (error) {
         console.error("❌ Failed to send payout failed email:", error);
+        return false;
+    }
+};
+
+// 28. Giveaway participation confirmation email
+const giveawayParticipationEmail = async (userEmail, listing) => {
+    try {
+        const content = `
+            <h2 style="text-align: center;">You're in the Giveaway!</h2>
+            <p style="text-align: center;">You have successfully entered the giveaway for <strong>${listing.title}</strong>.</p>
+            
+            ${createInfoCard(`
+                <p style="margin: 0 0 12px 0; font-size: 18px; font-weight: bold; color: ${BRAND_COLORS.secondary};">${listing.title}</p>
+                ${listing.subTitle ? `<p style="margin: 0 0 16px 0; text-align: center; color: ${BRAND_COLORS.textLight};">${listing.subTitle}</p>` : ''}
+                
+                ${listing.specifications && listing.specifications.size > 0 ? `
+                    <div style="margin: 16px 0 0 0;">
+                        <strong style="color: ${BRAND_COLORS.secondary};">Item Details</strong>
+                        ${renderSpecifications(listing.specifications)}
+                    </div>
+                ` : ''}
+            `)}
+            
+            <p>Thank you for participating in this giveaway!</p>
+            <p>We'll notify you via email if you are selected as the winner.</p>
+            
+            <div style="text-align: center; margin: 25px 0;">
+                ${createButton('View Giveaway', `${FRONTEND_URL}/auction/${listing._id}`, 'primary')}
+            </div>
+            
+            <p>Good luck!</p>
+        `;
+
+        const html = baseTemplate(content, 'Giveaway Entry Confirmed');
+
+        const info = await transporter.sendMail({
+            from: `"${BRAND_NAME}" <${process.env.EMAIL_USER}>`,
+            to: userEmail,
+            subject: `Giveaway Entry Confirmed - ${listing.title}`,
+            html
+        });
+
+        console.log(`Giveaway participation email sent to ${userEmail}`);
+        return !!info;
+    } catch (error) {
+        console.error(`Failed to send giveaway participation email:`, error);
+        return false;
+    }
+};
+
+// 29. Giveaway winner notification email
+const giveawayWinnerEmail = async (winnerEmail, winnerName, listing) => {
+    try {
+        const content = `
+            <h2 style="text-align: center;">🎉 Congratulations! You Won!</h2>
+            <p style="text-align: center;">You have been selected as the winner of the giveaway for <strong>${listing.title}</strong>!</p>
+            
+            ${createInfoCard(`
+                <p style="margin: 0 0 12px 0; font-size: 18px; font-weight: bold; color: ${BRAND_COLORS.secondary};">${listing.title}</p>
+                ${listing.subTitle ? `<p style="margin: 0 0 16px 0; text-align: center; color: ${BRAND_COLORS.textLight};">${listing.subTitle}</p>` : ''}
+                
+                ${listing.specifications && listing.specifications.size > 0 ? `
+                    <div style="margin: 16px 0 0 0;">
+                        <strong style="color: ${BRAND_COLORS.secondary};">Item Details</strong>
+                        ${renderSpecifications(listing.specifications)}
+                    </div>
+                ` : ''}
+            `)}
+            
+            <div style="background: ${BRAND_COLORS.grayBg}; padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 4px solid ${BRAND_COLORS.success};">
+                <p style="margin: 0 0 12px 0;"><strong>What happens next?</strong></p>
+                <p style="margin: 0;">Please contact our support team to arrange collection or delivery of your prize.</p>
+            </div>
+            
+            <div style="text-align: center; margin: 25px 0;">
+                ${createButton('Contact Support', `mailto:${SUPPORT_EMAIL}?subject=Giveaway%20Winner%20-%20${listing.title}`, 'primary')}
+            </div>
+            
+            <p>Dear ${winnerName},</p>
+            <p>We are delighted to inform you that you have been selected as the winner of the <strong>${listing.title}</strong> giveaway!</p>
+            <p>Our team will be in touch with you shortly to arrange the next steps.</p>
+            
+            <p>Once again, congratulations on your win!</p>
+        `;
+
+        const html = baseTemplate(content, '🎉 You Won the Giveaway!');
+
+        const info = await transporter.sendMail({
+            from: `"${BRAND_NAME}" <${process.env.EMAIL_USER}>`,
+            to: winnerEmail,
+            subject: `🎉 Congratulations! You Won ${listing.title}!`,
+            html
+        });
+
+        console.log(`Giveaway winner email sent to ${winnerEmail}`);
+        return !!info;
+    } catch (error) {
+        console.error(`Failed to send giveaway winner email:`, error);
         return false;
     }
 };
@@ -2384,4 +2482,6 @@ export {
     payoutInitiatedEmail, //22
     payoutCompletedEmail, //23
     payoutFailedEmail, //24
+    giveawayParticipationEmail,
+    giveawayWinnerEmail,
 };

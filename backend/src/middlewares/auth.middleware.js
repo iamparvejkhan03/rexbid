@@ -65,7 +65,7 @@ export const auth = async (req, res, next) => {
 
 // Optional: Middleware to check user type
 export const requireSeller = (req, res, next) => {
-    if (req.user.userType !== 'seller') {
+    if (req.user.userType !== 'seller' || req.user.userType !== 'compnay') {
         return res.status(403).json({
             success: false,
             message: 'Seller access required'

@@ -76,6 +76,8 @@ export const registerUser = async (req, res) => {
       email,
       password,
       userType,
+      companyName,
+      companyVATNumber,
       countryCode,
       countryName,
       currency,
@@ -83,6 +85,7 @@ export const registerUser = async (req, res) => {
       image = "",
       street = "",
       city = "",
+      state = "",
       postCode = "",
       paymentMethodId
     } = req.body;
@@ -147,6 +150,8 @@ export const registerUser = async (req, res) => {
       lastName,
       username: normalizedUsername,
       email: normalizedEmail,
+      companyName: companyName || '',
+      companyVATNumber: companyVATNumber || '',
       password,
       userType,
       countryCode,
@@ -160,8 +165,9 @@ export const registerUser = async (req, res) => {
       address: {
         street,
         city,
+        state,
         postCode,
-        country: countryName, // Use the countryName from request
+        country: countryName,
       },
     };
 
@@ -672,7 +678,7 @@ export const getSellerStats = async (req, res) => {
     const { userId } = req.params;
     const userCurrency = req.query.currency || 'EUR';
 
-    const user = await User.findById(userId).select("username firstName lastName countryName isVerified identificationStatus image email phone currency");
+    const user = await User.findById(userId).select("username companyName firstName lastName countryName isVerified identificationStatus image email phone currency");
     if (!user) {
       return res.status(404).json({ success: false, message: "User not found" });
     }
@@ -723,6 +729,7 @@ export const getSellerStats = async (req, res) => {
       success: true,
       data: {
         username: user.username,
+        companyName: user.companyName,
         email: user?.email,
         phone: user?.phone,
         fullName: `${user.firstName || ""} ${user.lastName || ""}`.trim(),

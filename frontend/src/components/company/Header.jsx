@@ -1,4 +1,4 @@
-import { Bell, Home, RefreshCcw } from "lucide-react";
+import { Bell, Home, LayoutDashboard, RefreshCcw } from "lucide-react";
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
@@ -40,20 +40,20 @@ function Header() {
                 {/* User profile */}
                 <div className="flex items-center space-x-3 pl-3 border-l border-gray-200">
                     <div className="text-right hidden md:block">
-                        <Link to={`/bidder/profile`} className="text-sm font-medium text-black">{user?.firstName + ' ' + user?.lastName}</Link>
-                        <p className="text-xs text-secondary">{user.username}</p>
+                        <Link to={`/company/profile`} className="text-sm font-medium text-black">{user?.firstName + ' ' + user?.lastName}</Link>
+                        <p className="text-xs text-secondary">{user?.companyName || user.username}</p>
                     </div>
                     {
                         user?.image
                             ?
-                            <Link to={`/bidder/profile`}><img src={user?.image} alt="userImage" className="h-10 w-10 rounded-full" /></Link>
+                            <Link to={`/company/profile`}><img src={user?.image} alt="userImage" className="h-10 w-10 rounded-full" /></Link>
                             :
-                            <Link to={`/bidder/profile`} className = "h-10 w-10 rounded-full bg-gradient-to-r from-[#D19F3E] to-[#E8B86B] flex items-center justify-center text-white font-semibold">
+                            <Link to={`/company/profile`} className="h-10 w-10 rounded-full bg-gradient-to-r from-[#D19F3E] to-[#E8B86B] flex items-center justify-center text-white font-semibold">
                                 {user?.firstName[0] + user?.lastName[0]}
                             </Link>
                     }
+                </div>
             </div>
-        </div>
         </header >
     );
 }

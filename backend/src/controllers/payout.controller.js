@@ -382,13 +382,13 @@ export const getAdminPayouts = async (req, res) => {
         const payouts = await Payout.find(filter)
             .populate(
                 "seller",
-                "firstName lastName email username phone payoutMethods",
+                "firstName lastName email username companyName phone payoutMethods",
             )
             .populate(
                 "auction",
                 "title finalPrice currentPrice commissionAmount endDate",
             )
-            .populate("initiatedBy", "firstName lastName email username")
+            .populate("initiatedBy", "firstName lastName email username companyName")
             .sort({ createdAt: -1 })
             .limit(limit * 1)
             .skip((page - 1) * limit);
@@ -421,7 +421,7 @@ export const getAdminPayouts = async (req, res) => {
                     id: seller._id,
                     name: seller.firstName
                         ? `${seller.firstName} ${seller.lastName || ""}`.trim()
-                        : seller.username || "Unknown",
+                        : seller.username ? seller.username : seller.companyName || "Unknown",
                     email: seller.email,
                     phone: seller.phone,
                 },
@@ -518,9 +518,9 @@ export const getPendingPayouts = async (req, res) => {
         })
             .populate(
                 "seller",
-                "firstName lastName email username phone payoutMethods defaultPayoutMethod",
+                "firstName lastName email username companyName phone payoutMethods defaultPayoutMethod",
             )
-            .populate("winner", "firstName lastName email username")
+            .populate("winner", "firstName lastName email username companyName")
             .sort({ endDate: -1 });
 
         // Get existing payouts to filter out already processed
@@ -564,7 +564,7 @@ export const getPendingPayouts = async (req, res) => {
                         id: seller._id,
                         name: seller.firstName
                             ? `${seller.firstName} ${seller.lastName || ""}`.trim()
-                            : seller.username || "Unknown",
+                            : seller.username ? seller.username : seller.companyName || "Unknown",
                         email: seller.email,
                         phone: seller.phone,
                         hasPayoutMethod: !!(defaultPayoutMethod && payoutDetails),
@@ -573,7 +573,7 @@ export const getPendingPayouts = async (req, res) => {
                         ? {
                             name: auction.winner.firstName
                                 ? `${auction.winner.firstName} ${auction.winner.lastName || ""}`.trim()
-                                : auction.winner.username || "Unknown",
+                                : auction.winner.username ? auction.winner.username : auction.winner.companyName || "Unknown",
                             email: auction.winner.email,
                         }
                         : null,
@@ -623,7 +623,7 @@ export const initiatePayout = async (req, res) => {
         // Find auction
         const auction = await Auction.findById(auctionId).populate(
             "seller",
-            "firstName lastName email username phone payoutMethods",
+            "firstName lastName email username companyName phone payoutMethods",
         );
 
         if (!auction) {
@@ -718,7 +718,7 @@ export const completePayout = async (req, res) => {
         const adminId = req.user.id;
 
         const payout = await Payout.findById(payoutId)
-            .populate("seller", "firstName lastName email username")
+            .populate("seller", "firstName lastName email username companyName")
             .populate("auction", "title");
 
         if (!payout) {
@@ -794,7 +794,7 @@ export const failPayout = async (req, res) => {
 
         const payout = await Payout.findById(payoutId).populate(
             "seller",
-            "firstName lastName email username",
+            "firstName lastName email username companyName",
         );
 
         if (!payout) {
@@ -843,7 +843,7 @@ export const getAuctionPayoutInfo = async (req, res) => {
 
         const auction = await Auction.findById(auctionId).populate(
             "seller",
-            "firstName lastName email username payoutMethods defaultPayoutMethod",
+            "firstName lastName email username companyName payoutMethods defaultPayoutMethod",
         );
 
         if (!auction) {
@@ -874,7 +874,7 @@ export const getAuctionPayoutInfo = async (req, res) => {
                     id: seller._id,
                     name: seller.firstName
                         ? `${seller.firstName} ${seller.lastName || ""}`.trim()
-                        : seller.username,
+                        : seller.username ? seller.username : seller.companyName || '',
                     email: seller.email,
                     hasPayoutMethods: !!(
                         seller.payoutMethods && Object.keys(seller.payoutMethods).length > 0
@@ -919,13 +919,13 @@ export const getPayoutById = async (req, res) => {
         const payout = await Payout.findById(payoutId)
             .populate(
                 "seller",
-                "firstName lastName email username phone payoutMethods",
+                "firstName lastName email username companyName phone payoutMethods",
             )
             .populate(
                 "auction",
                 "title finalPrice currentPrice commissionAmount endDate",
             )
-            .populate("initiatedBy", "firstName lastName email username");
+            .populate("initiatedBy", "firstName lastName email username companyName");
 
         if (!payout) {
             return res.status(404).json({

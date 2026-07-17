@@ -39,7 +39,7 @@ class AgendaService {
         if (auction && auction.status === "approved") {
           auction.status = "active";
           await auction.save();
-          await auction.populate("seller", "email username firstName");
+          await auction.populate("seller", "email username companyName firstName");
 
           // Send email to seller
           await auctionListedEmail(auction, auction.seller);
@@ -49,7 +49,7 @@ class AgendaService {
             _id: { $ne: auction.seller._id }, // Exclude auction owner
             userType: { $ne: "admin" }, // Exclude admin users
             isActive: true, // Only active users
-          }).select("email username firstName preferences userType");
+          }).select("email username companyName firstName preferences userType");
 
           // Send bulk notifications
           await sendBulkAuctionNotifications(allUsers, auction, auction.seller);
@@ -68,7 +68,7 @@ class AgendaService {
       try {
         let auction = await Auction.findById(auctionId).populate(
           "seller",
-          "email phone username firstName currency",
+          "email phone username companyName firstName currency",
         );
         // Don't populate winner initially since it might be null
 
@@ -131,15 +131,15 @@ class AgendaService {
           // Re-fetch the auction with populated winner if it was sold
           if (result.wasSold) {
             auction = await Auction.findById(auctionId)
-              .populate("seller", "email phone username firstName currency")
-              .populate("winner", "email phone username firstName address currency");
+              .populate("seller", "email phone username companyName firstName currency")
+              .populate("winner", "email phone username companyName firstName address currency");
           }
 
           // Send appropriate emails based on the result
           if (result.wasSold) {
             console.log(
               `✅ Agenda: Auction ${auctionId} was SOLD to ${
-                auction.winner ? auction.winner.username : "unknown"
+                auction.winner ? auction.winner.username ? auction.winner.username: auction.winner.companyName : "unknown"
               }`,
             );
 
@@ -231,7 +231,7 @@ class AgendaService {
               "notifications.ending24hour": { $ne: true }, // Not sent yet
             },
           ],
-        }).populate("seller", "email username preferences userType currency"); // Populate seller to exclude them
+        }).populate("seller", "email username companyName preferences userType currency"); // Populate seller to exclude them
 
         for (const auction of endingSoonAuctions) {
           // Calculate exact time remaining for this auction
@@ -264,14 +264,14 @@ class AgendaService {
             userType: { $nin: ["admin", "seller", "broker"] }, // Exclude admin, seller, and broker users
             "preferences.bidAlerts": { $ne: false }, // Exclude users who opted out
             isActive: true, // Only active users
-          }).select("email username preferences userType");
+          }).select("email username companyName preferences userType");
 
           // Send to each user
           for (const user of allUsers) {
             try {
               await auctionEndingSoonEmail(
                 user.email,
-                user.username,
+                user.username || user.companyName || '',
                 auction,
                 timeLabel,
               );

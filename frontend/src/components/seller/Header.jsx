@@ -16,11 +16,12 @@ function Header() {
             <div className="flex-1 max-w-lg flex justify-end md:justify-start px-2">
                 {/* <Link to={`/`} className="text-secondary"><Home size={22} /></Link> */}
                 {
-                    dashboardType === 'seller'
-                    ?
-                    <button className="flex items-center gap-2 bg-primary text-white px-5 py-2 rounded-md cursor-pointer" onClick={() => navigate(`/bidder/dashboard`)}><RefreshCcw size={20} />Switch to Bidder</button>
-                    :
-                    <button className="flex items-center gap-2 bg-primary text-white px-5 py-2 rounded-md cursor-pointer" onClick={() => navigate(`/seller/dashboard`)}><RefreshCcw size={20} />Switch to Seller</button>
+                    (dashboardType === 'seller' || dashboardType === 'company')
+                        ?
+                        <button className="flex items-center gap-2 bg-primary text-white px-5 py-2 rounded-md cursor-pointer" onClick={() => navigate(`/bidder/dashboard`)}><RefreshCcw size={20} />Switch to Bidder</button>
+                        : user?.userType === 'company'
+                            ? <button className="flex items-center gap-2 bg-primary text-white px-5 py-2 rounded-md cursor-pointer" onClick={() => navigate(`/company/dashboard`)}><RefreshCcw size={20} />Switch to Company</button>
+                            : <button className="flex items-center gap-2 bg-primary text-white px-5 py-2 rounded-md cursor-pointer" onClick={() => navigate(`/seller/dashboard`)}><RefreshCcw size={20} />Switch to Seller</button>
                 }
             </div>
 

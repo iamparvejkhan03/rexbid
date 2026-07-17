@@ -21,11 +21,19 @@ const userSchema = new Schema(
       required: false,
       trim: true,
     },
+    companyName: {
+      type: String,
+      trim: true,
+    },
+    companyVATNumber: {
+      type: String,
+      trim: true,
+      uppercase: true,
+    },
     referredBy: {
       type: String,
       trim: true,
     },
-    // REMOVE username field entirely
     email: {
       type: String,
       required: true,
@@ -48,7 +56,7 @@ const userSchema = new Schema(
     // User Type
     userType: {
       type: String,
-      enum: ["bidder", "seller", "broker", "admin", "cashier", "staff"],
+      enum: ["bidder", "seller", "broker", "admin", "cashier", "staff", "company"],
       required: true,
     },
 

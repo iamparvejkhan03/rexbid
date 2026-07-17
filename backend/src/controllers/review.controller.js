@@ -69,7 +69,7 @@ export const getUserReviews = async (req, res) => {
     try {
         const { userId } = req.params;
         const reviews = await Review.find({ reviewee: userId })
-            .populate("reviewer", "username firstName lastName image")
+            .populate("reviewer", "username companyName firstName lastName image")
             .populate("auction", "title")
             .sort({ createdAt: -1 });
 
@@ -153,8 +153,8 @@ export const getReviewsByAuction = async (req, res) => {
     try {
         const { auctionId } = req.params;
         const reviews = await Review.find({ auction: auctionId })
-            .populate("reviewer", "username firstName lastName image")
-            .populate("reviewee", "username firstName lastName")
+            .populate("reviewer", "username companyName firstName lastName image")
+            .populate("reviewee", "username companyName firstName lastName")
             .sort({ createdAt: -1 });
         res.status(200).json({ success: true, data: reviews });
     } catch (error) {

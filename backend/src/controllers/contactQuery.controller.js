@@ -27,7 +27,7 @@ export const submitContactQuery = async (req, res) => {
         });
 
         // Populate for response
-        await contactQuery.populate('assignedTo', 'username firstName lastName');
+        await contactQuery.populate('assignedTo', 'username companyName firstName lastName');
 
         res.status(201).json({
             success: true,
@@ -127,7 +127,7 @@ export const getContactQueries = async (req, res) => {
 
         // Find queries with populated data
         const queries = await ContactQuery.find(filter)
-            .populate('assignedTo', 'username firstName lastName email')
+            .populate('assignedTo', 'username companyName firstName lastName email')
             .sort({ createdAt: -1 })
             // .limit(limit * 1)
             // .skip((page - 1) * limit);
@@ -148,7 +148,7 @@ export const getContactQueries = async (req, res) => {
             response: query.response,
             assignedTo: query.assignedTo ? {
                 id: query.assignedTo._id.toString(),
-                name: `${query.assignedTo.firstName} ${query.assignedTo.lastName}`.trim() || query.assignedTo.username,
+                name: `${query.assignedTo.firstName} ${query.assignedTo.lastName}`.trim() || query.assignedTo.username || query.assignedTo?.companyName,
                 email: query.assignedTo.email
             } : null,
             createdAt: query.createdAt,
@@ -306,7 +306,7 @@ export const updateQueryStatus = async (req, res) => {
             queryId,
             updateData,
             { new: true, runValidators: true }
-        ).populate('assignedTo', 'username firstName lastName email');
+        ).populate('assignedTo', 'username companyName firstName lastName email');
 
         if (!query) {
             return res.status(404).json({
