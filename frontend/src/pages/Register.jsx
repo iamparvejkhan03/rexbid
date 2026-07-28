@@ -84,7 +84,7 @@ const Register = () => {
         };
         fetchCountries();
 
-        // setIsPilotModalOpen(true);
+        setIsPilotModalOpen(true);
     }, []);
 
     const handlePilotModalClose = () => {
