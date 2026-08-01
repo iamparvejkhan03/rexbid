@@ -30,7 +30,7 @@ const defaultPreferences = {
 function Profile() {
     const [userData, setUserData] = useState(null);
     const [isEditing, setIsEditing] = useState(false);
-    const [activeSection, setActiveSection] = useState(userData?.isVerified ? "personal" : "verification");
+    const [activeSection, setActiveSection] = useState("personal");
     const [imagePreview, setImagePreview] = useState(null);
     const [imageFile, setImageFile] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -59,6 +59,26 @@ function Profile() {
             const { data } = await axiosInstance.get(`/api/v1/users/profile?currency=${userCurrency}`);
             if (data.success) {
                 setUserData(data.data.user);
+                const userInfo = {
+                    _id: data.data.user._id,
+                    firstName: data.data.user.firstName,
+                    lastName: data.data.user.lastName,
+                    username: data.data.user.username,
+                    userType: data.data.user.userType,
+                    email: data.data.user.email,
+                    phone: data.data.user.phone,
+                    isVerified: data.data.user.isVerified,
+                    isActive: data.data.user.isActive,
+                    image: data.data.user.image,
+                    createdAt: data.data.user.createdAt,
+                    countryName: data.data.user.countryName,
+                    countryCode: data.data.user.countryCode,
+                    currency: data.data.user.currency,
+                };
+                localStorage.setItem('user', JSON.stringify(userInfo));
+
+                setUser(userInfo);
+                setActiveSection(data.data.user?.isVerified ? "personal" : "verification");
             } else {
                 setError('Failed to fetch profile data');
             }
