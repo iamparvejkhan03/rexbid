@@ -1773,6 +1773,14 @@ export const placeBid = async (req, res) => {
       });
     }
 
+    // Validate auction status
+    if (!bidder?.isVerified) {
+      return res.status(400).json({
+        success: false,
+        message: `Account is not verified. Can't place a bid.`,
+      });
+    }
+
     // Check if user is a bidder
     // if (bidder.userType !== "bidder") {
     //   return res.status(403).json({
@@ -2595,6 +2603,14 @@ export const buyNow = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: `Account is inactive. Can't buy an item.`,
+      });
+    }
+
+     // Validate auction status
+    if (!buyer?.isVerified) {
+      return res.status(400).json({
+        success: false,
+        message: `Account is not verified. Can't buy an item.`,
       });
     }
 
