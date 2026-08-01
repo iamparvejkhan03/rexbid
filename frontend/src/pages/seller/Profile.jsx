@@ -6,7 +6,14 @@ import {
     Target,
     DollarSign,
     BarChart3,
-    ChevronDown
+    ChevronDown,
+    CheckCircle,
+    Clock,
+    AlertCircle,
+    Eye,
+    FileText,
+    Download,
+    RefreshCw
 } from "lucide-react";
 import axiosInstance from "../../utils/axiosInstance";
 import { useAuth } from "../../contexts/AuthContext";
@@ -23,7 +30,7 @@ const defaultPreferences = {
 function Profile() {
     const [userData, setUserData] = useState(null);
     const [isEditing, setIsEditing] = useState(false);
-    const [activeSection, setActiveSection] = useState("personal");
+    const [activeSection, setActiveSection] = useState(userData?.isVerified ? "personal" : "verification");
     const [imagePreview, setImagePreview] = useState(null);
     const [imageFile, setImageFile] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -34,6 +41,11 @@ function Profile() {
     const [selectedCurrency, setSelectedCurrency] = useState('');
     const { user, setUser } = useAuth();
     const userCurrency = user?.currency || 'EUR';
+
+    const [identificationDocument, setIdentificationDocument] = useState(null);
+    const [identificationDocumentPreview, setIdentificationDocumentPreview] = useState(null);
+    const [uploadingId, setUploadingId] = useState(false);
+    const [idUploadProgress, setIdUploadProgress] = useState(0);
 
     // Fetch user data and stats on component mount
     useEffect(() => {
@@ -228,9 +240,92 @@ function Profile() {
         }
     };
 
+    const handleIdentificationDocumentChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            // Validate file size (max 5MB)
+            if (file.size > 5 * 1024 * 1024) {
+                toast.error('File size should be less than 5MB');
+                return;
+            }
+
+            // Validate file type
+            const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
+            if (!allowedTypes.includes(file.type)) {
+                toast.error('Please upload JPG, PNG, or PDF files only');
+                return;
+            }
+
+            setIdentificationDocument(file);
+
+            // Create preview for images
+            if (file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    setIdentificationDocumentPreview(reader.result);
+                };
+                reader.readAsDataURL(file);
+            } else {
+                // For PDFs, just show the file name
+                setIdentificationDocumentPreview(null);
+            }
+        }
+    };
+
+    const handleIdentificationUpload = async () => {
+        if (!identificationDocument) {
+            toast.error('Please select a document to upload');
+            return;
+        }
+
+        try {
+            setUploadingId(true);
+            const formData = new FormData();
+            formData.append('identificationDocument', identificationDocument);
+
+            const { data } = await axiosInstance.post(
+                '/api/v1/users/upload-identification',
+                formData,
+                {
+                    headers: {
+                        'Content-Type': 'multipart/form-data'
+                    },
+                    onUploadProgress: (progressEvent) => {
+                        const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                        setIdUploadProgress(percentCompleted);
+                    }
+                }
+            );
+
+            if (data.success) {
+                toast.success('Identification document uploaded successfully');
+                setUserData(data.data.user);
+                setIdentificationDocument(null);
+                setIdentificationDocumentPreview(null);
+                setIdUploadProgress(0);
+            }
+        } catch (error) {
+            toast.error(error?.response?.data?.message || 'Failed to upload document');
+            console.error('Upload error:', error);
+        } finally {
+            setUploadingId(false);
+        }
+    };
+
+    const removeIdentificationDocument = () => {
+        setIdentificationDocument(null);
+        setIdentificationDocumentPreview(null);
+        document.getElementById('identificationDocument').value = '';
+    };
+
+    const viewDocument = (url) => {
+        window.open(url, '_blank');
+    };
+
     const sections = [
         { id: "personal", label: "Personal Info", icon: <User size={18} /> },
         { id: "address", label: "Address", icon: <MapPin size={18} /> },
+        { id: "verification", label: "ID Verification", icon: <FileText size={18} /> },
         // { id: "preferences", label: "Preferences", icon: <Bell size={18} /> },
         { id: "security", label: "Security", icon: <Shield size={18} /> }
     ];
@@ -547,6 +642,227 @@ function Profile() {
                                         onChangePassword={handlePasswordChange}
                                         saving={saving}
                                     />
+                                )}
+                            {/* ID Verification Section */}
+                                {activeSection === "verification" && (
+                                    <div className="space-y-6">
+                                        {/* Current Status Card */}
+                                        <div className={`rounded-lg p-4 ${userData.identificationStatus === 'verified' ? 'bg-green-50 border border-green-200' :
+                                            userData.identificationStatus === 'pending' ? 'bg-yellow-50 border border-yellow-200' :
+                                                userData.identificationStatus === 'rejected' ? 'bg-red-50 border border-red-200' :
+                                                    'bg-gray-50 border border-gray-200'
+                                            }`}>
+                                            <div className="flex items-start gap-3">
+                                                {userData.identificationStatus === 'verified' && <CheckCircle className="text-green-600 flex-shrink-0" size={24} />}
+                                                {userData.identificationStatus === 'pending' && <Clock className="text-yellow-600 flex-shrink-0" size={24} />}
+                                                {userData.identificationStatus === 'rejected' && <AlertCircle className="text-red-600 flex-shrink-0" size={24} />}
+                                                {!userData.identificationStatus && <Shield className="text-gray-600 flex-shrink-0" size={24} />}
+
+                                                <div className="flex-1">
+                                                    <h4 className="font-semibold text-lg mb-1">
+                                                        {userData.identificationStatus === 'verified' && 'Identity Verified'}
+                                                        {userData.identificationStatus === 'pending' && 'Verification Pending'}
+                                                        {userData.identificationStatus === 'rejected' && 'Verification Rejected'}
+                                                        {!userData.identificationStatus && 'Identity Verification Required'}
+                                                    </h4>
+
+                                                    {userData.identificationStatus === 'verified' && (
+                                                        <>
+                                                            <p className="text-green-700 mb-2">
+                                                                Your identity has been verified on {new Date(userData.identificationVerifiedAt).toLocaleDateString()}
+                                                            </p>
+                                                        </>
+                                                    )}
+
+                                                    {userData.identificationStatus === 'pending' && (
+                                                        <p className="text-yellow-700">
+                                                            Your identification document is being reviewed. This usually takes 1-2 business days.
+                                                        </p>
+                                                    )}
+
+                                                    {userData.identificationStatus === 'rejected' && (
+                                                        <>
+                                                            <p className="text-red-700 mb-2">
+                                                                Your identification document was rejected.
+                                                            </p>
+                                                            {userData.identificationRejectionReason && (
+                                                                <div className="bg-red-100 p-3 rounded-lg mb-3">
+                                                                    <strong className="text-red-800 block mb-1">Reason:</strong>
+                                                                    <p className="text-red-700">{userData.identificationRejectionReason}</p>
+                                                                </div>
+                                                            )}
+                                                        </>
+                                                    )}
+
+                                                    {!userData.identificationStatus && (
+                                                        <p className="text-gray-700">
+                                                            Please upload a valid government-issued ID to verify your identity.
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Document Preview Section - Show if document exists */}
+                                        {userData.identificationDocument && (
+                                            <div className="border rounded-lg overflow-hidden">
+                                                <div className="bg-gray-50 px-4 py-3 border-b flex justify-between items-center">
+                                                    <h4 className="font-semibold">
+                                                        {userData.identificationStatus === 'rejected' ? 'Rejected Document' : 'Uploaded Document'}
+                                                    </h4>
+                                                    <button
+                                                        onClick={() => window.open(userData.identificationDocument, '_blank')}
+                                                        className="flex items-center gap-2 text-primary hover:underline"
+                                                    >
+                                                        <Eye size={16} />
+                                                        View Full Size
+                                                    </button>
+                                                </div>
+
+                                                <div className="p-4">
+                                                    {/* Check if it's an image or PDF based on URL */}
+                                                    {userData.identificationDocument.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                                                        <div className="relative group">
+                                                            <img
+                                                                src={userData.identificationDocument}
+                                                                alt="Identification Document"
+                                                                className="max-h-64 w-auto mx-auto rounded-lg border border-gray-200 cursor-pointer hover:opacity-90 transition-opacity"
+                                                                onClick={() => window.open(userData.identificationDocument, '_blank')}
+                                                            />
+                                                        </div>
+                                                    ) : (
+                                                        <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                                                            <div className="flex items-center gap-3">
+                                                                <FileText size={32} className="text-primary" />
+                                                                <div>
+                                                                    <p className="font-medium">PDF Document</p>
+                                                                    <a
+                                                                        href={userData.identificationDocument}
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
+                                                                        className="text-primary text-sm hover:underline flex items-center gap-1"
+                                                                    >
+                                                                        <Download size={14} />
+                                                                        Download PDF
+                                                                    </a>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Upload Section - Show only if not verified or rejected */}
+                                        {(userData.identificationStatus !== 'verified' || !userData.identificationDocument) && (
+                                            <div className="border-t pt-6">
+                                                <h4 className="font-semibold text-lg mb-4">
+                                                    {userData.identificationStatus === 'rejected' ? 'Upload New Document' : 'Upload Document'}
+                                                </h4>
+
+                                                <div className="space-y-4">
+                                                    {/* Guidelines */}
+                                                    <div className="bg-blue-50 p-4 rounded-lg">
+                                                        <h5 className="font-medium text-blue-800 mb-2">Document Guidelines:</h5>
+                                                        <ul className="list-disc list-inside text-sm text-blue-700 space-y-1">
+                                                            <li>Valid government-issued ID (Passport, Driver's License, or National ID)</li>
+                                                            <li>Document must be clear and all text should be readable</li>
+                                                            <li>Document must not be expired</li>
+                                                            <li>Accepted formats: JPG, PNG, PDF (Max 5MB)</li>
+                                                        </ul>
+                                                    </div>
+
+                                                    {/* File Upload Area */}
+                                                    <div className="relative">
+                                                        <input
+                                                            type="file"
+                                                            id="identificationDocument"
+                                                            accept=".jpg,.jpeg,.png,.pdf"
+                                                            onChange={handleIdentificationDocumentChange}
+                                                            className="hidden"
+                                                            disabled={uploadingId}
+                                                        />
+
+                                                        {!identificationDocument ? (
+                                                            <label
+                                                                htmlFor="identificationDocument"
+                                                                className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${uploadingId
+                                                                    ? 'border-gray-300 bg-gray-50 cursor-not-allowed'
+                                                                    : 'border-gray-300 hover:border-primary hover:bg-blue-50'
+                                                                    }`}
+                                                            >
+                                                                <Upload size={24} className="text-gray-400 mb-2" />
+                                                                <span className="text-sm text-gray-600">Click to upload or drag and drop</span>
+                                                                <span className="text-xs text-gray-500 mt-1">JPG, PNG, or PDF (Max 5MB)</span>
+                                                            </label>
+                                                        ) : (
+                                                            <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg bg-gray-50">
+                                                                <div className="flex items-center gap-3">
+                                                                    {identificationDocument.type.startsWith('image/') && identificationDocumentPreview ? (
+                                                                        <img
+                                                                            src={identificationDocumentPreview}
+                                                                            alt="ID Preview"
+                                                                            className="w-12 h-12 object-cover rounded"
+                                                                        />
+                                                                    ) : (
+                                                                        <FileText size={24} className="text-primary" />
+                                                                    )}
+                                                                    <div>
+                                                                        <p className="text-sm font-medium text-gray-700">{identificationDocument.name}</p>
+                                                                        <p className="text-xs text-gray-500">
+                                                                            {(identificationDocument.size / 1024 / 1024).toFixed(2)} MB
+                                                                        </p>
+                                                                    </div>
+                                                                </div>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={removeIdentificationDocument}
+                                                                    className="p-1 hover:bg-gray-200 rounded-full transition-colors"
+                                                                    disabled={uploadingId}
+                                                                >
+                                                                    <X size={20} className="text-gray-500" />
+                                                                </button>
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                    {/* Upload Progress Bar */}
+                                                    {idUploadProgress > 0 && idUploadProgress < 100 && (
+                                                        <div className="space-y-2">
+                                                            <div className="w-full bg-gray-200 rounded-full h-2.5">
+                                                                <div
+                                                                    className="bg-primary h-2.5 rounded-full transition-all duration-300"
+                                                                    style={{ width: `${idUploadProgress}%` }}
+                                                                ></div>
+                                                            </div>
+                                                            <p className="text-sm text-gray-600 text-center">Uploading: {idUploadProgress}%</p>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Upload Button */}
+                                                    {identificationDocument && (
+                                                        <button
+                                                            onClick={handleIdentificationUpload}
+                                                            disabled={uploadingId}
+                                                            className="w-full bg-primary text-white hover:bg-primary/90 py-3 px-4 rounded-lg font-semibold transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                                                        >
+                                                            {uploadingId ? (
+                                                                <>
+                                                                    <RefreshCw size={18} className="animate-spin" />
+                                                                    Uploading...
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <Upload size={18} />
+                                                                    Upload Document
+                                                                </>
+                                                            )}
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
                                 )}
                             </div>
 

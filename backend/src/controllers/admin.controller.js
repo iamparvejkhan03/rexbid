@@ -2243,3 +2243,121 @@ export const fetchDVLAData = async (req, res) => {
     });
   }
 };
+
+// Verify user identity
+export const verifyUserIdentity = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { notes } = req.body; // Optional admin notes
+
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    if (!user.identificationDocument) {
+      return res.status(400).json({
+        success: false,
+        message: "User has not uploaded any identification document",
+      });
+    }
+
+    // Update user verification status
+    user.identificationStatus = "verified";
+    user.identificationVerifiedAt = new Date();
+    user.identificationRejectionReason = null;
+    user.isVerified = true;
+
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: "User identity verified successfully",
+      data: {
+        id: user._id,
+        name: `${user.firstName} ${user.lastName}`,
+        email: user.email,
+        identificationStatus: user.identificationStatus,
+        isVerified: user.isVerified,
+      },
+    });
+  } catch (error) {
+    console.error("Verification error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
+// Reject user identity verification
+export const rejectUserIdentity = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { rejectionReason, allowReupload = true } = req.body;
+
+    if (!rejectionReason) {
+      return res.status(400).json({
+        success: false,
+        message: "Rejection reason is required",
+      });
+    }
+
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    // Store old document info for potential cleanup
+    const oldDocumentPublicId = user.identificationDocumentPublicId;
+
+    // Update user verification status
+    user.identificationStatus = "rejected";
+    user.identificationRejectionReason = rejectionReason;
+
+    // If user can reupload, keep the document for reference
+    if (!allowReupload) {
+      // Delete the document from Cloudinary
+      if (oldDocumentPublicId) {
+        try {
+          await deleteFromCloudinary(oldDocumentPublicId, "raw");
+        } catch (cloudinaryError) {
+          console.error("Failed to delete rejected document:", cloudinaryError);
+        }
+      }
+
+      // Clear document fields
+      user.identificationDocument = null;
+      user.identificationDocumentPublicId = null;
+    }
+
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: "User identity verification rejected",
+      data: {
+        id: user._id,
+        name: `${user.firstName} ${user.lastName}`,
+        email: user.email,
+        identificationStatus: user.identificationStatus,
+        rejectionReason: user.identificationRejectionReason,
+        canReupload: allowReupload,
+      },
+    });
+  } catch (error) {
+    console.error("Rejection error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};

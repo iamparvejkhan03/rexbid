@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { AdminContainer, AdminHeader, AdminSidebar, LoadingSpinner } from "../../components";
-import { Search, Filter, Mail, Phone, MapPin, Calendar, Award, Gavel, Shield, User, Edit, MoreVertical, UserX, Trash2, TrendingUp, Eye, Hand, Building, Home, Banknote } from "lucide-react";
+import { Search, Filter, Mail, Phone, MapPin, Calendar, Award, Gavel, Shield, User, Edit, MoreVertical, UserX, Trash2, TrendingUp, Eye, Hand, Building, Home, Banknote, FileText, Download, CheckCircle, Clock, AlertCircle, RefreshCw, X } from "lucide-react";
 import { about, dummyUserImg } from "../../assets";
 import toast from "react-hot-toast";
 import axiosInstance from "../../utils/axiosInstance";
@@ -30,6 +30,12 @@ function AllUsers() {
 
     const { user } = useAuth();
     const userCurrency = user?.currency || 'EUR';
+
+    const [isIdVerificationModalOpen, setIsIdVerificationModalOpen] = useState(false);
+    const [selectedUserForVerification, setSelectedUserForVerification] = useState(null);
+    const [verificationAction, setVerificationAction] = useState(null); // 'accept' or 'reject'
+    const [rejectionReason, setRejectionReason] = useState('');
+    const [processingVerification, setProcessingVerification] = useState(false);
 
     const fetchUsers = async (page = 1, search = searchTerm, userFilter = filter) => {
         setLoading(true);
@@ -138,6 +144,81 @@ function AllUsers() {
         } catch (err) {
             console.error('Update user type error:', err);
             toast.error(err.response?.data?.message || "Failed to update user role");
+        }
+    };
+
+    // Open ID verification modal
+    const openIdVerificationModal = (user, e) => {
+        e.stopPropagation(); // Prevent row click if any
+        setSelectedUserForVerification(user);
+        setIsIdVerificationModalOpen(true);
+        setVerificationAction(null);
+        setRejectionReason('');
+    };
+
+    // Close ID verification modal
+    const closeIdVerificationModal = () => {
+        setIsIdVerificationModalOpen(false);
+        setSelectedUserForVerification(null);
+        setVerificationAction(null);
+        setRejectionReason('');
+    };
+
+    // Handle verify identity
+    const handleVerifyIdentity = async () => {
+        if (!selectedUserForVerification) return;
+
+        setProcessingVerification(true);
+        try {
+            const { data } = await axiosInstance.patch(
+                `/api/v1/admin/users/${selectedUserForVerification._id}/identificationDocument/verify`,
+                {
+                    notes: `Verified by admin on ${new Date().toLocaleString()}`
+                }
+            );
+
+            if (data.success) {
+                toast.success('Identity verified successfully');
+                fetchUsers(); // Refresh the list
+                closeIdVerificationModal();
+            }
+        } catch (err) {
+            console.error('Verification error:', err);
+            toast.error(err.response?.data?.message || 'Failed to verify identity');
+        } finally {
+            setProcessingVerification(false);
+        }
+    };
+
+    // Handle reject identity
+    const handleRejectIdentity = async () => {
+        if (!selectedUserForVerification) return;
+
+        if (!rejectionReason.trim()) {
+            toast.error('Please provide a reason for rejection');
+            return;
+        }
+
+        setProcessingVerification(true);
+        try {
+            const { data } = await axiosInstance.patch(
+                `/api/v1/admin/users/${selectedUserForVerification._id}/identificationDocument/reject`,
+                {
+                    rejectionReason: rejectionReason.trim(),
+                    allowReupload: true // Allow user to reupload
+                }
+            );
+
+            if (data.success) {
+                toast.success('Identity verification rejected');
+                fetchUsers(); // Refresh the list
+                closeIdVerificationModal();
+            }
+        } catch (err) {
+            console.error('Rejection error:', err);
+            toast.error(err.response?.data?.message || 'Failed to reject identity');
+        } finally {
+            setProcessingVerification(false);
         }
     };
 
@@ -310,7 +391,8 @@ function AllUsers() {
                                             <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
                                             <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
                                             <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                            <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Join Date</th>
+                                            <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID Verification</th>
+                                            {/* <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Join Date</th> */}
                                             <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                         </tr>
                                     </thead>
@@ -345,9 +427,28 @@ function AllUsers() {
                                                 <td className="py-4 px-6">
                                                     {getStatusBadge(user.isActive)}
                                                 </td>
-                                                <td className="py-4 px-6 text-sm text-gray-900">
-                                                    {formatDate(user.createdAt)}
+                                                {/* Add this after the Status column */}
+                                                <td className="py-4 px-6">
+                                                    {user.identificationDocument ? (
+                                                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${user.identificationStatus === 'verified' ? 'bg-green-100 text-green-800' :
+                                                            user.identificationStatus === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                                                user.identificationStatus === 'rejected' ? 'bg-red-100 text-red-800' :
+                                                                    'bg-gray-100 text-gray-800'
+                                                            }`}>
+                                                            {user.identificationStatus === 'verified' && 'Verified'}
+                                                            {user.identificationStatus === 'pending' && 'Pending'}
+                                                            {user.identificationStatus === 'rejected' && 'Rejected'}
+                                                            {!user.identificationStatus && 'No ID'}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                                            No ID
+                                                        </span>
+                                                    )}
                                                 </td>
+                                                {/* <td className="py-4 px-6 text-sm text-gray-900">
+                                                    {formatDate(user.createdAt)}
+                                                </td> */}
                                                 <td className="py-4 px-6">
                                                     <div className="flex items-center justify-center gap-2">
                                                         <button
@@ -369,6 +470,20 @@ function AllUsers() {
 
                                                             {activeDropdown === user._id && (
                                                                 <div className="absolute right-0 top-full mt-1 w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-10 py-1">
+                                                                    {/* Show Verify ID button only if user has uploaded a document and status is pending */}
+                                                                    {user.identificationDocument && user.identificationStatus === 'pending' && (
+                                                                        <button
+                                                                            onClick={(e) => {
+                                                                                openIdVerificationModal(user, e);
+                                                                                setActiveDropdown(null);
+                                                                            }}
+                                                                            className="flex items-center gap-3 w-full px-4 py-2 text-sm text-blue-600 hover:bg-blue-50 transition-colors"
+                                                                        >
+                                                                            <Shield size={16} />
+                                                                            <span>Verify ID</span>
+                                                                        </button>
+                                                                    )}
+
                                                                     <button
                                                                         onClick={() => {
                                                                             handleDeactivateUser(user._id, `${user.firstName} ${user.lastName}`, user.isActive);
@@ -443,6 +558,224 @@ function AllUsers() {
                             </div>
                         )}
                     </div>
+
+                     {/* ID Verification Modal */}
+                    {isIdVerificationModalOpen && selectedUserForVerification && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                            <div className="bg-white rounded-xl shadow-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+                                <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center sticky top-0 bg-white z-10">
+                                    <h3 className="text-lg font-semibold">Identity Verification</h3>
+                                    <button
+                                        onClick={closeIdVerificationModal}
+                                        className="text-gray-400 hover:text-gray-600 text-xl"
+                                    >
+                                        &times;
+                                    </button>
+                                </div>
+
+                                <div className="p-6">
+                                    {/* User Info Header */}
+                                    <div className="flex items-center gap-4 mb-6 pb-6 border-b border-gray-200">
+                                        <img
+                                            src={selectedUserForVerification.image || dummyUserImg}
+                                            alt={`${selectedUserForVerification.firstName} ${selectedUserForVerification.lastName}`}
+                                            className="w-16 h-16 rounded-full object-cover border-4 border-gray-200"
+                                        />
+                                        <div>
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <h4 className="text-xl font-bold text-gray-900">
+                                                    {selectedUserForVerification.firstName} {selectedUserForVerification.lastName}
+                                                </h4>
+                                                {getUserTypeBadge(selectedUserForVerification.userType)}
+                                            </div>
+                                            <p className="text-gray-600">{selectedUserForVerification.email}</p>
+                                            <p className="text-gray-500 text-sm">@{selectedUserForVerification.username}</p>
+                                        </div>
+                                    </div>
+
+                                    {/* Document Preview */}
+                                    <div className="mb-6">
+                                        <h5 className="font-semibold text-gray-900 mb-3">Uploaded Document</h5>
+
+                                        {selectedUserForVerification.identificationDocument ? (
+                                            <div className="border rounded-lg overflow-hidden">
+                                                <div className="bg-gray-50 px-4 py-3 border-b flex justify-between items-center">
+                                                    <span className="font-medium">Identification Document</span>
+                                                    <a
+                                                        href={selectedUserForVerification.identificationDocument}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="flex items-center gap-2 text-blue-600 hover:text-blue-800"
+                                                    >
+                                                        <Eye size={16} />
+                                                        View Full Size
+                                                    </a>
+                                                </div>
+
+                                                <div className="p-4">
+                                                    {selectedUserForVerification.identificationDocument.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                                                        <img
+                                                            src={selectedUserForVerification.identificationDocument}
+                                                            alt="Identification Document"
+                                                            className="max-h-96 w-auto mx-auto rounded-lg border border-gray-200"
+                                                        />
+                                                    ) : (
+                                                        <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                                                            <div className="flex items-center gap-3">
+                                                                <FileText size={40} className="text-blue-600" />
+                                                                <div>
+                                                                    <p className="font-medium">PDF Document</p>
+                                                                    <a
+                                                                        href={selectedUserForVerification.identificationDocument}
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
+                                                                        className="text-blue-600 text-sm hover:underline flex items-center gap-1"
+                                                                    >
+                                                                        <Download size={14} />
+                                                                        Download PDF
+                                                                    </a>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="text-center py-8 bg-gray-50 rounded-lg">
+                                                <FileText size={48} className="mx-auto text-gray-300 mb-2" />
+                                                <p className="text-gray-500">No document uploaded</p>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Current Status */}
+                                    <div className="mb-6">
+                                        <h5 className="font-semibold text-gray-900 mb-2">Current Status</h5>
+                                        <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full ${selectedUserForVerification.identificationStatus === 'verified' ? 'bg-green-100 text-green-800' :
+                                                selectedUserForVerification.identificationStatus === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                                    selectedUserForVerification.identificationStatus === 'rejected' ? 'bg-red-100 text-red-800' :
+                                                        'bg-gray-100 text-gray-800'
+                                            }`}>
+                                            {selectedUserForVerification.identificationStatus === 'verified' && <CheckCircle size={16} />}
+                                            {selectedUserForVerification.identificationStatus === 'pending' && <Clock size={16} />}
+                                            {selectedUserForVerification.identificationStatus === 'rejected' && <AlertCircle size={16} />}
+                                            {!selectedUserForVerification.identificationStatus && <Shield size={16} />}
+                                            <span className="capitalize">
+                                                {selectedUserForVerification.identificationStatus || 'Not Uploaded'}
+                                            </span>
+                                        </div>
+
+                                        {selectedUserForVerification.identificationStatus === 'rejected' &&
+                                            selectedUserForVerification.identificationRejectionReason && (
+                                                <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                                                    <strong className="text-red-800 block mb-1">Rejection Reason:</strong>
+                                                    <p className="text-red-700">{selectedUserForVerification.identificationRejectionReason}</p>
+                                                </div>
+                                            )}
+                                    </div>
+
+                                    {/* Action Buttons */}
+                                    {selectedUserForVerification.identificationStatus === 'pending' && (
+                                        <>
+                                            {/* Rejection Reason Input */}
+                                            {verificationAction === 'reject' && (
+                                                <div className="mb-4">
+                                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                        Reason for Rejection <span className="text-red-500">*</span>
+                                                    </label>
+                                                    <textarea
+                                                        value={rejectionReason}
+                                                        onChange={(e) => setRejectionReason(e.target.value)}
+                                                        rows="3"
+                                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                        placeholder="Please provide a clear reason why this document is being rejected..."
+                                                        disabled={processingVerification}
+                                                    />
+                                                </div>
+                                            )}
+
+                                            {/* Action Selection Buttons */}
+                                            {!verificationAction ? (
+                                                <div className="flex gap-3 pt-6 border-t border-gray-200">
+                                                    <button
+                                                        onClick={() => setVerificationAction('accept')}
+                                                        className="flex-1 bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 transition-colors font-medium"
+                                                    >
+                                                        Accept Identity
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setVerificationAction('reject')}
+                                                        className="flex-1 bg-red-600 text-white py-3 px-4 rounded-lg hover:bg-red-700 transition-colors font-medium"
+                                                    >
+                                                        Reject Identity
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <div className="flex gap-3 pt-6 border-t border-gray-200">
+                                                    {verificationAction === 'accept' ? (
+                                                        <button
+                                                            onClick={handleVerifyIdentity}
+                                                            disabled={processingVerification}
+                                                            className="flex-1 bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 transition-colors font-medium disabled:opacity-50 flex items-center justify-center gap-2"
+                                                        >
+                                                            {processingVerification ? (
+                                                                <>
+                                                                    <RefreshCw size={18} className="animate-spin" />
+                                                                    Processing...
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <CheckCircle size={18} />
+                                                                    Confirm Accept
+                                                                </>
+                                                            )}
+                                                        </button>
+                                                    ) : (
+                                                        <button
+                                                            onClick={handleRejectIdentity}
+                                                            disabled={processingVerification || !rejectionReason.trim()}
+                                                            className="flex-1 bg-red-600 text-white py-3 px-4 rounded-lg hover:bg-red-700 transition-colors font-medium disabled:opacity-50 flex items-center justify-center gap-2"
+                                                        >
+                                                            {processingVerification ? (
+                                                                <>
+                                                                    <RefreshCw size={18} className="animate-spin" />
+                                                                    Processing...
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <X size={18} />
+                                                                    Confirm Reject
+                                                                </>
+                                                            )}
+                                                        </button>
+                                                    )}
+                                                    <button
+                                                        onClick={() => setVerificationAction(null)}
+                                                        disabled={processingVerification}
+                                                        className="px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                                                    >
+                                                        Back
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </>
+                                    )}
+
+                                    {/* Close Button for non-pending status */}
+                                    {selectedUserForVerification.identificationStatus !== 'pending' && (
+                                        <div className="pt-6 border-t border-gray-200">
+                                            <button
+                                                onClick={closeIdVerificationModal}
+                                                className="w-full bg-gray-100 text-gray-700 py-3 px-4 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+                                            >
+                                                Close
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     {/* User Detail Modal */}
                     {isModalOpen && selectedUser && (

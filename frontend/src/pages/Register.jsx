@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock, Eye, EyeOff, User, Phone, ChevronDown, Gavel, Store, Handshake, Banknote, Building2, FileText } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, User, Phone, ChevronDown, Gavel, Store, Handshake, Banknote, Building2, FileText, Upload, X, AlertCircle } from 'lucide-react';
 import { darkLogo, otherData } from '../assets';
 import axios from "axios";
 import { toast } from "react-hot-toast";
@@ -75,6 +75,11 @@ const Register = () => {
     const [selectedCountry, setSelectedCountry] = useState('');
     const [selectedCurrency, setSelectedCurrency] = useState('');
 
+    const [identificationDocument, setIdentificationDocument] = useState(null);
+    const [identificationDocumentPreview, setIdentificationDocumentPreview] = useState(null);
+    const [uploadProgress, setUploadProgress] = useState(0);
+    const [idVerificationError, setIdVerificationError] = useState('');
+
     // Pilot phase
     const [isPilotModalOpen, setIsPilotModalOpen] = useState(false);
 
@@ -84,7 +89,7 @@ const Register = () => {
         };
         fetchCountries();
 
-        setIsPilotModalOpen(true);
+        // setIsPilotModalOpen(true);
     }, []);
 
     const handlePilotModalClose = () => {
@@ -153,7 +158,57 @@ const Register = () => {
         setValue('currency', currencyCode);
     };
 
+    const handleIdentificationDocumentChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            if (file.size > 5 * 1024 * 1024) {
+                toast.error('File size should be less than 5MB');
+                return;
+            }
+
+            const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
+            if (!allowedTypes.includes(file.type)) {
+                toast.error('Please upload JPG, PNG, or PDF files only');
+                return;
+            }
+
+            setIdentificationDocument(file);
+
+            if (file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    setIdentificationDocumentPreview(reader.result);
+                };
+                reader.readAsDataURL(file);
+            } else {
+                setIdentificationDocumentPreview(null);
+            }
+        }
+    };
+
+    const removeIdentificationDocument = () => {
+        setIdentificationDocument(null);
+        setIdentificationDocumentPreview(null);
+        document.getElementById('identificationDocument').value = '';
+    };
+
     const onSubmit = async (registrationData) => {
+        // Validate ID document for both user types (since it's required)
+        if (!identificationDocument) {
+            setIdVerificationError('Please upload an identification document');
+
+            const idSection = document.getElementById('id-verification-section');
+
+            if (idSection) {
+                idSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+            toast.error('Identification document is required');
+            return;
+        }
+
+        // Clear any previous error
+        setIdVerificationError('');
+
         setIsLoading(true);
         try {
             let paymentMethodId = null;
@@ -217,6 +272,10 @@ const Register = () => {
 
             paymentMethodId = paymentMethod.id;
             formData.append('paymentMethodId', paymentMethodId);
+
+            if (identificationDocument) {
+                formData.append('identificationDocument', identificationDocument);
+            }
 
             const { data } = await axiosInstance.post(
                 `${import.meta.env.VITE_DOMAIN_URL}/api/v1/users/register`,
@@ -754,6 +813,81 @@ const Register = () => {
                                 <p className="text-red-500 text-sm mt-1 absolute">{errors.currency.message}</p>
                             )}
                         </div>
+
+                        {/* ID Verification Section */}
+                            <div id="id-verification-section" className="border-t border-gray-200 dark:border-bg-primary-light pt-6">
+                                <h3 className="text-lg font-semibold text-text-primary dark:text-text-primary-dark mb-4">Identity Verification <span className='text-red-600'>*</span></h3>
+                                <p className="text-sm text-text-secondary dark:text-text-secondary-dark mb-4">
+                                    Please upload a valid government-issued ID (Driver's License, Passport, or National ID Card)
+                                </p>
+
+                                <div className="space-y-4">
+                                    <div className="relative">
+                                        <input
+                                            type="file"
+                                            id="identificationDocument"
+                                            accept=".jpg,.jpeg,.png,.pdf"
+                                            onChange={handleIdentificationDocumentChange}
+                                            className="hidden"
+                                        />
+
+                                        {!identificationDocument ? (
+                                            <label
+                                                htmlFor="identificationDocument"
+                                                className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 dark:border-bg-primary-light rounded-lg cursor-pointer hover:border-primary dark:hover:border-primary-dark hover:bg-blue-50 dark:hover:bg-bg-primary-light transition-colors"
+                                            >
+                                                <Upload size={24} className="text-bg-secondary-dark dark:text-gray-600 mb-2" />
+                                                <span className="text-sm text-text-secondary dark:text-text-secondary-dark">Click to upload or drag and drop</span>
+                                                <span className="text-xs text-gray-500 dark:text-gray-500 mt-1">JPG, PNG, or PDF (Max 5MB)</span>
+                                            </label>
+                                        ) : (
+                                            <div className="flex items-center justify-between p-4 border border-gray-200 dark:border-bg-primary-light rounded-lg bg-gray-50 dark:bg-bg-primary-light">
+                                                <div className="flex items-center gap-3">
+                                                    {identificationDocument.type.startsWith('image/') && identificationDocumentPreview ? (
+                                                        <img
+                                                            src={identificationDocumentPreview}
+                                                            alt="ID Preview"
+                                                            className="w-12 h-12 object-cover rounded"
+                                                        />
+                                                    ) : (
+                                                        <FileText size={24} className="text-primary dark:text-primary-dark" />
+                                                    )}
+                                                    <div>
+                                                        <p className="text-sm font-medium text-text-primary dark:text-text-primary-dark">{identificationDocument.name}</p>
+                                                        <p className="text-xs text-text-secondary dark:text-text-secondary-dark">
+                                                            {(identificationDocument.size / 1024 / 1024).toFixed(2)} MB
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={removeIdentificationDocument}
+                                                    className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full transition-colors"
+                                                >
+                                                    <X size={20} className="text-gray-500 dark:text-bg-secondary-dark" />
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {uploadProgress > 0 && uploadProgress < 100 && (
+                                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
+                                            <div
+                                                className="bg-primary dark:bg-primary-dark h-2.5 rounded-full transition-all duration-300"
+                                                style={{ width: `${uploadProgress}%` }}
+                                            ></div>
+                                        </div>
+                                    )}
+
+                                    <div className="flex items-start gap-2 p-3 bg-blue-50 dark:bg-bg-primary-light rounded-lg">
+                                        <AlertCircle size={20} className="text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                                        <p className="text-xs text-blue-700 dark:text-blue-300">
+                                            Your ID will be securely stored and verified. We use this to prevent fraud and ensure platform safety.
+                                            {userType === 'seller' && ' Sellers require ID verification to list items.'}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
 
                         {/* Stripe Card Section for Bidders */}
                         <CardSection />

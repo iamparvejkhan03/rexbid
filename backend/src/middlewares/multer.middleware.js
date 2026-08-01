@@ -25,6 +25,24 @@ const fileFilter = (req, file, cb) => {
         false
       );
     }
+  }else if (file.fieldname === "identificationDocument" || file.fieldname === "idDocument") {
+    const allowedMimeTypes = [
+      "image/jpeg",
+      "image/jpg",
+      "image/png",
+      "application/pdf",
+    ];
+
+    if (allowedMimeTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(
+        new Error(
+          "Invalid file type. Only JPG, PNG, and PDF are allowed for ID documents",
+        ),
+        false,
+      );
+    }
   } else if (file.fieldname === "icon" || file.fieldname === "image") {
     // For category icons and images
     if (file.mimetype.startsWith("image/")) {

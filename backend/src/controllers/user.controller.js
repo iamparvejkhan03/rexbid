@@ -11,6 +11,11 @@ import BidPayment from "../models/bidPayment.model.js";
 import Review from "../models/review.model.js";
 import Auction from "../models/auction.model.js";
 import { getCachedRates } from "../routes/currency.route.js";
+import {
+  deleteFromCloudinary,
+  uploadDocumentToCloudinary,
+  uploadImageToCloudinary,
+} from "../utils/cloudinary.js";
 
 const convertPrice = (auction, targetCurrency, priceField) => {
   const rates = getCachedRates();
@@ -94,6 +99,8 @@ export const registerUser = async (req, res) => {
     const normalizedEmail = email.toLowerCase().trim();
     const normalizedUsername = username.toLowerCase().trim();
 
+    const identificationDocumentFile = req.file;
+
     // Check if user already exists with normalized email or username
     const existingUser = await User.findOne({
       $or: [{ email: normalizedEmail }, { username: normalizedUsername }],
@@ -108,6 +115,40 @@ export const registerUser = async (req, res) => {
 
     let stripeCustomerId = null;
     let paymentMethodDetails = null;
+    let identificationDocumentUrl = null;
+    let identificationDocumentPublicId = null;
+
+    // Handle ID document upload if provided
+    if (identificationDocumentFile) {
+      try {
+        // Determine if it's an image or document
+        const isImage =
+          identificationDocumentFile.mimetype.startsWith("image/");
+
+        let uploadResult;
+        if (isImage) {
+          uploadResult = await uploadImageToCloudinary(
+            identificationDocumentFile.buffer,
+            "identification-documents",
+          );
+        } else {
+          uploadResult = await uploadDocumentToCloudinary(
+            identificationDocumentFile.buffer,
+            identificationDocumentFile.originalname,
+            "identification-documents",
+          );
+        }
+
+        identificationDocumentUrl = uploadResult.secure_url;
+        identificationDocumentPublicId = uploadResult.public_id;
+      } catch (uploadError) {
+        console.error("❌ ID Document upload failed:", uploadError);
+        return res.status(500).json({
+          success: false,
+          message: "Failed to upload identification document",
+        });
+      }
+    }
 
     if (!paymentMethodId) {
       return res.status(400).json({
@@ -160,7 +201,10 @@ export const registerUser = async (req, res) => {
       phone,
       image,
       stripeCustomerId,
-      isVerified: true,
+      isVerified: false, // identification based
+      identificationDocument: identificationDocumentUrl,
+      identificationDocumentPublicId: identificationDocumentPublicId,
+      identificationStatus: identificationDocumentUrl ? "pending" : undefined,
       // Add address object
       address: {
         street,
@@ -178,7 +222,7 @@ export const registerUser = async (req, res) => {
       userData.cardBrand = paymentMethodDetails.brand;
       userData.cardExpMonth = paymentMethodDetails.expMonth;
       userData.cardExpYear = paymentMethodDetails.expYear;
-      userData.isVerified = true; // Users are verified after payment verification
+      // userData.isVerified = true;
       userData.isPaymentVerified = true;
     }
 
@@ -751,5 +795,190 @@ export const getSellerStats = async (req, res) => {
   } catch (error) {
     console.error("Get seller stats error:", error);
     res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+// Upload identification document
+export const uploadIdentification = async (req, res) => {
+  try {
+    const userId = req.user.id; // From auth middleware
+    const file = req.file;
+
+    if (!file) {
+      return res.status(400).json({
+        success: false,
+        message: "No file uploaded",
+      });
+    }
+
+    // Validate file type
+    const allowedTypes = [
+      "image/jpeg",
+      "image/jpg",
+      "image/png",
+      "application/pdf",
+    ];
+    if (!allowedTypes.includes(file.mimetype)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid file type. Only JPG, PNG, and PDF are allowed",
+      });
+    }
+
+    // Find user
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    // Check if user can upload (only if rejected or not verified)
+    if (user.identificationStatus === "verified") {
+      return res.status(400).json({
+        success: false,
+        message: "Your identity is already verified",
+      });
+    }
+
+    // If user had previous document, delete it from Cloudinary
+    if (user.identificationDocumentPublicId) {
+      try {
+        await deleteFromCloudinary(user.identificationDocumentPublicId, "raw");
+      } catch (deleteError) {
+        console.error("Failed to delete old document:", deleteError);
+        // Continue with upload even if delete fails
+      }
+    }
+
+    // Upload new document to Cloudinary
+    const isImage = file.mimetype.startsWith("image/");
+    let uploadResult;
+
+    if (isImage) {
+      uploadResult = await uploadImageToCloudinary(
+        file.buffer,
+        "identification-documents",
+      );
+    } else {
+      uploadResult = await uploadDocumentToCloudinary(
+        file.buffer,
+        file.originalname,
+        "identification-documents",
+      );
+    }
+
+    // Update user with new document info
+    user.identificationDocument = uploadResult.secure_url;
+    user.identificationDocumentPublicId = uploadResult.public_id;
+    user.identificationStatus = "pending";
+    user.identificationRejectionReason = null; // Clear any previous rejection reason
+    user.identificationVerifiedAt = null;
+
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Identification document uploaded successfully",
+      data: {
+        user: user.toSafeObject(),
+      },
+    });
+  } catch (error) {
+    console.error("Upload identification error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to upload identification document",
+    });
+  }
+};
+
+// Get user's verification status
+export const getVerificationStatus = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const user = await User.findById(userId).select(
+      "identificationDocument identificationStatus identificationVerifiedAt identificationRejectionReason",
+    );
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: {
+        status: user.identificationStatus || "not_uploaded",
+        documentUrl: user.identificationDocument,
+        verifiedAt: user.identificationVerifiedAt,
+        rejectionReason: user.identificationRejectionReason,
+      },
+    });
+  } catch (error) {
+    console.error("Get verification status error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch verification status",
+    });
+  }
+};
+
+// Delete identification document
+export const deleteIdentification = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    // Only allow deletion if status is rejected or pending
+    if (user.identificationStatus === "verified") {
+      return res.status(400).json({
+        success: false,
+        message: "Cannot delete verified document",
+      });
+    }
+
+    // Delete from Cloudinary
+    if (user.identificationDocumentPublicId) {
+      try {
+        await deleteFromCloudinary(user.identificationDocumentPublicId, "raw");
+      } catch (deleteError) {
+        console.error("Failed to delete from Cloudinary:", deleteError);
+      }
+    }
+
+    // Clear document fields
+    user.identificationDocument = null;
+    user.identificationDocumentPublicId = null;
+    user.identificationStatus = null;
+    user.identificationRejectionReason = null;
+    user.identificationVerifiedAt = null;
+
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Identification document deleted successfully",
+      data: {
+        user: user.toSafeObject(),
+      },
+    });
+  } catch (error) {
+    console.error("Delete identification error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to delete identification document",
+    });
   }
 };
