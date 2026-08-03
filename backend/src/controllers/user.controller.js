@@ -16,6 +16,8 @@ import {
   uploadDocumentToCloudinary,
   uploadImageToCloudinary,
 } from "../utils/cloudinary.js";
+import { setTempData, getTempData, deleteTempData } from '../utils/tempCache.js';
+import { v4 as uuidv4 } from 'uuid';
 
 const convertPrice = (auction, targetCurrency, priceField) => {
   const rates = getCachedRates();
@@ -74,6 +76,76 @@ const generateTokensAndRespond = async (user, req, res, message) => {
 // Registration Controller
 export const registerUser = async (req, res) => {
   try {
+    // ========== STEP 2: Complete registration after 3D Secure ==========
+    const { registrationToken, setupIntentId } = req.body;
+
+    if (registrationToken && setupIntentId) {
+      // Retrieve cached data
+      const cachedData = await getTempData(registrationToken);
+      if (!cachedData) {
+        return res.status(400).json({
+          success: false,
+          message: 'Registration session expired. Please try again.',
+        });
+      }
+
+      // Verify the SetupIntent status
+      const setupIntent = await StripeService.retrieveSetupIntent(setupIntentId);
+      if (setupIntent.status !== 'succeeded') {
+        return res.status(400).json({
+          success: false,
+          message: 'Payment method verification failed. Please try again.',
+        });
+      }
+
+      // Retrieve the payment method to get card details
+      const paymentMethod = await StripeService.retrievePaymentMethod(
+        setupIntent.payment_method
+      );
+
+      // Check user doesn't already exist (defensive)
+      const existingUser = await User.findOne({
+        $or: [
+          { email: cachedData.userData.email },
+          { username: cachedData.userData.username },
+        ],
+      });
+      if (existingUser) {
+        return res.status(409).json({
+          success: false,
+          message: 'User with this email or username already exists',
+        });
+      }
+
+      // Create user in database
+      const user = await User.create({
+        ...cachedData.userData,
+        stripeCustomerId: cachedData.stripeCustomerId,
+        paymentMethodId: paymentMethod.id,
+        cardLast4: paymentMethod.card.last4,
+        cardBrand: paymentMethod.card.brand,
+        cardExpMonth: paymentMethod.card.exp_month,
+        cardExpYear: paymentMethod.card.exp_year,
+        isPaymentVerified: true,
+      });
+
+      // Send welcome email and notify admins
+      welcomeEmail(user).catch(err => console.error('Welcome email failed:', err));
+      const adminUsers = await User.find({ userType: 'admin' });
+      for (const admin of adminUsers) {
+        newUserRegistrationEmail(admin.email, user).catch(err => console.error('Admin email failed:', err));
+      }
+
+      // Generate tokens and respond
+      return await generateTokensAndRespond(
+        user,
+        req,
+        res,
+        'Registration successful'
+      );
+    }
+
+    // ========== STEP 1: Initiate registration ==========
     const {
       firstName,
       lastName,
@@ -86,106 +158,72 @@ export const registerUser = async (req, res) => {
       countryCode,
       countryName,
       currency,
-      phone = "",
-      image = "",
-      street = "",
-      city = "",
-      state = "",
-      postCode = "",
-      paymentMethodId
+      phone = '',
+      image = '',
+      street = '',
+      city = '',
+      state = '',
+      postCode = '',
+      paymentMethodId,
     } = req.body;
-
-    // Normalize email to lowercase
-    const normalizedEmail = email.toLowerCase().trim();
-    const normalizedUsername = username.toLowerCase().trim();
-
-    const identificationDocumentFile = req.file;
-
-    // Check if user already exists with normalized email or username
-    const existingUser = await User.findOne({
-      $or: [{ email: normalizedEmail }, { username: normalizedUsername }],
-    });
-
-    if (existingUser) {
-      return res.status(409).json({
-        success: false,
-        message: "User with this email or username already exists",
-      });
-    }
-
-    let stripeCustomerId = null;
-    let paymentMethodDetails = null;
-    let identificationDocumentUrl = null;
-    let identificationDocumentPublicId = null;
-
-    // Handle ID document upload if provided
-    if (identificationDocumentFile) {
-      try {
-        // Determine if it's an image or document
-        const isImage =
-          identificationDocumentFile.mimetype.startsWith("image/");
-
-        let uploadResult;
-        if (isImage) {
-          uploadResult = await uploadImageToCloudinary(
-            identificationDocumentFile.buffer,
-            "identification-documents",
-          );
-        } else {
-          uploadResult = await uploadDocumentToCloudinary(
-            identificationDocumentFile.buffer,
-            identificationDocumentFile.originalname,
-            "identification-documents",
-          );
-        }
-
-        identificationDocumentUrl = uploadResult.secure_url;
-        identificationDocumentPublicId = uploadResult.public_id;
-      } catch (uploadError) {
-        console.error("❌ ID Document upload failed:", uploadError);
-        return res.status(500).json({
-          success: false,
-          message: "Failed to upload identification document",
-        });
-      }
-    }
 
     if (!paymentMethodId) {
       return res.status(400).json({
         success: false,
-        message: 'Payment method ID is required'
+        message: 'Payment method ID is required',
       });
     }
 
-    try {
-      // Create Stripe customer
-      const customer = await StripeService.createCustomer(
-        email,
-        `${firstName} ${lastName}`
-      );
-      stripeCustomerId = customer.id;
+    const normalizedEmail = email?.toLowerCase().trim();
+    const normalizedUsername = username?.toLowerCase().trim();
 
-      // VERIFY AND SAVE CARD FOR FUTURE USE
-      const verificationResult = await StripeService.verifyAndSaveCard(
-        stripeCustomerId,
-        paymentMethodId
-      );
-
-      if (!verificationResult.success) {
-        throw new Error('Card verification failed');
-      }
-
-      paymentMethodDetails = verificationResult.paymentMethod;
-
-    } catch (stripeError) {
-      console.error('Stripe verification error:', stripeError);
-      return res.status(400).json({
+    // Check if user already exists
+    const existingUser = await User.findOne({
+      $or: [{ email: normalizedEmail }, { username: normalizedUsername }],
+    });
+    if (existingUser) {
+      return res.status(409).json({
         success: false,
-        message: `Card verification failed: ${stripeError.message}`
+        message: 'User with this email or username already exists',
       });
     }
 
-    // Create user in database
+    // Handle ID document upload
+    const identificationDocumentFile = req.file;
+    let identificationDocumentUrl = null;
+    let identificationDocumentPublicId = null;
+
+    if (identificationDocumentFile) {
+      const isImage = identificationDocumentFile.mimetype.startsWith('image/');
+      const uploadFn = isImage
+        ? uploadImageToCloudinary
+        : uploadDocumentToCloudinary;
+
+      const uploadResult = await uploadFn(
+        identificationDocumentFile.buffer,
+        isImage ? undefined : identificationDocumentFile.originalname,
+        'identification-documents'
+      );
+      identificationDocumentUrl = uploadResult.secure_url;
+      identificationDocumentPublicId = uploadResult.public_id;
+    }
+
+    // Create Stripe customer
+    const customer = await StripeService.createCustomer(
+      normalizedEmail,
+      `${firstName} ${lastName}`
+    );
+
+    // Create SetupIntent (automatically attaches the payment method)
+    const setupIntent = await StripeService.createSetupIntent({
+      customer: customer.id,
+      payment_method: paymentMethodId,
+      payment_method_types: ['card'],
+      usage: 'off_session',
+      confirm: false, // we confirm on the frontend
+    });
+
+    // Prepare user data (without payment info yet)
     const userData = {
       firstName,
       lastName,
@@ -200,12 +238,10 @@ export const registerUser = async (req, res) => {
       currency,
       phone,
       image,
-      stripeCustomerId,
-      isVerified: false, // identification based
+      isVerified: false,
       identificationDocument: identificationDocumentUrl,
-      identificationDocumentPublicId: identificationDocumentPublicId,
-      identificationStatus: identificationDocumentUrl ? "pending" : undefined,
-      // Add address object
+      identificationDocumentPublicId,
+      identificationStatus: identificationDocumentUrl ? 'pending' : undefined,
       address: {
         street,
         city,
@@ -215,41 +251,58 @@ export const registerUser = async (req, res) => {
       },
     };
 
-    // Add payment details for bidders
-    if (paymentMethodDetails) {
-      userData.paymentMethodId = paymentMethodDetails.id;
-      userData.cardLast4 = paymentMethodDetails.last4;
-      userData.cardBrand = paymentMethodDetails.brand;
-      userData.cardExpMonth = paymentMethodDetails.expMonth;
-      userData.cardExpYear = paymentMethodDetails.expYear;
-      // userData.isVerified = true;
-      userData.isPaymentVerified = true;
-    }
+    // If no 3D Secure required, create user immediately
+    if (setupIntent.status === 'succeeded') {
+      // Retrieve payment method details
+      const paymentMethod = await StripeService.retrievePaymentMethod(
+        setupIntent.payment_method
+      );
 
-    const user = await User.create(userData);
-
-    if (!user) {
-      return res.status(500).json({
-        success: false,
-        message: "User registration failed",
+      const user = await User.create({
+        ...userData,
+        stripeCustomerId: customer.id,
+        paymentMethodId: paymentMethod.id,
+        cardLast4: paymentMethod.card.last4,
+        cardBrand: paymentMethod.card.brand,
+        cardExpMonth: paymentMethod.card.exp_month,
+        cardExpYear: paymentMethod.card.exp_year,
+        isPaymentVerified: true,
       });
+
+      await welcomeEmail(user);
+      const admins = await User.find({ userType: 'admin' });
+      for (const admin of admins) {
+        await newUserRegistrationEmail(admin.email, user);
+      }
+
+      return await generateTokensAndRespond(
+        user,
+        req,
+        res,
+        'Registration successful'
+      );
     }
 
-    // await generateTokensAndRespond(user, res, 'Registration successful');
-    await generateTokensAndRespond(user, req, res, "Registration successful");
+    // 3D Secure required – cache registration data and return client secret
+    const token = uuidv4();
+    await setTempData(token, {
+      userData,
+      stripeCustomerId: customer.id,
+    });
 
-    //send registration email
-    await welcomeEmail(user);
-
-    const adminUsers = await User.find({ userType: "admin" });
-    for (const admin of adminUsers) {
-      await newUserRegistrationEmail(admin.email, user);
-    }
+    return res.status(200).json({
+      success: true,
+      requiresAction: true,
+      clientSecret: setupIntent.client_secret,
+      setupIntentId: setupIntent.id,
+      registrationToken: token,
+      message: 'Please complete the 3D Secure authentication.',
+    });
   } catch (error) {
-    console.error("Registration error:", error);
-    res.status(500).json({
+    console.error('Registration error:', error);
+    return res.status(500).json({
       success: false,
-      message: "Internal server error during registration",
+      message: 'Internal server error during registration',
     });
   }
 };

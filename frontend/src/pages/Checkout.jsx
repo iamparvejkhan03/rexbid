@@ -514,7 +514,7 @@ const CheckoutContent = () => {
                                     )}
 
                                     {/* Show Bank Transfer option only if available */}
-                                    {showBank && (
+                                    {/* {showBank && (
                                         <label className={`flex items-center p-4 border-2 rounded-lg cursor-pointer transition-all ${paymentMethod === 'bank' ? 'border-blue-600 bg-blue-50' : 'border-gray-200'
                                             }`}>
                                             <input
@@ -537,7 +537,7 @@ const CheckoutContent = () => {
                                             </div>
                                             <Globe size={20} className="text-blue-600" />
                                         </label>
-                                    )}
+                                    )} */}
 
                                     {/* Show message if no payment methods available */}
                                     {availableMethods.length === 0 && (

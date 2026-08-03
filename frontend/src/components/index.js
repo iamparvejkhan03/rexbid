@@ -67,6 +67,8 @@ import RatingStars from "./RatingStars";
 import SellerStatsCard from "./SellerStatsCard";
 import FeaturedListings from "./FeaturedListings";
 import GiveawayClaimModal from "./GiveawayClaimModal";
+import HowitWorksForBuyers from "./HowItWorksForBuyers";
+import HowitWorksForSellers from "./HowItWorksForSellers";
 
 export {
     Container,
@@ -138,4 +140,6 @@ export {
     SellerStatsCard,
     FeaturedListings,
     GiveawayClaimModal,
+    HowitWorksForBuyers,
+    HowitWorksForSellers,
 }

@@ -138,14 +138,14 @@ function Hero() {
             {/* Left Column - Main Content */}
             <div className="space-y-5 md:space-y-8">
               {/* Trust Badge - Redesigned with brand colors */}
-              <div className="inline-flex items-center gap-3 bg-white/5 backdrop-blur-sm border border-white/10 rounded-full px-5 py-1">
+              {/* <div className="inline-flex items-center gap-3 bg-white/5 backdrop-blur-sm border border-white/10 rounded-full px-5 py-1">
                 <div className="w-7 h-7 rounded-full bg-[#D19F3E]/20 flex items-center justify-center">
                   <ShieldCheck size={16} className="text-[#D19F3E]" />
                 </div>
                 <span className="text-sm font-light text-gray-200">
                   Trusted by Thousands Across Ireland
                 </span>
-              </div>
+              </div> */}
 
               {/* Headline - Bold and dynamic */}
               <div className="space-y-5">
@@ -174,10 +174,10 @@ function Hero() {
                   {/* <span className="text-gray-300">Your Control.</span> */}
                 </h1>
                 <p className="md:text-lg text-base text-gray-300 leading-relaxed max-w-lg">
-                  Buying and selling, simplified. Upload your listing and control your own auction. Browse listings and bid with ease.
+                  Online auctions made simple. List your item, set your auction, and let buyers compete.
                 </p>
 
-                <p className="text-sm text-[#E8B86B]">🚀 Buy-Sell-Bid, with RexBid. Bidding opens soon.</p>
+                <p className="text-sm text-[#E8B86B]">🚀 Buy. Sell. Bid. With RexBid.</p>
               </div>
 
               {/* Enhanced Search Form with Category Dropdown */}
@@ -366,10 +366,10 @@ function Hero() {
                       </div>
 
                       {/* Seller / Commission Note */}
-                      <div className="flex items-center justify-center gap-2 text-xs text-gray-400 pt-2">
+                      {/* <div className="flex items-center justify-center gap-2 text-xs text-gray-400 pt-2">
                         <ShieldCheck size={14} className="text-[#D19F3E]" />
                         <span>No seller & buyer fees</span>
-                      </div>
+                      </div> */}
                     </div>
                   </div>
                 )}

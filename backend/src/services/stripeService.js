@@ -66,6 +66,39 @@ export class StripeService {
         }
     }
 
+    static async createSetupIntent(params) {
+        return stripe.setupIntents.create(params);
+    }
+
+    static async createSetupIntentForCard(customerId, paymentMethodId) {
+        try {
+            // 1. Attach payment method
+            await stripe.paymentMethods.attach(paymentMethodId, {
+                customer: customerId,
+            });
+
+            // 2. Set as default
+            await stripe.customers.update(customerId, {
+                invoice_settings: {
+                    default_payment_method: paymentMethodId,
+                },
+            });
+
+            // 3. Create Setup Intent WITHOUT confirming
+            const setupIntent = await stripe.setupIntents.create({
+                customer: customerId,
+                payment_method: paymentMethodId,
+                payment_method_types: ['card'],
+                usage: 'off_session',
+                confirm: false, // important
+            });
+
+            return setupIntent;
+        } catch (error) {
+            throw new Error(`Failed to create setup intent: ${error.message}`);
+        }
+    }
+
     // Create Payment Intent for bidding (when user wins)
     static async createBidPaymentIntent(customerId, amount, description) {
         try {
@@ -125,7 +158,21 @@ export class StripeService {
         }
     }
 
-    // Add this method to your existing StripeService class
+    static async retrievePaymentMethod(paymentMethodId) {
+        try {
+            return await stripe.paymentMethods.retrieve(paymentMethodId);
+        } catch (error) {
+            throw new Error(`Failed to retrieve payment method: ${error.message}`);
+        }
+    }
+
+    static async retrieveSetupIntent(setupIntentId) {
+        try {
+            return await stripe.setupIntents.retrieve(setupIntentId);
+        } catch (error) {
+            throw new Error(`Failed to retrieve setup intent: ${error.message}`);
+        }
+    }
 
     static async createBidPaymentIntent(customerId, amount, description) {
         try {
