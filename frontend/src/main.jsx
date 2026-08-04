@@ -15,6 +15,7 @@ const Register = lazy(() => import('./pages/Register'));
 const Auctions = lazy(() => import('./pages/Auctions'));
 const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
 const TermsOfUse = lazy(() => import('./pages/TermsOfUse'));
+const TermsConditions = lazy(() => import('./pages/TermsConditions'));
 const PaymentRefundPolicy = lazy(() => import('./pages/PaymentRefundPolicy'));
 const SellerAgreement = lazy(() => import('./pages/SellerAgreement'));
 const BuyerAgreement = lazy(() => import('./pages/BuyerAgreement'));
@@ -126,7 +127,9 @@ createRoot(document.getElementById('root')).render(
 
                         <Route path='/privacy-policy' index={true} element={<Suspense fallback={<LoadingSpinner height={'725px'} />}><PrivacyPolicy /></Suspense>} />
 
-                        <Route path='/terms-of-use' index={true} element={<Suspense fallback={<LoadingSpinner height={'725px'} />}><TermsOfUse /></Suspense>} />
+                        <Route path='/terms-conditions' index={true} element={<Suspense fallback={<LoadingSpinner height={'725px'} />}><TermsConditions /></Suspense>} />
+
+                        {/* <Route path='/terms-of-use' index={true} element={<Suspense fallback={<LoadingSpinner height={'725px'} />}><TermsOfUse /></Suspense>} /> */}
 
                         <Route path='/payment-refund-policy' index={true} element={<Suspense fallback={<LoadingSpinner height={'725px'} />}><PaymentRefundPolicy /></Suspense>} />
 

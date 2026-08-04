@@ -282,10 +282,10 @@ const BuyerAgreement = () => {
                         <div className="flex flex-wrap gap-3">
 
                             <Link
-                                to="/terms-of-use"
+                                to="/terms-conditions"
                                 className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded text-sm font-medium transition-colors"
                             >
-                                Terms of Use
+                                Terms & Conditions
                             </Link>
 
                             <Link

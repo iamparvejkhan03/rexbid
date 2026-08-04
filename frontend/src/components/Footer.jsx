@@ -15,7 +15,7 @@ function Footer() {
 
     const legalPolicies = [
         { name: 'Privacy Policy', href: '/privacy-policy' },
-        { name: 'Terms of Use', href: '/terms-of-use' },
+        { name: 'Terms & Conditions', href: '/terms-conditions' },
         { name: 'Buyer Agreement', href: '/buyer-agreement' },
         { name: 'Seller Agreement', href: '/seller-agreement' },
     ];
@@ -178,8 +178,8 @@ function Footer() {
                         &nbsp; All rights reserved. &nbsp;
                     </p>
                     <div className="flex flex-wrap flex-row gap-4 items-center">
-                        <Link to={'/terms-of-use'} className="hover:text-[#D19F3E] transition-colors">
-                            Terms of Use
+                        <Link to={'/terms-conditions'} className="hover:text-[#D19F3E] transition-colors">
+                            Terms & Conditions
                         </Link>
                         <Link to={'/privacy-policy'} className="hover:text-[#D19F3E] transition-colors">
                             Privacy Policy
