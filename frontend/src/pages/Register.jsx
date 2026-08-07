@@ -313,35 +313,35 @@ const Register = () => {
             }
 
             // Get payment method from Stripe Elements
-            if (!stripe || !elements) {
-                toast.error('Stripe not initialized');
-                setIsLoading(false);
-                return;
-            }
-            const cardElement = elements.getElement(CardElement);
-            if (!cardElement) {
-                toast.error('Please enter your card details');
-                setIsLoading(false);
-                return;
-            }
+            // if (!stripe || !elements) {
+            //     toast.error('Stripe not initialized');
+            //     setIsLoading(false);
+            //     return;
+            // }
+            // const cardElement = elements.getElement(CardElement);
+            // if (!cardElement) {
+            //     toast.error('Please enter your card details');
+            //     setIsLoading(false);
+            //     return;
+            // }
 
-            const { error, paymentMethod } = await stripe.createPaymentMethod({
-                type: 'card',
-                card: cardElement,
-                billing_details: {
-                    name: `${registrationData.firstName} ${registrationData.lastName}`,
-                    email: registrationData.email,
-                    phone: registrationData.phone,
-                    address: { country: registrationData.country },
-                },
-            });
+            // const { error, paymentMethod } = await stripe.createPaymentMethod({
+            //     type: 'card',
+            //     card: cardElement,
+            //     billing_details: {
+            //         name: `${registrationData.firstName} ${registrationData.lastName}`,
+            //         email: registrationData.email,
+            //         phone: registrationData.phone,
+            //         address: { country: registrationData.country },
+            //     },
+            // });
 
-            if (error) {
-                toast.error(`Payment error: ${error.message}`);
-                setIsLoading(false);
-                return;
-            }
-            formData.append('paymentMethodId', paymentMethod.id);
+            // if (error) {
+            //     toast.error(`Payment error: ${error.message}`);
+            //     setIsLoading(false);
+            //     return;
+            // }
+            // formData.append('paymentMethodId', paymentMethod.id);
 
             // Step 1: Send user data (FormData) to the server
             const response = await axiosInstance.post(
@@ -1004,7 +1004,7 @@ const Register = () => {
                             </div>
 
                             {/* Stripe Card Section for Bidders */}
-                            <CardSection />
+                            {/* <CardSection /> */}
 
                             <div className={`${errors.termsConditions && 'mb-3'}`}>
                                 <label className='flex items-center gap-2'>
