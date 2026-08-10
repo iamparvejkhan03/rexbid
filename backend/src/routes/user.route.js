@@ -1,6 +1,7 @@
 import { Router } from "express";
 import upload from "../middlewares/multer.middleware.js";
 import { 
+    createPaymentMethod,
     deleteIdentification,
     forgotPassword,
     getBillingInfo,
@@ -41,6 +42,7 @@ userRouter.put('/change-password', auth, changePassword);
 userRouter.put('/preferences', auth, updatePreferences);
 userRouter.get('/stats/:userType', auth, getUserStats);
 userRouter.get('/billing', auth, getBillingInfo);
+userRouter.post('/billing/create-card', auth, createPaymentMethod);
 userRouter.put('/billing/update-card', auth, updatePaymentMethod);
 
 // ID Verification routes (Protected)

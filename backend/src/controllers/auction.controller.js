@@ -22,6 +22,10 @@ import Category from "../models/category.model.js";
 import Commission from "../models/commission.model.js";
 import Review from "../models/review.model.js";
 import { getCachedRates } from "../routes/currency.route.js";
+import Stripe from 'stripe';
+
+// Initialize Stripe with your secret key
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 const convertPrice = (auction, targetCurrency, priceField) => {
   const rates = getCachedRates();
@@ -1765,6 +1769,51 @@ export const placeBid = async (req, res) => {
     const { amount, currency } = req.body;
     const bidder = req.user;
 
+    // ✅ NEW: Check if user has a valid payment method
+    if (!bidder?.stripeCustomerId || !bidder?.paymentMethodId || !bidder?.isPaymentVerified) {
+      return res.status(403).json({
+        success: false,
+        message: "Please add a valid payment method before placing a bid.",
+        redirectTo: `/${bidder?.userType || 'bidder'}/billing`,
+        errorCode: 'PAYMENT_METHOD_REQUIRED'
+      });
+    }
+
+    // ✅ NEW: Verify the payment method is still valid with Stripe
+    try {
+      const paymentMethod = await stripe.paymentMethods.retrieve(bidder.paymentMethodId);
+
+      // Check if payment method is still valid
+      if (paymentMethod.card?.checks?.cvc_check === 'fail' ||
+        paymentMethod.card?.checks?.address_line1_check === 'fail') {
+        // Card may have issues, but let's still allow if it was previously verified
+        console.warn(`User ${bidder._id} has a payment method with potential issues`);
+      }
+    } catch (error) {
+      // If payment method is not found in Stripe, force user to re-add
+      console.error(`Payment method verification failed for user ${bidder._id}:`, error);
+      return res.status(403).json({
+        success: false,
+        message: "Your payment method is no longer valid. Please update your payment information.",
+        redirectTo: `/${bidder?.userType || 'bidder'}/billing`,
+        errorCode: 'PAYMENT_METHOD_INVALID'
+      });
+    }
+
+    // ✅ NEW: Verify the user has a valid Stripe customer
+    try {
+      await stripe.customers.retrieve(bidder.stripeCustomerId);
+    } catch (error) {
+      // If customer doesn't exist in Stripe, user needs to re-add their card
+      console.error(`Stripe customer not found for user ${bidder._id}:`, error);
+      return res.status(403).json({
+        success: false,
+        message: "Your payment setup is incomplete. Please add your payment method again.",
+        redirectTo: `/${bidder?.userType || 'bidder'}/billing`,
+        errorCode: 'STRIPE_CUSTOMER_INVALID'
+      });
+    }
+
     // Validate auction status
     if (!bidder?.isActive) {
       return res.status(400).json({
@@ -2606,7 +2655,7 @@ export const buyNow = async (req, res) => {
       });
     }
 
-     // Validate auction status
+    // Validate auction status
     if (!buyer?.isVerified) {
       return res.status(400).json({
         success: false,

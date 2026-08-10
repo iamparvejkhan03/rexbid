@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { LoadingSpinner, CompanyContainer, CompanyHeader, CompanySidebar } from "../../components";
-import { CreditCard, Shield, CheckCircle, AlertCircle, RefreshCw } from "lucide-react";
+import { CreditCard, Shield, CheckCircle, AlertCircle, RefreshCw, Plus, Wallet } from "lucide-react";
 import { useStripe, useElements, CardElement, Elements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 import axiosInstance from "../../utils/axiosInstance";
@@ -10,12 +10,12 @@ import { toast } from "react-hot-toast";
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 
 // Card Section Component
-const CardSection = ({ isUpdating }) => {
+const CardSection = ({ isSubmitting, buttonText, buttonIcon }) => {
     return (
         <div className="space-y-4">
             <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                    New Credit Card Information
+                    {buttonText === 'Add' ? 'Credit Card Information' : 'New Credit Card Information'}
                 </label>
                 <div className="p-4 border border-gray-300 rounded-lg bg-gray-50">
                     <CardElement
@@ -39,7 +39,7 @@ const CardSection = ({ isUpdating }) => {
                     />
                 </div>
             </div>
-            
+
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <div className="flex items-start gap-3">
                     <Shield size={18} className="text-blue-600 mt-0.5" />
@@ -52,18 +52,18 @@ const CardSection = ({ isUpdating }) => {
 
             <button
                 type="submit"
-                disabled={isUpdating}
+                disabled={isSubmitting}
                 className="w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-medium transition-colors flex items-center justify-center gap-2"
             >
-                {isUpdating ? (
+                {isSubmitting ? (
                     <>
                         <RefreshCw size={18} className="animate-spin" />
-                        Updating Card...
+                        {buttonText === 'Add' ? 'Adding Card...' : 'Updating Card...'}
                     </>
                 ) : (
                     <>
-                        <CreditCard size={18} />
-                        Update Payment Method
+                        {buttonIcon}
+                        {buttonText === 'Add' ? 'Add Payment Method' : 'Update Payment Method'}
                     </>
                 )}
             </button>
@@ -76,18 +76,31 @@ const Billing = () => {
     const stripe = useStripe();
     const elements = useElements();
     const [loading, setLoading] = useState(true);
-    const [updating, setUpdating] = useState(false);
+    const [submitting, setSubmitting] = useState(false);
     const [cardDetails, setCardDetails] = useState(null);
+    const [billingInfo, setBillingInfo] = useState({
+        hasStripeCustomer: false,
+        hasCard: false,
+        needsSetup: true,
+        isPaymentVerified: false
+    });
 
     const fetchCardDetails = async () => {
         try {
             const { data } = await axiosInstance.get('/api/v1/users/billing');
             if (data.success) {
-                setCardDetails(data.data);
+                setCardDetails(data.data.card || null);
+                setBillingInfo({
+                    hasStripeCustomer: data.data.hasStripeCustomer || false,
+                    hasCard: data.data.hasCard || false,
+                    needsSetup: data.data.needsSetup || true,
+                    isPaymentVerified: data.data.isPaymentVerified || false,
+                    stripeCustomerId: data.data.stripeCustomerId
+                });
             }
         } catch (err) {
             console.error('Fetch card details error:', err);
-            toast.error('Failed to load card details');
+            // toast.error('Failed to load payment details');
         } finally {
             setLoading(false);
         }
@@ -97,25 +110,25 @@ const Billing = () => {
         fetchCardDetails();
     }, []);
 
-    const handleUpdateCard = async (event) => {
+    const handleSubmit = async (event) => {
         event.preventDefault();
-        
+
         if (!stripe || !elements) {
             toast.error('Stripe not initialized');
             return;
         }
 
-        setUpdating(true);
+        setSubmitting(true);
 
         try {
             const cardElement = elements.getElement(CardElement);
-            
+
             if (!cardElement) {
                 toast.error('Please enter your card details');
                 return;
             }
 
-            // Create new payment method
+            // Create payment method
             const { error, paymentMethod } = await stripe.createPaymentMethod({
                 type: 'card',
                 card: cardElement,
@@ -126,24 +139,50 @@ const Billing = () => {
                 return;
             }
 
-            // Update card on backend
-            const { data } = await axiosInstance.put('/api/v1/users/billing/update-card', {
-                paymentMethodId: paymentMethod.id
+            // Determine whether to create or update
+            const isCreate = !billingInfo.hasStripeCustomer;
+            const endpoint = isCreate
+                ? '/api/v1/users/billing/create-card'
+                : '/api/v1/users/billing/update-card';
+
+            // Call appropriate endpoint
+            const { data } = await axiosInstance({
+                method: isCreate ? 'post' : 'put',
+                url: endpoint,
+                data: {
+                    paymentMethodId: paymentMethod.id
+                }
             });
 
             if (data.success) {
-                toast.success('Card updated successfully!');
-                setCardDetails(data.data);
+                toast.success(data.message || `Payment method ${isCreate ? 'added' : 'updated'} successfully!`);
+                setCardDetails(data.data.card);
+                setBillingInfo(prev => ({
+                    ...prev,
+                    hasStripeCustomer: true,
+                    hasCard: true,
+                    needsSetup: false,
+                    isPaymentVerified: true,
+                    stripeCustomerId: data.data.stripeCustomerId
+                }));
                 // Clear the card element
                 cardElement.clear();
-                await fetchCardDetails(); // Refresh card details
+                await fetchCardDetails(); // Refresh all details
             }
 
         } catch (error) {
-            toast.error(error?.response?.data?.message || 'Failed to update card');
-            console.error('Update card error:', error);
+            // Handle specific error cases
+            const errorMessage = error?.response?.data?.message || error.message || 'Failed to process payment method';
+            toast.error(errorMessage);
+            console.error('Payment method error:', error);
+
+            // If the error is related to card verification, allow retry
+            if (error?.response?.data?.type === 'StripeCardError') {
+                // Don't clear the form, allow user to retry
+                toast.error('Card declined. Please check your card details and try again.');
+            }
         } finally {
-            setUpdating(false);
+            setSubmitting(false);
         }
     };
 
@@ -164,6 +203,22 @@ const Billing = () => {
         return `${month.toString().padStart(2, '0')}/${year.toString().slice(-2)}`;
     };
 
+    // Determine button text and icon based on state
+    const getButtonConfig = () => {
+        if (!billingInfo.hasStripeCustomer || !billingInfo.hasCard) {
+            return {
+                text: 'Add',
+                icon: <Plus size={18} />
+            };
+        }
+        return {
+            text: 'Update',
+            icon: <CreditCard size={18} />
+        };
+    };
+
+    const buttonConfig = getButtonConfig();
+
     return (
         <section className="flex min-h-[70vh]">
             <CompanySidebar />
@@ -174,7 +229,6 @@ const Billing = () => {
                 <CompanyContainer>
                     <div className="max-w-full pt-16 pb-7 md:pt-0">
                         <h2 className="text-3xl md:text-4xl font-bold my-5">Billing & Payment Methods</h2>
-                        {/* <p className="text-secondary">Manage your payment methods and billing information.</p> */}
                     </div>
 
                     {loading ? (
@@ -190,25 +244,31 @@ const Billing = () => {
                                         <CreditCard size={20} />
                                         Current Payment Method
                                     </h3>
-                                    {cardDetails?.isPaymentVerified && (
+                                    {billingInfo.isPaymentVerified && billingInfo.hasCard && (
                                         <span className="flex items-center gap-1 text-sm text-green-600 bg-green-50 px-2 py-1 rounded">
                                             <CheckCircle size={14} />
                                             Verified
                                         </span>
                                     )}
+                                    {billingInfo.hasStripeCustomer && !billingInfo.hasCard && (
+                                        <span className="flex items-center gap-1 text-sm text-yellow-600 bg-yellow-50 px-2 py-1 rounded">
+                                            <AlertCircle size={14} />
+                                            No Card Added
+                                        </span>
+                                    )}
                                 </div>
 
-                                {cardDetails?.card ? (
+                                {billingInfo.hasCard && cardDetails ? (
                                     <div className="space-y-4">
                                         <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                                             <div className="flex items-center gap-3">
-                                                <span className="text-2xl">{getCardBrandIcon(cardDetails.card.brand)}</span>
+                                                <span className="text-2xl">{getCardBrandIcon(cardDetails.brand)}</span>
                                                 <div>
                                                     <p className="font-medium">
-                                                        {cardDetails.card.brand?.charAt(0).toUpperCase() + cardDetails.card.brand?.slice(1)} •••• {cardDetails.card.last4}
+                                                        {cardDetails.brand?.charAt(0).toUpperCase() + cardDetails.brand?.slice(1)} •••• {cardDetails.last4}
                                                     </p>
                                                     <p className="text-sm text-gray-600">
-                                                        Expires {formatExpiryDate(cardDetails.card.expMonth, cardDetails.card.expYear)}
+                                                        Expires {formatExpiryDate(cardDetails.expMonth, cardDetails.expYear)}
                                                     </p>
                                                 </div>
                                             </div>
@@ -224,32 +284,68 @@ const Billing = () => {
                                     </div>
                                 ) : (
                                     <div className="text-center py-6">
-                                        <AlertCircle size={32} className="mx-auto text-gray-400 mb-2" />
-                                        <p className="text-gray-600">No payment method found</p>
+                                        {billingInfo.hasStripeCustomer ? (
+                                            <>
+                                                <Wallet size={32} className="mx-auto text-gray-400 mb-2" />
+                                                <p className="text-gray-600">No payment method found</p>
+                                                <p className="text-sm text-gray-500 mt-1">Add your first payment method below</p>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <AlertCircle size={32} className="mx-auto text-gray-400 mb-2" />
+                                                <p className="text-gray-600">No payment method set up</p>
+                                                <p className="text-sm text-gray-500 mt-1">Add a payment method to start bidding</p>
+                                            </>
+                                        )}
                                     </div>
                                 )}
                             </div>
 
-                            {/* Update Card Section */}
+                            {/* Add/Update Card Section */}
                             <div className="bg-white border border-gray-200 rounded-lg p-6">
                                 <h3 className="text-lg font-semibold flex items-center gap-2 mb-4">
-                                    <CreditCard size={20} />
-                                    Update Payment Method
+                                    {!billingInfo.hasStripeCustomer || !billingInfo.hasCard ? (
+                                        <>
+                                            <Plus size={20} />
+                                            Add Payment Method
+                                        </>
+                                    ) : (
+                                        <>
+                                            <RefreshCw size={20} />
+                                            Update Payment Method
+                                        </>
+                                    )}
                                 </h3>
 
-                                <form onSubmit={handleUpdateCard}>
-                                    <CardSection isUpdating={updating} />
+                                <form onSubmit={handleSubmit}>
+                                    <CardSection
+                                        isSubmitting={submitting}
+                                        buttonText={buttonConfig.text}
+                                        buttonIcon={buttonConfig.icon}
+                                    />
                                 </form>
+
+                                {!billingInfo.hasStripeCustomer && (
+                                    <div className="mt-4 bg-green-50 border border-green-200 rounded-lg p-4">
+                                        <div className="flex items-start gap-3">
+                                            <CheckCircle size={18} className="text-green-600 mt-0.5" />
+                                            <div className="text-sm text-green-800">
+                                                <p className="font-medium">First-time Setup</p>
+                                                <p>Adding your payment method will create your secure account and verify your card for bidding.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
                             {/* Billing Information */}
                             <div className="bg-white border border-gray-200 rounded-lg p-6 mt-6">
-                                <h3 className="text-lg font-semibold mb-4">Billing Information</h3>
+                                <h3 className="text-lg font-semibold mb-4">Account Status</h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                                     <div>
                                         <p className="text-gray-600">Stripe Customer ID</p>
-                                        <p className="font-mono text-xs bg-gray-100 p-2 rounded mt-1 break-all">
-                                            {cardDetails?.stripeCustomerId || 'Not available'}
+                                        <p className={`font-mono text-xs bg-gray-100 p-2 rounded mt-1 break-all ${!billingInfo.hasStripeCustomer ? 'text-gray-400' : ''}`}>
+                                            {billingInfo.stripeCustomerId || 'Not set up yet'}
                                         </p>
                                     </div>
                                     <div>
@@ -258,8 +354,24 @@ const Billing = () => {
                                     </div>
                                     <div>
                                         <p className="text-gray-600">Payment Status</p>
-                                        <p className={`font-medium ${cardDetails?.isPaymentVerified ? 'text-green-600' : 'text-yellow-600'}`}>
-                                            {cardDetails?.isPaymentVerified ? 'Verified' : 'Not Verified'}
+                                        <p className={`font-medium ${billingInfo.isPaymentVerified && billingInfo.hasCard
+                                                ? 'text-green-600'
+                                                : 'text-yellow-600'
+                                            }`}>
+                                            {billingInfo.isPaymentVerified && billingInfo.hasCard
+                                                ? 'Verified'
+                                                : 'Not Verified'}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <p className="text-gray-600">Setup Status</p>
+                                        <p className={`font-medium ${billingInfo.hasStripeCustomer
+                                                ? 'text-green-600'
+                                                : 'text-yellow-600'
+                                            }`}>
+                                            {billingInfo.hasStripeCustomer
+                                                ? 'Complete'
+                                                : 'Pending Setup'}
                                         </p>
                                     </div>
                                 </div>

@@ -17,6 +17,10 @@ import {
   sendAuctionEndedSellerEmail,
   sendAuctionWonEmail,
 } from "../utils/nodemailer.js";
+import Stripe from 'stripe';
+
+// Initialize Stripe with your secret key
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 const convertPrice = (auction, targetCurrency, priceField) => {
   const rates = getCachedRates();
@@ -60,7 +64,49 @@ export const makeOffer = async (req, res) => {
     const { amount, message, currency } = req.body;
     const buyer = req.user;
 
-    // Validate auction status
+    // Check if user has a valid payment method
+    if (!buyer?.stripeCustomerId || !buyer?.paymentMethodId || !buyer?.isPaymentVerified) {
+      return res.status(403).json({
+        success: false,
+        message: "Please add a valid payment method before making an offer.",
+        redirectTo: `/${buyer?.userType || 'bidder'}/billing`,
+        errorCode: 'PAYMENT_METHOD_REQUIRED'
+      });
+    }
+
+    // Verify the payment method is still valid with Stripe
+    try {
+      const paymentMethod = await stripe.paymentMethods.retrieve(buyer.paymentMethodId);
+
+      // Check if payment method is still valid
+      if (paymentMethod.card?.checks?.cvc_check === 'fail' ||
+        paymentMethod.card?.checks?.address_line1_check === 'fail') {
+        console.warn(`User ${buyer._id} has a payment method with potential issues`);
+      }
+    } catch (error) {
+      console.error(`Payment method verification failed for user ${buyer._id}:`, error);
+      return res.status(403).json({
+        success: false,
+        message: "Your payment method is no longer valid. Please update your payment information.",
+        redirectTo: `/${buyer?.userType || 'bidder'}/billing`,
+        errorCode: 'PAYMENT_METHOD_INVALID'
+      });
+    }
+
+    // ✅ NEW: Verify the user has a valid Stripe customer
+    try {
+      await stripe.customers.retrieve(buyer.stripeCustomerId);
+    } catch (error) {
+      console.error(`Stripe customer not found for user ${buyer._id}:`, error);
+      return res.status(403).json({
+        success: false,
+        message: "Your payment setup is incomplete. Please add your payment method again.",
+        redirectTo: `/${buyer?.userType || 'bidder'}/billing`,
+        errorCode: 'STRIPE_CUSTOMER_INVALID'
+      });
+    }
+
+    // Your existing validations...
     if (!buyer?.isActive) {
       return res.status(400).json({
         success: false,
@@ -68,21 +114,12 @@ export const makeOffer = async (req, res) => {
       });
     }
 
-     // Validate auction status
     if (!buyer?.isVerified) {
       return res.status(400).json({
         success: false,
         message: `Account is not verified. Can't make an offer.`,
       });
     }
-
-    // Check if user is a bidder
-    // if (buyer.userType !== 'bidder') {
-    //   return res.status(403).json({
-    //     success: false,
-    //     message: 'Only bidders can make offers'
-    //   });
-    // }
 
     // Find auction
     const auction = await Auction.findById(id)
@@ -196,7 +233,7 @@ export const makeOffer = async (req, res) => {
       .populate("seller", "email username companyName firstName lastName");
 
     // --- Convert the auction prices to user's currency for response ---
-    const userCurrency = currency;   // use the currency the buyer provided
+    const userCurrency = currency;
     const auctionObj = updatedAuction.toObject();
     const convert = (value) => (value !== null && value !== undefined) ? value * rate : null;
 

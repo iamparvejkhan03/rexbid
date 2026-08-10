@@ -177,7 +177,7 @@ function Hero() {
                   Online auctions made simple. List your item, set your auction, and let buyers compete.
                 </p>
 
-                <p className="text-sm text-[#E8B86B]">🚀 Buy. Sell. Bid. With RexBid.</p>
+                <p className="text-sm text-[#E8B86B]">Free to list until 1st October. Buyers commission 3% on final sale price.</p>
               </div>
 
               {/* Enhanced Search Form with Category Dropdown */}

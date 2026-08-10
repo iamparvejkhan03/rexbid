@@ -224,7 +224,36 @@ function SingleAuction() {
                 toast.success('Bid placed successfully!');
             }
         } catch (error) {
-            toast.error(error?.response?.data?.message || 'Failed to place bid');
+            // ✅ NEW: Handle payment method required error
+            if (error?.response?.data?.errorCode === 'PAYMENT_METHOD_REQUIRED' ||
+                error?.response?.data?.errorCode === 'PAYMENT_METHOD_INVALID' ||
+                error?.response?.data?.errorCode === 'STRIPE_CUSTOMER_INVALID') {
+
+                const redirectUrl = error.response.data.redirectTo || `/${user.userType || 'bidder'}/billing`;
+
+                // Show a more prominent message
+                toast.error(
+                    (error) => (
+                        <div>
+                            <p className="font-medium">{error.response?.data?.message || 'Payment method required'}</p>
+                            {/* <button
+                                onClick={() => navigate(redirectUrl)}
+                                className="mt-2 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors"
+                            >
+                                Add Payment Method
+                            </button> */}
+                        </div>
+                    ),
+                    { duration: 10000 }
+                );
+
+                // Optionally redirect after a delay
+                setTimeout(() => {
+                    navigate(redirectUrl);
+                }, 1500);
+            } else {
+                toast.error(error?.response?.data?.message || 'Failed to place bid');
+            }
             console.error('Bid error:', error);
         } finally {
             setBidding(false);
@@ -342,7 +371,7 @@ function SingleAuction() {
 
     const handleMakeOffer = async (e) => {
         e.preventDefault();
-        if (makingOfferRef.current) return;   // ✅ blocks instantly
+        if (makingOfferRef.current) return;
         makingOfferRef.current = true;
 
         if (!user) {
@@ -396,9 +425,40 @@ function SingleAuction() {
                 setActiveTab('offers');
             }
         } catch (error) {
-            toast.error(error?.response?.data?.message || 'Failed to submit offer');
+            // Handle payment method required error
+            if (error?.response?.data?.errorCode === 'PAYMENT_METHOD_REQUIRED' ||
+                error?.response?.data?.errorCode === 'PAYMENT_METHOD_INVALID' ||
+                error?.response?.data?.errorCode === 'STRIPE_CUSTOMER_INVALID') {
+
+                const redirectUrl = error.response.data.redirectTo || `/${user?.userType || 'bidder'}/billing`;
+
+                // Show a more prominent message
+                toast.error(
+                    (error) => (
+                        <div>
+                            <p className="font-medium">{error.response?.data?.message || 'Payment method required'}</p>
+                            {/* <button
+                                onClick={() => navigate(redirectUrl)}
+                                className="mt-2 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors"
+                            >
+                                Add Payment Method
+                            </button> */}
+                        </div>
+                    ),
+                    { duration: 10000 }
+                );
+
+                // Optionally redirect after a delay
+                setTimeout(() => {
+                    navigate(redirectUrl);
+                }, 1500);
+            } else {
+                toast.error(error?.response?.data?.message || 'Failed to submit offer');
+            }
+            console.error('Offer error:', error);
         } finally {
             setMakingOffer(false);
+            makingOfferRef.current = false;
         }
     };
 
