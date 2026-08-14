@@ -47,10 +47,43 @@ app.use(compression());
 app.use(express.json({ limit: '16kb' }));
 app.use(express.urlencoded({ limit: '16kb' }));
 
-app.use(cors({
-    origin: ['https://www.rexbid.ie', 'https://rexbid.ie', 'https://rexbid-frontend.onrender.com', 'https://rexbid-backend.onrender.com', 'http://localhost:5173', 'http://localhost:3000'],
-    credentials: true,
-}));
+// app.use(cors({
+//     origin: ['https://www.rexbid.ie', 'https://rexbid.ie', 'https://rexbid-frontend.onrender.com', 'https://rexbid-backend.onrender.com', 'http://localhost:5173', 'http://localhost:3000'],
+//     credentials: true,
+// }));
+
+// 1. Define allowed origins
+const allowedOrigins = [
+    'https://www.rexbid.ie', 
+    'https://rexbid.ie', 
+    'https://rexbid-frontend.onrender.com', 
+    'https://rexbid-backend.onrender.com', 
+    'http://localhost:5173', 
+    'http://localhost:3000'
+];
+
+// 2. Custom middleware to handle CORS for ALL requests (including OPTIONS)
+app.use((req, res, next) => {
+    const origin = req.headers.origin;
+    
+    // If the origin is in our list, set the headers
+    if (allowedOrigins.includes(origin)) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+        res.setHeader('Access-Control-Allow-Credentials', 'true');
+        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
+    }
+
+    // Handle the preflight (OPTIONS) request immediately and stop further processing
+    if (req.method === 'OPTIONS') {
+        return res.sendStatus(200);
+    }
+
+    next();
+});
+
+// 3. (Optional but recommended) Explicitly tell Express to trust Render's proxy
+app.set('trust proxy', 1); 
 
 // Health check
 app.get('/api/v1/health', (req, res) => {
