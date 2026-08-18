@@ -49,7 +49,7 @@ function formatPhone(phone) {
 }
 
 const otherData = {
-    phone: '1618832737',
+    phone: '872039257',
     email: 'admin@rexbid.ie',
     address: 'Ireland',
     phoneCode: '+353',

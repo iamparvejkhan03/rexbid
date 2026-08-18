@@ -256,15 +256,12 @@ const BuyerAgreement = () => {
                                     </a>
                                 </p>
 
-                                {/* <p className="text-gray-700 text-sm">
+                                <p className="text-gray-700 text-sm">
                                     Phone:{" "}
-                                    <a
-                                        href={`tel:${phone}`}
-                                        className="text-blue-600 hover:underline"
-                                    >
-                                        {phone}
-                                    </a>
-                                </p> */}
+                                    <Link to={`tel:${otherData?.phoneCode}${otherData?.phone}`} className="hover:text-[#D19F3E] transition">
+                                        {otherData?.phoneCode} {otherData?.formatPhone(otherData?.phone)}
+                                    </Link>
+                                </p>
                             </div>
                         </div>
 

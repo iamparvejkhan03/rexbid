@@ -133,7 +133,7 @@ function Contact() {
                                     </Link>
                                 </div>
                             </div>
-                            {/* <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-4">
                                 <div className="w-10 h-10 rounded-full bg-[#D19F3E]/20 flex items-center justify-center">
                                     <Phone size={18} className="text-[#D19F3E]" />
                                 </div>
@@ -143,7 +143,7 @@ function Contact() {
                                         {otherData?.phoneCode} {otherData?.formatPhone(otherData?.phone)}
                                     </Link>
                                 </div>
-                            </div> */}
+                            </div>
                             <div className="flex items-center gap-4">
                                 <div className="w-10 h-10 rounded-full bg-[#D19F3E]/20 flex items-center justify-center">
                                     <MapPin size={18} className="text-[#D19F3E]" />

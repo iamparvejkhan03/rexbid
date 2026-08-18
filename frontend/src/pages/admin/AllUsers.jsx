@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { AdminContainer, AdminHeader, AdminSidebar, LoadingSpinner } from "../../components";
-import { Search, Filter, Mail, Phone, MapPin, Calendar, Award, Gavel, Shield, User, Edit, MoreVertical, UserX, Trash2, TrendingUp, Eye, Hand, Building, Home, Banknote, FileText, Download, CheckCircle, Clock, AlertCircle, RefreshCw, X } from "lucide-react";
+import { Search, Filter, Mail, Phone, MapPin, Calendar, Award, Gavel, Shield, User, Edit, MoreVertical, UserX, Trash2, TrendingUp, Eye, Hand, Building, Home, Banknote, FileText, Download, CheckCircle, Clock, AlertCircle, RefreshCw, X, DownloadCloud } from "lucide-react";
 import { about, dummyUserImg } from "../../assets";
 import toast from "react-hot-toast";
 import axiosInstance from "../../utils/axiosInstance";
 import { useAuth } from "../../contexts/AuthContext";
+import { Link } from "react-router-dom";
 
 function AllUsers() {
     const [users, setUsers] = useState([]);
@@ -390,7 +391,7 @@ function AllUsers() {
                                             <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
                                             <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
                                             <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
-                                            <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                            {/* <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th> */}
                                             <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID Verification</th>
                                             {/* <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Join Date</th> */}
                                             <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
@@ -424,11 +425,11 @@ function AllUsers() {
                                                     <div className="text-sm text-gray-900">{user.email}</div>
                                                     <div className="text-sm text-gray-500">{user.phone || 'No phone'}</div>
                                                 </td>
-                                                <td className="py-4 px-6">
+                                                {/* <td className="py-4 px-6">
                                                     {getStatusBadge(user.isActive)}
-                                                </td>
+                                                </td> */}
                                                 {/* Add this after the Status column */}
-                                                <td className="py-4 px-6">
+                                                <td className="py-4 px-6 flex gap-2 items-center">
                                                     {user.identificationDocument ? (
                                                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${user.identificationStatus === 'verified' ? 'bg-green-100 text-green-800' :
                                                             user.identificationStatus === 'pending' ? 'bg-yellow-100 text-yellow-800' :
@@ -444,6 +445,11 @@ function AllUsers() {
                                                         <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
                                                             No ID
                                                         </span>
+                                                    )}
+                                                    {user?.identificationDocument && user?.identificationDocument !== '' && (
+                                                        <a href={user.identificationDocument} target="_blank" title="View ID" rel="noopener noreferrer">
+                                                            <DownloadCloud size={20} className="cursor-pointer text-green-600" />
+                                                        </a>
                                                     )}
                                                 </td>
                                                 {/* <td className="py-4 px-6 text-sm text-gray-900">
@@ -559,7 +565,7 @@ function AllUsers() {
                         )}
                     </div>
 
-                     {/* ID Verification Modal */}
+                    {/* ID Verification Modal */}
                     {isIdVerificationModalOpen && selectedUserForVerification && (
                         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
                             <div className="bg-white rounded-xl shadow-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto">
@@ -652,9 +658,9 @@ function AllUsers() {
                                     <div className="mb-6">
                                         <h5 className="font-semibold text-gray-900 mb-2">Current Status</h5>
                                         <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full ${selectedUserForVerification.identificationStatus === 'verified' ? 'bg-green-100 text-green-800' :
-                                                selectedUserForVerification.identificationStatus === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                                                    selectedUserForVerification.identificationStatus === 'rejected' ? 'bg-red-100 text-red-800' :
-                                                        'bg-gray-100 text-gray-800'
+                                            selectedUserForVerification.identificationStatus === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                                selectedUserForVerification.identificationStatus === 'rejected' ? 'bg-red-100 text-red-800' :
+                                                    'bg-gray-100 text-gray-800'
                                             }`}>
                                             {selectedUserForVerification.identificationStatus === 'verified' && <CheckCircle size={16} />}
                                             {selectedUserForVerification.identificationStatus === 'pending' && <Clock size={16} />}
