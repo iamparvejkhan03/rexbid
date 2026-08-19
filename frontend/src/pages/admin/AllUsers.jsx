@@ -157,6 +157,13 @@ function AllUsers() {
         setRejectionReason('');
     };
 
+    // verify user handler
+    const userVerificationHandler = (user, e) => {
+        e.stopPropagation();
+        // Call handleVerifyUser directly with the user
+        handleVerifyUser(user);
+    };
+
     // Close ID verification modal
     const closeIdVerificationModal = () => {
         setIsIdVerificationModalOpen(false);
@@ -186,6 +193,35 @@ function AllUsers() {
         } catch (err) {
             console.error('Verification error:', err);
             toast.error(err.response?.data?.message || 'Failed to verify identity');
+        } finally {
+            setProcessingVerification(false);
+        }
+    };
+
+    // Handle verify user
+    const handleVerifyUser = async (userToVerify) => {
+        // Use the passed user instead of state
+        if (!userToVerify) {
+            toast.error('No user selected');
+            return;
+        }
+
+        setProcessingVerification(true);
+        try {
+            const { data } = await axiosInstance.patch(
+                `/api/v1/admin/users/${userToVerify._id}/verify`,
+                {
+                    notes: `Verified by admin on ${new Date().toLocaleString()}`
+                }
+            );
+
+            if (data.success) {
+                toast.success('User verified successfully');
+                fetchUsers(); // Refresh the list
+            }
+        } catch (err) {
+            console.error('Verification error:', err);
+            toast.error(err.response?.data?.message || 'Failed to verify user');
         } finally {
             setProcessingVerification(false);
         }
@@ -443,7 +479,7 @@ function AllUsers() {
                                                         </span>
                                                     ) : (
                                                         <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                                                            No ID
+                                                            {user?.isVerified ? 'Verified' : 'Not Verified'}
                                                         </span>
                                                     )}
                                                     {user?.identificationDocument && user?.identificationDocument !== '' && (
@@ -477,7 +513,7 @@ function AllUsers() {
                                                             {activeDropdown === user._id && (
                                                                 <div className="absolute right-0 top-full mt-1 w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-10 py-1">
                                                                     {/* Show Verify ID button only if user has uploaded a document and status is pending */}
-                                                                    {user.identificationDocument && user.identificationStatus === 'pending' && (
+                                                                    {/* {user.identificationDocument && user.identificationStatus === 'pending' && (
                                                                         <button
                                                                             onClick={(e) => {
                                                                                 openIdVerificationModal(user, e);
@@ -487,6 +523,19 @@ function AllUsers() {
                                                                         >
                                                                             <Shield size={16} />
                                                                             <span>Verify ID</span>
+                                                                        </button>
+                                                                    )} */}
+
+                                                                    {!user.isVerified && (
+                                                                        <button
+                                                                            onClick={(e) => {
+                                                                                userVerificationHandler(user, e);
+                                                                                setActiveDropdown(null);
+                                                                            }}
+                                                                            className="flex items-center gap-3 w-full px-4 py-2 text-sm text-blue-600 hover:bg-blue-50 transition-colors"
+                                                                        >
+                                                                            <Shield size={16} />
+                                                                            <span>Verify User</span>
                                                                         </button>
                                                                     )}
 

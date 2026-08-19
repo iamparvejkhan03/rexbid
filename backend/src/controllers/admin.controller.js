@@ -12,6 +12,7 @@ import {
 } from "../utils/cloudinary.js";
 
 import {
+  accountApprovedEmail,
   auctionApprovedEmail,
   auctionListedEmail,
   paymentCompletedEmail,
@@ -1012,14 +1013,18 @@ export const approveAuction = async (req, res) => {
         auction._id,
         auction.startDate,
       );
-      await auctionApprovedEmail(auction.seller, auction);
+      auctionApprovedEmail(auction.seller, auction).catch((error) =>
+        console.error("Failed to send auction approved email:", error),
+      );
     } else {
       // Activate immediately
       auction.status = "active";
 
       await auction.populate("seller", "email username companyName firstName lastName");
 
-      await auctionListedEmail(auction, auction.seller);
+      await auctionListedEmail(auction, auction.seller).catch((error) =>
+        console.error("Failed to send auction listed email:", error),
+      );
 
       // If end date is in past, end the auction
       if (auction.endDate <= now) {
@@ -1042,7 +1047,9 @@ export const approveAuction = async (req, res) => {
       isActive: true, // Only active users
     }).select("email username companyName firstName lastName preferences userType currency");
 
-    await sendBulkAuctionNotifications(bidders, auction, auction.seller);
+    sendBulkAuctionNotifications(bidders, auction, auction.seller).catch((error) =>
+      console.error("Failed to send bulk auction notifications email:", error),
+    );
   } catch (error) {
     console.error("Approve auction error:", error);
     res.status(500).json({
@@ -1240,6 +1247,10 @@ export const updateAuction = async (req, res) => {
       });
     }
 
+    // ========== FIX: Check if auction has no bids ==========
+    const hasNoBids = auction.bids.length === 0;
+    const parsedStartPrice = parseFloat(startPrice);
+
     // CHECK: If auction is sold, we'll reset everything
     const isSoldAuction =
       auction.status === "sold" || auction.status === "sold_buy_now";
@@ -1249,7 +1260,7 @@ export const updateAuction = async (req, res) => {
         // Reset all bidding/offers/winner data
         bids: [],
         offers: [],
-        currentPrice: parseFloat(startPrice),
+        currentPrice: parsedStartPrice,
         currentBidder: null,
         winner: null,
         finalPrice: null,
@@ -1295,6 +1306,13 @@ export const updateAuction = async (req, res) => {
       Object.assign(auction, resetData);
     }
 
+    // ========== FIX: Update currentPrice if no bids exist ==========
+    // If there are no bids and auction is not being reset as sold,
+    // update currentPrice to match the new startPrice
+    if (hasNoBids && !isSoldAuction) {
+      auction.currentPrice = parsedStartPrice;
+    }
+
     // Validate bid increment for standard and reserve auctions
     if (
       (auctionType === "standard" || auctionType === "reserve") &&
@@ -1308,7 +1326,7 @@ export const updateAuction = async (req, res) => {
 
     // Validate buy now price for buy_now auctions
     if (auctionType === "buy_now") {
-      if (!buyNowPrice || parseFloat(buyNowPrice) < parseFloat(startPrice)) {
+      if (!buyNowPrice || parseFloat(buyNowPrice) < parsedStartPrice) {
         return res.status(400).json({
           success: false,
           message:
@@ -1319,7 +1337,7 @@ export const updateAuction = async (req, res) => {
 
     // Validate reserve price for reserve auctions
     if (auctionType === "reserve") {
-      if (!reservePrice || parseFloat(reservePrice) < parseFloat(startPrice)) {
+      if (!reservePrice || parseFloat(reservePrice) < parsedStartPrice) {
         return res.status(400).json({
           success: false,
           message:
@@ -1876,7 +1894,9 @@ export const updateAuction = async (req, res) => {
       specifications: finalSpecifications,
       location: location || "",
       videoLink: videoLink || "",
-      startPrice: parseFloat(startPrice),
+      startPrice: parsedStartPrice,
+      // Only update currentPrice if no bids exist and auction is not being reset as sold
+      ...((hasNoBids && !isSoldAuction) && { currentPrice: parsedStartPrice }),
       auctionType,
       allowOffers: allowOffers === "true" || allowOffers === true,
       paymentCollectionPreference: paymentCollectionPreference || "buyer_decides",
@@ -1915,7 +1935,7 @@ export const updateAuction = async (req, res) => {
     if (isSoldAuction) {
       updateData.bids = [];
       updateData.offers = [];
-      updateData.currentPrice = parseFloat(startPrice);
+      updateData.currentPrice = parsedStartPrice;
       updateData.currentBidder = null;
       updateData.winner = null;
       updateData.finalPrice = null;
@@ -2274,6 +2294,11 @@ export const verifyUserIdentity = async (req, res) => {
 
     await user.save();
 
+    // Send approval email (fire and forget)
+    accountApprovedEmail(user).catch(err =>
+      console.error("Failed to send account approved email:", err)
+    );
+
     res.status(200).json({
       success: true,
       message: "User identity verified successfully",
@@ -2282,6 +2307,57 @@ export const verifyUserIdentity = async (req, res) => {
         name: `${user.firstName} ${user.lastName}`,
         email: user.email,
         identificationStatus: user.identificationStatus,
+        isVerified: user.isVerified,
+      },
+    });
+  } catch (error) {
+    console.error("Verification error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
+// Verify user
+export const verifyUser = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { notes } = req.body; // Optional admin notes
+
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    if (user.isVerified) {
+      return res.status(400).json({
+        success: false,
+        message: "User is already verified.",
+      });
+    }
+
+    // Update user verification status
+    user.isVerified = true;
+
+    await user.save();
+
+    // Send approval email (fire and forget)
+    accountApprovedEmail(user).catch(err =>
+      console.error("Failed to send account approved email:", err)
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "User verified successfully",
+      data: {
+        id: user._id,
+        name: `${user.firstName} ${user.lastName}`,
+        email: user.email,
         isVerified: user.isVerified,
       },
     });

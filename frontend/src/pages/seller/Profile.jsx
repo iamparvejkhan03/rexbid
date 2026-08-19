@@ -78,7 +78,7 @@ function Profile() {
                 localStorage.setItem('user', JSON.stringify(userInfo));
 
                 setUser(userInfo);
-                setActiveSection(data.data.user?.isVerified ? "personal" : "verification");
+                // setActiveSection(data.data.user?.isVerified ? "personal" : "verification");
             } else {
                 setError('Failed to fetch profile data');
             }

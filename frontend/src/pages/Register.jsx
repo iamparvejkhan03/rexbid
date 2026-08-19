@@ -275,11 +275,11 @@ const Register = () => {
 
     const onSubmit = async (registrationData) => {
         // Validate ID document
-        if (!identificationDocument) {
-            setIdVerificationError('Please upload an identification document');
-            toast.error('Identification document is required');
-            return;
-        }
+        // if (!identificationDocument) {
+        //     setIdVerificationError('Please upload an identification document');
+        //     toast.error('Identification document is required');
+        //     return;
+        // }
 
         setIsLoading(true);
 
@@ -929,7 +929,7 @@ const Register = () => {
                             </div>
 
                             {/* ID Verification Section */}
-                            <div id="id-verification-section" className="border-t border-gray-200 dark:border-bg-primary-light pt-6">
+                            {/* <div id="id-verification-section" className="border-t border-gray-200 dark:border-bg-primary-light pt-6">
                                 <h3 className="text-lg font-semibold text-text-primary dark:text-text-primary-dark mb-4">Identity Verification <span className='text-red-600'>*</span></h3>
                                 <p className="text-sm text-text-secondary dark:text-text-secondary-dark mb-4">
                                     Please upload a valid government-issued ID (Driver's License, Passport, or National ID Card)
@@ -1001,7 +1001,7 @@ const Register = () => {
                                         </p>
                                     </div>
                                 </div>
-                            </div>
+                            </div> */}
 
                             {/* Stripe Card Section for Bidders */}
                             {/* <CardSection /> */}

@@ -2447,6 +2447,79 @@ const giveawayWinnerEmail = async (winnerEmail, winnerName, listing) => {
     }
 };
 
+// ============================================
+// ACCOUNT APPROVED EMAIL (to user)
+// ============================================
+
+const accountApprovedEmail = async (user) => {
+    try {
+        const content = `
+            <h2 style="text-align: center;">✅ Account Approved</h2>
+            <p style="text-align: center;">Welcome to ${BRAND_NAME}, ${user.firstName || user.username}!</p>
+            
+            <p>We are pleased to inform you that your account has been <strong>approved</strong> by our team. You now have full access to all features of ${BRAND_NAME}.</p>
+            
+            ${createInfoCard(`
+                <p style="margin: 0 0 12px 0; font-size: 16px; font-weight: bold; color: ${BRAND_COLORS.secondary};">Your Approved Account Allows You To:</p>
+                
+                <div style="margin: 12px 0 0 0;">
+                    <div style="display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid ${BRAND_COLORS.grayBorder};">
+                        <span style="font-size: 20px;">🏷️</span>
+                        <span style="color: ${BRAND_COLORS.text};">Bid on auctions and compete for items</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px; padding: 8px 0;">
+                        <span style="font-size: 20px;">📤</span>
+                        <span style="color: ${BRAND_COLORS.text};">Upload your own auctions and start selling</span>
+                    </div>
+                </div>
+            `)}
+            
+            <p>You can now log in to your account and start exploring all the features ${BRAND_NAME} has to offer.</p>
+            
+            <div style="text-align: center; margin: 25px 0;">
+                ${createButton('Go to Dashboard', `${FRONTEND_URL}/${user?.userType || 'bidder'}/dashboard`, 'primary')}
+            </div>
+            
+            <div style="background: ${BRAND_COLORS.grayBg}; padding: 20px; border-radius: 8px; margin: 25px 0; border: 1px solid ${BRAND_COLORS.grayBorder};">
+                <p style="margin: 0 0 12px 0; font-weight: bold; color: ${BRAND_COLORS.secondary};">📞 Need Assistance?</p>
+                <p style="margin: 0 0 8px 0; color: ${BRAND_COLORS.text};">If you have any questions or need any assistance at any stage, just reach out to us:</p>
+                
+                <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid ${BRAND_COLORS.grayBorder};">
+                    <div style="display: flex; align-items: center; gap: 10px; padding: 4px 0;">
+                        <span style="font-weight: 600; color: ${BRAND_COLORS.secondary}; min-width: 50px;">Email:</span>
+                        <a href="mailto:admin@rexbid.ie" style="color: ${BRAND_COLORS.primary}; text-decoration: none;">admin@rexbid.ie</a>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px; padding: 4px 0;">
+                        <span style="font-weight: 600; color: ${BRAND_COLORS.secondary}; min-width: 50px;">Phone:</span>
+                        <span style="color: ${BRAND_COLORS.text};">087 203 9257 (Darren)</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="background: #f0fdf4; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid ${BRAND_COLORS.success};">
+                <p style="margin: 0; color: #166534; font-size: 14px;">
+                    <strong>🎉 Welcome aboard!</strong> We're excited to have you as part of the ${BRAND_NAME} community.
+                </p>
+            </div>
+        `;
+
+        const html = baseTemplate(content, 'Account Approved');
+        
+        const info = await transporter.sendMail({
+            from: `"${BRAND_NAME}" <${process.env.EMAIL_USER}>`,
+            to: user.email,
+            subject: `Account Approved - Welcome to ${BRAND_NAME}!`,
+            html
+        });
+
+        console.log(`✅ Account approval email sent to ${user.email}`);
+        return !!info;
+    } catch (error) {
+        console.error(`❌ Failed to send account approval email:`, error);
+        return false;
+    }
+};
+
 export {
     contactEmail, //done
     contactConfirmationEmail, //done
@@ -2484,4 +2557,5 @@ export {
     payoutFailedEmail, //24
     giveawayParticipationEmail,
     giveawayWinnerEmail,
+    accountApprovedEmail,
 };

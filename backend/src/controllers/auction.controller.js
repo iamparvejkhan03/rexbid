@@ -1090,6 +1090,16 @@ export const updateAuction = async (req, res) => {
       Object.assign(auction, resetData);
     }
 
+    // ========== FIX: Update currentPrice if no bids exist ==========
+    // Check if there are no bids on the auction
+    const hasNoBids = auction.bids.length === 0;
+
+    // If no bids, update currentPrice to match the new startPrice
+    // This handles both normal updates and ended auction resets
+    if (hasNoBids) {
+      auction.currentPrice = parseFloat(startPrice);
+    }
+
     // Validate bid increment for standard and reserve auctions
     if (
       (auctionType === "standard" || auctionType === "reserve") &&
@@ -1602,6 +1612,8 @@ export const updateAuction = async (req, res) => {
       location,
       videoLink,
       startPrice: parseFloat(startPrice),
+      // Only set currentPrice if no bids exist
+      ...(hasNoBids && { currentPrice: parseFloat(startPrice) }),
       auctionType,
       allowOffers: allowOffers === "true" || allowOffers === true,
       paymentCollectionPreference: paymentCollectionPreference || "buyer_decides",
