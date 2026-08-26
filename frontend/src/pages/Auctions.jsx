@@ -388,8 +388,8 @@ function Auctions() {
         priceMin: "",
         priceMax: "",
         location: "",
-        sortBy: "createdAt",
-        sortOrder: "desc",
+        sortBy: "endDate-asc",
+        sortOrder: "asc",
         auctionType: "",
         allowOffers: "",
         isFeatured: ""
@@ -608,8 +608,8 @@ function Auctions() {
             priceMin: "",
             priceMax: "",
             location: "",
-            sortBy: "createdAt",
-            sortOrder: "desc",
+            sortBy: "endDate-asc",
+            sortOrder: "asc",
             auctionType: "",
             allowOffers: "",
             isFeatured: "",
@@ -640,9 +640,9 @@ function Auctions() {
     };
 
     const sortOptions = [
+        { value: "endDate-asc", label: "Ending Soonest" },
         { value: "createdAt-desc", label: "Newest First" },
         { value: "createdAt-asc", label: "Oldest First" },
-        { value: "endDate-asc", label: "Ending Soonest" },
         { value: "currentPrice-desc", label: "Price: High to Low" },
         { value: "currentPrice-asc", label: "Price: Low to High" },
         { value: "bidCount-desc", label: "Most Bids" }

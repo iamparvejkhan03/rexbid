@@ -13,7 +13,7 @@ const navLinks = [
         href: '/'
     },
     {
-        name: 'About',
+        name: 'How RexBid Works',
         href: '/about'
     },
     // {

@@ -19,8 +19,8 @@ export const useAuctions = () => {
         priceMin: '',
         priceMax: '',
         location: '',
-        sortBy: 'createdAt',
-        sortOrder: 'desc',
+        sortBy: 'endDate',
+        sortOrder: 'asc',
         currency: `${userCurrency}`,
         isFeatured: '',
         auctionType: '',
@@ -125,8 +125,8 @@ export const useAuctions = () => {
             location: searchParams.get('location') || '',
             auctionType: searchParams.get('auctionType') || '',
             allowOffers: searchParams.get('allowOffers') || '',
-            sortBy: searchParams.get('sortBy') || 'createdAt',
-            sortOrder: searchParams.get('sortOrder') || 'desc'
+            sortBy: searchParams.get('sortBy') || 'endDate',
+            sortOrder: searchParams.get('sortOrder') || 'asc'
         };
 
         // Clean empty values

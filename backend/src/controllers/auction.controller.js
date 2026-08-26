@@ -409,8 +409,8 @@ export const getAuctions = async (req, res) => {
       categories, // NEW - array of categories
       status,
       search,
-      sortBy = "createdAt",
-      sortOrder = "desc",
+      sortBy = "endDate-asc",
+      sortOrder = "asc",
       currency,
       isFeatured,
       // Auction filters

@@ -189,6 +189,83 @@ function About() {
                 </Container>
             </div>
 
+            <div
+                ref={expertiseRef}
+                data-section="expertise"
+                className={`pt-14 md:pt-14 transition-all duration-700 delay-300 ${expertiseVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
+                    }`}
+            >
+                <Container>
+                    <h2 className="text-3xl md:text-4xl font-bold text-primary">
+                        How <span className="relative inline-block">
+                            <span className="relative z-10 text-transparent bg-clip-text bg-gradient-to-r from-[#D19F3E] to-[#E8B86B]">
+                                RexBid
+                            </span>
+                            <svg className="absolute -bottom-3 left-0 w-full" height="12" viewBox="0 0 200 12" fill="none">
+                                <path d="M2 9.5C50 4.5 130 2.5 198 9.5" stroke="#D19F3E" strokeWidth="2.5" strokeLinecap="round" strokeDasharray="4 6" />
+                            </svg>
+                        </span> Works
+                    </h2>
+                    <p className="text-sm md:text-base text-gray-500 mt-3 mb-6">
+                        RexBid makes buying and selling simple through online auctions. Whether you’re selling machinery, vehicles or other assets, RexBid gives you the tools to reach more buyers and run your own auction.
+                    </p>
+                    {/* Two columns on medium screens and up */}
+                    <div className="flex flex-col md:flex-col gap-8 md:gap-12">
+                        {/* Left column – Selling */}
+                        <div className="flex-1">
+                            <h2 className="text-2xl text-center md:text-2xl font-bold text-primary mb-10">
+                                <span className="relative inline-block">
+                                    <span className="relative z-10 text-transparent bg-clip-text bg-gradient-to-r from-[#D19F3E] to-[#E8B86B]">
+                                        For Sellers
+                                    </span>
+                                    <svg className="absolute -bottom-3 left-0 w-full" height="12" viewBox="0 0 200 12" fill="none">
+                                        <path d="M2 9.5C50 4.5 130 2.5 198 9.5" stroke="#D19F3E" strokeWidth="2.5" strokeLinecap="round" strokeDasharray="4 6" />
+                                    </svg>
+                                </span>
+                            </h2>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-5 gap-y-10">
+                                {HowItWorksSelling.map((howItWork, i) => (
+                                    <HowItWorksCard
+                                        key={howItWork.title}
+                                        index={i}
+                                        icon={howItWork.icon}
+                                        title={howItWork.title}
+                                        description={howItWork.description}
+                                    />
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Right column – Buying */}
+                        <div className="flex-1">
+                            <h2 className="text-2xl text-center md:text-2xl font-bold text-primary mb-10">
+                                <span className="relative inline-block">
+                                    <span className="relative z-10 text-transparent bg-clip-text bg-gradient-to-r from-[#D19F3E] to-[#E8B86B]">
+                                        For Buyers
+                                    </span>
+                                    <svg className="absolute -bottom-3 left-0 w-full" height="12" viewBox="0 0 200 12" fill="none">
+                                        <path d="M2 9.5C50 4.5 130 2.5 198 9.5" stroke="#D19F3E" strokeWidth="2.5" strokeLinecap="round" strokeDasharray="4 6" />
+                                    </svg>
+                                </span>
+                            </h2>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-5 gap-y-10">
+                                {HowItWorksBuying.map((howItWork, i) => (
+                                    <HowItWorksCard
+                                        key={howItWork.title}
+                                        index={i}
+                                        icon={howItWork.icon}
+                                        title={howItWork.title}
+                                        description={howItWork.description}
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </Container>
+            </div>
+
             {/* COMPANY INTRO */}
             <div
                 ref={introRef}
@@ -322,83 +399,6 @@ function About() {
                     </div>
                 </Container>
             </div> */}
-
-            <div
-                ref={expertiseRef}
-                data-section="expertise"
-                className={`py-14 md:py-14 transition-all duration-700 delay-300 ${expertiseVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
-                    }`}
-            >
-                <Container>
-                    <h2 className="text-3xl md:text-4xl font-bold text-primary">
-                        How <span className="relative inline-block">
-                            <span className="relative z-10 text-transparent bg-clip-text bg-gradient-to-r from-[#D19F3E] to-[#E8B86B]">
-                                RexBid
-                            </span>
-                            <svg className="absolute -bottom-3 left-0 w-full" height="12" viewBox="0 0 200 12" fill="none">
-                                <path d="M2 9.5C50 4.5 130 2.5 198 9.5" stroke="#D19F3E" strokeWidth="2.5" strokeLinecap="round" strokeDasharray="4 6" />
-                            </svg>
-                        </span> Works
-                    </h2>
-                    <p className="text-sm md:text-base text-gray-500 mt-3 mb-6">
-                        RexBid makes buying and selling simple through online auctions. Whether you’re selling machinery, vehicles or other assets, RexBid gives you the tools to reach more buyers and run your own auction.
-                    </p>
-                    {/* Two columns on medium screens and up */}
-                    <div className="flex flex-col md:flex-col gap-8 md:gap-12">
-                        {/* Left column – Selling */}
-                        <div className="flex-1">
-                            <h2 className="text-2xl text-center md:text-2xl font-bold text-primary mb-10">
-                                <span className="relative inline-block">
-                                    <span className="relative z-10 text-transparent bg-clip-text bg-gradient-to-r from-[#D19F3E] to-[#E8B86B]">
-                                        For Sellers
-                                    </span>
-                                    <svg className="absolute -bottom-3 left-0 w-full" height="12" viewBox="0 0 200 12" fill="none">
-                                        <path d="M2 9.5C50 4.5 130 2.5 198 9.5" stroke="#D19F3E" strokeWidth="2.5" strokeLinecap="round" strokeDasharray="4 6" />
-                                    </svg>
-                                </span>
-                            </h2>
-
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-5 gap-y-10">
-                                {HowItWorksSelling.map((howItWork, i) => (
-                                    <HowItWorksCard
-                                        key={howItWork.title}
-                                        index={i}
-                                        icon={howItWork.icon}
-                                        title={howItWork.title}
-                                        description={howItWork.description}
-                                    />
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* Right column – Buying */}
-                        <div className="flex-1">
-                            <h2 className="text-2xl text-center md:text-2xl font-bold text-primary mb-10">
-                                <span className="relative inline-block">
-                                    <span className="relative z-10 text-transparent bg-clip-text bg-gradient-to-r from-[#D19F3E] to-[#E8B86B]">
-                                        For Buyers
-                                    </span>
-                                    <svg className="absolute -bottom-3 left-0 w-full" height="12" viewBox="0 0 200 12" fill="none">
-                                        <path d="M2 9.5C50 4.5 130 2.5 198 9.5" stroke="#D19F3E" strokeWidth="2.5" strokeLinecap="round" strokeDasharray="4 6" />
-                                    </svg>
-                                </span>
-                            </h2>
-
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-5 gap-y-10">
-                                {HowItWorksBuying.map((howItWork, i) => (
-                                    <HowItWorksCard
-                                        key={howItWork.title}
-                                        index={i}
-                                        icon={howItWork.icon}
-                                        title={howItWork.title}
-                                        description={howItWork.description}
-                                    />
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                </Container>
-            </div>
 
             {/* FEATURES SECTION */}
             <div
