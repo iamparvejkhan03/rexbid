@@ -191,121 +191,121 @@ class AgendaService {
     });
 
     // Job to send notifications for auctions ending soon
-    this.agenda.define("send ending soon notifications", async (job) => {
-      try {
-        const now = new Date();
+    // this.agenda.define("send ending soon notifications", async (job) => {
+    //   try {
+    //     const now = new Date();
 
-        // Define multiple time thresholds
-        const thirtyMinutesFromNow = new Date(now.getTime() + 30 * 60 * 1000);
-        const twoHoursFromNow = new Date(now.getTime() + 2 * 60 * 60 * 1000);
-        const twentyFourHoursFromNow = new Date(
-          now.getTime() + 24 * 60 * 60 * 1000,
-        );
+    //     // Define multiple time thresholds
+    //     const thirtyMinutesFromNow = new Date(now.getTime() + 30 * 60 * 1000);
+    //     const twoHoursFromNow = new Date(now.getTime() + 2 * 60 * 60 * 1000);
+    //     const twentyFourHoursFromNow = new Date(
+    //       now.getTime() + 24 * 60 * 60 * 1000,
+    //     );
 
-        // Find auctions ending within our thresholds that haven't had notifications sent yet
-        const endingSoonAuctions = await Auction.find({
-          status: "active",
-          $or: [
-            {
-              // Ending in exactly 30 minutes (±15 minutes window)
-              endDate: {
-                $lte: thirtyMinutesFromNow,
-                $gte: new Date(now.getTime() + 15 * 60 * 1000), // 15 minutes from now
-              },
-              "notifications.ending30min": { $ne: true }, // Not sent yet
-            },
-            {
-              // Ending in exactly 2 hours (±15 minutes window)
-              endDate: {
-                $lte: twoHoursFromNow,
-                $gte: new Date(now.getTime() + 105 * 60 * 1000), // 1 hour 45 minutes from now
-              },
-              "notifications.ending2hour": { $ne: true }, // Not sent yet
-            },
-            {
-              // Ending in exactly 24 hours (±15 minutes window)
-              endDate: {
-                $lte: twentyFourHoursFromNow,
-                $gte: new Date(now.getTime() + 1425 * 60 * 1000), // 23 hours 45 minutes from now
-              },
-              "notifications.ending24hour": { $ne: true }, // Not sent yet
-            },
-          ],
-        }).populate("seller", "email username companyName preferences userType currency"); // Populate seller to exclude them
+    //     // Find auctions ending within our thresholds that haven't had notifications sent yet
+    //     const endingSoonAuctions = await Auction.find({
+    //       status: "active",
+    //       $or: [
+    //         {
+    //           // Ending in exactly 30 minutes (±15 minutes window)
+    //           endDate: {
+    //             $lte: thirtyMinutesFromNow,
+    //             $gte: new Date(now.getTime() + 15 * 60 * 1000), // 15 minutes from now
+    //           },
+    //           "notifications.ending30min": { $ne: true }, // Not sent yet
+    //         },
+    //         {
+    //           // Ending in exactly 2 hours (±15 minutes window)
+    //           endDate: {
+    //             $lte: twoHoursFromNow,
+    //             $gte: new Date(now.getTime() + 105 * 60 * 1000), // 1 hour 45 minutes from now
+    //           },
+    //           "notifications.ending2hour": { $ne: true }, // Not sent yet
+    //         },
+    //         {
+    //           // Ending in exactly 24 hours (±15 minutes window)
+    //           endDate: {
+    //             $lte: twentyFourHoursFromNow,
+    //             $gte: new Date(now.getTime() + 1425 * 60 * 1000), // 23 hours 45 minutes from now
+    //           },
+    //           "notifications.ending24hour": { $ne: true }, // Not sent yet
+    //         },
+    //       ],
+    //     }).populate("seller", "email username companyName preferences userType currency"); // Populate seller to exclude them
 
-        for (const auction of endingSoonAuctions) {
-          // Calculate exact time remaining for this auction
-          const timeRemaining = auction.endDate - now;
-          const minutesRemaining = Math.ceil(timeRemaining / (60 * 1000));
+    //     for (const auction of endingSoonAuctions) {
+    //       // Calculate exact time remaining for this auction
+    //       const timeRemaining = auction.endDate - now;
+    //       const minutesRemaining = Math.ceil(timeRemaining / (60 * 1000));
 
-          // Determine which notification threshold this auction falls into
-          let notificationType, timeLabel;
+    //       // Determine which notification threshold this auction falls into
+    //       let notificationType, timeLabel;
 
-          if (minutesRemaining <= 45 && minutesRemaining >= 15) {
-            // 30-minute notification window (30 minutes ±15 minutes)
-            notificationType = "ending30min";
-            timeLabel = "30 minutes";
-          } else if (minutesRemaining <= 135 && minutesRemaining >= 105) {
-            // 2-hour notification window (2 hours ±15 minutes)
-            notificationType = "ending2hour";
-            timeLabel = "2 hours";
-          } else if (minutesRemaining <= 1455 && minutesRemaining >= 1425) {
-            // 24-hour notification window (24 hours ±15 minutes)
-            notificationType = "ending24hour";
-            timeLabel = "24 hours";
-          } else {
-            // Skip if not in any precise notification window
-            continue;
-          }
+    //       if (minutesRemaining <= 45 && minutesRemaining >= 15) {
+    //         // 30-minute notification window (30 minutes ±15 minutes)
+    //         notificationType = "ending30min";
+    //         timeLabel = "30 minutes";
+    //       } else if (minutesRemaining <= 135 && minutesRemaining >= 105) {
+    //         // 2-hour notification window (2 hours ±15 minutes)
+    //         notificationType = "ending2hour";
+    //         timeLabel = "2 hours";
+    //       } else if (minutesRemaining <= 1455 && minutesRemaining >= 1425) {
+    //         // 24-hour notification window (24 hours ±15 minutes)
+    //         notificationType = "ending24hour";
+    //         timeLabel = "24 hours";
+    //       } else {
+    //         // Skip if not in any precise notification window
+    //         continue;
+    //       }
 
-          // Find ALL users who should receive notifications (excluding auction seller, admins, and opted-out users)
-          const allUsers = await User.find({
-            _id: { $ne: auction.seller._id }, // Exclude auction owner
-            userType: { $nin: ["admin", "seller", "broker"] }, // Exclude admin, seller, and broker users
-            "preferences.bidAlerts": { $ne: false }, // Exclude users who opted out
-            isActive: true, // Only active users
-          }).select("email username companyName preferences userType");
+    //       // Find ALL users who should receive notifications (excluding auction seller, admins, and opted-out users)
+    //       const allUsers = await User.find({
+    //         _id: { $ne: auction.seller._id }, // Exclude auction owner
+    //         userType: { $nin: ["admin", "seller", "broker"] }, // Exclude admin, seller, and broker users
+    //         "preferences.bidAlerts": { $ne: false }, // Exclude users who opted out
+    //         isActive: true, // Only active users
+    //       }).select("email username companyName preferences userType");
 
-          // Send to each user
-          for (const user of allUsers) {
-            try {
-              await auctionEndingSoonEmail(
-                user.email,
-                user.username || user.companyName || '',
-                auction,
-                timeLabel,
-              );
-              console.log(
-                `✅ Sent ${timeLabel} notification to ${user.email} (${user.userType}) for auction ${auction.title}`,
-              );
-            } catch (error) {
-              console.error(
-                `Failed to send ending soon email to ${user.email}:`,
-                error,
-              );
-            }
-          }
+    //       // Send to each user
+    //       for (const user of allUsers) {
+    //         try {
+    //           await auctionEndingSoonEmail(
+    //             user.email,
+    //             user.username || user.companyName || '',
+    //             auction,
+    //             timeLabel,
+    //           );
+    //           console.log(
+    //             `✅ Sent ${timeLabel} notification to ${user.email} (${user.userType}) for auction ${auction.title}`,
+    //           );
+    //         } catch (error) {
+    //           console.error(
+    //             `Failed to send ending soon email to ${user.email}:`,
+    //             error,
+    //           );
+    //         }
+    //       }
 
-          // Mark this notification as sent in the auction document
-          await Auction.findByIdAndUpdate(auction._id, {
-            $set: {
-              [`notifications.${notificationType}`]: true,
-              [`notifications.${notificationType}SentAt`]: new Date(),
-            },
-          });
+    //       // Mark this notification as sent in the auction document
+    //       await Auction.findByIdAndUpdate(auction._id, {
+    //         $set: {
+    //           [`notifications.${notificationType}`]: true,
+    //           [`notifications.${notificationType}SentAt`]: new Date(),
+    //         },
+    //       });
 
-          console.log(
-            `📧 Sent ${timeLabel} notifications for auction "${auction.title}" to ${allUsers.length} users`,
-          );
-        }
+    //       console.log(
+    //         `📧 Sent ${timeLabel} notifications for auction "${auction.title}" to ${allUsers.length} users`,
+    //       );
+    //     }
 
-        console.log(
-          `📧 Completed ending soon notifications for ${endingSoonAuctions.length} auctions`,
-        );
-      } catch (error) {
-        console.error("Agenda job error (ending soon notifications):", error);
-      }
-    });
+    //     console.log(
+    //       `📧 Completed ending soon notifications for ${endingSoonAuctions.length} auctions`,
+    //     );
+    //   } catch (error) {
+    //     console.error("Agenda job error (ending soon notifications):", error);
+    //   }
+    // });
   }
 
   // Schedule auction activation job

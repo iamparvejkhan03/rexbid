@@ -952,8 +952,8 @@ function SingleAuction() {
                                                 type="number"
                                                 value={bidAmount}
                                                 onChange={(e) => setBidAmount(e.target.value)}
-                                                className="py-3 px-5 w-full rounded-lg focus:outline-2 focus:outline-primary"
-                                                placeholder={`Bid ${userCurrency === 'GBP' ? '£' : '€'}${auction.bidCount > 0 ? minBidAmount?.toFixed(2) : auction.convertedStartPrice?.toFixed(2)} or higher`}
+                                                className="py-3 px-5 w-full border-2 border-gray-400 rounded-lg focus:outline-2 focus:outline-primary"
+                                                placeholder={`Enter your bid amount (${userCurrency === 'GBP' ? '£' : '€'}${auction.bidCount > 0 ? minBidAmount?.toFixed(2) : auction.convertedStartPrice?.toFixed(2)} or higher)`}
                                                 min={minBidAmount?.toFixed(2)}
                                             />
                                             <button
