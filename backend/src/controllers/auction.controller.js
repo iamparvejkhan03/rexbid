@@ -409,7 +409,7 @@ export const getAuctions = async (req, res) => {
       categories, // NEW - array of categories
       status,
       search,
-      sortBy = "endDate-asc",
+      sortBy = "endDate",
       sortOrder = "asc",
       currency,
       isFeatured,
@@ -489,7 +489,18 @@ export const getAuctions = async (req, res) => {
 
     // Sort options
     const sortOptions = {};
-    sortOptions[sortBy] = sortOrder === "desc" ? -1 : 1;
+    // Handle the case where sortBy might come as "endDate-asc" from URL
+    let actualSortBy = sortBy;
+    let actualSortOrder = sortOrder;
+
+    // Check if sortBy contains a dash (from old URL format)
+    if (sortBy.includes('-')) {
+      const [field, order] = sortBy.split('-');
+      actualSortBy = field;
+      actualSortOrder = order;
+    }
+
+    sortOptions[actualSortBy] = actualSortOrder === "desc" ? -1 : 1;
 
     // Calculate pagination
     const skip = (parseInt(page) - 1) * parseInt(limit);

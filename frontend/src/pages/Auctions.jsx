@@ -608,7 +608,7 @@ function Auctions() {
             priceMin: "",
             priceMax: "",
             location: "",
-            sortBy: "endDate-asc",
+            sortBy: "endDate",
             sortOrder: "asc",
             auctionType: "",
             allowOffers: "",
