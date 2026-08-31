@@ -95,7 +95,7 @@ const BidConfirmationModal = forwardRef((props, ref) => {
                                 </td>
                             </tr>
                             {isCommissionEnabled && commissionAppliesTo?.includes('bidder') && <tr>
-                                <td className="text-gray-600">Service Fee:</td>
+                                <td className="text-gray-600">Commission Fee:</td>
                                 <td className="text-right text-gray-900">
                                     {formatCurrency(serviceFee)}
                                 </td>
