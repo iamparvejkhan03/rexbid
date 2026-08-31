@@ -1047,9 +1047,9 @@ export const approveAuction = async (req, res) => {
       isActive: true, // Only active users
     }).select("email username companyName firstName lastName preferences userType currency");
 
-    sendBulkAuctionNotifications(bidders, auction, auction.seller).catch((error) =>
-      console.error("Failed to send bulk auction notifications email:", error),
-    );
+    // sendBulkAuctionNotifications(bidders, auction, auction.seller).catch((error) =>
+    //   console.error("Failed to send bulk auction notifications email:", error),
+    // );
   } catch (error) {
     console.error("Approve auction error:", error);
     res.status(500).json({

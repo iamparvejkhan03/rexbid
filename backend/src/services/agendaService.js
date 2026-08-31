@@ -52,7 +52,7 @@ class AgendaService {
           }).select("email username companyName firstName preferences userType");
 
           // Send bulk notifications
-          await sendBulkAuctionNotifications(allUsers, auction, auction.seller);
+          // await sendBulkAuctionNotifications(allUsers, auction, auction.seller);
 
           // console.log(`✅ Agenda: Activated auction ${auctionId}`);
         }
