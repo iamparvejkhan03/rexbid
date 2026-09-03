@@ -406,7 +406,11 @@ const Register = () => {
                     ? '/company/dashboard'
                     : '/bidder/dashboard';
 
-            navigate(redirectPath);
+           // Track successful registration in Meta Pixel
+if (typeof window.fbq === 'function') {
+  window.fbq('track', 'CompleteRegistration');
+}
+        navigate(redirectPath);
             toast.success(data.message);
 
         } catch (error) {
