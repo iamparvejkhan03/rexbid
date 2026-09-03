@@ -191,10 +191,10 @@ function AuctionListItem({ auction }) {
                     </div>
                     
                     {/* Views counter */}
-                    <div className="absolute bottom-2 right-2 bg-black/70 text-white px-1.5 py-0.5 rounded-full text-[10px] flex items-center gap-1 sm:hidden">
+                    {/* <div className="absolute bottom-2 right-2 bg-black/70 text-white px-1.5 py-0.5 rounded-full text-[10px] flex items-center gap-1 sm:hidden">
                         <Eye size={10} />
                         {auction.views?.toLocaleString() || 0}
-                    </div>
+                    </div> */}
                 </div>
 
                 {/* Content - Mobile: full width, Desktop: flex-1 */}
@@ -277,10 +277,10 @@ function AuctionListItem({ auction }) {
                     </div>
                     
                     {/* Views - Desktop only */}
-                    <div className="hidden sm:flex items-center gap-1 text-xs text-gray-500">
+                    {/* <div className="hidden sm:flex items-center gap-1 text-xs text-gray-500">
                         <Eye size={12} />
                         <span>{auction.views?.toLocaleString() || 0} views</span>
-                    </div>
+                    </div> */}
                 </div>
 
                 {/* Actions */}

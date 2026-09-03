@@ -140,7 +140,7 @@ function Profile() {
                 formData.append('street', userData.address.street || '');
                 formData.append('city', userData.address.city || '');
                 formData.append('state', userData.address.state || '');
-                formData.append('zipCode', userData.address.zipCode || '');
+                formData.append('postCode', userData.address.postCode || '');
                 formData.append('country', userData.address.country || '');
             }
 
@@ -644,7 +644,7 @@ function Profile() {
                                             />
                                         </div>
                                         <div className="space-y-1">
-                                            <label className="block text-sm font-medium text-secondary">Post Code</label>
+                                            <label className="block text-sm font-medium text-secondary">Post/EIR Code</label>
                                             <input
                                                 type="text"
                                                 value={userData.address?.postCode || ''}

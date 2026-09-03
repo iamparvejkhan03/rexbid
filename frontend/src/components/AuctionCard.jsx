@@ -202,10 +202,10 @@ function AuctionCard({ auction }) {
                 )}
 
                 {/* Views Counter */}
-                <div className="absolute top-3 right-3 bg-black/70 text-white px-2 py-1 rounded-full text-xs flex items-center gap-1">
+                {/* <div className="absolute top-3 right-3 bg-black/70 text-white px-2 py-1 rounded-full text-xs flex items-center gap-1">
                     <Eye size={12} />
                     {auction.views?.toLocaleString() || 0}
-                </div>
+                </div> */}
             </div>
 
             {/* Content Section */}

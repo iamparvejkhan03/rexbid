@@ -1886,9 +1886,14 @@ export const placeBid = async (req, res) => {
       ...new Set(auction.bids.map((bid) => bid.bidder.toString())),
     ];
 
+    // Store old end date before bidding
+    const oldEndDate = auction.endDate;
+
     // Place bid using the model method
     await auction.placeBid(bidder._id, bidder.username || bidder.companyName, amountInBase);
-    // await auction.placeBid(bidder._id, bidder.username, parseFloat(amount));
+
+    // Check if time was extended (anti-sniping)
+    const extended = auction.endDate > oldEndDate;
 
     // Populate the updated auction
     await auction.populate("currentBidder", "username companyName firstName lastname email");
@@ -1926,6 +1931,7 @@ export const placeBid = async (req, res) => {
           convertedFinalPrice,
           displayCurrency: userCurrency,
         },
+        extended,
       },
     });
 

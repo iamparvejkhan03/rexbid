@@ -1,16 +1,28 @@
 const TimerDisplay = ({ countdown, auction, userCurrency }) => {
+    // Helper to format date/time nicely
+    const formatDateTime = (date) => {
+        if (!date) return '';
+        return date.toLocaleString('en-GB', {
+            weekday: 'long',
+            day: 'numeric',
+            month: 'long',
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true,
+        });
+    };
+
     // ALWAYS AVAILABLE AUCTIONS (Buy Now & Giveaway)
     if (auction?.auctionType === 'buy_now' || auction?.auctionType === 'giveaway') {
         if (auction.winner) {
             return (
                 <div className="text-center py-8">
-                    <div className={`text-lg font-semibold mb-2 ${
-                        auction.auctionType === 'buy_now' ? 'text-green-600' : 'text-purple-600'
-                    }`}>
+                    <div className={`text-lg font-semibold mb-2 ${auction.auctionType === 'buy_now' ? 'text-green-600' : 'text-purple-600'
+                        }`}>
                         {auction.auctionType === 'buy_now' ? '💰 Item Purchased' : '🎁 Giveaway Claimed'}
                     </div>
                     <div className="text-xl font-bold text-gray-700">
-                        {auction.auctionType === 'buy_now' 
+                        {auction.auctionType === 'buy_now'
                             ? `Sold for ${userCurrency === 'GBP' ? '£' : '€'}${auction.convertedFinalPrice?.toFixed(2).toLocaleString() || auction.convertedBuyNowPrice?.toFixed(2).toLocaleString()}`
                             : `Claimed by: ${auction.winner.username}`
                         }
@@ -18,17 +30,16 @@ const TimerDisplay = ({ countdown, auction, userCurrency }) => {
                 </div>
             );
         }
-        
+
         // Active - show appropriate message
         return (
             <div className="text-center py-8">
-                <div className={`text-lg font-semibold mb-2 ${
-                    auction.auctionType === 'buy_now' ? 'text-green-600' : 'text-purple-600'
-                }`}>
+                <div className={`text-lg font-semibold mb-2 ${auction.auctionType === 'buy_now' ? 'text-green-600' : 'text-purple-600'
+                    }`}>
                     {auction.auctionType === 'buy_now' ? '💰 Buy Now Available' : '🎁 Giveaway'}
                 </div>
                 <div className="text-md text-gray-600">
-                    {auction.auctionType === 'buy_now' 
+                    {auction.auctionType === 'buy_now'
                         ? `Available until purchased`
                         : 'No bidding required. Just fill your email and phone number to participate.'
                     }
@@ -60,9 +71,16 @@ const TimerDisplay = ({ countdown, auction, userCurrency }) => {
                         <span className="text-sm sm:text-base font-light">Seconds</span>
                     </p>
                 </div>
+
+                {/* 👇 Show start date/time */}
+                {auction?.startDate && (
+                    <p className="text-sm text-gray-500 mt-3">
+                        Starts: {formatDateTime(new Date(auction.startDate))}
+                    </p>
+                )}
             </div>
         );
-    } 
+    }
 
     if (countdown.status === 'counting-down') {
         return (
@@ -86,6 +104,13 @@ const TimerDisplay = ({ countdown, auction, userCurrency }) => {
                         <span className="text-sm sm:text-base font-light">Seconds</span>
                     </p>
                 </div>
+
+                {/* 👇 Show end date/time */}
+                {auction?.endDate && (
+                    <p className="text-sm text-gray-500 mt-3">
+                        Ends: {formatDateTime(new Date(auction.endDate))}
+                    </p>
+                )}
             </div>
         );
     }

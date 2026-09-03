@@ -669,7 +669,7 @@ function Profile() {
                                             />
                                         </div>
                                         <div className="space-y-1">
-                                            <label className="block text-sm font-medium text-secondary">ZIP/Postal Code</label>
+                                            <label className="block text-sm font-medium text-secondary">Post/EIR Code</label>
                                             <input
                                                 type="text"
                                                 value={userData.address?.postCode || ''}

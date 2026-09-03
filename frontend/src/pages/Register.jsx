@@ -842,26 +842,6 @@ const Register = () => {
                                         </div>
                                     </div>
 
-                                    {/* Street field */}
-                                    <div className="md:col-span-1">
-                                        <div className={`${errors.street && 'mb-3'}`}>
-                                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                                Street <span className='text-red-600'>*</span>
-                                            </label>
-                                            <input
-                                                type="text"
-                                                {...register('street', {
-                                                    required: 'Street is required'
-                                                })}
-                                                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                                                placeholder="Street address"
-                                            />
-                                            {errors.street && (
-                                                <p className="text-red-500 text-sm mt-1 absolute">{errors.street.message}</p>
-                                            )}
-                                        </div>
-                                    </div>
-
                                     {/* City field */}
                                     <div className={`${errors.city && 'mb-3'}`}>
                                         <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -883,12 +863,12 @@ const Register = () => {
                                     {/* Post Code field */}
                                     <div className={`${errors.postCode && 'mb-3'}`}>
                                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                                            Post Code <span className='text-red-600'>*</span>
+                                            Post/EIR Code <span className='text-red-600'>*</span>
                                         </label>
                                         <input
                                             type="text"
                                             {...register('postCode', {
-                                                required: 'Post code is required'
+                                                required: 'Post/EIR code is required'
                                             })}
                                             className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                                             placeholder="Postal code"
@@ -896,6 +876,26 @@ const Register = () => {
                                         {errors.postCode && (
                                             <p className="text-red-500 text-sm mt-1 absolute">{errors.postCode.message}</p>
                                         )}
+                                    </div>
+
+                                    {/* Street field */}
+                                    <div className="md:col-span-2">
+                                        <div className={`${errors.street && 'mb-3'}`}>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                Street <span className='text-red-600'>*</span>
+                                            </label>
+                                            <input
+                                                type="text"
+                                                {...register('street', {
+                                                    required: 'Street is required'
+                                                })}
+                                                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                                                placeholder="Street address"
+                                            />
+                                            {errors.street && (
+                                                <p className="text-red-500 text-sm mt-1 absolute">{errors.street.message}</p>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             </div>

@@ -59,7 +59,7 @@ export const updateProfile = async (req, res) => {
       street,
       city,
       state,
-      zipCode,
+      postCode,
       country,
     } = req.body;
 
@@ -73,12 +73,12 @@ export const updateProfile = async (req, res) => {
     };
 
     // Handle address fields if provided
-    if (street || city || state || zipCode || country) {
+    if (street || city || state || postCode || country) {
       updateData.address = {
         ...(street && { street }),
         ...(city && { city }),
         ...(state && { state }),
-        ...(zipCode && { zipCode }),
+        ...(postCode && { postCode }),
         ...(country && { country }),
       };
     }

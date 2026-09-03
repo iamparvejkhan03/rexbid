@@ -517,11 +517,11 @@ auctionSchema.methods.placeBid = async function (
   this.bidCount += 1;
   this.lastBidTime = now;
 
-  // Auto-extend if bidding near end time (last 5 minutes)
+  // Auto-extend if bidding near end time (last 1 minute)
   if (this.autoExtend) {
     const timeRemaining = this.endDate - now;
     if (timeRemaining < 2 * 60 * 1000) {
-      const newEndDate = new Date(this.endDate.getTime() + 2 * 60 * 1000);
+      const newEndDate = new Date(this.endDate.getTime() + 1 * 60 * 1000);
       this.endDate = newEndDate;
       await agendaService.cancelAuctionJobs(this._id);
       await agendaService.scheduleAuctionEnd(this._id, newEndDate);

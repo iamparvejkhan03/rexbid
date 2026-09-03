@@ -49,6 +49,7 @@ function SingleAuction() {
     const makingOfferRef = useRef(false);
     // Pilot phase
     const [isPilotModalOpen, setIsPilotModalOpen] = useState(false);
+    const timeRemaining = auction?.endDate ? new Date(auction.endDate) - new Date() : 0;
 
     const userCurrency = user?.currency || 'EUR';
 
@@ -222,6 +223,15 @@ function SingleAuction() {
                 setAuction(data.data.auction);
                 setBidAmount('');
                 toast.success('Bid placed successfully!');
+
+                // Show anti-sniping message if the auction time was extended
+                if (data.data.extended) {
+                    toast.success('Anti-sniping: Your bid extended the auction by 1 minute!', {
+                        duration: 5000,
+                        position: 'bottom-center',
+                        icon: '⏳',
+                    });
+                }
             }
         } catch (error) {
             // ✅ NEW: Handle payment method required error
@@ -801,6 +811,56 @@ function SingleAuction() {
                                     </p>
                                 </div>
 
+                                {auction.auctionType === 'reserve' && timeRemaining > 0 && timeRemaining > 6 * 60 * 60 * 1000 && (
+                                    <p className={`${auction.convertedCurrentPrice >= auction.reservePrice ? 'text-green-600 bg-green-100' : 'text-orange-600 bg-orange-100'} flex items-start self-start text-xs font-medium px-4 py-2 rounded-md`}>
+                                        {auction.convertedCurrentPrice >= auction.reservePrice ? 'Reserve Met' : 'Reserve Not Met'}
+                                    </p>
+                                )}
+
+                                {/* ----- RESERVE PROGRESS INDICATOR (only in last 6h) ----- */}
+                                {auction.auctionType === 'reserve' &&
+                                    auction.status === 'active' &&
+                                    countdown.status === 'counting-down' &&
+                                    timeRemaining > 0 &&                    // still active
+                                    timeRemaining < 6 * 60 * 60 * 1000 &&   // last 6 hours
+                                    auction.reservePrice > auction.startPrice &&
+                                    auction.bidCount > 0 &&                 // optional: only show if there's at least one bid
+                                    (
+                                        <div className="mt-2 border-t pt-3">
+                                            <div className="flex justify-between items-center mb-1">
+                                                <span className="text-sm text-secondary">Reserve Progress</span>
+                                                <span className="text-xs font-medium">
+                                                    {auction.convertedCurrentPrice >= auction.convertedReservePrice
+                                                        ? '✅ Met'
+                                                        : '⏳ Not met'}
+                                                </span>
+                                            </div>
+
+                                            <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
+                                                <div
+                                                    className={`h-2.5 rounded-full transition-all duration-500 ${auction.convertedCurrentPrice >= auction.convertedReservePrice
+                                                            ? 'bg-green-500'
+                                                            : 'bg-orange-400'
+                                                        }`}
+                                                    style={{
+                                                        width: `${Math.min(
+                                                            100,
+                                                            ((auction.convertedCurrentPrice - auction.convertedStartPrice) /
+                                                                (auction.convertedReservePrice - auction.convertedStartPrice)) *
+                                                            100
+                                                        )}%`,
+                                                    }}
+                                                />
+                                            </div>
+
+                                            <p className="text-xs text-secondary mt-1">
+                                                {auction.convertedCurrentPrice >= auction.convertedReservePrice
+                                                    ? 'Reserve has been met!'
+                                                    : 'Reserve not yet met – keep bidding!'}
+                                            </p>
+                                        </div>
+                                    )}
+
                                 <p className="flex w-full justify-between border-b pb-2">
                                     <span className="text-secondary">Starting Bid</span>
                                     <span className="font-medium">{userCurrency === 'GBP' ? '£' : '€'}{auction.convertedStartPrice?.toFixed(2).toLocaleString()}</span>
@@ -863,12 +923,6 @@ function SingleAuction() {
                             </p>
                         )
                     }
-
-                    {auction.auctionType === 'reserve' && (
-                        <p className={`${auction.convertedCurrentPrice >= auction.reservePrice ? 'text-green-600' : 'text-orange-600'}`}>
-                            {auction.convertedCurrentPrice >= auction.reservePrice ? 'Reserve Met' : 'Reserve Not Met'}
-                        </p>
-                    )}
 
                     {/* Buy Now Price Display */}
                     {(auction.auctionType === 'buy_now' && auction.convertedBuyNowPrice) && (
@@ -1142,10 +1196,10 @@ function SingleAuction() {
                         </p>
                     )}
 
-                    <p className="text-center bg-white p-3 text-secondary text-sm flex items-center justify-center gap-2 border border-gray-200 rounded-lg">
+                    {/* <p className="text-center bg-white p-3 text-secondary text-sm flex items-center justify-center gap-2 border border-gray-200 rounded-lg">
                         <ShieldCheck className="w-4 h-4" />
                         <span>{auction.views} views</span>
-                    </p>
+                    </p> */}
 
                     {/* Pending Offers Count */}
                     {auction.offers && auction.offers.filter(o => o.status === 'pending').length > 0 && (
