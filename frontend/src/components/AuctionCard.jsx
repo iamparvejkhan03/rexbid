@@ -124,6 +124,19 @@ function AuctionCard({ auction }) {
 
     const statusBadges = getStatusBadges();
 
+    // Inside AuctionCard or a shared utils file
+    const formatDateTime = (date) => {
+        if (!date) return '';
+        return date.toLocaleString('en-GB', {
+            weekday: 'short',    // e.g., "Mon"
+            day: 'numeric',
+            month: 'short',      // e.g., "Dec"
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true,
+        });
+    };
+
     if (!auctionTime) return (
         <div className="border border-gray-200 p-4 h-full bg-white rounded-xl shadow-lg animate-pulse">
             <div className="w-full h-56 bg-gray-200 rounded-tr-3xl rounded-bl-3xl mb-4"></div>
@@ -175,29 +188,39 @@ function AuctionCard({ auction }) {
                     })}
                 </div>
 
-                {/* Countdown Timer */}
+                {/* Countdown Timer & Date */}
                 {auction.auctionType !== 'buy_now' && auction.auctionType !== 'giveaway' && (
-                    <div className="bg-white/90 absolute bottom-3 left-3 right-3 py-2 px-4 rounded-lg flex items-center justify-center gap-1 text-sm">
-                        {!auctionTime.completed ? (
-                            <>
-                                <Clock size={14} />
-                                {!auctionTime.completed ? (
-                                    <>
-                                        <span>{auctionTime.days}D</span>
-                                        <span>:</span>
-                                        <span>{auctionTime.hours}H</span>
-                                        <span>:</span>
-                                        <span>{auctionTime.minutes}M</span>
-                                        <span>:</span>
-                                        <span>{auctionTime.seconds}S</span>
-                                    </>
-                                ) : (
-                                    <span>Auction Ended!</span>
-                                )}
-                            </>
-                        ) : (
-                            <span className="font-medium text-red-600">Auction Ended</span>
-                        )}
+                    <div className="absolute bottom-3 left-3 right-3 bg-white/90 rounded-lg px-3 py-2">
+                        {/* Timer row */}
+                        <div className="flex items-center justify-center gap-1 text-sm">
+                            <Clock size={14} className="flex-shrink-0" />
+                            {!auctionTime.completed ? (
+                                <>
+                                    <span>{auctionTime.days}D</span>
+                                    <span>:</span>
+                                    <span>{auctionTime.hours}H</span>
+                                    <span>:</span>
+                                    <span>{auctionTime.minutes}M</span>
+                                    <span>:</span>
+                                    <span>{auctionTime.seconds}S</span>
+                                </>
+                            ) : (
+                                <span className="font-medium text-red-600">Auction Ended</span>
+                            )}
+                        </div>
+
+                        {/* Start / End date line */}
+                        <div className="text-[12px] text-gray-600 text-center mt-0.5 leading-tight">
+                            {auction.status === 'approved' && auction.startDate && (
+                                <>Starts: {formatDateTime(new Date(auction.startDate))}</>
+                            )}
+                            {auction.status === 'active' && auction.endDate && (
+                                <>Ends: {formatDateTime(new Date(auction.endDate))}</>
+                            )}
+                            {auction.status === 'ended' && auction.endDate && (
+                                <>Ended: {formatDateTime(new Date(auction.endDate))}</>
+                            )}
+                        </div>
                     </div>
                 )}
 

@@ -852,12 +852,6 @@ function SingleAuction() {
                                                     }}
                                                 />
                                             </div>
-
-                                            <p className="text-xs text-secondary mt-1">
-                                                {auction.convertedCurrentPrice >= auction.convertedReservePrice
-                                                    ? 'Reserve has been met!'
-                                                    : 'Reserve not yet met – keep bidding!'}
-                                            </p>
                                         </div>
                                     )}
 
