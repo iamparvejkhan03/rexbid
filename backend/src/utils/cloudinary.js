@@ -151,20 +151,22 @@ import {
 import { Upload } from "@aws-sdk/lib-storage";
 import path from "path";
 import { r2Client, BUCKET_NAME } from "./r2Client.js";
+// NEW: import file-type to detect MIME from buffer
+import { fileTypeFromBuffer } from 'file-type';
 
 // Get custom domain from environment variables
 const R2_PUBLIC_URL =
     process.env.R2_PUBLIC_URL ||
     `https://${BUCKET_NAME}.${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`;
 
-// Configure R2 client with actual connection test
+// ------------------------------
+// 1. Configuration check
+// ------------------------------
 export const configureR2 = async () => {
     try {
-        // Test the connection by checking if your specific bucket exists and is accessible
         const command = new HeadBucketCommand({
             Bucket: BUCKET_NAME,
         });
-
         await r2Client.send(command);
         console.log("✅ R2 configured successfully");
         return true;
@@ -174,9 +176,18 @@ export const configureR2 = async () => {
     }
 };
 
-// Helper function to determine content type
-const getContentType = (filename) => {
-    const ext = path.extname(filename).toLowerCase();
+// ------------------------------
+// 2. Helper: get correct Content-Type from buffer (fallback to extension)
+// ------------------------------
+const getContentTypeFromBuffer = async (buffer, originalName) => {
+    // First, try to detect from the actual file bytes (most reliable)
+    const detected = await fileTypeFromBuffer(buffer);
+    if (detected) {
+        return detected.mime;
+    }
+
+    // Fallback to extension-based mapping
+    const ext = path.extname(originalName).toLowerCase();
     const mimeTypes = {
         ".jpg": "image/jpeg",
         ".jpeg": "image/jpeg",
@@ -186,21 +197,29 @@ const getContentType = (filename) => {
         ".svg": "image/svg+xml",
         ".pdf": "application/pdf",
         ".doc": "application/msword",
-        ".docx":
-            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         ".txt": "text/plain",
     };
     return mimeTypes[ext] || "application/octet-stream";
 };
 
+// ------------------------------
+// 3. Upload functions (all corrected)
+// ------------------------------
+
 // Upload images (photos)
 export const uploadImageToR2 = async (buffer, folder = 'auction-photos', originalName = 'image.jpg') => {
     try {
-        const extension = path.extname(originalName);
-        const originalNameWithoutExt = path.parse(originalName).name;
-        const key = `${folder}/${originalNameWithoutExt}-${Date.now()}${extension}`;
-        const contentType = getContentType(originalName);
+        // Get correct MIME from buffer
+        const contentType = await getContentTypeFromBuffer(buffer, originalName);
 
+        // Sanitize filename: replace anything not alnum, hyphen, underscore with dash
+        const extension = path.extname(originalName);
+        const nameWithoutExt = path.parse(originalName).name;
+        const sanitizedName = nameWithoutExt.replace(/[^a-zA-Z0-9-_]/g, '-');
+        const key = `${folder}/${sanitizedName}-${Date.now()}${extension}`;
+
+        // Upload with proper Content-Type and force inline display
         const upload = new Upload({
             client: r2Client,
             params: {
@@ -208,14 +227,19 @@ export const uploadImageToR2 = async (buffer, folder = 'auction-photos', origina
                 Key: key,
                 Body: buffer,
                 ContentType: contentType,
+                ContentDisposition: 'inline',   // prevents download prompt
             },
         });
 
-        const result = await upload.done();
+        await upload.done();
+
+        // Encode URL path to handle spaces/special characters
+        const encodedKey = key.split('/').map(encodeURIComponent).join('/');
+        const secureUrl = `${R2_PUBLIC_URL}/${encodedKey}`;
 
         return {
-            secure_url: `${R2_PUBLIC_URL}/${key}`,
-            public_id: key,
+            secure_url: secureUrl,
+            public_id: key,      // keep original key for deletion
             format: extension.replace('.', ''),
             bytes: buffer.length,
         };
@@ -232,10 +256,14 @@ export const uploadDocumentToR2 = async (
     folder = "auction-documents",
 ) => {
     try {
-        const originalNameWithoutExt = path.parse(originalName).name;
+        // Get correct MIME from buffer
+        const contentType = await getContentTypeFromBuffer(buffer, originalName);
+
+        // Sanitize filename
         const extension = path.extname(originalName);
-        const key = `${folder}/${originalNameWithoutExt}-${Date.now()}${extension}`;
-        const contentType = getContentType(originalName);
+        const nameWithoutExt = path.parse(originalName).name;
+        const sanitizedName = nameWithoutExt.replace(/[^a-zA-Z0-9-_]/g, '-');
+        const key = `${folder}/${sanitizedName}-${Date.now()}${extension}`;
 
         const upload = new Upload({
             client: r2Client,
@@ -244,15 +272,20 @@ export const uploadDocumentToR2 = async (
                 Key: key,
                 Body: buffer,
                 ContentType: contentType,
+                ContentDisposition: 'inline',   // optional but safe
             },
         });
 
-        const result = await upload.done();
+        await upload.done();
+
+        // Encode URL
+        const encodedKey = key.split('/').map(encodeURIComponent).join('/');
+        const secureUrl = `${R2_PUBLIC_URL}/${encodedKey}`;
 
         console.log("✅ Document uploaded successfully:", key);
 
         return {
-            secure_url: `${R2_PUBLIC_URL}/${key}`,
+            secure_url: secureUrl,
             public_id: key,
             format: extension.replace(".", ""),
             bytes: buffer.length,
@@ -266,20 +299,20 @@ export const uploadDocumentToR2 = async (
 // Generic upload function that auto-detects file type
 export const uploadToR2 = async (buffer, originalName, folder = "auctions") => {
     try {
+        // Determine if it's an image (for resource_type field only)
         const fileExtension = path.extname(originalName).toLowerCase();
         const isImage = [
-            ".jpg",
-            ".jpeg",
-            ".png",
-            ".gif",
-            ".bmp",
-            ".webp",
-            ".svg",
+            ".jpg", ".jpeg", ".png", ".gif",
+            ".bmp", ".webp", ".svg"
         ].includes(fileExtension);
 
-        const originalNameWithoutExt = path.parse(originalName).name;
-        const key = `${folder}/${originalNameWithoutExt}-${Date.now()}${fileExtension}`;
-        const contentType = getContentType(originalName);
+        // Correct MIME from buffer
+        const contentType = await getContentTypeFromBuffer(buffer, originalName);
+
+        // Sanitize filename
+        const nameWithoutExt = path.parse(originalName).name;
+        const sanitizedName = nameWithoutExt.replace(/[^a-zA-Z0-9-_]/g, '-');
+        const key = `${folder}/${sanitizedName}-${Date.now()}${fileExtension}`;
 
         const upload = new Upload({
             client: r2Client,
@@ -288,13 +321,18 @@ export const uploadToR2 = async (buffer, originalName, folder = "auctions") => {
                 Key: key,
                 Body: buffer,
                 ContentType: contentType,
+                ContentDisposition: 'inline',
             },
         });
 
-        const result = await upload.done();
+        await upload.done();
+
+        // Encode URL
+        const encodedKey = key.split('/').map(encodeURIComponent).join('/');
+        const secureUrl = `${R2_PUBLIC_URL}/${encodedKey}`;
 
         return {
-            secure_url: `${R2_PUBLIC_URL}/${key}`,
+            secure_url: secureUrl,
             public_id: key,
             format: fileExtension.replace(".", ""),
             bytes: buffer.length,
@@ -306,23 +344,23 @@ export const uploadToR2 = async (buffer, originalName, folder = "auctions") => {
     }
 };
 
-// Delete from R2
+// ------------------------------
+// 4. Delete functions (unchanged)
+// ------------------------------
 export const deleteFromR2 = async (publicId, resourceType = "image") => {
     try {
         const command = new DeleteObjectCommand({
             Bucket: BUCKET_NAME,
             Key: publicId,
         });
-
-        const result = await r2Client.send(command);
-        return { result: "ok" }; // Simulate Cloudinary response
+        await r2Client.send(command);
+        return { result: "ok" };
     } catch (error) {
         console.error("Error deleting from R2:", error);
         throw error;
     }
 };
 
-// Delete multiple files
 export const deleteMultipleFromR2 = async (
     publicIds,
     resourceType = "image",

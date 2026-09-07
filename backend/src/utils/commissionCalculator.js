@@ -26,7 +26,7 @@ export const calculateCommission = async (finalPrice, isFeatured = false) => {
 
     // Base commission (could be 0 if disabled or not applicable)
     let baseCommission = 0;
-    if (settings && settings.isEnabled && settings.appliesTo?.includes('seller')) {
+    if (settings && settings.isEnabled) {
       if (settings.commissionValue !== 0) {
         if (settings.commissionType === "fixed") {
           baseCommission = settings.commissionValue;
@@ -44,6 +44,19 @@ export const calculateCommission = async (finalPrice, isFeatured = false) => {
     }
 
     const totalCommission = baseCommission + featuredPremium;
+
+    console.log("COMMISSION DEBUG:", {
+      finalPrice,
+      isFeatured,
+      settings,
+      commissionType: settings?.commissionType,
+      commissionValue: settings?.commissionValue,
+      isEnabled: settings?.isEnabled,
+      baseCommission,
+      featuredPremium,
+      totalCommission,
+      calculatedAmount: Math.round(totalCommission * 100) / 100
+    });
 
     return {
       commissionType: settings?.commissionType || null,

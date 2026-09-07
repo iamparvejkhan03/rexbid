@@ -123,15 +123,24 @@ export const registerUser = async (req, res) => {
 
     if (identificationDocumentFile) {
       const isImage = identificationDocumentFile.mimetype.startsWith('image/');
-      const uploadFn = isImage
-        ? uploadImageToCloudinary
-        : uploadDocumentToCloudinary;
 
-      const uploadResult = await uploadFn(
-        identificationDocumentFile.buffer,
-        isImage ? undefined : identificationDocumentFile.originalname,
-        'identification-documents'
-      );
+      let uploadResult;
+      if (isImage) {
+        // For images: (buffer, folder) → originalName uses default 'image.jpg'
+        uploadResult = await uploadImageToCloudinary(
+          identificationDocumentFile.buffer,
+          'identification-documents'  // This is the FOLDER
+          // No third argument → uses default 'image.jpg' → has .jpg extension!
+        );
+      } else {
+        // For documents: (buffer, originalName, folder)
+        uploadResult = await uploadDocumentToCloudinary(
+          identificationDocumentFile.buffer,
+          identificationDocumentFile.originalname,
+          'identification-documents'
+        );
+      }
+
       identificationDocumentUrl = uploadResult.secure_url;
       identificationDocumentPublicId = uploadResult.public_id;
     }

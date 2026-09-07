@@ -150,7 +150,7 @@ function Hero() {
 
               {/* Headline - Bold and dynamic */}
               <div className="space-y-5">
-                <h1 className="text-4xl lg:text-5xl xl:text-5xl font-bold text-white leading-tight tracking-tight">
+                <h1 className="text-4xl lg:text-5xl xl:text-6xl font-bold text-white leading-tight tracking-tight">
                   The Easier Way to {" "}
                   <span className="relative inline-block">
                     <span className="relative z-10 text-transparent bg-clip-text bg-gradient-to-r from-[#D19F3E] to-[#E8B86B]">
@@ -178,7 +178,7 @@ function Hero() {
                   List your machine. Reach buyers across Ireland. Let them compete for it.
                 </p>
 
-                <p className="text-sm text-[#E8B86B]">Free to list until 1st October. Buyers commission 3% on final sale price.</p>
+                <p className="text-sm md:text-base text-[#E8B86B]">Free to list until 1st October. Buyers commission 3% on final sale price.</p>
               </div>
 
               {/* Enhanced Search Form with Category Dropdown */}
@@ -217,19 +217,19 @@ function Hero() {
                   </div>
                 </div> */}
 
-                <div className="flex items-center justify-start gap-5">
-                  <Link to="/sell" className="bg-gradient-to-r from-[#D19F3E] to-[#E8B86B] text-[#072342] py-2 px-10 rounded-md font-medium transition duration-200 flex items-center gap-2 group relative text-sm md:text-base hover:bg-pure-white/95">
+                <div className="flex flex-col sm:flex-row items-center justify-start gap-5">
+                  <Link to="/sell" className="bg-gradient-to-r from-[#D19F3E] to-[#E8B86B] text-[#072342] py-2 px-10 rounded-md font-medium transition duration-200 flex justify-center items-center gap-2 group relative text-sm md:text-base hover:bg-pure-white/95 w-full sm:w-auto">
                     Sell Now
                     <SquareArrowOutUpRight size={18} />
                   </Link>
 
-                  <Link to="/auctions" className="text-black bg-white py-2 px-10 rounded-md font-medium transition duration-200 flex items-center gap-2 group relative text-sm md:text-base hover:bg-pure-white/95">
+                  <Link to="/auctions" className="text-black bg-white py-2 px-10 rounded-md font-medium transition duration-200 flex items-center justify-center gap-2 group relative text-sm md:text-base hover:bg-pure-white/95 w-full sm:w-auto text-center">
                     Browse Machinery
                     <Search size={18} />
                   </Link>
                 </div>
 
-                <ul className="text-base text-gray-300 leading-relaxed max-w-lg">
+                <ul className="text-base md:text-lg text-gray-300 leading-relaxed max-w-lg">
                   <li>✔ No endless calls or haggling</li>
                   <li>✔ Set your own reserve</li>
                   <li>✔ Buyers compete on price</li>

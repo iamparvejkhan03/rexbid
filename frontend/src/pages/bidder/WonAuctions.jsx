@@ -44,6 +44,7 @@ function WonAuctions() {
         averageSavings: 0,
         recentWins: 0,
     });
+    console.log(auctions)
 
     const { user: currentUser } = useAuth();
     const userCurrency = currentUser?.currency || 'EUR';

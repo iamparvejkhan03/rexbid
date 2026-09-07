@@ -11,6 +11,7 @@ import {
     uploadDocumentToCloudinary,
     deleteFromCloudinary,
 } from "../utils/cloudinary.js";
+import { getCommissionSettings } from "../utils/commissionCalculator.js";
 
 // Get seller payout methods
 export const getPayoutMethods = async (req, res) => {
@@ -532,13 +533,16 @@ export const getPendingPayouts = async (req, res) => {
             existingPayouts.map((p) => p.auction.toString()),
         );
 
+        const settings = await getCommissionSettings();
+
         // Filter auctions that need payout
         const pendingPayouts = soldAuctions
             .filter((auction) => !processedAuctionIds.has(auction._id.toString()))
             .map((auction) => {
                 const totalAmount = auction.finalPrice || auction.currentPrice || 0;
                 const commissionAmount = auction.commissionAmount || 0;
-                const sellerAmount = totalAmount - commissionAmount;
+                const sellerPaysCommission = settings?.isEnabled && settings?.appliesTo?.includes('seller');
+                const sellerAmount = sellerPaysCommission ? totalAmount - commissionAmount : totalAmount;
 
                 // Get seller's default payout method
                 const seller = auction.seller || {};
@@ -674,10 +678,13 @@ export const initiatePayout = async (req, res) => {
             });
         }
 
+        const settings = await getCommissionSettings();
+
         // Calculate amounts
         const totalAmount = auction.finalPrice || auction.currentPrice || 0;
         const commissionAmount = auction.commissionAmount || 0;
-        const sellerAmount = totalAmount - commissionAmount;
+        const sellerPaysCommission = settings?.isEnabled && settings?.appliesTo?.includes('seller');
+        const sellerAmount = sellerPaysCommission ? totalAmount - commissionAmount : totalAmount;
 
         // Create payout record
         const payout = await Payout.create({

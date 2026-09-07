@@ -1034,8 +1034,8 @@ const Register = () => {
                                     )}
 
                                     <div className="flex items-start gap-2 p-3 bg-blue-50 dark:bg-bg-primary-light rounded-lg">
-                                        <AlertCircle size={20} className="text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
-                                        <p className="text-xs text-blue-700 dark:text-blue-300">
+                                        <AlertCircle size={20} className="text-blue-600 dark:text-blue-600 flex-shrink-0 mt-0.5" />
+                                        <p className="text-xs text-blue-700 dark:text-blue-600">
                                             Your ID will be securely stored and verified. We use this to prevent fraud and ensure platform safety.
                                             {userType === 'seller' && ' Sellers require ID verification to list items.'}
                                         </p>
