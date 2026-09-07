@@ -1947,12 +1947,11 @@ export const placeBid = async (req, res) => {
         previousHighestBidder.toString() !== bidder._id.toString()
       ) {
         sendOutbidNotifications(
-          auction,
-          previousHighestBidder,
-          previousBidders,
-          bidder._id.toString(),
-          amount,
-          userCurrency
+          auction,               
+          previousBidders,        
+          bidder._id.toString(),  
+          amount,                
+          userCurrency            
         ).catch((err) => {
           console.error('Failed to send outbid notifications:', err);
         });

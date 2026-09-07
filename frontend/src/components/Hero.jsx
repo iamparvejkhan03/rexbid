@@ -134,7 +134,7 @@ function Hero() {
       <div className="absolute bottom-20 -right-32 w-96 h-96 bg-[#D19F3E] rounded-full mix-blend-overlay filter blur-3xl opacity-10 animate-pulse delay-1000" />
 
       <Container>
-        <div className="relative z-10 pt-28 pb-14 lg:pt-40 lg:pb-20">
+        <div className="relative z-10 pt-28 pb-16 lg:pt-40 lg:pb-20">
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-start">
             {/* Left Column - Main Content */}
             <div className="space-y-5 md:space-y-8">

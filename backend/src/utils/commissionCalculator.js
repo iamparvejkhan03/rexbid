@@ -45,19 +45,6 @@ export const calculateCommission = async (finalPrice, isFeatured = false) => {
 
     const totalCommission = baseCommission + featuredPremium;
 
-    console.log("COMMISSION DEBUG:", {
-      finalPrice,
-      isFeatured,
-      settings,
-      commissionType: settings?.commissionType,
-      commissionValue: settings?.commissionValue,
-      isEnabled: settings?.isEnabled,
-      baseCommission,
-      featuredPremium,
-      totalCommission,
-      calculatedAmount: Math.round(totalCommission * 100) / 100
-    });
-
     return {
       commissionType: settings?.commissionType || null,
       commissionValue: settings?.commissionValue || 0,
