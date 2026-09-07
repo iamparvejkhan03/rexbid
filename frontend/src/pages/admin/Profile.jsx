@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import axiosInstance from "../../utils/axiosInstance";
 import { useAuth } from "../../contexts/AuthContext";
+import toast from "react-hot-toast";
 
 // Default preferences
 const defaultPreferences = {
@@ -94,10 +95,11 @@ function Profile() {
 
             // Add address if it exists
             if (userData.address) {
-                formData.append('street', userData.address.street || '');
-                formData.append('city', userData.address.city || '');
+                formData.append('line1', userData.address.line1 || '');
+                formData.append('line2', userData.address.line2 || '');
+                formData.append('county', userData.address.county || '');
                 formData.append('state', userData.address.state || '');
-                formData.append('zipCode', userData.address.zipCode || '');
+                formData.append('postCode', userData.address.postCode || '');
                 formData.append('country', userData.address.country || '');
             }
 
@@ -141,7 +143,7 @@ function Profile() {
                 setIsEditing(false);
                 setImagePreview(null);
                 setImageFile(null);
-                // You can add a toast notification here
+                toast.success('Profile updated successfully.')
             }
         } catch (err) {
             setError('Failed to update profile');
@@ -476,47 +478,7 @@ function Profile() {
 
                                 {/* Address Section */}
                                 {activeSection === "address" && (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                        <div className="md:col-span-2 space-y-1">
-                                            <label className="block text-sm font-medium text-secondary">Street Address</label>
-                                            <input
-                                                type="text"
-                                                value={userData.address?.street || ''}
-                                                onChange={(e) => handleInputChange('address.street', e.target.value)}
-                                                disabled={!isEditing}
-                                                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent disabled:bg-gray-100"
-                                            />
-                                        </div>
-                                        <div className="space-y-1">
-                                            <label className="block text-sm font-medium text-secondary">City</label>
-                                            <input
-                                                type="text"
-                                                value={userData.address?.city || ''}
-                                                onChange={(e) => handleInputChange('address.city', e.target.value)}
-                                                disabled={!isEditing}
-                                                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent disabled:bg-gray-100"
-                                            />
-                                        </div>
-                                        <div className="space-y-1">
-                                            <label className="block text-sm font-medium text-secondary">State/Province</label>
-                                            <input
-                                                type="text"
-                                                value={userData.address?.state || ''}
-                                                onChange={(e) => handleInputChange('address.state', e.target.value)}
-                                                disabled={!isEditing}
-                                                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent disabled:bg-gray-100"
-                                            />
-                                        </div>
-                                        <div className="space-y-1">
-                                            <label className="block text-sm font-medium text-secondary">ZIP/Postal Code</label>
-                                            <input
-                                                type="text"
-                                                value={userData.address?.zipCode || ''}
-                                                onChange={(e) => handleInputChange('address.zipCode', e.target.value)}
-                                                disabled={!isEditing}
-                                                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent disabled:bg-gray-100"
-                                            />
-                                        </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                                         <div className="space-y-1">
                                             <label className="block text-sm font-medium text-secondary">Country</label>
                                             <input
@@ -525,14 +487,63 @@ function Profile() {
                                                 onChange={(e) => handleInputChange('address.country', e.target.value)}
                                                 disabled={!isEditing}
                                                 className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent disabled:bg-gray-100"
+                                                placeholder="Country"
                                             />
-                                            {/* <option value="United States">United States</option>
-                                                <option value="Canada">Canada</option>
-                                                <option value="United Kingdom">United Kingdom</option>
-                                                <option value="Germany">Germany</option>
-                                                <option value="Australia">Australia</option>
-                                                <option value="Other">Other</option>
-                                            </select> */}
+                                        </div>
+                                        <div className="space-y-1">
+                                            <label className="block text-sm font-medium text-secondary">County</label>
+                                            <input
+                                                type="text"
+                                                value={userData.address?.county || ''}
+                                                onChange={(e) => handleInputChange('address.county', e.target.value)}
+                                                disabled={!isEditing}
+                                                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent disabled:bg-gray-100"
+                                                placeholder="County"
+                                            />
+                                        </div>
+                                        {/* <div className="space-y-1">
+                                            <label className="block text-sm font-medium text-secondary">State</label>
+                                            <input
+                                                type="text"
+                                                value={userData.address?.state || ''}
+                                                onChange={(e) => handleInputChange('address.state', e.target.value)}
+                                                disabled={!isEditing}
+                                                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent disabled:bg-gray-100"
+                                                placeholder="State"
+                                            />
+                                        </div> */}
+                                        <div className="space-y-1">
+                                            <label className="block text-sm font-medium text-secondary">Post/EIR Code</label>
+                                            <input
+                                                type="text"
+                                                value={userData.address?.postCode || ''}
+                                                onChange={(e) => handleInputChange('address.postCode', e.target.value)}
+                                                disabled={!isEditing}
+                                                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent disabled:bg-gray-100"
+                                                placeholder="Postal code"
+                                            />
+                                        </div>
+                                        <div className="md:col-span-3 space-y-1">
+                                            <label className="block text-sm font-medium text-secondary">Address Line 1</label>
+                                            <input
+                                                type="text"
+                                                value={userData.address?.line1 || ''}
+                                                onChange={(e) => handleInputChange('address.line1', e.target.value)}
+                                                disabled={!isEditing}
+                                                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent disabled:bg-gray-100"
+                                                placeholder="Address Line 1"
+                                            />
+                                        </div>
+                                        <div className="md:col-span-3 space-y-1">
+                                            <label className="block text-sm font-medium text-secondary">Address Line 2</label>
+                                            <input
+                                                type="text"
+                                                value={userData.address?.line2 || ''}
+                                                onChange={(e) => handleInputChange('address.line2', e.target.value)}
+                                                disabled={!isEditing}
+                                                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent disabled:bg-gray-100"
+                                                placeholder="Address Line 2"
+                                            />
                                         </div>
                                     </div>
                                 )}

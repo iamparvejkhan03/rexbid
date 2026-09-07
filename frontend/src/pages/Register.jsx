@@ -73,6 +73,13 @@ const Register = () => {
     const [countries, setCountries] = useState([]);
     const [currencies, setCurrencies] = useState([{ code: 'GBP', name: 'Pound Sterling' }, { code: 'EUR', name: 'Euro' }]);
     const [states, setStates] = useState([]);
+    const [counties, setCounties] = useState([
+        "Antrim", "Armagh", "Carlow", "Cavan", "Clare", "Cork", "Derry", "Donegal",
+        "Down", "Dublin", "Fermanagh", "Galway", "Kerry", "Kildare", "Kilkenny",
+        "Laois", "Leitrim", "Limerick", "Longford", "Louth", "Mayo", "Meath",
+        "Monaghan", "Offaly", "Roscommon", "Sligo", "Tipperary", "Tyrone",
+        "Waterford", "Westmeath", "Wexford", "Wicklow"
+    ]);
     const [selectedCountry, setSelectedCountry] = useState('');
     const [selectedCurrency, setSelectedCurrency] = useState('');
 
@@ -117,8 +124,9 @@ const Register = () => {
             username: '',
             firstName: '',
             lastName: '',
-            street: '',
-            city: '',
+            line1: '',
+            line2: '',
+            county: '',
             postCode: '',
             country: '',
             currency: '',
@@ -275,11 +283,11 @@ const Register = () => {
 
     const onSubmit = async (registrationData) => {
         // Validate ID document
-        // if (!identificationDocument) {
-        //     setIdVerificationError('Please upload an identification document');
-        //     toast.error('Identification document is required');
-        //     return;
-        // }
+        if (!identificationDocument) {
+            setIdVerificationError('Please upload an identification document');
+            toast.error('Identification document is required');
+            return;
+        }
 
         setIsLoading(true);
 
@@ -296,8 +304,9 @@ const Register = () => {
             formData.append('countryCode', registrationData.country);
             formData.append('countryName', countries.find(c => c.code === registrationData.country)?.name || registrationData.country);
             formData.append('userType', registrationData.userType);
-            formData.append('street', registrationData.street);
-            formData.append('city', registrationData.city);
+            formData.append('line1', registrationData.line1);
+            formData.append('line2', registrationData.line2);
+            formData.append('county', registrationData.county);
             formData.append('postCode', registrationData.postCode);
             formData.append('state', registrationData.state);
             formData.append('country', countries.find(c => c.code === registrationData.country)?.name || registrationData.country);
@@ -406,11 +415,11 @@ const Register = () => {
                     ? '/company/dashboard'
                     : '/bidder/dashboard';
 
-           // Track successful registration in Meta Pixel
-if (typeof window.fbq === 'function') {
-  window.fbq('track', 'CompleteRegistration');
-}
-        navigate(redirectPath);
+            // Track successful registration in Meta Pixel
+            if (typeof window.fbq === 'function') {
+                window.fbq('track', 'CompleteRegistration');
+            }
+            navigate(redirectPath);
             toast.success(data.message);
 
         } catch (error) {
@@ -777,7 +786,7 @@ if (typeof window.fbq === 'function') {
                             <div className="space-y-4 border-t pt-6">
                                 <h3 className="text-lg font-semibold text-gray-800">Address Information</h3>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                     {/* Country field */}
                                     <div className="md:col-span-1">
                                         <div className={`${errors.country && 'mb-3'}`}>
@@ -807,7 +816,7 @@ if (typeof window.fbq === 'function') {
                                     </div>
 
                                     {/* State field */}
-                                    <div className={`${errors.state && 'mb-3'}`}>
+                                    {/* <div className={`${errors.state && 'mb-3'}`}>
                                         <label className="block text-sm font-medium text-gray-700 mb-2">
                                             State/Province <span className='text-red-600'>*</span>
                                         </label>
@@ -844,24 +853,33 @@ if (typeof window.fbq === 'function') {
                                                 <p className="text-red-500 text-sm mt-1 absolute">{errors.state.message}</p>
                                             )}
                                         </div>
-                                    </div>
+                                    </div> */}
 
-                                    {/* City field */}
-                                    <div className={`${errors.city && 'mb-3'}`}>
+                                    {/* County field */}
+                                    <div className={`${errors.county && 'mb-3'}`}>
                                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                                            City/County <span className='text-red-600'>*</span>
+                                            County <span className='text-red-600'>*</span>
                                         </label>
-                                        <input
-                                            type="text"
-                                            {...register('city', {
-                                                required: 'City is required'
-                                            })}
-                                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                                            placeholder="City"
-                                        />
-                                        {errors.city && (
-                                            <p className="text-red-500 text-sm mt-1 absolute">{errors.city.message}</p>
-                                        )}
+                                        <div className="relative">
+                                            <select
+                                                {...register('county', {
+                                                    required: selectedCountry ? 'County is required' : false
+                                                })}
+                                                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent appearance-none"
+                                                disabled={!selectedCountry}
+                                            >
+                                                <option value="">Select county</option>
+                                                {counties.map(county => (
+                                                    <option key={county} value={county}>
+                                                        {county}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            <ChevronDown size={20} className="absolute right-3 top-3 text-gray-400 pointer-events-none" />
+                                            {errors.county && (
+                                                <p className="text-red-500 text-sm mt-1 absolute">{errors.county.message}</p>
+                                            )}
+                                        </div>
                                     </div>
 
                                     {/* Post Code field */}
@@ -882,22 +900,40 @@ if (typeof window.fbq === 'function') {
                                         )}
                                     </div>
 
-                                    {/* Street field */}
-                                    <div className="md:col-span-2">
-                                        <div className={`${errors.street && 'mb-3'}`}>
+                                    {/* Address Line 1 field */}
+                                    <div className="md:col-span-3">
+                                        <div className={`${errors.line1 && 'mb-3'}`}>
                                             <label className="block text-sm font-medium text-gray-700 mb-2">
-                                                Street <span className='text-red-600'>*</span>
+                                                Address Line 1
+                                                {/* <span className='text-red-600'>*</span> */}
                                             </label>
                                             <input
                                                 type="text"
-                                                {...register('street', {
-                                                    required: 'Street is required'
-                                                })}
+                                                {...register('line1')}
                                                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                                                placeholder="Street address"
+                                                placeholder="Address Line 1"
                                             />
-                                            {errors.street && (
-                                                <p className="text-red-500 text-sm mt-1 absolute">{errors.street.message}</p>
+                                            {errors.line1 && (
+                                                <p className="text-red-500 text-sm mt-1 absolute">{errors.line1.message}</p>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Address Line 2 field */}
+                                    <div className="md:col-span-3">
+                                        <div className={`${errors.line2 && 'mb-3'}`}>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                Address Line 2
+                                                {/* <span className='text-red-600'>*</span> */}
+                                            </label>
+                                            <input
+                                                type="text"
+                                                {...register('line2')}
+                                                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                                                placeholder="Address Line 2"
+                                            />
+                                            {errors.line2 && (
+                                                <p className="text-red-500 text-sm mt-1 absolute">{errors.line2.message}</p>
                                             )}
                                         </div>
                                     </div>
@@ -933,7 +969,7 @@ if (typeof window.fbq === 'function') {
                             </div>
 
                             {/* ID Verification Section */}
-                            {/* <div id="id-verification-section" className="border-t border-gray-200 dark:border-bg-primary-light pt-6">
+                            <div id="id-verification-section" className="border-t border-gray-200 dark:border-bg-primary-light pt-6">
                                 <h3 className="text-lg font-semibold text-text-primary dark:text-text-primary-dark mb-4">Identity Verification <span className='text-red-600'>*</span></h3>
                                 <p className="text-sm text-text-secondary dark:text-text-secondary-dark mb-4">
                                     Please upload a valid government-issued ID (Driver's License, Passport, or National ID Card)
@@ -1005,7 +1041,7 @@ if (typeof window.fbq === 'function') {
                                         </p>
                                     </div>
                                 </div>
-                            </div> */}
+                            </div>
 
                             {/* Stripe Card Section for Bidders */}
                             {/* <CardSection /> */}

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import {
   Truck,
@@ -21,6 +21,7 @@ import {
   CheckCircle,
   Store,
   Loader2,
+  SquareArrowOutUpRight,
 } from "lucide-react";
 import { Container } from "../components";
 import axiosInstance from "../utils/axiosInstance";
@@ -150,10 +151,10 @@ function Hero() {
               {/* Headline - Bold and dynamic */}
               <div className="space-y-5">
                 <h1 className="text-4xl lg:text-5xl xl:text-5xl font-bold text-white leading-tight tracking-tight">
-                  Premium Marketplace. {" "}
+                  The Easier Way to {" "}
                   <span className="relative inline-block">
                     <span className="relative z-10 text-transparent bg-clip-text bg-gradient-to-r from-[#D19F3E] to-[#E8B86B]">
-                      Auction Advantage.
+                      Sell Your Machinery.
                     </span>
                     <svg
                       className="absolute -bottom-2 left-0 w-full"
@@ -174,7 +175,7 @@ function Hero() {
                   {/* <span className="text-gray-300">Your Control.</span> */}
                 </h1>
                 <p className="md:text-lg text-base text-gray-300 leading-relaxed max-w-lg">
-                  Online auctions made simple. List your item, set your auction, and let buyers compete.
+                  List your machine. Reach buyers across Ireland. Let them compete for it.
                 </p>
 
                 <p className="text-sm text-[#E8B86B]">Free to list until 1st October. Buyers commission 3% on final sale price.</p>
@@ -182,7 +183,7 @@ function Hero() {
 
               {/* Enhanced Search Form with Category Dropdown */}
               <form onSubmit={searchForm.handleSubmit(handleSearch)} className="space-y-5">
-                <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl shadow-2xl p-2">
+                {/* <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl shadow-2xl p-2">
                   <div className="flex flex-col lg:flex-row gap-2">
                     <div className="flex-1 relative group">
                       <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 group-focus-within:text-[#D19F3E] transition-colors" />
@@ -193,7 +194,7 @@ function Hero() {
                         {...searchForm.register("search")}
                       />
                     </div>
-                    {/* <div className="relative">
+                    <div className="relative">
                       <select
                         className="appearance-none bg-gray-900/50 text-white py-4 px-5 pr-10 rounded-xl border-0 focus:ring-2 focus:ring-[#D19F3E]/50 transition-all cursor-pointer"
                         {...searchForm.register("category")}
@@ -205,7 +206,7 @@ function Hero() {
                         ))}
                       </select>
                       <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4 pointer-events-none" />
-                    </div> */}
+                    </div>
                     <button
                       type="submit"
                       className="group bg-gradient-to-r from-[#D19F3E] to-[#E8B86B] text-[#072342] px-8 py-4 rounded-xl font-bold hover:shadow-lg hover:shadow-[#D19F3E]/30 transition-all duration-300 flex items-center justify-center gap-2"
@@ -214,10 +215,29 @@ function Hero() {
                       <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
                     </button>
                   </div>
+                </div> */}
+
+                <div className="flex items-center justify-start gap-5">
+                  <Link to="/sell" className="bg-gradient-to-r from-[#D19F3E] to-[#E8B86B] text-[#072342] py-2 px-10 rounded-md font-medium transition duration-200 flex items-center gap-2 group relative text-sm md:text-base hover:bg-pure-white/95">
+                    Sell Now
+                    <SquareArrowOutUpRight size={18} />
+                  </Link>
+
+                  <Link to="/auctions" className="text-black bg-white py-2 px-10 rounded-md font-medium transition duration-200 flex items-center gap-2 group relative text-sm md:text-base hover:bg-pure-white/95">
+                    Browse Machinery
+                    <Search size={18} />
+                  </Link>
                 </div>
 
+                <ul className="text-base text-gray-300 leading-relaxed max-w-lg">
+                  <li>✔ No endless calls or haggling</li>
+                  <li>✔ Set your own reserve</li>
+                  <li>✔ Buyers compete on price</li>
+                  <li>✔ Sell from your premises</li>
+                </ul>
+
                 {/* Trending filters - Modern chip design */}
-                <div className="flex flex-wrap items-center gap-3">
+                {/* <div className="flex flex-wrap items-center gap-3">
                   <span className="text-gray-400 text-sm font-medium">🔥 Popular:</span>
                   {["Cars", "Tractors", "Telehandlers", "Dumpers", "Diggers", "Trailers", "Vans"].map(
                     (filter) => (
@@ -231,7 +251,7 @@ function Hero() {
                       </button>
                     )
                   )}
-                </div>
+                </div> */}
               </form>
 
               {/* Stats - Elegant dark theme */}

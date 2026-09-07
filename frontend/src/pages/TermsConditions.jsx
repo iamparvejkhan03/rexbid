@@ -43,7 +43,7 @@ const TermsConditions = () => {
                             </h2>
 
                             <p className="text-gray-700 mb-4">
-                                We are REXBID Limited trading as Rexid, a limited company (registration number 819231). We are based at Corfeehone, Poles, Co. Cavan H12V6W3. For information, the best way to contact us, is to email admin@rexbid.com.
+                                We are REXBID Limited trading as Rexid, a limited company (registration number 819231). We are based at Corfeehone, Poles, Co. Cavan. For information, the best way to contact us, is to email admin@rexbid.com.
                             </p>
 
                             <p className="text-gray-700 mb-4">
@@ -102,7 +102,7 @@ const TermsConditions = () => {
 
                                 <p><strong>designated payment services provider</strong> means the payment services provider referred to by us on the Site.</p>
 
-                                <p><strong>Company</strong> (referred to as either "the Company", "Rexbid" or "we", "us" or "our" in these User Terms) refers to REXBID Limited, registered in Ireland, registered number 819231 and having its registered office at Corfeehone, Poles, Co. Cavan H12V6W3.</p>
+                                <p><strong>Company</strong> (referred to as either "the Company", "Rexbid" or "we", "us" or "our" in these User Terms) refers to REXBID Limited, registered in Ireland, registered number 819231 and having its registered office at Corfeehone, Poles, Co. Cavan.</p>
 
                                 <p><strong>consumer</strong> means a natural person acting for purposes that are wholly or mainly outside his or her's trade, business, craft or profession.</p>
 

@@ -312,6 +312,8 @@ const Commissions = () => {
                                 </div>
                             </div>
 
+                            {/* <p className='text-black'>{commission?.updatedAt.toString()}</p> */}
+
                             {/* Information Card */}
                             <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
                                 <div className="flex items-start gap-4">

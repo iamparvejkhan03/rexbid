@@ -2437,3 +2437,50 @@ export const rejectUserIdentity = async (req, res) => {
     });
   }
 };
+
+/**
+ * Update the "contacted" status for a user (set or clear the contacted date).
+ * @route PATCH /api/v1/admin/users/:userId/contact
+ * @param {boolean} contacted - if true, set lastContactedAt = now; if false, set to null.
+ */
+export const updateUserContact = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { contacted } = req.body; // boolean
+
+    // Validate input
+    if (typeof contacted !== 'boolean') {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid value for "contacted". Must be true or false.',
+      });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
+    }
+
+    // Update the field
+    user.lastContactedAt = contacted ? new Date() : null;
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: `User contact status updated.`,
+      data: {
+        userId: user._id,
+        lastContactedAt: user.lastContactedAt,
+      },
+    });
+  } catch (error) {
+    console.error('Update contact error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error while updating contact status',
+    });
+  }
+};

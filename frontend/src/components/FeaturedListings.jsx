@@ -112,7 +112,7 @@ const FeaturedListings = () => {
     }
 
     return (
-        <Container className="pb-14">
+        <Container className="py-14">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                 <div>
                     {/* <h2 className="text-3xl md:text-4xl font-bold text-primary flex items-center gap-2">

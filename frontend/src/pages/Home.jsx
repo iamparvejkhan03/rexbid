@@ -173,9 +173,9 @@ function Home() {
             </Container> */}
 
             {/* Category section */}
-            <Suspense fallback={<LoadingSpinner />}>
+            {/* <Suspense fallback={<LoadingSpinner />}>
                 <CategoryIconsSection />
-            </Suspense>
+            </Suspense> */}
 
             {/* Featured Listings Section */}
             <FeaturedListings />

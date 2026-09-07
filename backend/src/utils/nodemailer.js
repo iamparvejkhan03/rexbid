@@ -1,6 +1,7 @@
 import nodemailer from "nodemailer";
 import Commission from "../models/commission.model.js";
 import { getCachedRates } from "../routes/currency.route.js";
+import User from "../models/user.model.js";
 
 const transporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST,
@@ -1150,7 +1151,7 @@ const lastNotificationTimes = new Map(); // Store last notification time per auc
 // 16. Bulk outbid notifications for multiple bidders
 const sendOutbidNotifications = async (
     auction,
-    previousHighestBidder,
+    // previousHighestBidder, // <-- removed (unused)
     previousBidders,
     currentBidderId,
     newBidAmount,
@@ -1181,11 +1182,9 @@ const sendOutbidNotifications = async (
             return;
         }
 
-        // Get user details for all bidders to notify
-        const User = (await import("../models/user.model.js")).default;
+        // Fetch users (now using top-level import)
         const users = await User.find({
             _id: { $in: biddersToNotify },
-            "preferences.outbidNotifications": true,
         });
 
         if (users.length === 0) {
@@ -1193,10 +1192,8 @@ const sendOutbidNotifications = async (
             return;
         }
 
-        // Create auction URL
         const auctionUrl = `${process.env.FRONTEND_URL}/auction/${auction._id}`;
 
-        // Send notifications to each outbid user
         const notificationPromises = users.map(async (user) => {
             try {
                 await outbidNotificationEmail(
@@ -1217,7 +1214,6 @@ const sendOutbidNotifications = async (
 
         const results = await Promise.allSettled(notificationPromises);
 
-        // Log summary
         const successful = results.filter(
             (result) => result.status === "fulfilled"
         ).length;
@@ -2504,7 +2500,7 @@ const accountApprovedEmail = async (user) => {
         `;
 
         const html = baseTemplate(content, 'Account Approved');
-        
+
         const info = await transporter.sendMail({
             from: `"${BRAND_NAME}" <${process.env.EMAIL_USER}>`,
             to: user.email,

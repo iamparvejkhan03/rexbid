@@ -88,9 +88,8 @@ const userSchema = new Schema(
       trim: true,
     },
     address: {
-      buildingNameNo: { type: String, trim: true },
-      street: { type: String, trim: true },
-      city: { type: String, trim: true },
+      line1: { type: String, trim: true },
+      line2: { type: String, trim: true },
       county: { type: String, trim: true },
       state: { type: String, trim: true },
       postCode: { type: String, trim: true },
@@ -306,6 +305,13 @@ const userSchema = new Schema(
     emailVerificationExpiry: {
       type: Date,
     },
+
+    // Admin contact tracking
+    lastContactedAt: {
+      type: Date,
+      default: null
+    },
+
   },
   { timestamps: true },
 );

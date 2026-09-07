@@ -1,4 +1,4 @@
-import { Gavel, Grid2X2, Home, LogIn, Search, UserCircle } from "lucide-react";
+import { Gavel, Grid2X2, Home, LogIn, Search, Tractor, UserCircle } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { usePopUp } from "../contexts/PopUpContextProvider";
@@ -9,7 +9,7 @@ function MobileNav() {
     const navLinks = [
         { name: 'Home', href: '/', icon: <Home /> },
         { name: 'Auctions', href: '/auctions', icon: <Gavel /> },
-        { name: 'Categories', onClick:() => openPopup('category'), icon: <Grid2X2 /> },
+        { name: 'Sell', href: '/sell', icon: <Tractor /> },
         { name: 'Account', href: `/login`, icon: <UserCircle /> },
     ];
     return (

@@ -1785,14 +1785,13 @@ export const deleteAuction = async (req, res) => {
 };
 
 // Place Bid
-
 export const placeBid = async (req, res) => {
   try {
     const { id } = req.params;
     const { amount, currency } = req.body;
     const bidder = req.user;
 
-    // ✅ NEW: Check if user has a valid payment method
+    // Check if user has a valid payment method
     if (!bidder?.stripeCustomerId || !bidder?.paymentMethodId || !bidder?.isPaymentVerified) {
       return res.status(403).json({
         success: false,
@@ -1802,18 +1801,15 @@ export const placeBid = async (req, res) => {
       });
     }
 
-    // ✅ NEW: Verify the payment method is still valid with Stripe
+    // Verify the payment method is still valid with Stripe
     try {
       const paymentMethod = await stripe.paymentMethods.retrieve(bidder.paymentMethodId);
 
-      // Check if payment method is still valid
       if (paymentMethod.card?.checks?.cvc_check === 'fail' ||
         paymentMethod.card?.checks?.address_line1_check === 'fail') {
-        // Card may have issues, but let's still allow if it was previously verified
         console.warn(`User ${bidder._id} has a payment method with potential issues`);
       }
     } catch (error) {
-      // If payment method is not found in Stripe, force user to re-add
       console.error(`Payment method verification failed for user ${bidder._id}:`, error);
       return res.status(403).json({
         success: false,
@@ -1823,11 +1819,10 @@ export const placeBid = async (req, res) => {
       });
     }
 
-    // ✅ NEW: Verify the user has a valid Stripe customer
+    // Verify the user has a valid Stripe customer
     try {
       await stripe.customers.retrieve(bidder.stripeCustomerId);
     } catch (error) {
-      // If customer doesn't exist in Stripe, user needs to re-add their card
       console.error(`Stripe customer not found for user ${bidder._id}:`, error);
       return res.status(403).json({
         success: false,
@@ -1837,7 +1832,7 @@ export const placeBid = async (req, res) => {
       });
     }
 
-    // Validate auction status
+    // Validate account status
     if (!bidder?.isActive) {
       return res.status(400).json({
         success: false,
@@ -1845,21 +1840,12 @@ export const placeBid = async (req, res) => {
       });
     }
 
-    // Validate auction status
     if (!bidder?.isVerified) {
       return res.status(400).json({
         success: false,
-        message: `Account is not verified. Can't place a bid.`,
+        message: `Please wait until administrator has verified your account before placing bid.`,
       });
     }
-
-    // Check if user is a bidder
-    // if (bidder.userType !== "bidder") {
-    //   return res.status(403).json({
-    //     success: false,
-    //     message: "Only bidders can place bids",
-    //   });
-    // }
 
     const auction = await Auction.findById(id);
 
@@ -1871,35 +1857,29 @@ export const placeBid = async (req, res) => {
     }
 
     const ratesData = getCachedRates();
-
     const base = auction.baseCurrency;
     const buyerCurr = currency;
-
     const rate = ratesData[buyerCurr].rates[base];
     if (!rate) throw new Error(`Cannot convert from ${buyerCurr} to ${base}`);
 
     const amountInBase = parseFloat(amount) * rate;
 
-    // Store previous highest bidder before placing new bid
     const previousHighestBidder = auction.currentBidder;
     const previousBidders = [
       ...new Set(auction.bids.map((bid) => bid.bidder.toString())),
     ];
 
-    // Store old end date before bidding
     const oldEndDate = auction.endDate;
 
     // Place bid using the model method
     await auction.placeBid(bidder._id, bidder.username || bidder.companyName, amountInBase);
 
-    // Check if time was extended (anti-sniping)
     const extended = auction.endDate > oldEndDate;
 
-    // Populate the updated auction
     await auction.populate("currentBidder", "username companyName firstName lastname email");
     await auction.populate("seller", "username companyName firstName lastname email");
 
-    const userCurrency = currency;   // the currency the user bid in
+    const userCurrency = currency;
     const auctionObj = auction.toObject();
 
     // Convert bids
@@ -1916,6 +1896,7 @@ export const placeBid = async (req, res) => {
     const convertedReservePrice = auctionObj.reservePrice ? convertPrice(auction, userCurrency, 'reservePrice') : null;
     const convertedFinalPrice = auctionObj.finalPrice ? convertPrice(auction, userCurrency, 'finalPrice') : null;
 
+    // ---------- SEND RESPONSE ----------
     res.status(200).json({
       success: true,
       message: "Bid placed successfully",
@@ -1935,38 +1916,49 @@ export const placeBid = async (req, res) => {
       },
     });
 
-    // Send bid confirmation to the current bidder
-    await bidConfirmationEmail(
-      bidder.email,
-      bidder.username || bidder.companyName,
-      auction,
-      amount,
-      convertedCurrentPrice,
-      userCurrency
-    );
-
-    await newBidNotificationEmail(
-      auction.seller,
-      auction,
-      convertAmountToBase(amount, userCurrency, auction),
-      bidder,
-      auction?.baseCurrency
-    );
-
-    // Send outbid notifications to previous bidders (except current bidder)
-    if (
-      previousHighestBidder &&
-      previousHighestBidder.toString() !== bidder._id.toString()
-    ) {
-      await sendOutbidNotifications(
+    // ---------- SEND EMAILS IN BACKGROUND (NON‑BLOCKING) ----------
+    setImmediate(() => {
+      // 1. Confirmation email to the bidder
+      bidConfirmationEmail(
+        bidder.email,
+        bidder.username || bidder.companyName,
         auction,
-        previousHighestBidder,
-        previousBidders,
-        bidder._id.toString(),
         amount,
+        convertedCurrentPrice,
         userCurrency
-      );
-    }
+      ).catch((err) => {
+        console.error('Failed to send bid confirmation email:', err);
+      });
+
+      // 2. Notification to the seller
+      newBidNotificationEmail(
+        auction.seller,
+        auction,
+        convertAmountToBase(amount, userCurrency, auction),
+        bidder,
+        auction?.baseCurrency
+      ).catch((err) => {
+        console.error('Failed to send new bid notification to seller:', err);
+      });
+
+      // 3. Outbid notifications to previous bidders (if any)
+      if (
+        previousHighestBidder &&
+        previousHighestBidder.toString() !== bidder._id.toString()
+      ) {
+        sendOutbidNotifications(
+          auction,
+          previousHighestBidder,
+          previousBidders,
+          bidder._id.toString(),
+          amount,
+          userCurrency
+        ).catch((err) => {
+          console.error('Failed to send outbid notifications:', err);
+        });
+      }
+    });
+
   } catch (error) {
     console.error("Place bid error:", error);
     res.status(400).json({
@@ -2688,7 +2680,7 @@ export const buyNow = async (req, res) => {
     if (!buyer?.isVerified) {
       return res.status(400).json({
         success: false,
-        message: `Account is not verified. Can't buy an item.`,
+        message: `Please wait until administrator has verified your account before buying an item.`,
       });
     }
 

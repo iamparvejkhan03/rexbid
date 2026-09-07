@@ -274,7 +274,7 @@ function UserQueries() {
     };
 
     const formatDate = (dateString) => {
-        return new Date(dateString).toLocaleDateString('nb-NO', {
+        return new Date(dateString).toLocaleDateString('en-IE', {
             month: 'short',
             day: 'numeric',
             year: 'numeric',

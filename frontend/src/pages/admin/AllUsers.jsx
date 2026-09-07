@@ -427,6 +427,7 @@ function AllUsers() {
                                             <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
                                             <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
                                             <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
+                                            <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contacted</th>
                                             {/* <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th> */}
                                             <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID Verification</th>
                                             {/* <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Join Date</th> */}
@@ -460,6 +461,43 @@ function AllUsers() {
                                                 <td className="py-4 px-6">
                                                     <div className="text-sm text-gray-900">{user.email}</div>
                                                     <div className="text-sm text-gray-500">{user.phone || 'No phone'}</div>
+                                                </td>
+                                                <td className="py-4 px-6">
+                                                    <div className="flex flex-col items-center gap-2">
+                                                        {/* Checkbox */}
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={!!user.lastContactedAt}
+                                                            onChange={async (e) => {
+                                                                const checked = e.target.checked;
+                                                                try {
+                                                                    // Optimistic UI update? You can also just call API and then refresh.
+                                                                    await axiosInstance.patch(`/api/v1/admin/users/${user._id}/contact`, {
+                                                                        contacted: checked,
+                                                                    });
+                                                                    // Refresh the list or update local state
+                                                                    fetchUsers(); // or update the specific user in state
+                                                                    toast.success(`Contact status updated for ${user.firstName}`);
+                                                                } catch (error) {
+                                                                    console.error('Update contact error:', error);
+                                                                    toast.error('Failed to update contact status');
+                                                                }
+                                                            }}
+                                                            className="h-5 w-5 text-[#D19F3E] focus:ring-[#D19F3E] border-gray-300 rounded cursor-pointer"
+                                                        />
+                                                        {/* Date display */}
+                                                        {user.lastContactedAt ? (
+                                                            <span className="text-xs text-gray-500">
+                                                                {new Date(user.lastContactedAt).toLocaleDateString('en-IE', {
+                                                                    day: '2-digit',
+                                                                    month: '2-digit',
+                                                                    year: 'numeric',
+                                                                })}
+                                                            </span>
+                                                        ) : (
+                                                            <span className="text-xs text-gray-400">—</span>
+                                                        )}
+                                                    </div>
                                                 </td>
                                                 {/* <td className="py-4 px-6">
                                                     {getStatusBadge(user.isActive)}
@@ -513,7 +551,7 @@ function AllUsers() {
                                                             {activeDropdown === user._id && (
                                                                 <div className="absolute right-0 top-full mt-1 w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-10 py-1">
                                                                     {/* Show Verify ID button only if user has uploaded a document and status is pending */}
-                                                                    {/* {user.identificationDocument && user.identificationStatus === 'pending' && (
+                                                                    {user.identificationDocument && user.identificationStatus === 'pending' && (
                                                                         <button
                                                                             onClick={(e) => {
                                                                                 openIdVerificationModal(user, e);
@@ -524,9 +562,9 @@ function AllUsers() {
                                                                             <Shield size={16} />
                                                                             <span>Verify ID</span>
                                                                         </button>
-                                                                    )} */}
+                                                                    )}
 
-                                                                    {!user.isVerified && (
+                                                                    {/* {!user.isVerified && (
                                                                         <button
                                                                             onClick={(e) => {
                                                                                 userVerificationHandler(user, e);
@@ -537,7 +575,7 @@ function AllUsers() {
                                                                             <Shield size={16} />
                                                                             <span>Verify User</span>
                                                                         </button>
-                                                                    )}
+                                                                    )} */}
 
                                                                     <button
                                                                         onClick={() => {
@@ -919,10 +957,10 @@ function AllUsers() {
                                                             <div>
                                                                 <div className="text-sm text-gray-500">Address</div>
                                                                 <div className="font-medium">
-                                                                    {selectedUser.address.buildingNameNo && `${selectedUser.address.buildingNameNo}, `}
-                                                                    {selectedUser.address.street && `${selectedUser.address.street}, `}
-                                                                    {selectedUser.address.city && `${selectedUser.address.city}, `}
+                                                                    {selectedUser.address.line1 && `${selectedUser.address.line1}, `}
+                                                                    {selectedUser.address.line2 && `${selectedUser.address.line2}, `}
                                                                     {selectedUser.address.county && `${selectedUser.address.county}, `}
+                                                                    {selectedUser.address.state && `${selectedUser.address.state}, `}
                                                                     {selectedUser.address.postCode && `${selectedUser.address.postCode}, `}
                                                                     {selectedUser.address.country || selectedUser.countryName || 'Not specified'}
                                                                 </div>

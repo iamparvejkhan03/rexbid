@@ -17,7 +17,8 @@ import {
     fetchDVLAData,
     verifyUserIdentity,
     verifyUser,
-    rejectUserIdentity
+    rejectUserIdentity,
+    updateUserContact
 } from '../controllers/admin.controller.js';
 import { authAdmin } from '../middlewares/auth.middleware.js';
 import upload from '../middlewares/multer.middleware.js';
@@ -34,6 +35,7 @@ AdminRouter.delete('/users/:userId', authAdmin, deleteUser);
 AdminRouter.patch('/users/:userId/identificationDocument/verify', authAdmin, verifyUserIdentity);
 AdminRouter.patch('/users/:userId/verify', authAdmin, verifyUser);
 AdminRouter.patch('/users/:userId/identificationDocument/reject', authAdmin, rejectUserIdentity);
+AdminRouter.patch('/users/:userId/contact', authAdmin, updateUserContact);
 
 //dvla api route
 AdminRouter.post('/dvla', authAdmin, fetchDVLAData);

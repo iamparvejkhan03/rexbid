@@ -114,16 +114,16 @@ const SellerReviewsPage = () => {
                         <div>
                             <div className="flex items-center gap-5">
                                 <h1 className="text-xl md:text-2xl font-bold text-gray-800">{fullName || username}</h1>
-                                <div className="flex items-center gap-3 mt-2">
-                                <a href={`mailto:${email}`} className="text-gray-500 hover:text-orange-500 transition-colors">
-                                    <Mail size={18} />
-                                </a>
-                                {phone && (
-                                    <a href={`tel:${phone}`} className="text-gray-500 hover:text-orange-500 transition-colors">
-                                        <Phone size={18} />
+                                {/* <div className="flex items-center gap-3 mt-2">
+                                    <a href={`mailto:${email}`} className="text-gray-500 hover:text-orange-500 transition-colors">
+                                        <Mail size={18} />
                                     </a>
-                                )}
-                            </div>
+                                    {phone && (
+                                        <a href={`tel:${phone}`} className="text-gray-500 hover:text-orange-500 transition-colors">
+                                            <Phone size={18} />
+                                        </a>
+                                    )}
+                            </div> */}
                             </div>
                             
                             <div className="flex items-center gap-2 text-sm text-gray-500 mt-1">

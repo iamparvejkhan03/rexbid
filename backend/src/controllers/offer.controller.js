@@ -117,7 +117,7 @@ export const makeOffer = async (req, res) => {
     if (!buyer?.isVerified) {
       return res.status(400).json({
         success: false,
-        message: `Account is not verified. Can't make an offer.`,
+        message: `Please wait until administrator has verified your account before making an offer.`,
       });
     }
 

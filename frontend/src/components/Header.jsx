@@ -24,6 +24,10 @@ const navLinks = [
     //     name: 'FAQs',
     //     href: '/faqs'
     // },
+    {
+        name: 'Listings',
+        href: '/auctions'
+    },
 ];
 
 const auctionTypes = [
@@ -199,7 +203,7 @@ function Header() {
                         }
 
                         {/* Auction Types Dropdown - Simple */}
-                        <li
+                        {/* <li
                             ref={auctionTypesRef}
                             className={`${isScrolled ? 'text-black' : 'text-white'} relative`}
                         >
@@ -238,7 +242,7 @@ function Header() {
                                     </div>
                                 </div>
                             )}
-                        </li>
+                        </li> */}
 
                         {/* Categories Dropdown */}
                         <li className={`${isScrolled ? 'text-black' : 'text-white'} relative`}>

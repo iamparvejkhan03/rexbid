@@ -94,8 +94,9 @@ export const registerUser = async (req, res) => {
       currency,
       phone = '',
       image = '',
-      street = '',
-      city = '',
+      line1 = '',
+      line2 = '',
+      county = '',
       state = '',
       postCode = '',
       paymentMethodId,
@@ -151,12 +152,13 @@ export const registerUser = async (req, res) => {
       phone,
       image,
       isVerified: false, //changed
-      // identificationDocument: identificationDocumentUrl,
-      // identificationDocumentPublicId,
-      // identificationStatus: identificationDocumentUrl ? 'pending' : undefined,
+      identificationDocument: identificationDocumentUrl,
+      identificationDocumentPublicId,
+      identificationStatus: identificationDocumentUrl ? 'pending' : undefined,
       address: {
-        street,
-        city,
+        line1,
+        line2,
+        county,
         state,
         postCode,
         country: countryName,
@@ -408,48 +410,6 @@ export const resetPassword = async (req, res) => {
       .json({ success: false, message: "Failed to get user" });
   }
 };
-
-// export const getBillingInfo = async (req, res) => {
-//   try {
-//     const user = await User.findById(req.user._id).select(
-//       "stripeCustomerId paymentMethodId cardLast4 cardBrand cardExpMonth cardExpYear isPaymentVerified userType"
-//     );
-
-//     if (!user) {
-//       return res.status(404).json({
-//         success: false,
-//         message: "User not found",
-//       });
-//     }
-
-//     const billingInfo = {
-//       stripeCustomerId: user.stripeCustomerId,
-//       isPaymentVerified: user.isPaymentVerified,
-//       userType: user.userType,
-//     };
-
-//     // Add card details if available
-//     if (user.cardLast4) {
-//       billingInfo.card = {
-//         last4: user.cardLast4,
-//         brand: user.cardBrand,
-//         expMonth: user.cardExpMonth,
-//         expYear: user.cardExpYear,
-//       };
-//     }
-
-//     res.status(200).json({
-//       success: true,
-//       data: billingInfo,
-//     });
-//   } catch (error) {
-//     console.error("Get billing info error:", error);
-//     res.status(500).json({
-//       success: false,
-//       message: "Internal server error while fetching billing information",
-//     });
-//   }
-// };
 
 export const getBillingInfo = async (req, res) => {
   try {

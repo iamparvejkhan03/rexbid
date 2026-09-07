@@ -24,6 +24,7 @@ const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 const FAQs = lazy(() => import('./pages/FAQs'));
 const Checkout = lazy(() => import('./pages/Checkout'));
 const SellerReviews = lazy(() => import('./pages/SellerReviews'));
+const Sell = lazy(() => import('./pages/Sell'));
 
 {/* Seller Pages */ }
 const SellerLayout = lazy(() => import('./pages/seller/Layout'));
@@ -109,37 +110,39 @@ createRoot(document.getElementById('root')).render(
                     <Route path='/' element={<App />}>
                         <Route path='' index={true} element={<Suspense fallback={<LoadingSpinner height={'725px'} />}><Home /></Suspense>} />
 
-                        <Route path='/contact' index={true} element={<Suspense fallback={<LoadingSpinner height={'725px'} />}><Contact /></Suspense>} />
+                        <Route path='/contact' element={<Suspense fallback={<LoadingSpinner height={'725px'} />}><Contact /></Suspense>} />
 
-                        <Route path='/about' index={true} element={<Suspense fallback={<LoadingSpinner height={'725px'} />}><About /></Suspense>} />
+                        <Route path='/about' element={<Suspense fallback={<LoadingSpinner height={'725px'} />}><About /></Suspense>} />
 
-                        <Route path='/faqs' index={true} element={<Suspense fallback={<LoadingSpinner height={'725px'} />}><FAQs /></Suspense>} />
+                        <Route path='/faqs' element={<Suspense fallback={<LoadingSpinner height={'725px'} />}><FAQs /></Suspense>} />
 
-                        <Route path='/login' index={true} element={<Suspense fallback={<LoadingSpinner height={'725px'} />}><Login /></Suspense>} />
+                        <Route path='/login' element={<Suspense fallback={<LoadingSpinner height={'725px'} />}><Login /></Suspense>} />
 
-                        <Route path='/register' index={true} element={<Suspense fallback={<LoadingSpinner height={'725px'} />}><Register /></Suspense>} />
+                        <Route path='/register' element={<Suspense fallback={<LoadingSpinner height={'725px'} />}><Register /></Suspense>} />
 
-                        <Route path='/auctions' index={true} element={<Suspense fallback={<LoadingSpinner height={'725px'} />}><Auctions /></Suspense>} />
+                        <Route path='/auctions' element={<Suspense fallback={<LoadingSpinner height={'725px'} />}><Auctions /></Suspense>} />
 
-                        <Route path='/checkout/:auctionId' index={true} element={<Suspense fallback={<LoadingSpinner height={'725px'} />}><Checkout /></Suspense>} />
+                        <Route path='/checkout/:auctionId' element={<Suspense fallback={<LoadingSpinner height={'725px'} />}><Checkout /></Suspense>} />
 
-                        <Route path='/auction/:id' index={true} element={<Suspense fallback={<LoadingSpinner height={'725px'} />}><SingleAuction /></Suspense>} />
+                        <Route path='/auction/:id' element={<Suspense fallback={<LoadingSpinner height={'725px'} />}><SingleAuction /></Suspense>} />
 
-                        <Route path='/privacy-policy' index={true} element={<Suspense fallback={<LoadingSpinner height={'725px'} />}><PrivacyPolicy /></Suspense>} />
+                        <Route path='/privacy-policy' element={<Suspense fallback={<LoadingSpinner height={'725px'} />}><PrivacyPolicy /></Suspense>} />
 
-                        <Route path='/terms-conditions' index={true} element={<Suspense fallback={<LoadingSpinner height={'725px'} />}><TermsConditions /></Suspense>} />
+                        <Route path='/terms-conditions' element={<Suspense fallback={<LoadingSpinner height={'725px'} />}><TermsConditions /></Suspense>} />
 
-                        {/* <Route path='/terms-of-use' index={true} element={<Suspense fallback={<LoadingSpinner height={'725px'} />}><TermsOfUse /></Suspense>} /> */}
+                        {/* <Route path='/terms-of-use' element={<Suspense fallback={<LoadingSpinner height={'725px'} />}><TermsOfUse /></Suspense>} /> */}
 
-                        <Route path='/payment-refund-policy' index={true} element={<Suspense fallback={<LoadingSpinner height={'725px'} />}><PaymentRefundPolicy /></Suspense>} />
+                        <Route path='/payment-refund-policy' element={<Suspense fallback={<LoadingSpinner height={'725px'} />}><PaymentRefundPolicy /></Suspense>} />
 
-                        <Route path='/seller-agreement' index={true} element={<Suspense fallback={<LoadingSpinner height={'725px'} />}><SellerAgreement /></Suspense>} />
+                        <Route path='/seller-agreement' element={<Suspense fallback={<LoadingSpinner height={'725px'} />}><SellerAgreement /></Suspense>} />
 
-                        <Route path='/buyer-agreement' index={true} element={<Suspense fallback={<LoadingSpinner height={'725px'} />}><BuyerAgreement /></Suspense>} />
+                        <Route path='/buyer-agreement' element={<Suspense fallback={<LoadingSpinner height={'725px'} />}><BuyerAgreement /></Suspense>} />
 
-                        <Route path="/seller-reviews/:userId" index={true} element={<Suspense fallback={<LoadingSpinner height={'725px'} />}><SellerReviews /></Suspense>} />
+                        <Route path="/seller-reviews/:userId" element={<Suspense fallback={<LoadingSpinner height={'725px'} />}><SellerReviews /></Suspense>} />
 
-                        <Route path='/reset-password' index={true} element={<Suspense fallback={<LoadingSpinner height={'725px'} />}><ResetPassword /></Suspense>} />
+                        <Route path='/reset-password' element={<Suspense fallback={<LoadingSpinner height={'725px'} />}><ResetPassword /></Suspense>} />
+
+                        <Route path='/sell' element={<Suspense fallback={<LoadingSpinner height={'725px'} />}><Sell /></Suspense>} />
                     </Route>
 
                     {/* Seller Layout */}
