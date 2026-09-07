@@ -111,7 +111,7 @@ function Hero() {
   ];
 
   return (
-    <section className="relative min-h-screen overflow-hidden bg-[#072342]">
+    <section className="relative lg:min-h-screen overflow-hidden bg-[#072342]">
       {/* Modern geometric background pattern */}
       <div className="absolute inset-0 opacity-20">
         <svg className="absolute w-full h-full" xmlns="http://www.w3.org/2000/svg">
@@ -134,7 +134,7 @@ function Hero() {
       <div className="absolute bottom-20 -right-32 w-96 h-96 bg-[#D19F3E] rounded-full mix-blend-overlay filter blur-3xl opacity-10 animate-pulse delay-1000" />
 
       <Container>
-        <div className="relative z-10 pt-28 pb-12 lg:pt-40 lg:pb-20">
+        <div className="relative z-10 pt-28 pb-14 lg:pt-40 lg:pb-20">
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-start">
             {/* Left Column - Main Content */}
             <div className="space-y-5 md:space-y-8">
@@ -218,12 +218,12 @@ function Hero() {
                 </div> */}
 
                 <div className="flex flex-col sm:flex-row items-center justify-start gap-5">
-                  <Link to="/sell" className="bg-gradient-to-r from-[#D19F3E] to-[#E8B86B] text-[#072342] py-2 px-10 rounded-md font-medium transition duration-200 flex justify-center items-center gap-2 group relative text-sm md:text-base hover:bg-pure-white/95 w-full sm:w-auto">
+                  <Link to="/sell" className="bg-gradient-to-r from-[#D19F3E] to-[#E8B86B] text-[#072342] py-2 px-10 rounded-md font-medium transition duration-200 flex justify-center items-center gap-2 group relative text-base hover:bg-pure-white/95 w-full sm:w-auto">
                     Sell Now
                     <SquareArrowOutUpRight size={18} />
                   </Link>
 
-                  <Link to="/auctions" className="text-black bg-white py-2 px-10 rounded-md font-medium transition duration-200 flex items-center justify-center gap-2 group relative text-sm md:text-base hover:bg-pure-white/95 w-full sm:w-auto text-center">
+                  <Link to="/auctions" className="text-black bg-white py-2 px-10 rounded-md font-medium transition duration-200 flex items-center justify-center gap-2 group relative text-base hover:bg-pure-white/95 w-full sm:w-auto text-center">
                     Browse Machinery
                     <Search size={18} />
                   </Link>

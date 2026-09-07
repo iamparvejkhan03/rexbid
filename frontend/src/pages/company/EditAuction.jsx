@@ -1867,7 +1867,7 @@ const EditAuction = () => {
                                                         className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
                                                     >
                                                         <option value="buyer_decides">Buyer Decides</option>
-                                                        <option value="bank_transfer">Bank Transfer</option>
+                                                        {/* <option value="bank_transfer">Bank Transfer</option> */}
                                                         <option value="credit_card">Credit Card</option>
                                                     </select>
                                                     {errors.paymentCollectionPreference && (
