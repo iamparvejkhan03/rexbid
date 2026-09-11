@@ -160,10 +160,10 @@ export const registerUser = async (req, res) => {
       currency,
       phone,
       image,
-      isVerified: false, //changed
-      identificationDocument: identificationDocumentUrl,
-      identificationDocumentPublicId,
-      identificationStatus: identificationDocumentUrl ? 'pending' : undefined,
+      isVerified: true, //changed
+      // identificationDocument: identificationDocumentUrl,
+      // identificationDocumentPublicId,
+      // identificationStatus: identificationDocumentUrl ? 'pending' : undefined,
       address: {
         line1,
         line2,

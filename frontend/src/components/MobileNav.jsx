@@ -8,7 +8,7 @@ function MobileNav() {
     const { openPopup } = usePopUp();
     const navLinks = [
         { name: 'Home', href: '/', icon: <Home /> },
-        { name: 'Auctions', href: '/auctions', icon: <Gavel /> },
+        { name: 'Listings', href: '/auctions', icon: <Gavel /> },
         { name: 'Sell', href: '/sell', icon: <Tractor /> },
         { name: 'Account', href: `/login`, icon: <UserCircle /> },
     ];

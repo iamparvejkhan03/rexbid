@@ -672,7 +672,7 @@ function Auctions() {
                 {/* Header */}
                 <div className="bg-white border-b border-gray-200 px-8 py-8">
                     <div className="container mx-auto">
-                        <h1 className="text-3xl font-bold text-gray-900">All Auctions</h1>
+                        <h1 className="text-3xl font-bold text-gray-900">All Listings</h1>
                         <p className="text-gray-600 mt-2">Browse through our selection of premium machinery and equipment across all categories.</p>
                     </div>
                 </div>

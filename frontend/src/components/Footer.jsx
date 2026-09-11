@@ -106,7 +106,7 @@ function Footer() {
 
                     <div className="relative z-20">
                         <p className='text-lg text-gray-300 font-semibold'>
-                            Auctions
+                            Listings
                         </p>
                         <ul className='mt-3 flex flex-col gap-2'>
                             {categoryImg.map(category => (

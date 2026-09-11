@@ -429,7 +429,7 @@ function AllUsers() {
                                             <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
                                             <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contacted</th>
                                             {/* <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th> */}
-                                            <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID Verification</th>
+                                            {/* <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID Verification</th> */}
                                             {/* <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Join Date</th> */}
                                             <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                         </tr>
@@ -503,7 +503,7 @@ function AllUsers() {
                                                     {getStatusBadge(user.isActive)}
                                                 </td> */}
                                                 {/* Add this after the Status column */}
-                                                <td className="py-4 px-6 flex gap-2 items-center">
+                                                {/* <td className="py-4 px-6 flex gap-2 items-center">
                                                     {user.identificationDocument ? (
                                                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${user.identificationStatus === 'verified' ? 'bg-green-100 text-green-800' :
                                                             user.identificationStatus === 'pending' ? 'bg-yellow-100 text-yellow-800' :
@@ -525,7 +525,7 @@ function AllUsers() {
                                                             <DownloadCloud size={20} className="cursor-pointer text-green-600" />
                                                         </a>
                                                     )}
-                                                </td>
+                                                </td> */}
                                                 {/* <td className="py-4 px-6 text-sm text-gray-900">
                                                     {formatDate(user.createdAt)}
                                                 </td> */}

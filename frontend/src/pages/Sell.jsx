@@ -79,6 +79,8 @@ function Sell() {
                             </span>
                         </h2>
 
+                        <p className="text-sm md:text-base text-[#ff9d00]">Free to list until 1st October. Buyers commission 3% on final sale price.</p>
+
                         <p className="text-gray-600 leading-relaxed text-base md:text-lg">
                             Choose the method that suits you best – take full control with your own account, or let us handle the listing for you.
                         </p>
@@ -97,7 +99,7 @@ function Sell() {
                                     </p>
                                     <button
                                         onClick={() => navigate('/register')}
-                                        className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-[#D19F3E] hover:underline"
+                                        className="mt-2 flex items-center gap-2 bg-gradient-to-r from-[#D19F3E] to-[#E8B86B] text-white px-5 py-2 rounded-md cursor-pointer"
                                     >
                                         Register now <ArrowRight size={14} />
                                     </button>

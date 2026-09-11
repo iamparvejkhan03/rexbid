@@ -175,10 +175,10 @@ function Hero() {
                   {/* <span className="text-gray-300">Your Control.</span> */}
                 </h1>
                 <p className="md:text-lg text-base text-gray-300 leading-relaxed max-w-lg">
-                  List your machine. Reach buyers across Ireland. Let them compete for it.
+                  List your machine and let buyers compete for it.
                 </p>
 
-                <p className="text-sm md:text-base text-[#E8B86B]">Free to list until 1st October. Buyers commission 3% on final sale price.</p>
+                {/* <p className="text-sm md:text-base text-[#E8B86B]">Free to list until 1st October. Buyers commission 3% on final sale price.</p> */}
               </div>
 
               {/* Enhanced Search Form with Category Dropdown */}
@@ -230,7 +230,7 @@ function Hero() {
                 </div>
 
                 <ul className="text-base md:text-lg text-gray-300 leading-relaxed max-w-lg">
-                  <li>✔ No endless calls or haggling</li>
+                  <li>✔ Less phone calls, no haggling</li>
                   <li>✔ Set your own reserve</li>
                   <li>✔ Buyers compete on price</li>
                   <li>✔ Sell from your premises</li>
