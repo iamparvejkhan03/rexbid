@@ -10,7 +10,7 @@ import axiosInstance from "../utils/axiosInstance";
 const carFilters = {
     'ALL': {
         auction: [
-            { name: 'auctionType', label: 'Auction Type', type: 'select', options: ['', 'standard', 'reserve', 'buy_now'] },
+            { name: 'auctionType', label: 'Listing Type', type: 'select', options: ['', 'standard', 'reserve', 'buy_now'] },
             { name: 'allowOffers', label: 'Accepts Offers', type: 'select', options: ['', 'true', 'false'] }
         ]
     }
@@ -195,7 +195,7 @@ const FiltersSection = ({
                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
                         <input
                             type="text"
-                            placeholder="Search auctions..."
+                            placeholder="Search listings..."
                             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                             value={uiFilters.search}
                             onChange={handleFilterChange}
@@ -341,7 +341,7 @@ const FiltersSection = ({
                     {/* IsFeatured */}
                     <div className="mb-4">
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Featured Auctions
+                            Featured Listings
                         </label>
                         <select
                             name="isFeatured"
@@ -710,7 +710,7 @@ function Auctions() {
                                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
                                     <input
                                         type="text"
-                                        placeholder="Search auctions..."
+                                        placeholder="Search listings..."
                                         className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                                         value={uiFilters.search}
                                         onChange={handleFilterChange}
@@ -729,7 +729,7 @@ function Auctions() {
                             {/* Results Count and Sort */}
                             <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-6 gap-3">
                                 <p className="text-gray-600">
-                                    {loading ? "Loading auctions..." : `Showing ${auctions.length} of ${pagination?.totalAuctions || 0} auctions`}
+                                    {loading ? "Loading auctions..." : `Showing ${auctions.length} of ${pagination?.totalAuctions || 0} listings`}
                                 </p>
 
                                 <div className="flex items-center gap-3">
@@ -855,7 +855,7 @@ function Auctions() {
                                                     </>
                                                 ) : (
                                                     <>
-                                                        Load More Auctions
+                                                        Load More Listings
                                                         <span className="text-xs bg-white/20 px-2 py-1 rounded-full">
                                                             {pagination.totalAuctions - auctions.length} more
                                                         </span>

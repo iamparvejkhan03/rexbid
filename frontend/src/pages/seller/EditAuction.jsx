@@ -511,6 +511,7 @@ const EditAuction = () => {
     const userCurrency = user?.currency || 'EUR';
 
     const [baseCurrency, setBaseCurrency] = useState(userCurrency || 'EUR');
+    const [auction, setAuction] = useState(null);
 
     const {
         register,
@@ -529,7 +530,7 @@ const EditAuction = () => {
         defaultValues: {
             auctionType: 'buy_now',
             endDate: '',
-            paymentCollectionPreference: 'buyer_decides',
+            paymentCollectionPreference: 'credit_card',
             vatIncluded: false
         }
     });
@@ -538,6 +539,42 @@ const EditAuction = () => {
     const startDate = watch('startDate');
     const endDate = watch('endDate');
     const selectedCategory = watch('category');
+
+    const [auctionDates, setAuctionDates] = useState([]);
+    const [loadingDates, setLoadingDates] = useState(false);
+    const [originalAuctionStatus, setOriginalAuctionStatus] = useState(null);
+
+    const selectedAuctionDateId = watch('auctionDateId');
+    const selectedAuctionDate = auctionDates.find(
+        (s) => s._id === selectedAuctionDateId,
+    );
+
+    const isTimedAuction =
+        auctionType === 'standard' || auctionType === 'reserve';
+
+    // Slot can only be changed while the auction is draft
+    const canChangeSlot = originalAuctionStatus === 'draft';
+
+    useEffect(() => {
+        const fetchDates = async () => {
+            try {
+                setLoadingDates(true);
+                const { data } = await axiosInstance.get('/api/v1/auction-dates/active');
+                if (data.success) setAuctionDates(data.data.auctionDates);
+            } catch (err) {
+                console.error('Failed to load auction dates', err);
+            } finally {
+                setLoadingDates(false);
+            }
+        };
+        fetchDates();
+    }, []);
+
+    useEffect(() => {
+        if (auctionType !== 'standard' && auctionType !== 'reserve') {
+            setValue('auctionDateId', '');
+        }
+    }, [auctionType, setValue]);
 
     // Fetch parent categories
     const fetchParentCategories = async () => {
@@ -675,6 +712,7 @@ const EditAuction = () => {
 
                 if (data.success) {
                     const auction = data.data.auction;
+                    setAuction(auction);
                     setBaseCurrency(auction?.baseCurrency);
                     const specificationsObj = mapToObject(auction.specifications);
                     setInitialSpecifications(specificationsObj);
@@ -737,11 +775,14 @@ const EditAuction = () => {
                         reservePrice: auction.reservePrice,
                         buyNowPrice: auction.buyNowPrice,
                         allowOffers: auction.allowOffers,
-                        paymentCollectionPreference: auction.paymentCollectionPreference || 'buyer_decides',
+                        paymentCollectionPreference: auction.paymentCollectionPreference || 'credit_card',
                         vatIncluded: auction.vatIncluded || false
                     };
 
                     reset(formData);
+
+                    setValue('auctionDateId', auction.auctionDate || '');
+                    setOriginalAuctionStatus(auction.status);
 
                     // If parent category exists, fetch its subcategories
                     if (parentSlug) {
@@ -822,7 +863,14 @@ const EditAuction = () => {
         scrollTo({ top: 0, behavior: 'smooth' });
 
         if (step === 1) {
-            const fieldsToValidate = ['title', 'category', 'description', 'startDate', 'endDate'];
+            const fieldsToValidate = ['title', 'category', 'description'];
+
+            if (isTimedAuction) {
+                // Only require the slot while the user is allowed to change it
+                if (canChangeSlot) {
+                    fieldsToValidate.push('auctionDateId');
+                }
+            }
 
             // Add category-specific fields to validation
             // Add ALL specification fields to validation
@@ -1111,10 +1159,15 @@ const EditAuction = () => {
             formDataToSend.append('videoLink', formData.video || '');
             formDataToSend.append('auctionType', formData.auctionType);
             formDataToSend.append('allowOffers', formData.allowOffers || false);
-            formDataToSend.append('paymentCollectionPreference', formData.paymentCollectionPreference || 'buyer_decides');
+            formDataToSend.append('paymentCollectionPreference', formData.paymentCollectionPreference || 'credit_card');
             formDataToSend.append('vatIncluded', Boolean(formData.vatIncluded));
             formDataToSend.append('startDate', new Date(formData.startDate).toISOString());
             formDataToSend.append('endDate', new Date(formData.endDate).toISOString());
+
+            // Slot for timed auctions
+            if (formData.auctionDateId) {
+                formDataToSend.append('auctionDateId', formData.auctionDateId);
+            }
 
             // Get specifications from form data
             const currentSpecifications = formData.specifications || {};
@@ -1504,46 +1557,133 @@ const EditAuction = () => {
                                                 </div>
                                                 {errors.video && <p className="text-red-500 text-sm mt-1">{errors.video.message}</p>}
                                             </div>
+
+                                            <p className='text-xs text-gray-500 md:col-span-2'>Note: Ads with videos tend to get higher prices and less phone calls. If you want to upload a video with your ad, please WhatsApp it to: 87 203 9257</p>
                                         </div>
 
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                                            <div>
-                                                <label htmlFor="startDate" className="block text-sm font-medium text-secondary mb-1">Start Date & Time *</label>
-                                                <div className="relative">
-                                                    <Clock size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                                                    <input
-                                                        {...register('startDate', { required: 'Start date is required' })}
-                                                        id="startDate"
-                                                        type="datetime-local"
-                                                        className="w-full pl-10 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
-                                                    />
-                                                </div>
-                                                {errors.startDate && <p className="text-red-500 text-sm mt-1">{errors.startDate.message}</p>}
-                                            </div>
+                                        {isTimedAuction ? (
+                                            <div className="mb-6">
+                                                <label
+                                                    htmlFor="auctionDateId"
+                                                    className="block text-sm font-medium text-secondary mb-1"
+                                                >
+                                                    Auction Period *
+                                                </label>
 
-                                            <div>
-                                                <label htmlFor="endDate" className="block text-sm font-medium text-secondary mb-1">End Date & Time *</label>
-                                                <div className="relative">
-                                                    <Clock size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                                                    <input
-                                                        {...register('endDate', {
-                                                            required: 'End date is required',
-                                                            validate: {
-                                                                afterStartDate: value => {
-                                                                    const start = new Date(watch('startDate'));
-                                                                    const end = new Date(value);
-                                                                    return end > start || 'End date must be after start date';
+                                                {canChangeSlot ? (
+                                                    <>
+                                                        <div className="relative">
+                                                            <Calendar
+                                                                size={18}
+                                                                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                                                            />
+                                                            <select
+                                                                {...register('auctionDateId', {
+                                                                    required: 'Please select an auction period',
+                                                                })}
+                                                                id="auctionDateId"
+                                                                disabled={loadingDates}
+                                                                className="w-full pl-10 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
+                                                            >
+                                                                <option value="">
+                                                                    {loadingDates
+                                                                        ? 'Loading available periods...'
+                                                                        : 'Select an auction period'}
+                                                                </option>
+                                                                {auctionDates.map((slot) => (
+                                                                    <option key={slot._id} value={slot._id}>
+                                                                        {slot.label}
+                                                                    </option>
+                                                                ))}
+                                                            </select>
+                                                        </div>
+                                                        {errors.auctionDateId && (
+                                                            <p className="text-red-500 text-sm mt-1">
+                                                                {errors.auctionDateId.message}
+                                                            </p>
+                                                        )}
+
+                                                        {selectedAuctionDate ? (
+                                                            <div className="mt-2 bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm">
+                                                                <p className="text-blue-800">
+                                                                    <strong>Starts:</strong>{' '}
+                                                                    {new Date(selectedAuctionDate.startDate).toLocaleString('en-IE')}
+                                                                </p>
+                                                                <p className="text-blue-800">
+                                                                    <strong>Ends:</strong>{' '}
+                                                                    {new Date(selectedAuctionDate.endDate).toLocaleString('en-IE')}
+                                                                </p>
+                                                            </div>
+                                                        ) : (
+                                                            // Slot reference may be orphaned (deleted slot) or auction predates slots
+                                                            <div className="mt-2 bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800">
+                                                                <strong>Current period:</strong>{' '}
+                                                                {new Date(auction?.startDate).toLocaleString('en-IE')} →{' '}
+                                                                {new Date(auction?.endDate).toLocaleString('en-IE')}
+                                                                <br />
+                                                                <span className="text-xs">
+                                                                    Pick a new period above to replace these dates.
+                                                                </span>
+                                                            </div>
+                                                        )}
+                                                    </>
+                                                ) : (
+                                                    // Auction is no longer draft — dates are frozen
+                                                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm">
+                                                        <p className="text-gray-800">
+                                                            <strong>Starts:</strong>{' '}
+                                                            {new Date(auction?.startDate).toLocaleString('en-IE')}
+                                                        </p>
+                                                        <p className="text-gray-800">
+                                                            <strong>Ends:</strong>{' '}
+                                                            {new Date(auction?.endDate).toLocaleString('en-IE')}
+                                                        </p>
+                                                        <p className="text-xs text-gray-500 mt-2">
+                                                            Auction dates can only be changed while the auction is in draft.
+                                                        </p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ) : (
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                                                <div>
+                                                    <label htmlFor="startDate" className="block text-sm font-medium text-secondary mb-1">Start Date & Time *</label>
+                                                    <div className="relative">
+                                                        <Clock size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                                                        <input
+                                                            {...register('startDate', { required: 'Start date is required' })}
+                                                            id="startDate"
+                                                            type="datetime-local"
+                                                            className="w-full pl-10 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
+                                                        />
+                                                    </div>
+                                                    {errors.startDate && <p className="text-red-500 text-sm mt-1">{errors.startDate.message}</p>}
+                                                </div>
+
+                                                <div>
+                                                    <label htmlFor="endDate" className="block text-sm font-medium text-secondary mb-1">End Date & Time *</label>
+                                                    <div className="relative">
+                                                        <Clock size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                                                        <input
+                                                            {...register('endDate', {
+                                                                required: 'End date is required',
+                                                                validate: {
+                                                                    afterStartDate: value => {
+                                                                        const start = new Date(watch('startDate'));
+                                                                        const end = new Date(value);
+                                                                        return end > start || 'End date must be after start date';
+                                                                    }
                                                                 }
-                                                            }
-                                                        })}
-                                                        id="endDate"
-                                                        type="datetime-local"
-                                                        className="w-full pl-10 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
-                                                    />
+                                                            })}
+                                                            id="endDate"
+                                                            type="datetime-local"
+                                                            className="w-full pl-10 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
+                                                        />
+                                                    </div>
+                                                    {errors.endDate && <p className="text-red-500 text-sm mt-1">{errors.endDate.message}</p>}
                                                 </div>
-                                                {errors.endDate && <p className="text-red-500 text-sm mt-1">{errors.endDate.message}</p>}
                                             </div>
-                                        </div>
+                                        )}
 
                                         <div className="mb-6">
                                             <label htmlFor="photo-upload" className="block text-sm font-medium text-secondary mb-1">Attach Photos *</label>
@@ -1576,7 +1716,7 @@ const EditAuction = () => {
                                             )}
                                         </div>
 
-                                        <div className="mb-6">
+                                        {/* <div className="mb-6">
                                             <label htmlFor="document-upload" className="block text-sm font-medium text-secondary mb-1">Attach Documents</label>
                                             <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
                                                 <input
@@ -1593,7 +1733,6 @@ const EditAuction = () => {
                                                 </label>
                                             </div>
 
-                                            {/* Display existing documents with captions */}
                                             {existingDocuments.length > 0 && (
                                                 <div className="mt-4">
                                                     <p className="text-sm text-secondary mb-2">Existing Documents:</p>
@@ -1610,21 +1749,12 @@ const EditAuction = () => {
                                                                         <X size={16} />
                                                                     </button>
                                                                 </div>
-                                                                {/* Caption input for existing documents */}
-                                                                {/* <input
-                                                                    type="text"
-                                                                    placeholder="Add document caption..."
-                                                                    value={documentCaptions[index] || ''}
-                                                                    onChange={(e) => handleDocumentCaptionChange('existing', index, e.target.value)}
-                                                                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
-                                                                /> */}
                                                             </div>
                                                         ))}
                                                     </div>
                                                 </div>
                                             )}
 
-                                            {/* Display newly uploaded documents with captions */}
                                             {uploadedDocuments.length > 0 && (
                                                 <div className="mt-4">
                                                     <p className="text-sm text-secondary mb-2">New Documents:</p>
@@ -1641,14 +1771,6 @@ const EditAuction = () => {
                                                                         <X size={16} />
                                                                     </button>
                                                                 </div>
-                                                                {/* Caption input for new documents */}
-                                                                {/* <input
-                                                                    type="text"
-                                                                    placeholder="Add document caption..."
-                                                                    value={uploadedDocumentCaptions[index] || ''}
-                                                                    onChange={(e) => handleDocumentCaptionChange('new', index, e.target.value)}
-                                                                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
-                                                                /> */}
                                                             </div>
                                                         ))}
                                                     </div>
@@ -1656,7 +1778,6 @@ const EditAuction = () => {
                                             )}
                                         </div>
 
-                                        {/* Service History Images Section */}
                                         <div className="mb-6">
                                             <label htmlFor="service-upload" className="block text-sm font-medium text-secondary mb-1">
                                                 Other Images
@@ -1677,7 +1798,6 @@ const EditAuction = () => {
                                                 </label>
                                             </div>
 
-                                            {/* Unified Service History Gallery with Drag & Drop */}
                                             {allServiceRecords.length > 0 && (
                                                 <div className="mt-4">
                                                     <p className="text-sm text-secondary mb-3">
@@ -1694,14 +1814,14 @@ const EditAuction = () => {
                                                                 index={index}
                                                                 movePhoto={moveServiceRecord}
                                                                 removePhoto={removeServiceRecord}
-                                                                caption={serviceRecordCaptions[index] || ''} // Add this
-                                                                onCaptionChange={handleServiceRecordCaptionChange} // Add this
+                                                                caption={serviceRecordCaptions[index] || ''}
+                                                                onCaptionChange={handleServiceRecordCaptionChange}
                                                             />
                                                         ))}
                                                     </div>
                                                 </div>
                                             )}
-                                        </div>
+                                        </div> */}
                                     </div>
                                 )}
 
@@ -1866,7 +1986,7 @@ const EditAuction = () => {
                                                         id="paymentCollectionPreference"
                                                         className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
                                                     >
-                                                        <option value="buyer_decides">Buyer Decides</option>
+                                                        {/* <option value="buyer_decides">Buyer Decides</option> */}
                                                         {/* <option value="bank_transfer">Bank Transfer</option> */}
                                                         <option value="credit_card">Credit Card</option>
                                                     </select>

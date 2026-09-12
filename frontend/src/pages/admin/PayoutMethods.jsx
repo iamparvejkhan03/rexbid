@@ -143,11 +143,11 @@ function PayoutMethods() {
                     </div>
                 </div>
 
-                {defaultMethod === method && (
+                {/* {defaultMethod === method && (
                     <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
                         Default
                     </span>
-                )}
+                )} */}
             </div>
 
             {/* Content */}

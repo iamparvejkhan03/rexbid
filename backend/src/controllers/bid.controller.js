@@ -203,6 +203,65 @@ export const getMyBids = async (req, res) => {
                 status = 'lost';
             }
 
+            // ----- Post-auction eligibility (reserve_not_met) -----
+            let isTopBidder = false;
+            let topBidderRank = null;
+            let canMakePostAuctionOffer = false;
+            let postAuctionOffer = null;
+
+            if (auction.status === "reserve_not_met") {
+                const highestByBidder = new Map();
+                for (const b of auction.bids) {
+                    const id = b.bidder?.toString();
+                    if (!id) continue;
+                    const prev = highestByBidder.get(id);
+                    if (!prev || b.amount > prev.amount) {
+                        highestByBidder.set(id, { bidder: b.bidder, amount: b.amount });
+                    }
+                }
+                const topBidders = Array.from(highestByBidder.values())
+                    .sort((a, b) => b.amount - a.amount)
+                    .slice(0, 2);
+
+                const myIndex = topBidders.findIndex(
+                    (b) => b.bidder.toString() === userId.toString(),
+                );
+
+                if (myIndex >= 0) {
+                    isTopBidder = true;
+                    topBidderRank = myIndex + 1;
+
+                    const myOffers = (auction.offers || [])
+                        .filter((o) => o.buyer?.toString() === userId.toString())
+                        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+                    const pendingOffer = myOffers.find((o) => o.status === "pending");
+                    const latestOffer = myOffers[0];
+
+                    if (pendingOffer) {
+                        postAuctionOffer = {
+                            _id: pendingOffer._id,
+                            amount: pendingOffer.amount,
+                            convertedAmount: parseFloat((pendingOffer.amount * rate).toFixed(2)),
+                            status: "pending",
+                        };
+                        canMakePostAuctionOffer = false;
+                    } else if (latestOffer && latestOffer.isPostAuction) {
+                        postAuctionOffer = {
+                            _id: latestOffer._id,
+                            amount: latestOffer.amount,
+                            convertedAmount: parseFloat((latestOffer.amount * rate).toFixed(2)),
+                            status: latestOffer.status,
+                        };
+                        canMakePostAuctionOffer = ["rejected", "expired", "withdrawn"].includes(
+                            latestOffer.status,
+                        );
+                    } else {
+                        canMakePostAuctionOffer = true;
+                    }
+                }
+            }
+
             // Convert all price fields
             const myBidConverted = latestUserBid.amount * rate;
             const currentPriceConverted = auction.currentPrice * rate;
@@ -252,7 +311,17 @@ export const getMyBids = async (req, res) => {
                 } : null,
                 // Currency info
                 displayCurrency: userCurrency,
-                baseCurrency: auction.baseCurrency
+                baseCurrency: auction.baseCurrency,
+                reserveNotMet: auction.status === "reserve_not_met",
+                reservePriceOriginal: auction.reservePrice,
+                reservePrice:
+                    auction.reservePrice != null
+                        ? parseFloat((auction.reservePrice * rate).toFixed(2))
+                        : null,
+                isTopBidder,
+                topBidderRank,
+                canMakePostAuctionOffer,
+                postAuctionOffer,
             };
         });
 

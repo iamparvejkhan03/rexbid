@@ -12,7 +12,8 @@ const MakeOfferModal = ({
     offerMessage,
     setOfferMessage,
     loading,
-    auction
+    auction,
+    isPostAuction = false,
 }) => {
     const [serviceFee, setServiceFee] = useState(0);
     const [commissionType, setCommissionType] = useState("percentage");
@@ -111,9 +112,11 @@ const MakeOfferModal = ({
                             />
                         </div>
 
-                        {auction?.convertedStartPrice && auction?.convertedStartPrice > 0 && <p className="text-sm text-gray-500 mt-1">
-                            Minimum offer: {formatCurrency(auction?.convertedStartPrice)}
-                        </p>}
+                        {!isPostAuction && auction?.convertedStartPrice && auction?.convertedStartPrice > 0 && (
+                            <p className="text-sm text-gray-500 mt-1">
+                                Minimum offer: {formatCurrency(auction?.convertedStartPrice)}
+                            </p>
+                        )}
                     </div>
 
                     {/* Fee Breakdown */}
@@ -157,9 +160,11 @@ const MakeOfferModal = ({
                             />
                         </div>
 
-                        <p className="text-sm text-gray-500 mt-1">
-                            Your offer will expire in 48 hours if not responded to.
-                        </p>
+                        {!isPostAuction && (
+                            <p className="text-sm text-gray-500 mt-1">
+                                Your offer will expire in 48 hours if not responded to.
+                            </p>
+                        )}
                     </div>
 
                     {/* Buttons */}

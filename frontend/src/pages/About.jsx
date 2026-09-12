@@ -27,17 +27,17 @@ const HowItWorksSelling = [
     {
         icon: <Upload />,
         title: 'Create Your Listing',
-        description: 'Upload your item details, photos and videos. Set your auction preferences and choose when bidding ends.'
+        description: 'Upload your item details, photos and videos. Set your listing preferences and choose when bidding ends.'
     },
     {
         icon: <FolderEdit />,
-        title: 'Manage Your Auction',
+        title: 'Manage Your Listing',
         description: `Your item is advertised to potential buyers, who can place bids and offers throughout the auction period.`
     },
     {
         icon: <Handshake />,
         title: 'Complete the Sale',
-        description: `When the auction closes, the highest bidder wins. You are paid instantly when collection / delivery is confirmed.`
+        description: `When the listing closes, the highest bidder wins. You are paid instantly when collection / delivery is confirmed.`
     },
 ];
 
@@ -314,7 +314,7 @@ function About() {
                                 to="/auctions"
                                 className="inline-flex items-center gap-2 mt-8 bg-[#D19F3E] hover:bg-[#bc8f35] text-white px-6 py-3 rounded-lg font-medium transition-all duration-300"
                             >
-                                Explore Auctions
+                                Explore Listings
                                 <ArrowRight size={16} />
                             </Link>
                         </div>
@@ -479,7 +479,7 @@ function About() {
                                 to="/auctions"
                                 className="border border-white/30 hover:border-[#D19F3E] text-white hover:text-[#D19F3E] px-6 py-3 rounded-lg font-medium transition-all duration-300"
                             >
-                                Browse Auctions
+                                Browse Listings
                             </Link>
                         </div>
                     </div>

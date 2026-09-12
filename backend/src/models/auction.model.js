@@ -21,6 +21,7 @@ const offerSchema = new Schema(
       required: true,
       min: 0,
     },
+    isPostAuction: { type: Boolean, default: false },
     // NEW FIELDS FOR REACTIVATION
     canBeReactivated: {
       type: Boolean,
@@ -96,6 +97,11 @@ const auctionSchema = new Schema(
         required: true,
       },
     ],
+    auctionDate: {
+      type: Schema.Types.ObjectId,
+      ref: "AuctionDate",
+      default: null,
+    },
     location: {
       type: String,
       trim: true,
@@ -570,7 +576,7 @@ auctionSchema.methods.buyNow = async function (buyerId, buyerUsername) {
 
   // Calculate and store commission (only for non-giveaway)
   if (this.auctionType !== "giveaway") {
-    const commissionData = await calculateCommission(this.finalPrice, this.isFeatured);
+    const commissionData = await calculateCommission(this.finalPrice, this.isFeatured, this.baseCurrency);
     this.commissionAmount = commissionData.commissionAmount;
     this.commissionType = commissionData.commissionType;
     this.commissionValue = commissionData.commissionValue;
@@ -592,6 +598,69 @@ auctionSchema.methods.buyNow = async function (buyerId, buyerUsername) {
 };
 
 // NEW: Method to make an offer
+// auctionSchema.methods.makeOffer = async function (
+//   buyerId,
+//   buyerUsername,
+//   amount,
+//   message = "",
+// ) {
+//   const now = new Date();
+
+//   if (!this.allowOffers) {
+//     throw new Error("Offers are not allowed for this auction");
+//   }
+
+//   if (this.status !== "active") {
+//     throw new Error("Auction is not active");
+//   }
+
+//   if (now >= this.endDate) {
+//     throw new Error("Auction has ended");
+//   }
+
+//   // Check if buyer already has a pending offer
+//   const existingPendingOffer = this.offers.find(
+//     (offer) =>
+//       offer.buyer.toString() === buyerId.toString() &&
+//       offer.status === "pending",
+//   );
+
+//   if (existingPendingOffer) {
+//     throw new Error("You already have a pending offer for this auction");
+//   }
+
+//   // Add offer
+//   this.offers.push({
+//     buyer: buyerId,
+//     buyerUsername,
+//     amount,
+//     message,
+//     status: "pending",
+//     expiresAt: new Date(now.getTime() + 48 * 60 * 60 * 1000), // 48 hours
+//   });
+
+//   // Set notification flag
+//   this.notifications.offerReceived = true;
+
+//   return this.save();
+// };
+
+// Helper: top N unique bidders by their highest bid
+auctionSchema.methods.getTopUniqueBidders = function (limit = 2) {
+  const highestByBidder = new Map();
+  for (const bid of this.bids) {
+    const id = bid.bidder?.toString();
+    if (!id) continue;
+    const prev = highestByBidder.get(id);
+    if (!prev || bid.amount > prev.amount) {
+      highestByBidder.set(id, { bidder: bid.bidder, amount: bid.amount });
+    }
+  }
+  return Array.from(highestByBidder.values())
+    .sort((a, b) => b.amount - a.amount)
+    .slice(0, limit);
+};
+
 auctionSchema.methods.makeOffer = async function (
   buyerId,
   buyerUsername,
@@ -599,43 +668,62 @@ auctionSchema.methods.makeOffer = async function (
   message = "",
 ) {
   const now = new Date();
+  const isPostAuction = this.status === "reserve_not_met";
 
-  if (!this.allowOffers) {
+  // allowOffers is bypassed for post-auction (reserve_not_met) offers
+  if (!this.allowOffers && !isPostAuction) {
     throw new Error("Offers are not allowed for this auction");
   }
 
-  if (this.status !== "active") {
+  // Allowed on active OR reserve_not_met
+  if (this.status !== "active" && !isPostAuction) {
     throw new Error("Auction is not active");
   }
 
-  if (now >= this.endDate) {
+  // End-date gate only for live auctions
+  if (!isPostAuction && now >= this.endDate) {
     throw new Error("Auction has ended");
   }
 
-  // Check if buyer already has a pending offer
+  // Post-auction: only top 2 unique bidders may offer
+  if (isPostAuction) {
+    const top = this.getTopUniqueBidders(2);
+    const eligible = top.some(
+      (b) => b.bidder.toString() === buyerId.toString(),
+    );
+    if (!eligible) {
+      throw new Error(
+        "Only the top two bidders can make offers on this auction",
+      );
+    }
+  }
+
+  // One pending offer at a time (per bidder)
   const existingPendingOffer = this.offers.find(
     (offer) =>
       offer.buyer.toString() === buyerId.toString() &&
       offer.status === "pending",
   );
-
   if (existingPendingOffer) {
     throw new Error("You already have a pending offer for this auction");
   }
 
-  // Add offer
+  // Post-auction offers never expire; regular offers expire in 48h
+  const expiresAt = isPostAuction
+    ? null
+    : new Date(now.getTime() + 48 * 60 * 60 * 1000);
+
   this.offers.push({
     buyer: buyerId,
     buyerUsername,
     amount,
     message,
     status: "pending",
-    expiresAt: new Date(now.getTime() + 48 * 60 * 60 * 1000), // 48 hours
+    isPostAuction,
+    expiresAt,
   });
 
-  // Set notification flag
   this.notifications.offerReceived = true;
-
   return this.save();
 };
 
@@ -656,7 +744,7 @@ auctionSchema.methods.respondToOffer = async function (
     throw new Error("Offer has already been responded to");
   }
 
-  if (new Date() > offer.expiresAt) {
+  if (offer.expiresAt && new Date() > offer.expiresAt) {
     offer.status = "expired";
     return this.save();
   }
@@ -673,7 +761,7 @@ auctionSchema.methods.respondToOffer = async function (
       this.endDate = new Date(); // End auction immediately
 
       // Calculate and store commission
-      const commissionData = await calculateCommission(this.finalPrice, this.isFeatured);
+      const commissionData = await calculateCommission(this.finalPrice, this.isFeatured, this.baseCurrency);
       this.commissionAmount = commissionData.commissionAmount;
       this.commissionType = commissionData.commissionType;
       this.commissionValue = commissionData.commissionValue;
@@ -726,7 +814,7 @@ auctionSchema.methods.respondToCounterOffer = async function (offerId, accept) {
     throw new Error("This offer is not in countered status");
   }
 
-  if (new Date() > offer.expiresAt) {
+  if (offer.expiresAt && new Date() > offer.expiresAt) {
     offer.status = "expired";
     return this.save();
   }
@@ -742,7 +830,7 @@ auctionSchema.methods.respondToCounterOffer = async function (offerId, accept) {
     this.endDate = new Date();
 
     // Calculate and store commission
-    const commissionData = await calculateCommission(this.finalPrice, this.isFeatured);
+    const commissionData = await calculateCommission(this.finalPrice, this.isFeatured, this.baseCurrency);
     this.commissionAmount = commissionData.commissionAmount;
     this.commissionType = commissionData.commissionType;
     this.commissionValue = commissionData.commissionValue;
@@ -836,7 +924,7 @@ auctionSchema.methods.reactivateAndAcceptOffer = async function (
   this.endDate = new Date();
 
   // Calculate and store commission
-  const commissionData = await calculateCommission(this.finalPrice, this.isFeatured);
+  const commissionData = await calculateCommission(this.finalPrice, this.isFeatured, this.baseCurrency);
   this.commissionAmount = commissionData.commissionAmount;
   this.commissionType = commissionData.commissionType;
   this.commissionValue = commissionData.commissionValue;
@@ -933,7 +1021,7 @@ auctionSchema.methods.endAuction = async function () {
       wasSold = true;
 
       // Calculate and store commission
-      const commissionData = await calculateCommission(this.finalPrice, this.isFeatured);
+      const commissionData = await calculateCommission(this.finalPrice, this.isFeatured, this.baseCurrency);
       this.commissionAmount = commissionData.commissionAmount;
       this.commissionType = commissionData.commissionType;
       this.commissionValue = commissionData.commissionValue;
@@ -948,7 +1036,7 @@ auctionSchema.methods.endAuction = async function () {
         wasSold = true;
 
         // Calculate and store commission
-        const commissionData = await calculateCommission(this.finalPrice, this.isFeatured);
+        const commissionData = await calculateCommission(this.finalPrice, this.isFeatured, this.baseCurrency);
         this.commissionAmount = commissionData.commissionAmount;
         this.commissionType = commissionData.commissionType;
         this.commissionValue = commissionData.commissionValue;
@@ -965,7 +1053,7 @@ auctionSchema.methods.endAuction = async function () {
         wasSold = true;
 
         // Calculate and store commission
-        const commissionData = await calculateCommission(this.finalPrice, this.isFeatured);
+        const commissionData = await calculateCommission(this.finalPrice, this.isFeatured, this.baseCurrency);
         this.commissionAmount = commissionData.commissionAmount;
         this.commissionType = commissionData.commissionType;
         this.commissionValue = commissionData.commissionValue;

@@ -401,6 +401,35 @@ const CreateAuction = () => {
     const selectedCategory = watch('category'); // This will be the subcategory slug
     const selectedParentSlug = watch('parentCategory');
 
+    const [auctionDates, setAuctionDates] = useState([]);
+    const [loadingDates, setLoadingDates] = useState(false);
+
+    useEffect(() => {
+        const fetchDates = async () => {
+            try {
+                setLoadingDates(true);
+                const { data } = await axiosInstance.get("/api/v1/auction-dates/active");
+                if (data.success) setAuctionDates(data.data.auctionDates);
+            } catch (err) {
+                console.error("Failed to load auction dates", err);
+            } finally {
+                setLoadingDates(false);
+            }
+        };
+        fetchDates();
+    }, []);
+
+    const selectedAuctionDateId = watch("auctionDateId");
+    const selectedAuctionDate = auctionDates.find(
+        (s) => s._id === selectedAuctionDateId,
+    );
+
+    useEffect(() => {
+        if (auctionType !== 'standard' && auctionType !== 'reserve') {
+            setValue('auctionDateId', '');
+        }
+    }, [auctionType, setValue]);
+
     // Fetch parent categories on mount
     useEffect(() => {
         fetchParentCategories();
@@ -567,11 +596,13 @@ const CreateAuction = () => {
             const fieldsToValidate = [
                 'title',
                 'description',
-                'startDate',
-                'endDate',
                 'parentCategory',
                 'category'
             ];
+
+            if (auctionType === 'standard' || auctionType === 'reserve') {
+                fieldsToValidate.push('auctionDateId');
+            }
 
             // Add all required specification fields to validation
             categoryFields.forEach(field => {
@@ -706,11 +737,27 @@ const CreateAuction = () => {
             // Auction settings
             formData.append('auctionType', auctionData.auctionType);
             formData.append('allowOffers', auctionData.allowOffers || false);
-            formData.append('paymentCollectionPreference', auctionData.paymentCollectionPreference || 'buyer_decides');
+            formData.append('paymentCollectionPreference', auctionData.paymentCollectionPreference || 'credit_card');
             formData.append('vatIncluded', Boolean(auctionData.vatIncluded));
             formData.append('features', auctionData.features || '');
-            formData.append('startDate', new Date(auctionData.startDate).toISOString());
-            formData.append('endDate', new Date(auctionData.endDate).toISOString());
+            const isTimed =
+                auctionData.auctionType === 'standard' ||
+                auctionData.auctionType === 'reserve';
+
+            if (isTimed) {
+                if (auctionData.auctionDateId) {
+                    formData.append('auctionDateId', auctionData.auctionDateId);
+                }
+                // Do NOT send startDate/endDate — backend derives them from the slot
+            } else {
+                // buy_now / giveaway — send custom dates only if the user actually entered them
+                if (auctionData.startDate) {
+                    formData.append('startDate', new Date(auctionData.startDate).toISOString());
+                }
+                if (auctionData.endDate) {
+                    formData.append('endDate', new Date(auctionData.endDate).toISOString());
+                }
+            }
 
             // Specifications - Convert to JSON string
             if (auctionData.specifications) {
@@ -974,50 +1021,104 @@ const CreateAuction = () => {
                                                 </div>
                                                 {errors.video && <p className="text-red-500 text-sm mt-1">{errors.video.message}</p>}
                                             </div>
+
+                                            <p className='text-xs text-gray-500 md:col-span-2'>Note: Ads with videos tend to get higher prices and less phone calls. If you want to upload a video with your ad, please WhatsApp it to: 87 203 9257</p>
                                         </div>
 
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                                            <div>
-                                                <label htmlFor="startDate" className="block text-sm font-medium text-secondary mb-1">
-                                                    Start Date & Time *
+                                        {/* AUCTION DATE SLOT — only for timed auctions */}
+                                        {(auctionType === "standard" || auctionType === "reserve") ? (
+                                            <div className="mb-6">
+                                                <label
+                                                    htmlFor="auctionDateId"
+                                                    className="block text-sm font-medium text-secondary mb-1"
+                                                >
+                                                    Auction Period *
                                                 </label>
                                                 <div className="relative">
-                                                    <Clock size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                                                    <input
-                                                        {...register('startDate', { required: 'Start date is required' })}
-                                                        id="startDate"
-                                                        type="datetime-local"
-                                                        className="w-full pl-10 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
+                                                    <Calendar
+                                                        size={18}
+                                                        className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
                                                     />
-                                                </div>
-                                                {errors.startDate && <p className="text-red-500 text-sm mt-1">{errors.startDate.message}</p>}
-                                            </div>
-
-                                            <div>
-                                                <label htmlFor="endDate" className="block text-sm font-medium text-secondary mb-1">
-                                                    End Date & Time *
-                                                </label>
-                                                <div className="relative">
-                                                    <Clock size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                                                    <input
-                                                        {...register('endDate', {
-                                                            required: 'End date is required',
-                                                            validate: {
-                                                                afterStartDate: value => {
-                                                                    const start = new Date(watch('startDate'));
-                                                                    const end = new Date(value);
-                                                                    return end > start || 'End date must be after start date';
-                                                                }
-                                                            }
+                                                    <select
+                                                        {...register("auctionDateId", {
+                                                            required: "Please select an auction period",
                                                         })}
-                                                        id="endDate"
-                                                        type="datetime-local"
+                                                        id="auctionDateId"
+                                                        disabled={loadingDates}
                                                         className="w-full pl-10 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
-                                                    />
+                                                    >
+                                                        <option value="">
+                                                            {loadingDates ? "Loading available periods..." : "Select an auction period"}
+                                                        </option>
+                                                        {auctionDates.map((slot) => (
+                                                            <option key={slot._id} value={slot._id}>
+                                                                {slot.label}
+                                                            </option>
+                                                        ))}
+                                                    </select>
                                                 </div>
-                                                {errors.endDate && <p className="text-red-500 text-sm mt-1">{errors.endDate.message}</p>}
+                                                {errors.auctionDateId && (
+                                                    <p className="text-red-500 text-sm mt-1">{errors.auctionDateId.message}</p>
+                                                )}
+
+                                                {selectedAuctionDate && (
+                                                    <div className="mt-2 bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm">
+                                                        <p className="text-blue-800">
+                                                            <strong>Starts:</strong>{" "}
+                                                            {new Date(selectedAuctionDate.startDate).toLocaleString("en-IE")}
+                                                        </p>
+                                                        <p className="text-blue-800">
+                                                            <strong>Ends:</strong>{" "}
+                                                            {new Date(selectedAuctionDate.endDate).toLocaleString("en-IE")}
+                                                        </p>
+                                                    </div>
+                                                )}
                                             </div>
-                                        </div>
+                                        ) : (
+                                            // buy_now / giveaway keep the existing date inputs — unchanged
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                                                <div>
+                                                    <label htmlFor="startDate" className="block text-sm font-medium text-secondary mb-1">
+                                                        Start Date & Time *
+                                                    </label>
+                                                    <div className="relative">
+                                                        <Clock size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                                                        <input
+                                                            {...register('startDate', { required: 'Start date is required' })}
+                                                            id="startDate"
+                                                            type="datetime-local"
+                                                            className="w-full pl-10 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
+                                                        />
+                                                    </div>
+                                                    {errors.startDate && <p className="text-red-500 text-sm mt-1">{errors.startDate.message}</p>}
+                                                </div>
+
+                                                <div>
+                                                    <label htmlFor="endDate" className="block text-sm font-medium text-secondary mb-1">
+                                                        End Date & Time *
+                                                    </label>
+                                                    <div className="relative">
+                                                        <Clock size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                                                        <input
+                                                            {...register('endDate', {
+                                                                required: 'End date is required',
+                                                                validate: {
+                                                                    afterStartDate: value => {
+                                                                        const start = new Date(watch('startDate'));
+                                                                        const end = new Date(value);
+                                                                        return end > start || 'End date must be after start date';
+                                                                    }
+                                                                }
+                                                            })}
+                                                            id="endDate"
+                                                            type="datetime-local"
+                                                            className="w-full pl-10 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
+                                                        />
+                                                    </div>
+                                                    {errors.endDate && <p className="text-red-500 text-sm mt-1">{errors.endDate.message}</p>}
+                                                </div>
+                                            </div>
+                                        )}
 
                                         <div className="mb-6">
                                             <label htmlFor="photo-upload" className="block text-sm font-medium text-secondary mb-1">
@@ -1049,7 +1150,7 @@ const CreateAuction = () => {
                                             )}
                                         </div>
 
-                                        <div className="mb-6">
+                                        {/* <div className="mb-6">
                                             <label htmlFor="document-upload" className="block text-sm font-medium text-secondary mb-1">
                                                 Attach Documents
                                             </label>
@@ -1113,7 +1214,7 @@ const CreateAuction = () => {
                                                     removeServiceRecord={removeServiceRecord}
                                                 />
                                             )}
-                                        </div>
+                                        </div> */}
                                     </div>
                                 )}
 
@@ -1280,7 +1381,7 @@ const CreateAuction = () => {
                                                         id="paymentCollectionPreference"
                                                         className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
                                                     >
-                                                        <option value="buyer_decides">Buyer Decides</option>
+                                                        {/* <option value="buyer_decides">Buyer Decides</option> */}
                                                         {/* <option value="bank_transfer">Bank Transfer</option> */}
                                                         <option value="credit_card">Credit Card</option>
                                                     </select>
@@ -1456,32 +1557,32 @@ const CreateAuction = () => {
                                                                 </div>
                                                             )}
                                                             {watch('auctionType') !== 'giveaway' && <>
-                                                            <div>
-                                                                <p className="text-xs text-secondary">Payment Collection Method</p>
-                                                                <p className="font-medium">
-                                                                    {watch('paymentCollectionPreference') === 'buyer_decides' && 'Buyer Decides'}
-                                                                    {watch('paymentCollectionPreference') === 'bank_transfer' && 'Bank Transfer'}
-                                                                    {watch('paymentCollectionPreference') === 'credit_card' && 'Credit Card'}
-                                                                </p>
-                                                            </div>
-                                                            <div>
-                                                                <p className="text-xs text-secondary">VAT Applicable</p>
-                                                                <p className="font-medium">
-                                                                    {watch('vatIncluded') ? 'Yes' : 'No'}
-                                                                </p>
-                                                            </div>
-                                                            <div>
-                                                                <p className="text-xs text-secondary">Start Date</p>
-                                                                <p className="font-medium">
-                                                                    {watch('startDate') ? new Date(watch('startDate')).toLocaleString('en-IE') : 'Not provided'}
-                                                                </p>
-                                                            </div>
-                                                            <div>
-                                                                <p className="text-xs text-secondary">End Date</p>
-                                                                <p className="font-medium">
-                                                                    {watch('endDate') ? new Date(watch('endDate')).toLocaleString('en-IE') : 'Not provided'}
-                                                                </p>
-                                                            </div></>}
+                                                                <div>
+                                                                    <p className="text-xs text-secondary">Payment Collection Method</p>
+                                                                    <p className="font-medium">
+                                                                        {watch('paymentCollectionPreference') === 'buyer_decides' && 'Buyer Decides'}
+                                                                        {watch('paymentCollectionPreference') === 'bank_transfer' && 'Bank Transfer'}
+                                                                        {watch('paymentCollectionPreference') === 'credit_card' && 'Credit Card'}
+                                                                    </p>
+                                                                </div>
+                                                                <div>
+                                                                    <p className="text-xs text-secondary">VAT Applicable</p>
+                                                                    <p className="font-medium">
+                                                                        {watch('vatIncluded') ? 'Yes' : 'No'}
+                                                                    </p>
+                                                                </div>
+                                                                <div>
+                                                                    <p className="text-xs text-secondary">Start Date</p>
+                                                                    <p className="font-medium">
+                                                                        {watch('startDate') ? new Date(watch('startDate')).toLocaleString('en-IE') : 'Not provided'}
+                                                                    </p>
+                                                                </div>
+                                                                <div>
+                                                                    <p className="text-xs text-secondary">End Date</p>
+                                                                    <p className="font-medium">
+                                                                        {watch('endDate') ? new Date(watch('endDate')).toLocaleString('en-IE') : 'Not provided'}
+                                                                    </p>
+                                                                </div></>}
                                                         </div>
                                                     </div>
 

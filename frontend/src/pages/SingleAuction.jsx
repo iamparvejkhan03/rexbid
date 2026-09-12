@@ -482,12 +482,22 @@ function SingleAuction() {
     };
 
     // Extract YouTube ID from URL
-    const getYouTubeId = (url) => {
-        if (!url) return null;
-        const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
-        const match = url.match(regex);
+    function getYouTubeId(input) {
+        if (!input) return null;
+
+        // Already a bare 11-char ID
+        if (/^[a-zA-Z0-9_-]{11}$/.test(input)) {
+            return input;
+        }
+
+        // watch?v=ID | embed/ID | shorts/ID | live/ID | v/ID | youtu.be/ID
+        // Accepts optional www. / m. and any query string afterwards.
+        const match = input.match(
+            /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/|live\/|v\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/
+        );
+
         return match ? match[1] : null;
-    };
+    }
 
     const youtubeVideoId = getYouTubeId(auction?.videoLink);
     const minBidAmount = auction?.bidCount > 0 ? auction?.convertedCurrentPrice + auction?.convertedBidIncrement : auction?.convertedCurrentPrice;
@@ -615,16 +625,9 @@ function SingleAuction() {
                 <hr className="my-8" />
 
                 {/* Info section */}
-                <div>
+                {/* <div>
                     <h3 className="my-5 text-primary text-xl font-semibold">Auction Overview</h3>
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-5 gap-y-10">
-                        {/* <div className="flex items-center gap-3">
-                            <Plane className="flex-shrink-0 w-7 h-7 md:w-8 md:h-8" strokeWidth={1} />
-                            <div>
-                                <p className="text-secondary text-sm">Title</p>
-                                <p className="text-base">{auction.title}</p>
-                            </div>
-                        </div> */}
 
                         <div className="flex items-center gap-3">
                             <Tag className="flex-shrink-0 w-7 h-7 md:w-8 md:h-8" strokeWidth={1} />
@@ -679,21 +682,27 @@ function SingleAuction() {
                                 </p>
                             </div>
                         </div>
-
-                        {/* <div className="flex items-center gap-3">
-                            <ShieldCheck className="flex-shrink-0 w-7 h-7 md:w-8 md:h-8" strokeWidth={1} />
-                            <div>
-                                <p className="text-secondary text-sm">Status</p>
-                                <p className="text-base capitalize">
-                                    {auction.status}
-                                </p>
-                            </div>
-                        </div> */}
                     </div>
 
-                    {/* Dynamic Specifications Section */}
                     <SpecificationsSection auction={auction} />
                 </div>
+
+                <hr className="my-8" /> */}
+
+                <Suspense fallback={<LoadingSpinner />}>
+                    <TabSection
+                        ref={commentSectionRef}
+                        description={auction.description}
+                        bids={auction.bids}
+                        offers={auction.offers}
+                        auction={auction}
+                        activatedTab={activeTab}
+                        onAuctionUpdate={updateAuctionState}
+                        auctionReviews={auctionReviews}
+                        userCurrency={userCurrency}
+                    />
+                </Suspense>
+
                 {/* Features Section */}
                 {auction.features && (
                     <>
@@ -774,21 +783,6 @@ function SingleAuction() {
                         <SellerStatsCard sellerId={auction.seller._id} />
                     </div>
                 )}
-
-                <Suspense fallback={<LoadingSpinner />}>
-                    <TabSection
-                        ref={commentSectionRef}
-                        description={auction.description}
-                        bids={auction.bids}
-                        offers={auction.offers}
-                        auction={auction}
-                        activatedTab={activeTab}
-                        onAuctionUpdate={updateAuctionState}
-                        auctionReviews={auctionReviews}
-                        userCurrency={userCurrency}
-                    />
-                </Suspense>
-
             </section>
 
             {/* Bid Section */}
@@ -839,8 +833,8 @@ function SingleAuction() {
                                             <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
                                                 <div
                                                     className={`h-2.5 rounded-full transition-all duration-500 ${auction.convertedCurrentPrice >= auction.convertedReservePrice
-                                                            ? 'bg-green-500'
-                                                            : 'bg-orange-400'
+                                                        ? 'bg-green-500'
+                                                        : 'bg-orange-400'
                                                         }`}
                                                     style={{
                                                         width: `${Math.min(
@@ -1001,7 +995,7 @@ function SingleAuction() {
                                                 value={bidAmount}
                                                 onChange={(e) => setBidAmount(e.target.value)}
                                                 className="py-3 px-5 w-full border-2 border-gray-400 rounded-lg focus:outline-2 focus:outline-primary"
-                                                placeholder={`Enter your bid amount (${userCurrency === 'GBP' ? '£' : '€'}${auction.bidCount > 0 ? minBidAmount?.toFixed(2) : auction.convertedStartPrice?.toFixed(2)} or higher)`}
+                                                placeholder={`Enter bid amount (${userCurrency === 'GBP' ? '£' : '€'}${auction.bidCount > 0 ? minBidAmount?.toFixed(2) : auction.convertedStartPrice?.toFixed(2)} or higher)`}
                                                 min={minBidAmount?.toFixed(2)}
                                             />
                                             <button

@@ -100,6 +100,7 @@ const Transactions = lazy(() => import('./pages/admin/Transactions'));
 const Categories = lazy(() => import('./pages/admin/Categories'));
 const AdminPayouts = lazy(() => import('./pages/admin/Payouts'));
 const AdminPayoutMethods = lazy(() => import('./pages/admin/PayoutMethods'));
+const AuctionDates = lazy(() => import('./pages/admin/AuctionDates'));
 
 createRoot(document.getElementById('root')).render(
     //<StrictMode>
@@ -212,24 +213,24 @@ createRoot(document.getElementById('root')).render(
                             }
                         />
                         {/* Seller Payout methods */}
-                        {/* <Route
+                        <Route
                             path='/seller/payout-methods'
                             element={
                                 <Suspense fallback={<LoadingSpinner height={'750px'} />}>
                                     <SellerPayoutMethods />
                                 </Suspense>
                             }
-                        /> */}
+                        />
 
                         {/* Seller Payouts */}
-                        {/* <Route
+                        <Route
                             path='/seller/payouts'
                             element={
                                 <Suspense fallback={<LoadingSpinner height={'750px'} />}>
                                     <SellerPayouts />
                                 </Suspense>
                             }
-                        /> */}
+                        />
 
                         {/* Seller Profile */}
                         <Route
@@ -328,24 +329,24 @@ createRoot(document.getElementById('root')).render(
                             }
                         />
                         {/* Company Payout methods */}
-                        {/* <Route
+                        <Route
                             path='/company/payout-methods'
                             element={
                                 <Suspense fallback={<LoadingSpinner height={'750px'} />}>
                                     <CompanyPayoutMethods />
                                 </Suspense>
                             }
-                        /> */}
+                        />
 
                         {/* Company Payouts */}
-                        {/* <Route
+                        <Route
                             path='/company/payouts'
                             element={
                                 <Suspense fallback={<LoadingSpinner height={'750px'} />}>
                                     <CompanyPayouts />
                                 </Suspense>
                             }
-                        /> */}
+                        />
 
                         {/* Company Profile */}
                         <Route
@@ -609,6 +610,16 @@ createRoot(document.getElementById('root')).render(
                             }
                         />
 
+                        {/* Admin Auction Dates */}
+                        <Route
+                            path='/admin/auction-dates'
+                            element={
+                                <Suspense fallback={<LoadingSpinner height={'750px'} />}>
+                                    <AuctionDates />
+                                </Suspense>
+                            }
+                        />
+
                         {/* Admin All Auctions */}
                         <Route
                             path='/admin/auctions/create'
@@ -640,14 +651,14 @@ createRoot(document.getElementById('root')).render(
                         />
 
                         {/* Admin Payouts */}
-                        {/* <Route
+                        <Route
                             path='/admin/payouts'
                             element={
                                 <Suspense fallback={<LoadingSpinner height={'750px'} />}>
                                     <AdminPayouts />
                                 </Suspense>
                             }
-                        /> */}
+                        />
 
                         {/* Admin Payout Methods */}
                         {/* <Route

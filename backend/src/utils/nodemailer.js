@@ -1230,50 +1230,241 @@ const sendOutbidNotifications = async (
 };
 
 // 17. Auction ending soon notification for bidders
+// const auctionEndingSoonEmail = async (
+//     userEmail,
+//     userName,
+//     listing
+// ) => {
+//     try {
+//         const content = `
+//             <h2 style="text-align: center;">Listing Expiring Soon</h2>
+//             <p style="text-align: center;">Time is running out to get this item.</p>
+
+//             ${createInfoCard(`
+//                 <p style="margin: 0 0 12px 0; font-size: 18px; font-weight: bold; color: ${BRAND_COLORS.secondary};">${listing?.title}</p>
+//                 ${listing.subTitle ? `<p style="margin: 0 0 16px 0; text-align: center; color: ${BRAND_COLORS.textLight};">${listing.subTitle}</p>` : ''}
+
+//                 ${createSummaryRow('Listing Type:', listing?.auctionType || 'N/A')}
+//                 ${createSummaryRow('Current Offers/Bids:', (listing?.offers?.length || listing?.bids?.length || 0).toLocaleString())}
+
+//                 ${listing.specifications && listing.specifications.size > 0 ? `
+//                     <div style="margin: 16px 0 0 0;">
+//                         <strong style="color: ${BRAND_COLORS.secondary};">Item Details</strong>
+//                         ${renderSpecifications(listing.specifications)}
+//                     </div>
+//                 ` : ''}
+//             `)}
+
+//             <p>The listing for <strong>${listing?.title}</strong> is about to expire. Once expired, this item will no longer be available for purchase.</p>
+
+//             <div style="text-align: center; margin: 25px 0;">
+//                 ${createButton('View Listing Now', `${FRONTEND_URL}/auction/${listing._id}`, 'primary')}
+//             </div>
+//         `;
+
+//         const html = baseTemplate(content, 'Listing Expiring Soon');
+
+//         const info = await transporter.sendMail({
+//             from: `"${BRAND_NAME}" <${process.env.EMAIL_USER}>`,
+//             to: userEmail,
+//             subject: `Listing Expires Soon: ${listing?.title}`,
+//             html
+//         });
+
+//         return !!info;
+//     } catch (error) {
+//         console.error(`Failed to send listing expiring soon email:`, error);
+//         return false;
+//     }
+// };
+
 const auctionEndingSoonEmail = async (
     userEmail,
     userName,
     listing
 ) => {
     try {
-        const content = `
-            <h2 style="text-align: center;">Listing Expiring Soon</h2>
-            <p style="text-align: center;">Time is running out to get this item.</p>
-            
-            ${createInfoCard(`
-                <p style="margin: 0 0 12px 0; font-size: 18px; font-weight: bold; color: ${BRAND_COLORS.secondary};">${listing?.title}</p>
-                ${listing.subTitle ? `<p style="margin: 0 0 16px 0; text-align: center; color: ${BRAND_COLORS.textLight};">${listing.subTitle}</p>` : ''}
-                
-                ${createSummaryRow('Listing Type:', listing?.auctionType || 'N/A')}
-                ${createSummaryRow('Current Offers/Bids:', (listing?.offers?.length || listing?.bids?.length || 0).toLocaleString())}
-                
-                ${listing.specifications && listing.specifications.size > 0 ? `
-                    <div style="margin: 16px 0 0 0;">
-                        <strong style="color: ${BRAND_COLORS.secondary};">Item Details</strong>
-                        ${renderSpecifications(listing.specifications)}
-                    </div>
-                ` : ''}
-            `)}
-            
-            <p>The listing for <strong>${listing?.title}</strong> is about to expire. Once expired, this item will no longer be available for purchase.</p>
-            
-            <div style="text-align: center; margin: 25px 0;">
-                ${createButton('View Listing Now', `${FRONTEND_URL}/auction/${listing._id}`, 'primary')}
-            </div>
-        `;
+        const title = listing?.title || "Auction";
+        const currency = listing?.baseCurrency || "EUR";
+        const currentPrice = listing?.currentPrice ?? listing?.startPrice ?? 0;
+        const bidCount =
+            listing?.bidCount ?? listing?.bids?.length ?? 0;
+        const endDateStr = listing?.endDate
+            ? new Date(listing.endDate).toLocaleString()
+            : "soon";
+        const timeLabel = "2 hours";
 
-        const html = baseTemplate(content, 'Listing Expiring Soon');
+        const content = `
+      <h2 style="text-align: center;">⏰ Ending in ${timeLabel}!</h2>
+      <p style="text-align: center; color: ${BRAND_COLORS.textLight};">
+        This is your final reminder — bidding closes soon.
+      </p>
+
+      ${createInfoCard(`
+        <p style="margin: 0 0 12px 0; font-size: 18px; font-weight: bold; color: ${BRAND_COLORS.secondary};">
+          ${title}
+        </p>
+        ${listing.subTitle
+                ? `<p style="margin: 0 0 16px 0; text-align: center; color: ${BRAND_COLORS.textLight};">${listing.subTitle}</p>`
+                : ""}
+
+        ${createSummaryRow("Auction Type:", listing?.auctionType || "N/A")}
+        ${createSummaryRow("Current Price:", `${currency} ${Number(currentPrice).toLocaleString()}`)}
+        ${createSummaryRow("Total Bids:", bidCount.toLocaleString())}
+        ${createSummaryRow("Ends At:", endDateStr)}
+
+        ${listing.specifications && listing.specifications.size > 0
+                ? `
+              <div style="margin: 16px 0 0 0;">
+                <strong style="color: ${BRAND_COLORS.secondary};">Item Details</strong>
+                ${renderSpecifications(listing.specifications)}
+              </div>
+            `
+                : ""}
+      `)}
+
+      <p>Hi ${userName || "there"}, the auction for <strong>${title}</strong> ends in <strong>${timeLabel}</strong>.
+      Don't miss your chance to place a winning bid!</p>
+
+      <div style="text-align: center; margin: 25px 0;">
+        ${createButton(
+                    "Place Your Bid Now",
+                    `${FRONTEND_URL}/auction/${listing._id}`,
+                    "primary"
+                )}
+      </div>
+    `;
+
+        const html = baseTemplate(content, `Ending in ${timeLabel}`);
 
         const info = await transporter.sendMail({
             from: `"${BRAND_NAME}" <${process.env.EMAIL_USER}>`,
             to: userEmail,
-            subject: `Listing Expires Soon: ${listing?.title}`,
-            html
+            subject: `⏰ Ending in ${timeLabel}: ${title}`,
+            html,
         });
 
         return !!info;
     } catch (error) {
-        console.error(`Failed to send listing expiring soon email:`, error);
+        console.error(`Failed to send ending-soon email:`, error);
+        return false;
+    }
+};
+
+const auctionEndingSoonSellerEmail = async (
+    sellerEmail,
+    sellerName,
+    listing
+) => {
+    try {
+        const title = listing?.title || "Your Listing";
+        const currency = listing?.baseCurrency || "EUR";
+        const currentPrice = listing?.currentPrice ?? listing?.startPrice ?? 0;
+        const startPrice = listing?.startPrice ?? 0;
+        const bidCount = listing?.bidCount ?? listing?.bids?.length ?? 0;
+        const offerCount = listing?.offers?.length ?? 0;
+        const reservePrice = listing?.reservePrice ?? null;
+        const reserveMet =
+            listing?.auctionType === "reserve"
+                ? Number(currentPrice) >= Number(reservePrice || 0)
+                : true;
+        const watchers = listing?.watchlistCount ?? 0;
+        const views = listing?.views ?? 0;
+        const endDateStr = listing?.endDate
+            ? new Date(listing.endDate).toLocaleString()
+            : "in 2 hours";
+        const timeLabel = "2 hours";
+        const hasActivity = bidCount > 0 || offerCount > 0;
+
+        // Contextual tip block — nudges seller to act
+        const tipBlock = !hasActivity
+            ? `
+          <div style="background: #FFF7ED; border-left: 4px solid #F97316; padding: 14px 16px; border-radius: 6px; margin: 20px 0;">
+            <strong style="color: #9A3412;">💡 No bids yet</strong>
+            <p style="margin: 6px 0 0 0; color: ${BRAND_COLORS.textLight};">
+              Consider lowering your reserve price or sharing the listing to attract bidders in the final hours.
+            </p>
+          </div>
+        `
+            : `
+          <div style="background: #ECFDF5; border-left: 4px solid #10B981; padding: 14px 16px; border-radius: 6px; margin: 20px 0;">
+            <strong style="color: #065F46;">✅ Your listing has activity</strong>
+            <p style="margin: 6px 0 0 0; color: ${BRAND_COLORS.textLight};">
+              ${bidCount} bid${bidCount === 1 ? "" : "s"}${offerCount > 0 ? ` and ${offerCount} offer${offerCount === 1 ? "" : "s"}` : ""
+            } so far. Get ready to finalize the sale.
+            </p>
+          </div>
+        `;
+
+        const content = `
+      <h2 style="text-align: center;">⏰ Your listing ends in ${timeLabel}</h2>
+      <p style="text-align: center; color: ${BRAND_COLORS.textLight};">
+        Here's the final snapshot before bidding closes.
+      </p>
+
+      ${createInfoCard(`
+        <p style="margin: 0 0 12px 0; font-size: 18px; font-weight: bold; color: ${BRAND_COLORS.secondary};">
+          ${title}
+        </p>
+        ${listing.subTitle
+                ? `<p style="margin: 0 0 16px 0; text-align: center; color: ${BRAND_COLORS.textLight};">${listing.subTitle}</p>`
+                : ""}
+
+        ${createSummaryRow("Auction Type:", listing?.auctionType || "N/A")}
+        ${createSummaryRow("Starting Price:", `${currency} ${Number(startPrice).toLocaleString()}`)}
+        ${createSummaryRow("Current Price:", `${currency} ${Number(currentPrice).toLocaleString()}`)}
+        ${createSummaryRow("Total Bids:", bidCount.toLocaleString())}
+        ${offerCount > 0 ? createSummaryRow("Offers Received:", offerCount.toLocaleString()) : ""}
+        ${listing?.auctionType === "reserve"
+                ? createSummaryRow(
+                    "Reserve Price:",
+                    `${currency} ${Number(reservePrice).toLocaleString()} ${reserveMet ? "(met ✓)" : "(not met)"
+                    }`
+                )
+                : ""
+            }
+        ${createSummaryRow("Watchers:", watchers.toLocaleString())}
+        ${createSummaryRow("Views:", views.toLocaleString())}
+        ${createSummaryRow("Ends At:", endDateStr)}
+
+        ${listing.specifications && listing.specifications.size > 0
+                ? `
+                <div style="margin: 16px 0 0 0;">
+                    <strong style="color: ${BRAND_COLORS.secondary};">Item Details</strong>
+                    ${renderSpecifications(listing.specifications)}
+                </div>
+              `
+                : ""
+            }
+      `)}
+
+      ${tipBlock}
+
+      <p>Hi ${sellerName || "there"}, your auction for <strong>${title}</strong> ends in
+      <strong>${timeLabel}</strong>. Bidders can still place bids until then — no action is
+      required from you unless you want to lower the reserve price or answer buyer questions.</p>
+
+      <div style="text-align: center; margin: 25px 0;">
+        ${createButton(
+                "View Your Listing",
+                `${FRONTEND_URL}/auction/${listing._id}`,
+                "primary"
+            )}
+      </div>
+    `;
+
+        const html = baseTemplate(content, `Your Listing Ends in ${timeLabel}`);
+
+        const info = await transporter.sendMail({
+            from: `"${BRAND_NAME}" <${process.env.EMAIL_USER}>`,
+            to: sellerEmail,
+            subject: `⏰ Your listing ends in ${timeLabel}: ${title}`,
+            html,
+        });
+
+        return !!info;
+    } catch (error) {
+        console.error(`Failed to send seller ending-soon email:`, error);
         return false;
     }
 };
@@ -1568,6 +1759,7 @@ const offerAcceptedEmail = async (
                 ` : ''}
                 
                 ${createSummaryRow('Original Price:', formatCurrency(convertRawAmount(listing?.buyNowPrice || listing?.startPrice || 0, listing?.baseCurrency, buyerCurrency), buyerCurrency))}
+                ${createSummaryRow('Final Price:', formatCurrency(convertRawAmount(listing?.finalPrice || listing?.currentPrice || 0, listing?.baseCurrency, buyerCurrency), buyerCurrency))}
                 ${createSummaryRow('Offer ID:', offerId)}
             `)}
             
@@ -2516,6 +2708,82 @@ const accountApprovedEmail = async (user) => {
     }
 };
 
+const auctionReserveNotMetEmail = async (
+    bidderEmail,
+    bidderName,
+    listing,
+    bidderRank,       // 1 or 2
+    bidderAmount,     // their highest bid (auction base currency)
+) => {
+    try {
+        const title = listing?.title || "Auction";
+        const currency = listing?.baseCurrency || "EUR";
+        const reservePrice = Number(listing?.reservePrice || 0);
+        const theirBid = Number(bidderAmount || 0);
+        const gap = Math.max(0, reservePrice - theirBid);
+        const endDateStr = listing?.endDate
+            ? new Date(listing.endDate).toLocaleString()
+            : "recently";
+        const offerUrl = `${FRONTEND_URL}/bidder/bids`;
+
+        const rankBadge =
+            bidderRank === 1
+                ? `<span style="display:inline-block;background:#FEF3C7;color:#92400E;font-weight:600;padding:4px 10px;border-radius:999px;font-size:12px;">🥇 Highest Bidder</span>`
+                : `<span style="display:inline-block;background:#E0E7FF;color:#3730A3;font-weight:600;padding:4px 10px;border-radius:999px;font-size:12px;">🥈 Second Highest Bidder</span>`;
+
+        const content = `
+      <h2 style="text-align:center;margin-bottom:6px;">Reserve Price Not Met</h2>
+      <p style="text-align:center;color:${BRAND_COLORS.textLight};margin-top:0;">
+        The auction for <strong>${title}</strong> ended without meeting the seller's reserve.
+      </p>
+
+      <div style="text-align:center;margin:12px 0 18px 0;">${rankBadge}</div>
+
+      ${createInfoCard(`
+        <p style="margin:0 0 12px 0;font-size:18px;font-weight:bold;color:${BRAND_COLORS.secondary};">${title}</p>
+        ${listing.subTitle
+                ? `<p style="margin:0 0 16px 0;text-align:center;color:${BRAND_COLORS.textLight};">${listing.subTitle}</p>`
+                : ""}
+        ${createSummaryRow("Auction Ended:", endDateStr)}
+        ${createSummaryRow("Your Highest Bid:", `${currency} ${theirBid.toLocaleString()}`)}
+        ${createSummaryRow("Reserve Price:", `${currency} ${reservePrice.toLocaleString()}`)}
+        ${createSummaryRow("Difference:", `${currency} ${gap.toLocaleString()}`)}
+      `)}
+
+      <div style="background:#EFF6FF;border-left:4px solid #3B82F6;padding:14px 16px;border-radius:6px;margin:20px 0;">
+        <strong style="color:#1E40AF;">💬 You can still make an offer</strong>
+        <p style="margin:6px 0 0 0;color:${BRAND_COLORS.textLight};">
+          The reserve was <strong>${currency} ${reservePrice.toLocaleString()}</strong>.
+          You were only <strong>${currency} ${gap.toLocaleString()}</strong> away.
+          As one of the top two bidders, you can submit a direct offer to the seller from your
+          <strong>My Bids</strong> page.
+        </p>
+      </div>
+
+      <p>Hi ${bidderName || "there"}, if you're still interested in <strong>${title}</strong>,
+      go to <strong>My Bids</strong> and use the <em>Make an Offer</em> button on this listing.
+      The seller is free to accept or decline.</p>
+
+      <div style="text-align:center;margin:25px 0;">
+        ${createButton("Go to My Bids", offerUrl, "primary")}
+      </div>
+    `;
+
+        const html = baseTemplate(content, "Reserve Price Not Met");
+
+        const info = await transporter.sendMail({
+            from: `"${BRAND_NAME}" <${process.env.EMAIL_USER}>`,
+            to: bidderEmail,
+            subject: `Reserve not met — you can still make an offer on "${title}"`,
+            html,
+        });
+        return !!info;
+    } catch (error) {
+        console.error("Failed to send reserve-not-met email:", error);
+        return false;
+    }
+};
+
 export {
     contactEmail, //done
     contactConfirmationEmail, //done
@@ -2535,6 +2803,7 @@ export {
     sendOutbidNotifications, //done
     sendOfferOutbidNotifications, //no need to do as offers cannot be outbid
     auctionEndingSoonEmail, //done
+    auctionEndingSoonSellerEmail,
     sendAuctionWonEmail, //done
     sendAuctionEndedSellerEmail, //done
     auctionWonAdminEmail, //done
@@ -2554,4 +2823,5 @@ export {
     giveawayParticipationEmail,
     giveawayWinnerEmail,
     accountApprovedEmail,
+    auctionReserveNotMetEmail,
 };

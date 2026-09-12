@@ -59,11 +59,11 @@ const SellerStatsCard = ({ sellerId }) => {
                         <div>
                             <div className="flex items-center gap-5">
                                 <h3 className="text-lg font-semibold text-gray-700 flex items-center gap-5">
-                                    <span>{stats?.username}</span>
+                                    {stats?.companyName || stats?.fullName || stats?.username}
                                 </h3>
                                 {!showDetails ? (
                                     <button
-                                        className="w-full bg-primary text-white py-2 px-4 rounded-md hover:bg-primary-dark transition-colors flex items-center justify-center gap-2 text-xs"
+                                        className="bg-primary text-white py-2 px-4 rounded-md hover:bg-primary-dark transition-colors flex items-center justify-center gap-2 text-xs"
                                         onClick={handleContactClick}
                                     >
                                         <MessageCircle size={16} />
@@ -114,7 +114,7 @@ const SellerStatsCard = ({ sellerId }) => {
                         <p className="text-xl font-bold text-gray-800">{stats?.itemsSold.toLocaleString()}</p>
                     </div>
 
-                    <div className="text-center flex-1 border-l border-r border-gray-100">
+                    {/* <div className="text-center flex-1 border-l border-r border-gray-100">
                         <div className="flex items-center justify-center gap-1 text-gray-600">
                             <Star size={16} fill="#f97316" stroke="#f97316" />
                             <span className="text-xs uppercase">Rating</span>
@@ -139,7 +139,7 @@ const SellerStatsCard = ({ sellerId }) => {
                                 <span className="text-gray-800 font-medium text-sm ml-1">(read)</span>
                             </Link>
                         </p>
-                    </div>
+                    </div> */}
                 </div>
             </div>
         </div>

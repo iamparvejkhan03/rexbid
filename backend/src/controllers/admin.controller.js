@@ -20,6 +20,7 @@ import {
   sendBulkAuctionNotifications,
 } from "../utils/nodemailer.js";
 import { getCachedRates } from "../routes/currency.route.js";
+import AuctionDate from "../models/auctionDate.model.js";
 
 const convertPrice = (auction, targetCurrency, priceField) => {
   const rates = getCachedRates();
@@ -1137,15 +1138,6 @@ export const updateAuction = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const auction = await Auction.findById(id);
-
-    if (!auction) {
-      return res.status(404).json({
-        success: false,
-        message: "Auction not found",
-      });
-    }
-
     // For FormData, we need to access fields from req.body directly
     const {
       title,
@@ -1171,6 +1163,73 @@ export const updateAuction = async (req, res) => {
       photoOrder,
       serviceRecordOrder,
     } = req.body;
+
+    const auction = await Auction.findById(id);
+
+    if (!auction) {
+      return res.status(404).json({
+        success: false,
+        message: "Auction not found",
+      });
+    }
+
+    // ========== AUCTION DATE SLOT RESOLUTION (ADMIN) ==========
+    const isTimedAuction =
+      auctionType === "standard" || auctionType === "reserve";
+
+    const customDates = req.body.customDates === "true" || req.body.customDates === true;
+
+    let resolvedStartDate = startDate;
+    let resolvedEndDate = endDate;
+    let auctionDateSlotId = auction.auctionDate || null;
+    let clearAuctionDate = false;
+
+    if (isTimedAuction && !customDates) {
+      // Admin chose to use a slot (not custom dates)
+      const { auctionDateId } = req.body;
+
+      if (auctionDateId) {
+        const slot = await AuctionDate.findById(auctionDateId);
+        if (!slot || !slot.isActive) {
+          return res.status(400).json({
+            success: false,
+            message: "Selected auction date slot is no longer available",
+          });
+        }
+        resolvedStartDate = slot.startDate;
+        resolvedEndDate = slot.endDate;
+        auctionDateSlotId = slot._id;
+      } else if (!auction.auctionDate) {
+        // Neither a new slot nor a stored one, and not custom → require
+        return res.status(400).json({
+          success: false,
+          message: "Please select a slot or enable custom dates",
+        });
+      } else {
+        // Keep stored dates
+        resolvedStartDate = auction.startDate;
+        resolvedEndDate = auction.endDate;
+      }
+    } else if (isTimedAuction && customDates) {
+      // Admin is overriding with custom dates
+      if (!startDate || !endDate) {
+        return res.status(400).json({
+          success: false,
+          message: "Custom startDate and endDate are required",
+        });
+      }
+      clearAuctionDate = true; // detach from any slot
+    } else {
+      // buy_now / giveaway
+      if (!startDate || !endDate) {
+        return res.status(400).json({
+          success: false,
+          message: "startDate and endDate are required for this auction type",
+        });
+      }
+      if (auction.auctionDate) clearAuctionDate = true;
+    }
+    // ======================================================
 
     // ========== CATEGORIES HANDLING - FIXED ==========
     let categoriesArray = [];
@@ -1907,6 +1966,10 @@ export const updateAuction = async (req, res) => {
       documents: finalDocuments,
       serviceRecords: finalServiceRecords,
       status: newStatus,
+      ...(auctionDateSlotId !== auction.auctionDate?.toString() && {
+        auctionDate: auctionDateSlotId,
+      }),
+      ...(clearAuctionDate && { auctionDate: null }),
     };
 
     // Add bid increment only for standard and reserve auctions

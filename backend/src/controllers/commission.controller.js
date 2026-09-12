@@ -34,7 +34,7 @@ export const getCommissions = async (req, res) => {
 // Update commission settings
 export const updateCommission = async (req, res) => {
     try {
-        const { commissionType, commissionValue, isEnabled, appliesTo } = req.body;
+        const { commissionType, commissionValue, isEnabled, appliesTo, maxCommissionAmount, maxCommissionCurrency, } = req.body;
 
         // Validate appliesTo array
         if (appliesTo && (!Array.isArray(appliesTo) || appliesTo.length === 0)) {
@@ -72,6 +72,26 @@ export const updateCommission = async (req, res) => {
             });
         }
 
+        if (maxCommissionAmount !== undefined) {
+            const cap = Number(maxCommissionAmount);
+            if (isNaN(cap) || cap < 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'maxCommissionAmount must be a non-negative number',
+                });
+            }
+        }
+
+        if (
+            maxCommissionCurrency !== undefined &&
+            !['EUR', 'GBP'].includes(maxCommissionCurrency)
+        ) {
+            return res.status(400).json({
+                success: false,
+                message: 'maxCommissionCurrency must be either "EUR" or "GBP"',
+            });
+        }
+
         // Find and update the commission (should be only one)
         let commission = await Commission.findOne();
 
@@ -81,6 +101,13 @@ export const updateCommission = async (req, res) => {
             commission.isEnabled = isEnabled !== undefined ? isEnabled : commission.isEnabled;
             commission.appliesTo = appliesTo || commission.appliesTo;
             commission.updatedBy = req.user._id;
+            commission.maxCommissionAmount =
+                maxCommissionAmount !== undefined
+                    ? Number(maxCommissionAmount)
+                    : commission.maxCommissionAmount;
+
+            commission.maxCommissionCurrency =
+                maxCommissionCurrency || commission.maxCommissionCurrency;
             await commission.save();
         } else {
             commission = await Commission.create({
@@ -88,7 +115,10 @@ export const updateCommission = async (req, res) => {
                 commissionValue,
                 isEnabled: isEnabled !== undefined ? isEnabled : true,
                 appliesTo: appliesTo || ['seller'],
-                updatedBy: req.user._id
+                maxCommissionAmount:
+                    maxCommissionAmount !== undefined ? Number(maxCommissionAmount) : 500,
+                maxCommissionCurrency: maxCommissionCurrency || 'EUR',
+                updatedBy: req.user._id,
             });
         }
 

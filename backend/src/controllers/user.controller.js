@@ -189,10 +189,10 @@ export const registerUser = async (req, res) => {
     //send registration email
     await welcomeEmail(user);
 
-    const adminUsers = await User.find({ userType: "admin" });
-    for (const admin of adminUsers) {
-      await newUserRegistrationEmail(admin.email, user);
-    }
+    // const adminUsers = await User.find({ userType: "admin" });
+    // for (const admin of adminUsers) {
+    //   await newUserRegistrationEmail(admin.email, user);
+    // }
   } catch (error) {
     console.error('Registration error:', error);
     return res.status(500).json({

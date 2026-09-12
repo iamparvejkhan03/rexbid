@@ -31,6 +31,16 @@ const commissionSchema = new Schema({
             message: 'Commission must apply to at least one party'
         }
     },
+    maxCommissionAmount: {
+        type: Number,
+        default: 500,
+        min: 0,
+    },
+    maxCommissionCurrency: {
+        type: String,
+        enum: ['EUR', 'GBP'],
+        default: 'EUR',
+    },
     updatedBy: {
         type: Schema.Types.ObjectId,
         ref: 'User'

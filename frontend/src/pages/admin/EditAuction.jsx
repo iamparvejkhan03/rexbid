@@ -529,7 +529,7 @@ const EditAuction = () => {
         defaultValues: {
             auctionType: 'buy_now',
             endDate: '',
-            paymentCollectionPreference: 'buyer_decides',
+            paymentCollectionPreference: 'credit_card',
             vatIncluded: false
         }
     });
@@ -538,6 +538,36 @@ const EditAuction = () => {
     const startDate = watch('startDate');
     const endDate = watch('endDate');
     const selectedCategory = watch('category');
+
+    const [auctionDates, setAuctionDates] = useState([]);
+    const [loadingDates, setLoadingDates] = useState(false);
+    const [useCustomDates, setUseCustomDates] = useState(false);
+
+    useEffect(() => {
+        const fetchDates = async () => {
+            try {
+                setLoadingDates(true);
+                const { data } = await axiosInstance.get("/api/v1/auction-dates/active");
+                if (data.success) setAuctionDates(data.data.auctionDates);
+            } catch (err) {
+                console.error("Failed to load auction dates", err);
+            } finally {
+                setLoadingDates(false);
+            }
+        };
+        fetchDates();
+    }, []);
+
+    const selectedAuctionDateId = watch("auctionDateId");
+    const selectedAuctionDate = auctionDates.find(
+        (s) => s._id === selectedAuctionDateId,
+    );
+
+    useEffect(() => {
+        if (auctionType !== 'standard' && auctionType !== 'reserve') {
+            setValue('auctionDateId', '');
+        }
+    }, [auctionType, setValue]);
 
     // Fetch parent categories
     const fetchParentCategories = async () => {
@@ -737,11 +767,16 @@ const EditAuction = () => {
                         reservePrice: auction.reservePrice,
                         buyNowPrice: auction.buyNowPrice,
                         allowOffers: auction.allowOffers,
-                        paymentCollectionPreference: auction.paymentCollectionPreference || 'buyer_decides',
+                        paymentCollectionPreference: auction.paymentCollectionPreference || 'credit_card',
                         vatIncluded: auction.vatIncluded || false
                     };
 
                     reset(formData);
+
+                    setValue("auctionDateId", auction.auctionDate || "");
+                    setUseCustomDates(auction.auctionType === "standard" || auction.auctionType === "reserve"
+                        ? !auction.auctionDate
+                        : false);
 
                     // If parent category exists, fetch its subcategories
                     if (parentSlug) {
@@ -822,7 +857,15 @@ const EditAuction = () => {
         scrollTo({ top: 0, behavior: 'smooth' });
 
         if (step === 1) {
-            const fieldsToValidate = ['title', 'category', 'description', 'startDate', 'endDate'];
+            const fieldsToValidate = ['title', 'category', 'description'];
+
+            if (auctionType === 'standard' || auctionType === 'reserve') {
+                if (useCustomDates) {
+                    fieldsToValidate.push('startDate', 'endDate');
+                } else {
+                    fieldsToValidate.push('auctionDateId');
+                }
+            }
 
             // Add ALL specification fields to validation
             const allSpecFields = getCategoryFields();
@@ -1111,10 +1154,17 @@ const EditAuction = () => {
             formDataToSend.append('videoLink', formData.video || '');
             formDataToSend.append('auctionType', formData.auctionType);
             formDataToSend.append('allowOffers', formData.allowOffers || false);
-            formDataToSend.append('paymentCollectionPreference', formData.paymentCollectionPreference || 'buyer_decides');
+            formDataToSend.append('paymentCollectionPreference', formData.paymentCollectionPreference || 'credit_card');
             formDataToSend.append('vatIncluded', Boolean(formData.vatIncluded));
             formDataToSend.append('startDate', new Date(formData.startDate).toISOString());
             formDataToSend.append('endDate', new Date(formData.endDate).toISOString());
+
+            if (formData.auctionDateId) {
+                formDataToSend.append("auctionDateId", formData.auctionDateId);
+            }
+            if (useCustomDates) {
+                formDataToSend.append("customDates", "true");
+            }
 
             // Get specifications from form data
             const currentSpecifications = formData.specifications || {};
@@ -1504,46 +1554,131 @@ const EditAuction = () => {
                                                 </div>
                                                 {errors.video && <p className="text-red-500 text-sm mt-1">{errors.video.message}</p>}
                                             </div>
+
+                                            <p className='text-xs text-gray-500 md:col-span-2'>Note: Ads with videos tend to get higher prices and less phone calls. If you want to upload a video with your ad, please WhatsApp it to: 87 203 9257</p>
                                         </div>
 
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                                            <div>
-                                                <label htmlFor="startDate" className="block text-sm font-medium text-secondary mb-1">Start Date & Time *</label>
-                                                <div className="relative">
-                                                    <Clock size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                                                    <input
-                                                        {...register('startDate', { required: 'Start date is required' })}
-                                                        id="startDate"
-                                                        type="datetime-local"
-                                                        className="w-full pl-10 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
-                                                    />
+                                        {(auctionType === "standard" || auctionType === "reserve") ? (
+                                            <div className="mb-6 space-y-4">
+                                                <div className="flex items-center gap-3">
+                                                    <label className="flex items-center cursor-pointer">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={useCustomDates}
+                                                            onChange={(e) => setUseCustomDates(e.target.checked)}
+                                                            className="mr-2"
+                                                        />
+                                                        <span className="text-sm font-medium text-secondary">
+                                                            Use custom dates (admin override)
+                                                        </span>
+                                                    </label>
                                                 </div>
-                                                {errors.startDate && <p className="text-red-500 text-sm mt-1">{errors.startDate.message}</p>}
-                                            </div>
 
-                                            <div>
-                                                <label htmlFor="endDate" className="block text-sm font-medium text-secondary mb-1">End Date & Time *</label>
-                                                <div className="relative">
-                                                    <Clock size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                                                    <input
-                                                        {...register('endDate', {
-                                                            required: 'End date is required',
-                                                            validate: {
-                                                                afterStartDate: value => {
-                                                                    const start = new Date(watch('startDate'));
-                                                                    const end = new Date(value);
-                                                                    return end > start || 'End date must be after start date';
+                                                {!useCustomDates && (
+                                                    <>
+                                                        <label className="block text-sm font-medium text-secondary mb-1">
+                                                            Auction Period *
+                                                        </label>
+                                                        <select
+                                                            {...register("auctionDateId", {
+                                                                required: !useCustomDates ? "Please select an auction period" : false,
+                                                            })}
+                                                            className="w-full p-3 border border-gray-300 rounded-lg"
+                                                        >
+                                                            <option value="">Select an auction period</option>
+                                                            {auctionDates.map((slot) => (
+                                                                <option key={slot._id} value={slot._id}>
+                                                                    {slot.label}
+                                                                </option>
+                                                            ))}
+                                                        </select>
+                                                        {errors.auctionDateId && (
+                                                            <p className="text-red-500 text-sm mt-1">{errors.auctionDateId.message}</p>
+                                                        )}
+                                                    </>
+                                                )}
+
+                                                {useCustomDates && (
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                        <div>
+                                                            <label htmlFor="startDate" className="block text-sm font-medium text-secondary mb-1">Start Date & Time *</label>
+                                                            <div className="relative">
+                                                                <Clock size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                                                                <input
+                                                                    {...register('startDate', { required: 'Start date is required' })}
+                                                                    id="startDate"
+                                                                    type="datetime-local"
+                                                                    className="w-full pl-10 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
+                                                                />
+                                                            </div>
+                                                            {errors.startDate && <p className="text-red-500 text-sm mt-1">{errors.startDate.message}</p>}
+                                                        </div>
+
+                                                        <div>
+                                                            <label htmlFor="endDate" className="block text-sm font-medium text-secondary mb-1">End Date & Time *</label>
+                                                            <div className="relative">
+                                                                <Clock size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                                                                <input
+                                                                    {...register('endDate', {
+                                                                        required: 'End date is required',
+                                                                        validate: {
+                                                                            afterStartDate: value => {
+                                                                                const start = new Date(watch('startDate'));
+                                                                                const end = new Date(value);
+                                                                                return end > start || 'End date must be after start date';
+                                                                            }
+                                                                        }
+                                                                    })}
+                                                                    id="endDate"
+                                                                    type="datetime-local"
+                                                                    className="w-full pl-10 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
+                                                                />
+                                                            </div>
+                                                            {errors.endDate && <p className="text-red-500 text-sm mt-1">{errors.endDate.message}</p>}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ) : (
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                                                <div>
+                                                    <label htmlFor="startDate" className="block text-sm font-medium text-secondary mb-1">Start Date & Time *</label>
+                                                    <div className="relative">
+                                                        <Clock size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                                                        <input
+                                                            {...register('startDate', { required: 'Start date is required' })}
+                                                            id="startDate"
+                                                            type="datetime-local"
+                                                            className="w-full pl-10 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
+                                                        />
+                                                    </div>
+                                                    {errors.startDate && <p className="text-red-500 text-sm mt-1">{errors.startDate.message}</p>}
+                                                </div>
+
+                                                <div>
+                                                    <label htmlFor="endDate" className="block text-sm font-medium text-secondary mb-1">End Date & Time *</label>
+                                                    <div className="relative">
+                                                        <Clock size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                                                        <input
+                                                            {...register('endDate', {
+                                                                required: 'End date is required',
+                                                                validate: {
+                                                                    afterStartDate: value => {
+                                                                        const start = new Date(watch('startDate'));
+                                                                        const end = new Date(value);
+                                                                        return end > start || 'End date must be after start date';
+                                                                    }
                                                                 }
-                                                            }
-                                                        })}
-                                                        id="endDate"
-                                                        type="datetime-local"
-                                                        className="w-full pl-10 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
-                                                    />
+                                                            })}
+                                                            id="endDate"
+                                                            type="datetime-local"
+                                                            className="w-full pl-10 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
+                                                        />
+                                                    </div>
+                                                    {errors.endDate && <p className="text-red-500 text-sm mt-1">{errors.endDate.message}</p>}
                                                 </div>
-                                                {errors.endDate && <p className="text-red-500 text-sm mt-1">{errors.endDate.message}</p>}
                                             </div>
-                                        </div>
+                                        )}
 
                                         <div className="mb-6">
                                             <label htmlFor="photo-upload" className="block text-sm font-medium text-secondary mb-1">Attach Photos *</label>
@@ -1576,7 +1711,7 @@ const EditAuction = () => {
                                             )}
                                         </div>
 
-                                        <div className="mb-6">
+                                        {/* <div className="mb-6">
                                             <label htmlFor="document-upload" className="block text-sm font-medium text-secondary mb-1">Attach Documents</label>
                                             <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
                                                 <input
@@ -1593,7 +1728,6 @@ const EditAuction = () => {
                                                 </label>
                                             </div>
 
-                                            {/* Display existing documents with captions */}
                                             {existingDocuments.length > 0 && (
                                                 <div className="mt-4">
                                                     <p className="text-sm text-secondary mb-2">Existing Documents:</p>
@@ -1610,21 +1744,12 @@ const EditAuction = () => {
                                                                         <X size={16} />
                                                                     </button>
                                                                 </div>
-                                                                {/* Caption input for existing documents */}
-                                                                {/* <input
-                                                                    type="text"
-                                                                    placeholder="Add document caption..."
-                                                                    value={documentCaptions[index] || ''}
-                                                                    onChange={(e) => handleDocumentCaptionChange('existing', index, e.target.value)}
-                                                                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
-                                                                /> */}
                                                             </div>
                                                         ))}
                                                     </div>
                                                 </div>
                                             )}
 
-                                            {/* Display newly uploaded documents with captions */}
                                             {uploadedDocuments.length > 0 && (
                                                 <div className="mt-4">
                                                     <p className="text-sm text-secondary mb-2">New Documents:</p>
@@ -1641,23 +1766,15 @@ const EditAuction = () => {
                                                                         <X size={16} />
                                                                     </button>
                                                                 </div>
-                                                                {/* Caption input for new documents */}
-                                                                {/* <input
-                                                                    type="text"
-                                                                    placeholder="Add document caption..."
-                                                                    value={uploadedDocumentCaptions[index] || ''}
-                                                                    onChange={(e) => handleDocumentCaptionChange('new', index, e.target.value)}
-                                                                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
-                                                                /> */}
                                                             </div>
                                                         ))}
                                                     </div>
                                                 </div>
                                             )}
-                                        </div>
+                                        </div> */}
 
-                                        {/* Service History Images Section */}
-                                        <div className="mb-6">
+                                        {/* Other Images Section */}
+                                        {/* <div className="mb-6">
                                             <label htmlFor="service-upload" className="block text-sm font-medium text-secondary mb-1">
                                                 Other Images
                                             </label>
@@ -1677,7 +1794,6 @@ const EditAuction = () => {
                                                 </label>
                                             </div>
 
-                                            {/* Unified Service History Gallery with Drag & Drop */}
                                             {allServiceRecords.length > 0 && (
                                                 <div className="mt-4">
                                                     <p className="text-sm text-secondary mb-3">
@@ -1701,7 +1817,7 @@ const EditAuction = () => {
                                                     </div>
                                                 </div>
                                             )}
-                                        </div>
+                                        </div> */}
                                     </div>
                                 )}
 
@@ -1866,7 +1982,7 @@ const EditAuction = () => {
                                                         id="paymentCollectionPreference"
                                                         className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
                                                     >
-                                                        <option value="buyer_decides">Buyer Decides</option>
+                                                        {/* <option value="buyer_decides">Buyer Decides</option> */}
                                                         {/* <option value="bank_transfer">Bank Transfer</option> */}
                                                         <option value="credit_card">Credit Card</option>
                                                     </select>

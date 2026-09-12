@@ -26,7 +26,8 @@ import {
     PoundSterling,
     BanknoteArrowUp,
     BanknoteArrowDown,
-    UserLock
+    UserLock,
+    Calendar
 } from "lucide-react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { logo } from "../../assets";
@@ -53,6 +54,11 @@ const navigation = [
         name: 'Auctions',
         path: '/admin/auctions/all',
         icon: <Gavel size={20} />
+    },
+    {
+        name: "Auction Dates",
+        path: "/admin/auction-dates",
+        icon: <Calendar size={20} />,
     },
     {
         name: 'Bids',
@@ -94,11 +100,11 @@ const navigation = [
     //     path: '/admin/payout-methods',
     //     icon: <BanknoteArrowUp size={20} />
     // },
-    // {
-    //     name: 'Payouts',
-    //     path: '/admin/payouts',
-    //     icon: <BanknoteArrowDown size={20} />
-    // },
+    {
+        name: 'Payouts',
+        path: '/admin/payouts',
+        icon: <BanknoteArrowDown size={20} />
+    },
     // {
     //     name: 'Notifications',
     //     path: '/admin/notifications',

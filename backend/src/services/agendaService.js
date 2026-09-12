@@ -10,7 +10,9 @@ import {
 import {
   auctionEndedAdminEmail,
   auctionEndingSoonEmail,
+  auctionEndingSoonSellerEmail,
   auctionListedEmail,
+  auctionReserveNotMetEmail,
   auctionWonAdminEmail,
   paymentSuccessEmail,
   sendAuctionEndedSellerEmail,
@@ -18,6 +20,30 @@ import {
   sendBulkAuctionNotifications,
 } from "../utils/nodemailer.js";
 import User from "../models/user.model.js";
+
+/**
+ * Returns up to `limit` unique bidders ordered by their highest bid (descending).
+ * Each entry: { bidder, amount }
+ */
+const getTopUniqueBidders = (bids = [], limit = 2) => {
+  const highestByBidder = new Map();
+
+  for (const bid of bids) {
+    const id = bid?.bidder?.toString?.() || bid?.bidder;
+    if (!id) continue;
+    const prev = highestByBidder.get(id);
+    if (!prev || bid.amount > prev.amount) {
+      highestByBidder.set(id, {
+        bidder: bid.bidder,
+        amount: bid.amount,
+      });
+    }
+  }
+
+  return Array.from(highestByBidder.values())
+    .sort((a, b) => b.amount - a.amount)
+    .slice(0, limit);
+};
 
 class AgendaService {
   constructor() {
@@ -138,8 +164,7 @@ class AgendaService {
           // Send appropriate emails based on the result
           if (result.wasSold) {
             console.log(
-              `✅ Agenda: Auction ${auctionId} was SOLD to ${
-                auction.winner ? auction.winner.username ? auction.winner.username: auction.winner.companyName : "unknown"
+              `✅ Agenda: Auction ${auctionId} was SOLD to ${auction.winner ? auction.winner.username ? auction.winner.username : auction.winner.companyName : "unknown"
               }`,
             );
 
@@ -160,6 +185,55 @@ class AgendaService {
 
             // Send seller email (auction ended without sale)
             await sendAuctionEndedSellerEmail(auction);
+
+            // ── Reserve not met → notify top 2 bidders with the reserve price ──
+            if (
+              result.newStatus === "reserve_not_met" &&
+              Array.isArray(auction.bids) &&
+              auction.bids.length > 0
+            ) {
+              try {
+                // Ensure we have bidder details populated
+                await auction.populate(
+                  "bids.bidder",
+                  "email username companyName firstName lastName",
+                );
+
+                const topBidders = getTopUniqueBidders(auction.bids, 2);
+
+                for (let i = 0; i < topBidders.length; i++) {
+                  const { bidder, amount } = topBidders[i];
+                  if (!bidder?.email) continue;
+
+                  try {
+                    await auctionReserveNotMetEmail(
+                      bidder.email,
+                      bidder.username ||
+                      bidder.companyName ||
+                      bidder.firstName ||
+                      "",
+                      auction,
+                      i + 1,      // rank: 1 or 2
+                      amount,
+                    );
+                  } catch (err) {
+                    console.error(
+                      `Failed reserve-not-met email to ${bidder.email}:`,
+                      err.message,
+                    );
+                  }
+                }
+
+                console.log(
+                  `📧 Sent reserve-not-met emails to ${topBidders.length} top bidder(s) for auction ${auctionId}`,
+                );
+              } catch (err) {
+                console.error(
+                  `Error sending reserve-not-met notifications for ${auctionId}:`,
+                  err.message,
+                );
+              }
+            }
 
             // Send admin email for ended auction
             const adminUsers = await User.find({ userType: "admin" });
@@ -306,6 +380,86 @@ class AgendaService {
     //     console.error("Agenda job error (ending soon notifications):", error);
     //   }
     // });
+
+    // Job to notify users 2 hours before an auction ends
+    this.agenda.define("send ending soon notifications", async (job) => {
+      try {
+        const now = new Date();
+
+        // Target window: auctions ending between 1h45m and 2h from now.
+        // Since this job runs every 15 minutes, we safely catch every auction
+        // once (and only once) as it crosses the 2-hour mark.
+        const lowerBound = new Date(now.getTime() + 105 * 60 * 1000); // 1h 45m
+        const upperBound = new Date(now.getTime() + 120 * 60 * 1000); // 2h 00m
+
+        const endingSoonAuctions = await Auction.find({
+          status: "active",
+          endDate: { $gte: lowerBound, $lte: upperBound },
+          "notifications.ending2hour": { $ne: true }, // not sent yet
+          // Only timed auctions have an "ending" event
+          auctionType: { $in: ["standard", "reserve"] },
+        }).populate("seller", "email username companyName firstName");
+
+        if (endingSoonAuctions.length === 0) return;
+
+        for (const auction of endingSoonAuctions) {
+          // ── 1. Seller notification ──────────────────────────────────
+          try {
+            if (auction.seller?.email) {
+              await auctionEndingSoonSellerEmail(
+                auction.seller.email,
+                auction.seller.username ||
+                auction.seller.companyName ||
+                auction.seller.firstName ||
+                "",
+                auction,
+              );
+            }
+          } catch (err) {
+            console.error(
+              `Failed seller ending-soon email for auction ${auction._id}:`,
+              err.message,
+            );
+          }
+
+          // ── 2. Bidder / public notification ─────────────────────────
+          const recipients = await User.find({
+            _id: { $ne: auction.seller?._id },
+            userType: { $nin: ["admin"] },
+            isActive: true,
+          }).select("email username companyName firstName");
+
+          for (const user of recipients) {
+            try {
+              await auctionEndingSoonEmail(
+                user.email,
+                user.username || user.companyName || user.firstName || "",
+                auction,
+              );
+            } catch (err) {
+              console.error(
+                `Failed ending-soon email to ${user.email}:`,
+                err.message,
+              );
+            }
+          }
+
+          // ── 3. Mark as sent (idempotency) ───────────────────────────
+          await Auction.findByIdAndUpdate(auction._id, {
+            $set: {
+              "notifications.ending2hour": true,
+              "notifications.ending2hourSentAt": new Date(),
+            },
+          });
+
+          console.log(
+            `📧 Sent 2-hour ending notifications for "${auction.title}" — seller + ${recipients.length} users`,
+          );
+        }
+      } catch (error) {
+        console.error("Agenda job error (ending soon notifications):", error);
+      }
+    });
   }
 
   // Schedule auction activation job

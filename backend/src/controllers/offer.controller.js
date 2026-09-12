@@ -141,24 +141,25 @@ export const makeOffer = async (req, res) => {
       });
     }
 
-    // Validate auction allows offers
-    if (!auction.allowOffers) {
+    const isPostAuction = auction.status === "reserve_not_met";
+
+    // allowOffers bypassed for post-auction recovery offers
+    if (!auction.allowOffers && !isPostAuction) {
       return res.status(400).json({
         success: false,
         message: "This auction does not accept offers",
       });
     }
 
-    // Validate auction status
-    if (auction.status !== "active") {
+    if (auction.status !== "active" && !isPostAuction) {
       return res.status(400).json({
         success: false,
         message: `Cannot make offer. Auction status: ${auction.status}`,
       });
     }
 
-    // Check if auction has ended
-    if (new Date() > auction.endDate) {
+    // Only live auctions care about end date
+    if (!isPostAuction && new Date() > auction.endDate) {
       return res.status(400).json({
         success: false,
         message: "Auction has ended",
@@ -473,7 +474,7 @@ export const respondToOffer = async (req, res) => {
     }
 
     // Validate auction status
-    if (auction.status !== "active") {
+    if (auction.status !== "active" && auction.status !== "reserve_not_met") {
       return res.status(400).json({
         success: false,
         message: `Cannot respond to offer. Auction status: ${auction.status}`,

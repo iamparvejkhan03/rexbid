@@ -28,8 +28,8 @@ const navigation = [
     { name: 'All Offers', path: '/company/offers/all', icon: <Hand size={20} /> },
     { name: 'Billing', path: '/company/billing', icon: <CreditCard size={20} /> },
     // { name: 'Notifications', path: '/company/notifications', icon: <Bell size={20} /> },
-    // { name: 'Payout Methods', path: '/company/payout-methods', icon: <BanknoteArrowUp size={20} /> },
-    // { name: 'Payouts', path: '/company/payouts', icon: <BanknoteArrowDown size={20} /> },
+    { name: 'Payout Methods', path: '/company/payout-methods', icon: <BanknoteArrowUp size={20} /> },
+    { name: 'Payouts', path: '/company/payouts', icon: <BanknoteArrowDown size={20} /> },
     { name: 'Profile', path: '/company/profile', icon: <User size={20} /> },
 ];
 

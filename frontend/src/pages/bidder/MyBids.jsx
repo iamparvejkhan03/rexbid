@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { BidderContainer, BidderHeader, BidderSidebar, LoadingSpinner } from "../../components";
+import { BidderContainer, BidderHeader, BidderSidebar, LoadingSpinner, MakeOfferModal } from "../../components";
 import {
     Search,
     Filter,
@@ -13,13 +13,16 @@ import {
     Calendar,
     CheckCircle,
     XCircle,
-    Zap
+    Zap,
+    Hand,
+    Info
 } from "lucide-react";
 import { about } from "../../assets";
 import axiosInstance from "../../utils/axiosInstance";
 import { Link } from "react-router-dom";
 import { useDebounce } from "../../hooks/useDebounce"; // Create this hook as shown earlier
 import { useAuth } from "../../contexts/AuthContext";
+import toast from "react-hot-toast";
 
 function MyBids() {
     const [bids, setBids] = useState([]);
@@ -41,6 +44,54 @@ function MyBids() {
 
     const { user } = useAuth();
     const userCurrency = user?.currency || 'EUR';
+
+    const [selectedBid, setSelectedBid] = useState(null);
+    const [isOfferModalOpen, setIsOfferModalOpen] = useState(false);
+    const [offerAmount, setOfferAmount] = useState("");
+    const [offerMessage, setOfferMessage] = useState("");
+    const [makingOffer, setMakingOffer] = useState(false);
+
+    const handleOpenOfferModal = (bid) => {
+        setSelectedBid(bid);
+        setOfferAmount("");
+        setOfferMessage("");
+        setIsOfferModalOpen(true);
+    };
+
+    const handleCloseOfferModal = () => {
+        setIsOfferModalOpen(false);
+        setSelectedBid(null);
+        setOfferAmount("");
+        setOfferMessage("");
+    };
+
+    const handleMakeOffer = async (e) => {
+        e.preventDefault();
+        if (!selectedBid) return;
+
+        try {
+            setMakingOffer(true);
+            const { data } = await axiosInstance.post(
+                `/api/v1/offers/auction/${selectedBid.id}`,
+                {
+                    amount: parseFloat(offerAmount),
+                    message: offerMessage,
+                    currency: userCurrency,
+                },
+            );
+            if (data.success) {
+                toast.success("Your offer has been submitted to the seller.");
+                handleCloseOfferModal();
+                fetchMyBids();
+            }
+        } catch (error) {
+            toast.error(
+                error?.response?.data?.message || "Failed to submit offer",
+            );
+        } finally {
+            setMakingOffer(false);
+        }
+    };
 
     // Fetch all bids on component mount
     useEffect(() => {
@@ -408,6 +459,68 @@ function MyBids() {
                                                                 <p className="font-semibold">{formatDate(bid.bidTime)}</p>
                                                             </div>
                                                         </div>
+
+                                                        {bid.reserveNotMet && bid.isTopBidder && (
+                                                            <div className="mt-5 bg-amber-50 border border-amber-200 rounded-lg p-4">
+                                                                <div className="flex items-start gap-3">
+                                                                    <Info className="text-amber-600 flex-shrink-0 mt-0.5" size={20} />
+                                                                    <div className="flex-1">
+                                                                        <p className="font-semibold text-amber-800">
+                                                                            {bid.topBidderRank === 1
+                                                                                ? "🥇 You were the highest bidder"
+                                                                                : "🥈 You were the second highest bidder"}
+                                                                        </p>
+                                                                        <p className="text-sm text-amber-800 mt-1">
+                                                                            Reserve price was{" "}
+                                                                            <strong>{formatCurrency(bid.reservePrice)}</strong>. You can make an
+                                                                            offer directly to the seller.
+                                                                        </p>
+
+                                                                        {bid.postAuctionOffer?.status === "pending" && (
+                                                                            <div className="mt-3 bg-white rounded-md p-3 border border-amber-200 flex items-center justify-between">
+                                                                                <div>
+                                                                                    <p className="text-xs text-gray-500">Your offer</p>
+                                                                                    <p className="font-semibold">
+                                                                                        {formatCurrency(bid.postAuctionOffer.convertedAmount)}
+                                                                                    </p>
+                                                                                </div>
+                                                                                <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full font-medium">
+                                                                                    Pending review
+                                                                                </span>
+                                                                            </div>
+                                                                        )}
+
+                                                                        {(bid.postAuctionOffer?.status === "rejected" ||
+                                                                            bid.postAuctionOffer?.status === "expired" ||
+                                                                            bid.postAuctionOffer?.status === "withdrawn") && (
+                                                                                <div className="mt-3 bg-white rounded-md p-3 border border-amber-200">
+                                                                                    <p className="text-xs text-gray-500">Last offer</p>
+                                                                                    <p className="font-semibold">
+                                                                                        {formatCurrency(bid.postAuctionOffer.convertedAmount)}{" "}
+                                                                                        <span className="text-red-600 text-xs font-medium ml-2">
+                                                                                            {bid.postAuctionOffer.status === "rejected"
+                                                                                                ? "Rejected"
+                                                                                                : bid.postAuctionOffer.status === "expired"
+                                                                                                    ? "Expired"
+                                                                                                    : "Withdrawn"}
+                                                                                        </span>
+                                                                                    </p>
+                                                                                </div>
+                                                                            )}
+
+                                                                        {bid.canMakePostAuctionOffer && (
+                                                                            <button
+                                                                                onClick={() => handleOpenOfferModal(bid)}
+                                                                                className="mt-3 flex items-center gap-2 bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                                                                            >
+                                                                                <Hand size={14} />
+                                                                                {bid.postAuctionOffer ? "Make Another Offer" : "Make an Offer"}
+                                                                            </button>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        )}
                                                     </div>
 
                                                     {/* Action Buttons */}
@@ -509,6 +622,25 @@ function MyBids() {
                                 </div>
                             </div>
                         </div>
+                    )}
+
+                    {selectedBid && (
+                        <MakeOfferModal
+                            isOpen={isOfferModalOpen}
+                            onClose={handleCloseOfferModal}
+                            onSubmit={handleMakeOffer}
+                            offerAmount={offerAmount}
+                            setOfferAmount={setOfferAmount}
+                            offerMessage={offerMessage}
+                            setOfferMessage={setOfferMessage}
+                            loading={makingOffer}
+                            auction={{
+                                _id: selectedBid.id,
+                                title: selectedBid.title,
+                                convertedStartPrice: selectedBid.startingBid,
+                            }}
+                            isPostAuction={true}
+                        />
                     )}
                 </BidderContainer>
             </div>

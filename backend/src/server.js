@@ -23,6 +23,7 @@ import payoutRouter from "./routes/payout.route.js";
 import reviewRouter from "./routes/review.route.js";
 import currencyRouter from "./routes/currency.route.js";
 import pilotPhaseRouter from "./routes/pilotPhase.route.js";
+import auctionDateRouter from "./routes/auctionDate.route.js";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -113,6 +114,7 @@ app.use("/api/v1/payouts", payoutRouter);
 app.use("/api/v1/reviews", reviewRouter);
 app.use("/api/v1/currency", currencyRouter);
 app.use("/api/v1", pilotPhaseRouter);
+app.use("/api/v1/auction-dates", auctionDateRouter);
 
 // 404 handler - SIMPLIFIED VERSION
 app.use((req, res, next) => {

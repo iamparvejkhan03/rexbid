@@ -23,6 +23,7 @@ import Commission from "../models/commission.model.js";
 import Review from "../models/review.model.js";
 import { getCachedRates } from "../routes/currency.route.js";
 import Stripe from 'stripe';
+import AuctionDate from "../models/auctionDate.model.js";
 
 // Initialize Stripe with your secret key
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -105,7 +106,7 @@ export const createAuction = async (req, res) => {
     }
 
     // Basic validation
-    if (!title || !description || !auctionType || !startDate || !endDate) {
+    if (!title || !description || !auctionType) {
       return res.status(400).json({
         success: false,
         message: "All required fields must be provided",
@@ -146,6 +147,54 @@ export const createAuction = async (req, res) => {
         message: "Bid increment is required for standard and reserve auctions",
       });
     }
+
+    // ========== AUCTION DATE SLOT RESOLUTION ==========
+    let resolvedStartDate = startDate;
+    let resolvedEndDate = endDate;
+    let auctionDateSlotId = null;
+
+    const isTimedAuction =
+      auctionType === "standard" || auctionType === "reserve";
+
+    if (isTimedAuction) {
+      const { auctionDateId } = req.body;
+
+      if (!auctionDateId) {
+        return res.status(400).json({
+          success: false,
+          message: "Please select an auction date slot",
+        });
+      }
+
+      const slot = await AuctionDate.findById(auctionDateId);
+
+      if (!slot || !slot.isActive) {
+        return res.status(400).json({
+          success: false,
+          message: "Selected auction date slot is no longer available",
+        });
+      }
+
+      if (new Date(slot.startDate) <= new Date()) {
+        return res.status(400).json({
+          success: false,
+          message: "Selected auction date slot has already started",
+        });
+      }
+
+      resolvedStartDate = slot.startDate;
+      resolvedEndDate = slot.endDate;
+      auctionDateSlotId = slot._id;
+    } else {
+      // buy_now / giveaway — keep client-provided dates as-is
+      if (!startDate || !endDate) {
+        return res.status(400).json({
+          success: false,
+          message: "startDate and endDate are required for this auction type",
+        });
+      }
+    }
+    // ====================================================
 
     // Parse specifications from JSON string to object
     let parsedSpecifications = {};
@@ -290,8 +339,8 @@ export const createAuction = async (req, res) => {
       }
     }
     // Validate dates
-    const start = new Date(startDate);
-    const end = new Date(endDate);
+    const start = new Date(resolvedStartDate);
+    const end = new Date(resolvedEndDate);
     const now = new Date();
 
     if (end <= start) {
@@ -316,6 +365,7 @@ export const createAuction = async (req, res) => {
       basePrice: parseFloat(startPrice),
       startDate: start,
       endDate: end,
+      auctionDate: auctionDateSlotId,
       auctionType,
       allowOffers: allowOffers === "true" || allowOffers === true,
       paymentCollectionPreference: paymentCollectionPreference || "buyer_decides",
@@ -383,14 +433,14 @@ export const createAuction = async (req, res) => {
     });
 
     // Notify admins if needed
-    const adminUsers = await User.find({ userType: "admin" });
-    for (const admin of adminUsers) {
-      await auctionSubmittedForApprovalEmail(
-        admin.email,
-        auction,
-        auction.seller,
-      );
-    }
+    // const adminUsers = await User.find({ userType: "admin" });
+    // for (const admin of adminUsers) {
+    //   await auctionSubmittedForApprovalEmail(
+    //     admin.email,
+    //     auction,
+    //     auction.seller,
+    //   );
+    // }
   } catch (error) {
     console.error("Create auction error:", error);
     res.status(500).json({
@@ -945,35 +995,6 @@ export const updateAuction = async (req, res) => {
     const { id } = req.params;
     const seller = req.user;
 
-    const auction = await Auction.findById(id);
-
-    if (!auction) {
-      return res.status(404).json({
-        success: false,
-        message: "Auction not found",
-      });
-    }
-
-    // Check if user owns the auction
-    if (auction.seller.toString() !== seller._id.toString()) {
-      return res.status(403).json({
-        success: false,
-        message: "You can only update your own auctions",
-      });
-    }
-
-    // CHECK: If auction is sold, prevent seller from editing
-    if (auction.status === "sold" || auction.status === "sold_buy_now") {
-      return res.status(401).json({
-        success: false,
-        message: `Sold auction can be edited by administrator only.`,
-      });
-    }
-
-    // CHECK: If auction is ended, seller can reset and re-list it
-    const isEndedAuction =
-      auction.status === "ended" || auction.status === "reserve_not_met";
-
     const {
       title,
       features,
@@ -997,6 +1018,103 @@ export const updateAuction = async (req, res) => {
       photoOrder,
       serviceRecordOrder,
     } = req.body;
+
+    const auction = await Auction.findById(id);
+
+    if (!auction) {
+      return res.status(404).json({
+        success: false,
+        message: "Auction not found",
+      });
+    }
+
+    // ========== AUCTION DATE SLOT RESOLUTION ==========
+    let resolvedStartDate = startDate;
+    let resolvedEndDate = endDate;
+    let auctionDateSlotId = auction.auctionDate || null;
+    let clearAuctionDate = false;
+
+    const isTimedAuction =
+      auctionType === "standard" || auctionType === "reserve";
+
+    // Sellers can only change the slot while the auction is draft
+    const canChangeSlot = auction.status === "draft";
+
+    if (isTimedAuction) {
+      const { auctionDateId } = req.body;
+
+      // If the client sent a slot, validate and apply
+      if (auctionDateId) {
+        if (!canChangeSlot && auctionDateId.toString() !== auction.auctionDate?.toString()) {
+          return res.status(400).json({
+            success: false,
+            message: "Auction dates can only be changed while the auction is in draft",
+          });
+        }
+
+        const slot = await AuctionDate.findById(auctionDateId);
+
+        if (!slot || !slot.isActive) {
+          return res.status(400).json({
+            success: false,
+            message: "Selected auction date slot is no longer available",
+          });
+        }
+        if (new Date(slot.startDate) <= new Date() && canChangeSlot) {
+          return res.status(400).json({
+            success: false,
+            message: "Selected auction date slot has already started",
+          });
+        }
+
+        resolvedStartDate = slot.startDate;
+        resolvedEndDate = slot.endDate;
+        auctionDateSlotId = slot._id;
+      } else if (!auction.auctionDate) {
+        // No slot chosen yet, and none previously stored → require one
+        return res.status(400).json({
+          success: false,
+          message: "Please select an auction date slot",
+        });
+      }
+      // If auctionDateId not sent but auction already has one:
+      // → keep the stored dates, don't let the client change them
+      else {
+        resolvedStartDate = auction.startDate;
+        resolvedEndDate = auction.endDate;
+      }
+    } else {
+      // buy_now / giveaway — keep client dates
+      if (!startDate || !endDate) {
+        return res.status(400).json({
+          success: false,
+          message: "startDate and endDate are required for this auction type",
+        });
+      }
+      // If switching away from a timed auction, clear the slot reference
+      if (auction.auctionDate) clearAuctionDate = true;
+    }
+    // ====================================================
+
+    // Check if user owns the auction
+    if (auction.seller.toString() !== seller._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: "You can only update your own auctions",
+      });
+    }
+
+    // CHECK: If auction is sold, prevent seller from editing
+    if (auction.status === "sold" || auction.status === "sold_buy_now") {
+      return res.status(401).json({
+        success: false,
+        message: `Sold auction can be edited by administrator only.`,
+      });
+    }
+
+    // CHECK: If auction is ended, seller can reset and re-list it
+    const isEndedAuction =
+      auction.status === "ended" || auction.status === "reserve_not_met";
 
     // ========== CATEGORIES HANDLING ==========
     let categoriesArray = [];
@@ -1599,8 +1717,8 @@ export const updateAuction = async (req, res) => {
     }
 
     // ========== DATE VALIDATION ==========
-    const start = new Date(startDate);
-    const end = new Date(endDate);
+    const start = new Date(resolvedStartDate);
+    const end = new Date(resolvedEndDate);
     const now = new Date();
 
     if (end <= start) {
@@ -1635,6 +1753,10 @@ export const updateAuction = async (req, res) => {
       documents: finalDocuments,
       serviceRecords: finalServiceRecords,
       status: newStatus,
+      ...(auctionDateSlotId !== auction.auctionDate?.toString() && {
+        auctionDate: auctionDateSlotId,
+      }),
+      ...(clearAuctionDate && { auctionDate: null }),
     };
 
     // Add bid increment only for standard and reserve auctions
@@ -1947,11 +2069,11 @@ export const placeBid = async (req, res) => {
         previousHighestBidder.toString() !== bidder._id.toString()
       ) {
         sendOutbidNotifications(
-          auction,               
-          previousBidders,        
-          bidder._id.toString(),  
-          amount,                
-          userCurrency            
+          auction,
+          previousBidders,
+          bidder._id.toString(),
+          amount,
+          userCurrency
         ).catch((err) => {
           console.error('Failed to send outbid notifications:', err);
         });

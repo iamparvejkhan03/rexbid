@@ -294,7 +294,7 @@ function FAQsPage() {
                                         Contact Our Support Team
                                     </h3>
                                     <p className="mt-1 text-[#072342]/60 text-sm max-w-md">
-                                        We're here to help with auctions, payments, account issues, and equipment listings.
+                                        We're here to help with listings, payments, account issues, and equipment listings.
                                     </p>
                                 </div>
                                 <Link
