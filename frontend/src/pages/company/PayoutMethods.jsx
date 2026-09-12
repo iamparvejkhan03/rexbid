@@ -143,11 +143,11 @@ function PayoutMethods() {
                     </div>
                 </div>
 
-                {defaultMethod === method && (
+                {/* {defaultMethod === method && (
                     <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
                         Default
                     </span>
-                )}
+                )} */}
             </div>
 
             {/* Content */}
@@ -275,7 +275,7 @@ function PayoutMethods() {
                     </div>
 
                     {/* Info Banner */}
-                    <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6 flex items-start gap-3">
+                    {/* <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6 flex items-start gap-3">
                         <AlertCircle size={20} className="text-blue-600 flex-shrink-0 mt-0.5" />
                         <div>
                             <p className="text-sm text-blue-800">
@@ -284,25 +284,25 @@ function PayoutMethods() {
                                 default method for automatic payouts.
                             </p>
                         </div>
-                    </div>
+                    </div> */}
 
                     {/* Methods Grid */}
                     <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 mb-8">
                         {/* PayPal */}
-                        {renderMethodCard(
+                        {/* {renderMethodCard(
                             "paypal",
                             payoutMethods.paypal,
                             //   PayPal,
                             "PayPal"
-                        )}
+                        )} */}
 
                         {/* Payoneer */}
-                        {renderMethodCard(
+                        {/* {renderMethodCard(
                             "payoneer",
                             payoutMethods.payoneer,
                             //   Payoneer,
                             "Payoneer"
-                        )}
+                        )} */}
 
                         {/* Bank Transfer */}
                         {renderMethodCard(

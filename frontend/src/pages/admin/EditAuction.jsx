@@ -1555,7 +1555,7 @@ const EditAuction = () => {
                                                 {errors.video && <p className="text-red-500 text-sm mt-1">{errors.video.message}</p>}
                                             </div>
 
-                                            <p className='text-xs text-gray-500 md:col-span-2'>Note: Ads with videos tend to get higher prices and less phone calls. If you want to upload a video with your ad, please WhatsApp it to: 87 203 9257</p>
+                                            <p className='text-xs font-medium text-orange-500 md:col-span-2'>Note: Ads with videos tend to get higher prices and less phone calls. If you want to upload a video with your ad, please WhatsApp it to: 87 203 9257</p>
                                         </div>
 
                                         {(auctionType === "standard" || auctionType === "reserve") ? (

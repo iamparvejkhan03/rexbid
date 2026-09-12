@@ -128,7 +128,7 @@ const AuctionDates = () => {
                             </button>
                         </div>
 
-                        <div className="mb-4 flex gap-2">
+                        {/* <div className="mb-4 flex gap-2">
                             {["all", "upcoming", "active", "past", "inactive"].map((s) => (
                                 <button
                                     key={s}
@@ -139,7 +139,7 @@ const AuctionDates = () => {
                                     {s}
                                 </button>
                             ))}
-                        </div>
+                        </div> */}
 
                         {loading ? (
                             <p>Loading…</p>
