@@ -624,6 +624,20 @@ function SingleAuction() {
 
                 <hr className="my-8" />
 
+                <Suspense fallback={<LoadingSpinner />}>
+                    <TabSection
+                        ref={commentSectionRef}
+                        description={auction.description}
+                        bids={auction.bids}
+                        offers={auction.offers}
+                        auction={auction}
+                        activatedTab={activeTab}
+                        onAuctionUpdate={updateAuctionState}
+                        auctionReviews={auctionReviews}
+                        userCurrency={userCurrency}
+                    />
+                </Suspense>
+
                 {/* Info section */}
                 {/* <div>
                     <h3 className="my-5 text-primary text-xl font-semibold">Auction Overview</h3>
@@ -683,25 +697,11 @@ function SingleAuction() {
                             </div>
                         </div>
                     </div>
+                </div> */}
 
-                    <SpecificationsSection auction={auction} />
-                </div>
+                <SpecificationsSection auction={auction} />
 
-                <hr className="my-8" /> */}
-
-                <Suspense fallback={<LoadingSpinner />}>
-                    <TabSection
-                        ref={commentSectionRef}
-                        description={auction.description}
-                        bids={auction.bids}
-                        offers={auction.offers}
-                        auction={auction}
-                        activatedTab={activeTab}
-                        onAuctionUpdate={updateAuctionState}
-                        auctionReviews={auctionReviews}
-                        userCurrency={userCurrency}
-                    />
-                </Suspense>
+                <hr className="my-8" />
 
                 {/* Features Section */}
                 {auction.features && (
