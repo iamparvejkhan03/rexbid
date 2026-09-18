@@ -16,9 +16,42 @@ const BidConfirmationModal = forwardRef((props, ref) => {
     const [isCommissionEnabled, setIsCommissionEnabled] = useState(null);
     const [commissionAppliesTo, setCommissionAppliesTo] = useState([]);
     const [serviceFee, setServiceFee] = useState(0);
+    const [isCapped, setIsCapped] = useState(false);
+    const [capDisplay, setCapDisplay] = useState("");
 
     const { user } = useAuth();
     const userCurrency = user?.currency || 'EUR';
+
+    // useEffect(() => {
+    //     if (!isOpen) return;
+
+    //     const getCommission = async () => {
+    //         try {
+    //             const { data } = await axiosInstance.get("/api/v1/commissions");
+    //             const commission = data?.data?.commission;
+    //             console.log(commission)
+
+    //             if (!commission) return;
+
+    //             setCommissionType(commission.commissionType);
+    //             setCommissionValue(commission.commissionValue);
+    //             setIsCommissionEnabled(commission.isEnabled);
+    //             setCommissionAppliesTo(commission.appliesTo);
+
+    //             if (commission.commissionType === "fixed") {
+    //                 setServiceFee(Number(commission.commissionValue));
+    //             } else {
+    //                 setServiceFee(
+    //                     (Number(bidAmount) * Number(commission.commissionValue)) / 100
+    //                 );
+    //             }
+    //         } catch (error) {
+    //             console.error("Error fetching commission:", error);
+    //         }
+    //     };
+
+    //     getCommission();
+    // }, [bidAmount, isOpen]);
 
     useEffect(() => {
         if (!isOpen) return;
@@ -35,20 +68,53 @@ const BidConfirmationModal = forwardRef((props, ref) => {
                 setIsCommissionEnabled(commission.isEnabled);
                 setCommissionAppliesTo(commission.appliesTo);
 
-                if (commission.commissionType === "fixed") {
-                    setServiceFee(Number(commission.commissionValue));
-                } else {
-                    setServiceFee(
-                        (Number(bidAmount) * Number(commission.commissionValue)) / 100
-                    );
+                // ---- 1. Compute the raw fee in user's currency ----
+                let fee =
+                    commission.commissionType === "fixed"
+                        ? Number(commission.commissionValue)
+                        : (Number(bidAmount) * Number(commission.commissionValue)) / 100;
+
+                // ---- 2. Fetch FX rates and convert the cap ----
+                const capAmount = commission.maxCommissionAmount ?? 500;
+                const capCurrency = commission.maxCommissionCurrency ?? "EUR";
+
+                // Format label always in the cap's ORIGINAL currency
+                const symbol = capCurrency === "GBP" ? "£" : capCurrency === "EUR" ? "€" : "";
+                setCapDisplay(`${symbol}${capAmount}`);
+
+                // Convert cap to the user's currency for comparison
+                let capInUserCurrency = capAmount;
+
+                if (capCurrency !== userCurrency) {
+                    const ratesRes = await axiosInstance.get("/api/v1/currency/rates");
+                    const rates = ratesRes.data || {};   // direct object, no wrapper
+                    const rate = rates[capCurrency]?.rates?.[userCurrency];
+                    if (rate) {
+                        capInUserCurrency = capAmount * rate;
+                    } else {
+                        console.warn(
+                            `FX rate missing for ${capCurrency} → ${userCurrency}. ` +
+                            `Cap will not be converted correctly.`
+                        );
+                    }
                 }
+
+                // ---- 3. Apply the cap ----
+                if (capInUserCurrency > 0 && fee > capInUserCurrency) {
+                    fee = capInUserCurrency;
+                    setIsCapped(true);
+                } else {
+                    setIsCapped(false);
+                }
+
+                setServiceFee(fee);
             } catch (error) {
                 console.error("Error fetching commission:", error);
             }
         };
 
         getCommission();
-    }, [bidAmount, isOpen]);
+    }, [bidAmount, isOpen, userCurrency]);
 
     if (!isOpen) return null;
 
@@ -94,12 +160,27 @@ const BidConfirmationModal = forwardRef((props, ref) => {
                                     {formatCurrency(bidAmount)}
                                 </td>
                             </tr>
-                            {isCommissionEnabled && commissionAppliesTo?.includes('bidder') && <tr>
+                            {/* {isCommissionEnabled && commissionAppliesTo?.includes('bidder') && <tr>
                                 <td className="text-gray-600">Commission Fee:</td>
                                 <td className="text-right text-gray-900">
                                     {formatCurrency(serviceFee)}
                                 </td>
-                            </tr>}
+                            </tr>} */}
+                            {isCommissionEnabled && commissionAppliesTo?.includes("bidder") && (
+                                <tr>
+                                    <td className="text-gray-600">
+                                        Commission Fee:
+                                        {isCapped && capDisplay && (
+                                            <span className="ml-2 text-xs text-gray-400">
+                                                (capped at {capDisplay})
+                                            </span>
+                                        )}
+                                    </td>
+                                    <td className="text-right text-gray-900">
+                                        {formatCurrency(serviceFee)}
+                                    </td>
+                                </tr>
+                            )}
                             <tr className="border-t border-gray-200">
                                 <td className="py-3 font-semibold text-gray-900">Total:</td>
                                 <td className="py-3 text-right font-semibold text-gray-900">

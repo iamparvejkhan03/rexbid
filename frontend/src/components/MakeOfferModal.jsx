@@ -24,6 +24,40 @@ const MakeOfferModal = ({
     const { user } = useAuth();
     const userCurrency = user?.currency || 'EUR';
 
+    const [isCapped, setIsCapped] = useState(false);
+    const [capDisplay, setCapDisplay] = useState("");
+
+    // useEffect(() => {
+    //     if (!isOpen || !offerAmount) return;
+
+    //     const getCommission = async () => {
+    //         try {
+    //             const { data } = await axiosInstance.get("/api/v1/commissions");
+    //             const commission = data?.data?.commission;
+    //             if (!commission) return;
+
+    //             setCommissionType(commission.commissionType);
+    //             setCommissionValue(commission.commissionValue);
+    //             setIsCommissionEnabled(commission.isEnabled);
+    //             setCommissionAppliesTo(commission.appliesTo);
+
+    //             const amount = Number(offerAmount);
+
+    //             if (commission.commissionType === "fixed") {
+    //                 setServiceFee(Number(commission.commissionValue));
+    //             } else {
+    //                 setServiceFee(
+    //                     (amount * Number(commission.commissionValue)) / 100
+    //                 );
+    //             }
+    //         } catch (error) {
+    //             console.error("Error fetching commission:", error);
+    //         }
+    //     };
+
+    //     getCommission();
+    // }, [offerAmount, isOpen]);
+
     useEffect(() => {
         if (!isOpen || !offerAmount) return;
 
@@ -40,20 +74,54 @@ const MakeOfferModal = ({
 
                 const amount = Number(offerAmount);
 
-                if (commission.commissionType === "fixed") {
-                    setServiceFee(Number(commission.commissionValue));
-                } else {
-                    setServiceFee(
-                        (amount * Number(commission.commissionValue)) / 100
-                    );
+                // ---- 1. Compute raw fee in user's currency ----
+                let fee =
+                    commission.commissionType === "fixed"
+                        ? Number(commission.commissionValue)
+                        : (amount * Number(commission.commissionValue)) / 100;
+
+                // ---- 2. Fetch FX rates and convert cap ----
+                const capAmount = commission.maxCommissionAmount ?? 500;
+                const capCurrency = commission.maxCommissionCurrency ?? "EUR";
+
+                // Label always shown in the cap's ORIGINAL currency
+                const symbol =
+                    capCurrency === "GBP" ? "£" : capCurrency === "EUR" ? "€" : "";
+                setCapDisplay(`${symbol}${capAmount}`);
+
+                let capInUserCurrency = capAmount;
+
+                if (capCurrency !== userCurrency) {
+                    const ratesRes = await axiosInstance.get("/api/v1/currency/rates");
+                    const rates = ratesRes.data || {}; // direct object (no "data" wrapper)
+                    const rate = rates[capCurrency]?.rates?.[userCurrency];
+
+                    if (rate) {
+                        capInUserCurrency = capAmount * rate;
+                    } else {
+                        console.warn(
+                            `FX rate missing for ${capCurrency} → ${userCurrency}. ` +
+                            `Cap will not be converted correctly.`
+                        );
+                    }
                 }
+
+                // ---- 3. Apply the cap ----
+                if (capInUserCurrency > 0 && fee > capInUserCurrency) {
+                    fee = capInUserCurrency;
+                    setIsCapped(true);
+                } else {
+                    setIsCapped(false);
+                }
+
+                setServiceFee(fee);
             } catch (error) {
                 console.error("Error fetching commission:", error);
             }
         };
 
         getCommission();
-    }, [offerAmount, isOpen]);
+    }, [offerAmount, isOpen, userCurrency]);
 
     if (!isOpen) return null;
 
@@ -127,12 +195,24 @@ const MakeOfferModal = ({
                                 <span>{formatCurrency(offerAmount)}</span>
                             </div>
 
-
-
-                            {isCommissionEnabled && commissionAppliesTo?.includes('bidder') && <div className="flex justify-between text-gray-700">
+                            {/* {isCommissionEnabled && commissionAppliesTo?.includes('bidder') && <div className="flex justify-between text-gray-700">
                                 <span>Service Fee</span>
                                 <span>{formatCurrency(serviceFee)}</span>
-                            </div>}
+                            </div>} */}
+
+                            {isCommissionEnabled && commissionAppliesTo?.includes('bidder') && (
+                                <div className="flex justify-between text-gray-700">
+                                    <span>
+                                        Service Fee
+                                        {isCapped && capDisplay && (
+                                            <span className="ml-2 text-xs text-gray-400">
+                                                (capped at {capDisplay})
+                                            </span>
+                                        )}
+                                    </span>
+                                    <span>{formatCurrency(serviceFee)}</span>
+                                </div>
+                            )}
 
                             <div className="border-t pt-2 flex justify-between font-semibold text-green-600">
                                 <span>Total Payable</span>
