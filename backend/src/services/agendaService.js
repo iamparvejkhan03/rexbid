@@ -422,12 +422,21 @@ class AgendaService {
             );
           }
 
-          // ── 2. Bidder / public notification ─────────────────────────
-          const recipients = await User.find({
-            _id: { $ne: auction.seller?._id },
-            userType: { $nin: ["admin"] },
-            isActive: true,
-          }).select("email username companyName firstName");
+          // ── 2. Notify only users who actually bid on this auction ──
+          const bidderIds = [
+            ...new Set(
+              (auction.bids || [])
+                .map((b) => b.bidder?.toString())
+                .filter(Boolean),
+            ),
+          ].filter((id) => id !== auction.seller?._id?.toString());
+
+          const recipients = bidderIds.length
+            ? await User.find({
+              _id: { $in: bidderIds },
+              isActive: true,
+            }).select("email username companyName firstName")
+            : [];
 
           for (const user of recipients) {
             try {
