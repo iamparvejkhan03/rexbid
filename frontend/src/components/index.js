@@ -69,6 +69,7 @@ import FeaturedListings from "./FeaturedListings";
 import GiveawayClaimModal from "./GiveawayClaimModal";
 import HowitWorksForBuyers from "./HowItWorksForBuyers";
 import HowitWorksForSellers from "./HowItWorksForSellers";
+import ReminderModal from "./ReminderModal";
 
 export {
     Container,
@@ -142,4 +143,5 @@ export {
     GiveawayClaimModal,
     HowitWorksForBuyers,
     HowitWorksForSellers,
+    ReminderModal,
 }

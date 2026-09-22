@@ -17,6 +17,7 @@ import {
   sendAuctionEndedSellerEmail,
   sendAuctionWonEmail,
   sendOutbidNotifications,
+  sendWatchlistBidNotifications,
 } from "../utils/nodemailer.js";
 import Category from "../models/category.model.js";
 import Commission from "../models/commission.model.js";
@@ -477,7 +478,15 @@ export const getAuctions = async (req, res) => {
 
     // Status filter
     if (status && status !== "any") {
-      filter.status = status;
+      if (status === "active") {
+        // Show both live (active) and upcoming (approved) auctions
+        filter.status = { $in: ["active", "approved"] };
+      } else if (status === "sold") {
+        // Include both auction sales and buy-now sales
+        filter.status = { $in: ["sold", "sold_buy_now"] };
+      } else {
+        filter.status = status;
+      }
     } else {
       filter.status = { $ne: "draft" };
     }
@@ -2078,6 +2087,16 @@ export const placeBid = async (req, res) => {
           console.error('Failed to send outbid notifications:', err);
         });
       }
+
+      // 4. Watchlist bid notifications to users watching this auction
+      sendWatchlistBidNotifications(
+        auction,
+        bidder._id.toString(),
+        amount,
+        userCurrency
+      ).catch((err) => {
+        console.error('Failed to send watchlist bid notifications:', err);
+      });
     });
 
   } catch (error) {

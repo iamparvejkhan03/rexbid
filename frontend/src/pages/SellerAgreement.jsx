@@ -76,7 +76,7 @@ const SellerAgreement = () => {
 
                             <ul className="text-gray-700 space-y-2 list-disc pl-5 mb-3">
                                 <li>
-                                    <strong>Standard Listing:</strong> 3% seller commission
+                                    <strong>No Reserve Listing:</strong> 3% seller commission
                                 </li>
 
                                 <li>

@@ -31,7 +31,7 @@ const navLinks = [
 ];
 
 const auctionTypes = [
-    { name: "Standard Auction", slug: "standard", icon: Gavel },
+    { name: "No Reserve Auction", slug: "standard", icon: Gavel },
     { name: "Reserve Auction", slug: "reserve", icon: Clock },
     // { name: "Buy Now", slug: "buy_now", icon: DollarSign },
     { name: "Giveaway", slug: "giveaway", icon: Gift }

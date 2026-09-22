@@ -336,7 +336,7 @@ function AllAuctions() {
             </span>
         ) : auctionType === 'standard' ? (
             <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                Standard
+                No Reserve
             </span>
         ) : auctionType === 'giveaway' ? (
             <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">

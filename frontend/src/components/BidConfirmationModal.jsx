@@ -195,14 +195,9 @@ const BidConfirmationModal = forwardRef((props, ref) => {
                 <div className="py-3 px-6 md:p-6 border-b border-gray-200 space-y-4">
                     <p className="text-sm text-gray-600">
                         For more info, read our{" "}
-                        <a href="/faqs" className="text-blue-600 hover:text-blue-800 underline">
-                            FAQs
-                        </a>{" "}
-                        or{" "}
-                        <a href="/contact" className="text-blue-600 hover:text-blue-800 underline">
-                            contact us
-                        </a>{" "}
-                        with any questions.
+                        <a href="/buyer-agreement" className="text-blue-600 hover:text-blue-800 underline">
+                            buyer's terms.
+                        </a>
                     </p>
                 </div>
 

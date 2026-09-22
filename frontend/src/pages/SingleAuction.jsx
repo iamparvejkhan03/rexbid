@@ -1,5 +1,5 @@
-import { CalendarDays, CheckSquare, Clock, Download, File, Fuel, Gauge, Gavel, Heart, Loader, MapPin, MessageCircle, PaintBucket, Plane, ShieldCheck, Tag, User, Users, Weight, Zap, Banknote, MessageSquare, Mail, Phone, Star, CreditCard, Info } from "lucide-react";
-import { BidConfirmationModal, BuyNowModal, Container, GiveawayClaimModal, LoadingSpinner, MobileBidStickyBar, RatingStars, ReviewModal, SellerStatsCard, SpecificationsSection, TabSection, TimerDisplay, WatchlistButton } from "../components";
+import { CalendarDays, CheckSquare, Clock, Download, File, Fuel, Gauge, Gavel, Heart, Loader, MapPin, MessageCircle, PaintBucket, Plane, ShieldCheck, Tag, User, Users, Weight, Zap, Banknote, MessageSquare, Mail, Phone, Star, CreditCard, Info, Bell } from "lucide-react";
+import { BidConfirmationModal, BuyNowModal, Container, GiveawayClaimModal, LoadingSpinner, MobileBidStickyBar, RatingStars, ReminderModal, ReviewModal, SellerStatsCard, SpecificationsSection, TabSection, TimerDisplay, WatchlistButton } from "../components";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { lazy, Suspense, useRef, useState, useEffect } from "react";
 import useAuctionCountdown from "../hooks/useAuctionCountDown";
@@ -52,6 +52,7 @@ function SingleAuction() {
     const timeRemaining = auction?.endDate ? new Date(auction.endDate) - new Date() : 0;
 
     const userCurrency = user?.currency || 'EUR';
+    const [showReminderModal, setShowReminderModal] = useState(false);
 
     const updateAuctionState = (updatedAuction) => {
         setAuction(updatedAuction);
@@ -85,6 +86,16 @@ function SingleAuction() {
         setIsMakeOfferModalOpen(false);
         setOfferAmount('');
         setOfferMessage('');
+    };
+
+    const handleSetReminder = () => {
+        if (user) {
+            // Logged in → same behaviour as the heart/watchlist button
+            toggleWatchlist();
+        } else {
+            // Anonymous visitor → open the reminder modal
+            setShowReminderModal(true);
+        }
     };
 
     useEffect(() => {
@@ -555,6 +566,7 @@ function SingleAuction() {
                     </div>
                     <div className="flex items-center gap-3">
                         <p onClick={toggleWatchlist}
+                            title="Add to watchlist"
                             className={`flex items-center gap-2 py-1 px-3 border border-gray-200 rounded-full transition-colors ${isWatchlisted
                                 ? 'bg-gray-100 text-black hover:bg-gray-200'
                                 : 'text-secondary hover:bg-gray-200'
@@ -692,7 +704,7 @@ function SingleAuction() {
                             <div>
                                 <p className="text-secondary text-sm">Auction Type</p>
                                 <p className="text-base capitalize">
-                                    {auction.auctionType === 'reserve' ? 'Reserve Price' : auction.auctionType === 'standard' ? 'Standard' : auction.auctionType === 'giveaway' ? 'Giveaway' : 'Buy Now'}
+                                    {auction.auctionType === 'reserve' ? 'Reserve Price' : auction.auctionType === 'standard' ? 'No Reserve' : auction.auctionType === 'giveaway' ? 'Giveaway' : 'Buy Now'}
                                 </p>
                             </div>
                         </div>
@@ -1176,6 +1188,28 @@ function SingleAuction() {
                         </>
                     )}
 
+                    {/* Set Reminder / Watchlist CTA */}
+                    {(countdown.status === 'counting-down' ||
+                        countdown.status === 'approved') &&
+                        (auction.auctionType === 'standard' ||
+                            auction.auctionType === 'reserve') && (
+                            <button
+                                type="button"
+                                onClick={handleSetReminder}
+                                className={`flex items-center justify-center gap-2 w-full py-3 px-6 rounded-lg border transition-colors ${user && isWatchlisted
+                                    ? 'bg-gray-100 border-gray-300 text-gray-700 hover:bg-gray-200'
+                                    : 'bg-white border-gray-300 text-primary hover:bg-gray-50'
+                                    }`}
+                            >
+                                <Bell size={18} fill={user && isWatchlisted ? 'currentColor' : 'none'} />
+                                <span>
+                                    {user && isWatchlisted
+                                        ? 'Reminder Set'
+                                        : 'Set a Reminder'}
+                                </span>
+                            </button>
+                        )}
+
                     {/* Watchlist Count */}
                     {auction.watchlistCount > 0 && (
                         <p className="text-center bg-white p-3 text-secondary text-sm flex items-center justify-center gap-2 border border-gray-200 rounded-lg">
@@ -1202,6 +1236,12 @@ function SingleAuction() {
             <PilotPhaseModal
                 isOpen={isPilotModalOpen}
                 onClose={handlePilotModalClose}
+            />
+
+            <ReminderModal
+                isOpen={showReminderModal}
+                onClose={() => setShowReminderModal(false)}
+                auction={auction}
             />
         </Container>
     );

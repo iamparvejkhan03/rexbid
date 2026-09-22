@@ -87,7 +87,7 @@ function Home() {
     const tabTitles = {
         'ending_soon': 'Ending Soon',
         'active': 'Live Listings',
-        'sold': 'Closed Listings',
+        'sold': 'Sold Listings',
         'approved': 'Upcoming Listings'
     };
 
@@ -221,7 +221,7 @@ function Home() {
                                         : 'text-gray-600 hover:text-[#D19F3E]'
                                         }`}
                                 >
-                                    Closed
+                                    Sold
                                 </button>
                             </div>
 

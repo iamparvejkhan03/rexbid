@@ -1353,7 +1353,7 @@ const EditAuction = () => {
                             {/* Progress Steps */}
                             <div className="mb-8">
                                 <div className="flex items-center justify-between mb-4">
-                                    {['Auction Info', 'Pricing & Bidding', 'Review & Submit'].map((label, index) => (
+                                    {['Auction Info', 'Pricing & Bidding', 'Seller Listing Terms'].map((label, index) => (
                                         <div key={index} className="flex flex-col items-center">
                                             <div className={`w-10 h-10 rounded-full flex items-center justify-center ${step > index + 1 ? 'bg-green-500 text-white' :
                                                 step === index + 1 ? 'bg-[#1e2d3b] text-white' : 'bg-gray-200 text-gray-600'
@@ -1557,7 +1557,7 @@ const EditAuction = () => {
                                                 </div>
                                                 {errors.video && <p className="text-red-500 text-sm mt-1">{errors.video.message}</p>}
                                             </div>
-                                            
+
                                             <p className='text-xs font-medium text-orange-500 md:col-span-2'>Note: Ads with videos tend to get higher prices and less phone calls. If you want to upload a video with your ad, please WhatsApp it to: 87 203 9257</p>
                                         </div>
 
@@ -1837,8 +1837,8 @@ const EditAuction = () => {
                                             <label className="block text-sm font-medium text-secondary mb-1">Auction Type *</label>
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4"> {/* Changed from grid-cols-3 to grid-cols-4 */}
                                                 {[
-                                                    { value: 'standard', label: 'Standard Auction' },
-                                                    { value: 'reserve', label: 'Reserve Price Auction' },
+                                                    { value: 'reserve', label: 'Reserve Auction' },
+                                                    { value: 'standard', label: 'No Reserve Auction' },
                                                     // { value: 'buy_now', label: 'Buy Now Auction' },
                                                     // { value: 'giveaway', label: 'Free Giveaway' },
                                                 ].map((type) => (
@@ -2067,226 +2067,105 @@ const EditAuction = () => {
                                     </div>
                                 )}
 
-                                {/* Step 3: Review & Submit */}
+                                {/* Step 3: Seller Listing Terms */}
                                 {step === 3 && (
                                     <div>
-                                        <h2 className="text-xl font-semibold mb-6 flex items-center">
-                                            <Settings size={20} className="mr-2" />
-                                            Review & Submit
+                                        <h2 className="text-xl font-semibold mb-2 flex items-center">
+                                            <FileText size={20} className="mr-2" />
+                                            Seller Listing Terms
                                         </h2>
 
-                                        <div className="bg-gray-50 p-6 rounded-lg mb-6 border border-gray-200">
-                                            <h3 className="font-medium text-lg mb-4 border-b pb-2">Auction Summary</h3>
+                                        <p className="text-sm text-secondary mb-6">
+                                            Please read and accept these conditions before listing an item on RexBid.
+                                        </p>
 
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                                {/* Item Details */}
-                                                <div className="space-y-4">
-                                                    <div className="bg-white p-4 rounded-lg shadow-sm">
-                                                        <h4 className="font-medium mb-3">Item Details</h4>
-                                                        <div className="space-y-2">
-                                                            <div>
-                                                                <p className="text-xs text-secondary">Item Name</p>
-                                                                <p className="font-medium">{watch('title') || 'Not provided'}</p>
-                                                            </div>
-                                                            <div>
-                                                                <p className="text-xs text-secondary">Category</p>
-                                                                <div className="flex flex-wrap gap-2">
-                                                                    {watch('categories')?.map((cat, index) => (
-                                                                        <span key={index} className="bg-gray-100 px-2 py-1 rounded text-sm">
-                                                                            {cat}
-                                                                        </span>
-                                                                    ))}
-                                                                </div>
-                                                            </div>
-                                                            <div>
-                                                                <p className="text-xs text-secondary">Location</p>
-                                                                <p className="font-medium">{watch('location') || 'Not specified'}</p>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-
-                                                    {selectedCategory && (
-                                                        <div className="space-y-4">
-                                                            {/* Item Information Review */}
-                                                            <div className="bg-white p-4 rounded-lg shadow-sm">
-                                                                <h4 className="font-medium mb-3">Item Information</h4>
-                                                                <div className="grid grid-cols-2 gap-4">
-                                                                    {['registration', 'miles', 'year', 'bodyType', 'transmission', 'fuelType', 'colour'].map((fieldName) => {
-                                                                        const field = getCategoryFields().find(f => f.name === fieldName);
-                                                                        const value = watch(`specifications.${fieldName}`);
-                                                                        return value ? (
-                                                                            <div key={fieldName}>
-                                                                                <p className="text-xs text-secondary">{field?.label}</p>
-                                                                                <p className="font-medium">{value}</p>
-                                                                            </div>
-                                                                        ) : null;
-                                                                    }).filter(Boolean)}
-                                                                </div>
-                                                            </div>
-
-                                                            {/* Extra Information Review */}
-                                                            <div className="bg-white p-4 rounded-lg shadow-sm">
-                                                                <h4 className="font-medium mb-3">Extra Information</h4>
-                                                                <div className="grid grid-cols-2 gap-4">
-                                                                    {['keys', 'motExpiry', 'serviceHistory', 'insuranceCategory', 'v5Status', 'previousOwners', 'vatStatus', 'capClean', 'vendor'].map((fieldName) => {
-                                                                        const field = getCategoryFields().find(f => f.name === fieldName);
-                                                                        const value = watch(`specifications.${fieldName}`);
-                                                                        return value ? (
-                                                                            <div key={fieldName}>
-                                                                                <p className="text-xs text-secondary">{field?.label}</p>
-                                                                                <p className="font-medium">{fieldName === 'motExpiry' ? new Date(value).toLocaleDateString('en-IE') : value}</p>
-                                                                            </div>
-                                                                        ) : null;
-                                                                    }).filter(Boolean)}
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                </div>
-
-                                                {/* Auction Details */}
-                                                <div className="space-y-4">
-                                                    {/* Auction Details */}
-                                                    <div className="bg-white p-4 rounded-lg shadow-sm">
-                                                        <h4 className="font-medium mb-3">Auction Details</h4>
-                                                        <div className="space-y-2">
-                                                            <div>
-                                                                <p className="text-xs text-secondary">Auction Type</p>
-                                                                <p className="font-medium">
-                                                                    {watch('auctionType') === 'standard' && 'Standard Auction'}
-                                                                    {watch('auctionType') === 'reserve' && 'Reserve Price Auction'}
-                                                                    {watch('auctionType') === 'buy_now' && 'Buy Now Auction'}
-                                                                    {watch('auctionType') === 'giveaway' && 'Free Giveaway'}
-                                                                </p>
-                                                            </div>
-                                                            {watch('allowOffers') && (
-                                                                <div>
-                                                                    <p className="text-xs text-secondary">Allow Offers</p>
-                                                                    <p className="font-medium text-green-600">Yes</p>
-                                                                </div>
-                                                            )}
-                                                            {/* NEW: Display Payment Collection Method */}
-                                                            <div>
-                                                                <p className="text-xs text-secondary">Payment Collection Method</p>
-                                                                <p className="font-medium">
-                                                                    {watch('paymentCollectionPreference') === 'buyer_decides' && 'Buyer Decides'}
-                                                                    {watch('paymentCollectionPreference') === 'bank_transfer' && 'Bank Transfer'}
-                                                                    {watch('paymentCollectionPreference') === 'credit_card' && 'Credit Card'}
-                                                                </p>
-                                                            </div>
-                                                            {/* NEW: Display VAT status */}
-                                                            <div>
-                                                                <p className="text-xs text-secondary">VAT Applicable</p>
-                                                                <p className="font-medium">
-                                                                    {watch('vatIncluded') ? 'Yes' : 'No'}
-                                                                </p>
-                                                            </div>
-                                                            <div>
-                                                                <p className="text-xs text-secondary">Start Date</p>
-                                                                <p className="font-medium">
-                                                                    {watch('startDate') ? new Date(watch('startDate')).toLocaleString('en-IE') : 'Not provided'}
-                                                                </p>
-                                                            </div>
-                                                            <div>
-                                                                <p className="text-xs text-secondary">End Date</p>
-                                                                <p className="font-medium">
-                                                                    {watch('endDate') ? new Date(watch('endDate')).toLocaleString('en-IE') : 'Not provided'}
-                                                                </p>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Media - UPDATED for edit page */}
-                                                    <div className="bg-white p-4 rounded-lg shadow-sm">
-                                                        <h4 className="font-medium mb-3">Media & Documents</h4>
-                                                        <div className="space-y-2">
-                                                            <div className="flex justify-between items-center">
-                                                                <p className="text-xs text-secondary">Total Photos</p>
-                                                                <span className="font-medium bg-gray-100 px-2 py-1 rounded-full text-xs">
-                                                                    {allPhotos.length} photos
-                                                                </span>
-                                                            </div>
-                                                            <div className="flex justify-between items-center">
-                                                                <p className="text-xs text-secondary">Existing Photos</p>
-                                                                <span className="font-medium bg-gray-100 px-2 py-1 rounded-full text-xs">
-                                                                    {allPhotos.filter(photo => photo.isExisting).length} photos
-                                                                </span>
-                                                            </div>
-                                                            <div className="flex justify-between items-center">
-                                                                <p className="text-xs text-secondary">New Photos</p>
-                                                                <span className="font-medium bg-gray-100 px-2 py-1 rounded-full text-xs">
-                                                                    {allPhotos.filter(photo => !photo.isExisting).length} uploaded
-                                                                </span>
-                                                            </div>
-                                                            <div className="flex justify-between items-center">
-                                                                <p className="text-xs text-secondary">Documents</p>
-                                                                <span className="font-medium bg-gray-100 px-2 py-1 rounded-full text-xs">
-                                                                    {existingDocuments.length + uploadedDocuments.length} total
-                                                                </span>
-                                                            </div>
-                                                            <div className="flex justify-between items-center">
-                                                                <p className="text-xs text-secondary">Other Images</p>
-                                                                <span className="font-medium bg-gray-100 px-2 py-1 rounded-full text-xs">
-                                                                    {allServiceRecords.length} total ({allServiceRecords.filter(l => l.isExisting).length} existing, {allServiceRecords.filter(l => !l.isExisting).length} new)
-                                                                </span>
-                                                            </div>
-                                                            {watch('video') && (
-                                                                <div className="flex justify-between items-center">
-                                                                    <p className="text-xs text-secondary">Video</p>
-                                                                    <span className="font-medium bg-gray-100 px-2 py-1 rounded-full text-xs">
-                                                                        Included
-                                                                    </span>
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Pricing */}
-                                                    <div className="bg-white p-4 rounded-lg shadow-sm">
-                                                        <h4 className="font-medium mb-3">Pricing</h4>
-                                                        <div className="space-y-2">
-                                                            {(watch('auctionType') === 'standard' || watch('auctionType') === 'reserve' || watch('auctionType') === 'buy_now') && (
-                                                                <div>
-                                                                    <p className="text-xs text-secondary">Start Price</p>
-                                                                    <p className="font-medium">{baseCurrency === 'GBP' ? '£' : '€'}{watch('startPrice') || '0.00'}</p>
-                                                                </div>
-                                                            )}
-
-                                                            {(watch('auctionType') === 'standard' || watch('auctionType') === 'reserve') && (
-                                                                <div>
-                                                                    <p className="text-xs text-secondary">Bid Increment</p>
-                                                                    <p className="font-medium">{baseCurrency === 'GBP' ? '£' : '€'}{watch('bidIncrement') || '0.00'}</p>
-                                                                </div>
-                                                            )}
-
-                                                            {watch('auctionType') === 'reserve' && (
-                                                                <div>
-                                                                    <p className="text-xs text-secondary">Reserve Price</p>
-                                                                    <p className="font-medium text-green-600">{baseCurrency === 'GBP' ? '£' : '€'}{watch('reservePrice') || '0.00'}</p>
-                                                                </div>
-                                                            )}
-
-                                                            {watch('auctionType') === 'buy_now' && (
-                                                                <div>
-                                                                    <p className="text-xs text-secondary">Buy Now Price</p>
-                                                                    <p className="font-medium text-blue-600">{baseCurrency === 'GBP' ? '£' : '€'}{watch('buyNowPrice') || '0.00'}</p>
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                </div>
+                                        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 sm:p-6 mb-6 max-h-full overflow-y-auto space-y-6 text-sm text-gray-700 leading-relaxed">
+                                            {/* 1 */}
+                                            <div>
+                                                <h3 className="font-semibold text-gray-900 mb-2">1. Exclusive listing and binding sale</h3>
+                                                <p className="mb-2">
+                                                    When you list an item on RexBid, you commit to selling it only through RexBid for the full
+                                                    duration of the listing. You must not sell it elsewhere, including privately to anyone who
+                                                    contacted you through RexBid.
+                                                </p>
+                                                <p className="mb-2">
+                                                    Subject to the reserve price and RexBid Website Terms, bids are binding. If the reserve is met
+                                                    and there is a winning bidder, you must complete the sale at the winning price. You must not
+                                                    withdraw the item after a valid bid, cancel a successful sale or arrange payment outside RexBid
+                                                    without written approval.
+                                                </p>
+                                                <p>
+                                                    If you sell elsewhere, withdraw without approval, refuse to complete or make the item
+                                                    unavailable, RexBid may impose a seller-default charge. The amount will be decided on a
+                                                    case-by-case basis, having regard to the value of the item, the reserve or winning bid, any
+                                                    costs incurred by RexBid and the circumstances of the default.
+                                                </p>
                                             </div>
 
-                                            {/* Description Preview */}
-                                            <div className="bg-white p-4 rounded-lg shadow-sm mt-4">
-                                                <h4 className="font-medium text-black mb-3">Description Preview</h4>
-                                                <div className="prose prose-lg max-w-none border rounded-lg p-4 bg-gray-50">
-                                                    {watch('description') ? (
-                                                        parse(watch('description'))
-                                                    ) : (
-                                                        <p className="text-gray-500 italic">No description provided</p>
-                                                    )}
-                                                </div>
+                                            {/* 2 */}
+                                            <div>
+                                                <h3 className="font-semibold text-gray-900 mb-2">2. Reserve price and bidding integrity</h3>
+                                                <ul className="list-disc pl-5 space-y-1">
+                                                    <li>
+                                                        Set a genuine reserve price before bidding opens. Any later change requires RexBid approval.
+                                                    </li>
+                                                    <li>
+                                                        You, your staff, family, agents or anyone acting for you must not bid on your own item or
+                                                        arrange bids to increase its price.
+                                                    </li>
+                                                    <li>
+                                                        You must not create false accounts, manipulate bidding, interfere with bidders or disclose
+                                                        confidential bidder information.
+                                                    </li>
+                                                </ul>
+                                            </div>
+
+                                            {/* 3 */}
+                                            <div>
+                                                <h3 className="font-semibold text-gray-900 mb-2">3. Inspection and access</h3>
+                                                <ul className="list-disc pl-5 space-y-1">
+                                                    <li>
+                                                        Make the item reasonably available for inspection at agreed times before bidding closes where
+                                                        inspection is offered.
+                                                    </li>
+                                                    <li>
+                                                        Allow the buyer to verify the item and relevant documents at collection. Inspection does not
+                                                        permit renegotiation simply because the buyer has changed their mind.
+                                                    </li>
+                                                    <li>
+                                                        The seller is responsible for the location, supervision and safety of inspections and
+                                                        demonstrations. Unsafe machinery must not be operated.
+                                                    </li>
+                                                </ul>
+                                            </div>
+
+                                            {/* 4 */}
+                                            <div>
+                                                <h3 className="font-semibold text-gray-900 mb-2">4. Payment and collection process</h3>
+                                                <ul className="list-disc pl-5 space-y-1">
+                                                    <li>
+                                                        The highest bidder must pay RexBid in full within 48 hours after bidding closes, unless RexBid
+                                                        confirms a different deadline.
+                                                    </li>
+                                                    <li>
+                                                        Collection must not take place until RexBid confirms that cleared funds have been received.
+                                                        Collection can normally be arranged three days after RexBid receives the buyer's funds, but
+                                                        banking checks or delays may extend this period.
+                                                    </li>
+                                                    <li>
+                                                        The buyer and seller arrange collection or delivery only after RexBid gives clearance. The
+                                                        seller must keep the item secure, insured and in the condition described until handover.
+                                                    </li>
+                                                    <li>
+                                                        Both parties must confirm that collection or delivery has been completed. RexBid then releases
+                                                        the net proceeds when checks are complete and no dispute or payment issue has been raised.
+                                                    </li>
+                                                    <li>
+                                                        The seller will not be paid before collection or delivery. This anti-fraud control is
+                                                        non-negotiable. The seller must not request direct payment or release the item before RexBid
+                                                        authorises collection.
+                                                    </li>
+                                                </ul>
                                             </div>
                                         </div>
 
@@ -2299,10 +2178,15 @@ const EditAuction = () => {
                                                     className="mt-1 mr-2"
                                                 />
                                                 <span className="text-sm font-medium text-secondary">
-                                                    I agree to the terms and conditions and confirm that I have the right to sell this Item
+                                                    I confirm that I own, or am authorised to sell, this item. I agree not to withdraw or sell it
+                                                    elsewhere while it is live on RexBid. I understand that valid bids are binding, that I must
+                                                    complete a successful sale, and that RexBid will release payment only after collection or
+                                                    delivery is confirmed in accordance with these terms.
                                                 </span>
                                             </label>
-                                            {errors.termsAgreed && <p className="text-red-500 text-sm mt-1">{errors.termsAgreed.message}</p>}
+                                            {errors.termsAgreed && (
+                                                <p className="text-red-500 text-sm mt-1">{errors.termsAgreed.message}</p>
+                                            )}
                                         </div>
                                     </div>
                                 )}

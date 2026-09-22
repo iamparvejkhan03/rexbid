@@ -20,6 +20,8 @@ import {
   sendBulkAuctionNotifications,
 } from "../utils/nodemailer.js";
 import User from "../models/user.model.js";
+import Watchlist from "../models/watchlist.model.js";
+import Reminder from "../models/reminder.model.js";
 
 /**
  * Returns up to `limit` unique bidders ordered by their highest bid (descending).
@@ -422,18 +424,25 @@ class AgendaService {
             );
           }
 
-          // ── 2. Notify only users who actually bid on this auction ──
-          const bidderIds = [
-            ...new Set(
-              (auction.bids || [])
-                .map((b) => b.bidder?.toString())
-                .filter(Boolean),
-            ),
-          ].filter((id) => id !== auction.seller?._id?.toString());
+          // ── 2. Notify bidders AND watchlist users for this auction ──
+          const bidderIds = (auction.bids || [])
+            .map((b) => b.bidder?.toString())
+            .filter(Boolean);
 
-          const recipients = bidderIds.length
+          // Users who added this auction to their watchlist
+          const watcherIds = (await Watchlist.distinct("user", {
+            auction: auction._id,
+          })).map((id) => id.toString());
+
+          // Merge + dedupe + exclude the seller
+          const sellerId = auction.seller?._id?.toString();
+          const recipientIds = [
+            ...new Set([...bidderIds, ...watcherIds]),
+          ].filter((id) => id && id !== sellerId);
+
+          const recipients = recipientIds.length
             ? await User.find({
-              _id: { $in: bidderIds },
+              _id: { $in: recipientIds },
               isActive: true,
             }).select("email username companyName firstName")
             : [];
@@ -453,6 +462,37 @@ class AgendaService {
             }
           }
 
+          // ── 2b. Notify anonymous reminder users (unregistered visitors) ──
+          const reminderDocs = await Reminder.find({
+            auction: auction._id,
+            unsubscribed: false,
+            sent: false,
+          }).select("_id name email");
+
+          for (const reminder of reminderDocs) {
+            try {
+              await auctionEndingSoonEmail(
+                reminder.email,
+                reminder.name || "there",
+                auction,
+              );
+
+              // Mark this reminder as sent (per-reminder idempotency)
+              // await Reminder.findByIdAndUpdate(reminder._id, {
+              //   $set: { sent: true, sentAt: new Date() },
+              // });
+            } catch (err) {
+              console.error(
+                `Failed ending-soon email to reminder ${reminder.email}:`,
+                err.message,
+              );
+            }
+          }
+
+          console.log(
+            `📧 Sent 2-hour reminder to ${reminderDocs.length} anonymous subscriber(s) for auction ${auction._id}`,
+          );
+
           // ── 3. Mark as sent (idempotency) ───────────────────────────
           await Auction.findByIdAndUpdate(auction._id, {
             $set: {
@@ -462,7 +502,7 @@ class AgendaService {
           });
 
           console.log(
-            `📧 Sent 2-hour ending notifications for "${auction.title}" — seller + ${recipients.length} users`,
+            `📧 Sent 2-hour ending notifications for "${auction.title}" — seller + ${recipients.length} recipient(s) (bidders: ${bidderIds.length}, watchers: ${watcherIds.length}, after dedupe: ${recipients.length})`,
           );
         }
       } catch (error) {

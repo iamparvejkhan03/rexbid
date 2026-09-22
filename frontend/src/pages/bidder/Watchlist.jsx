@@ -94,7 +94,7 @@ function Watchlist() {
                 timeLeft: calculateTimeLeft(auction.endDate),
                 endTime: auction.endDate,
                 image: auction.photos?.[0] || about,
-                auctionType: auction.convertedReservePrice ? "Reserve Auction" : "Standard Auction",
+                auctionType: auction.convertedReservePrice ? "Reserve Auction" : "No Reserve Auction",
                 notifications: true, // You can add this field to your model if needed
                 condition: auction.condition || "Good",
                 location: auction.location || "Unknown",

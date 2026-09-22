@@ -107,7 +107,7 @@ function BidHistory() {
                 auctionId: `AU${auction._id.toString().slice(-6).toUpperCase()}`,
                 auctionTitle: auction.title,
                 category: auction.category,
-                auctionType: auction.auctionType === 'reserve' ? 'Reserve Auction' : 'Standard Auction',
+                auctionType: auction.auctionType === 'reserve' ? 'Reserve Auction' : 'No Reserve Auction',
                 startTime: auction.startDate,
                 endTime: auction.endDate,
                 // Use converted values

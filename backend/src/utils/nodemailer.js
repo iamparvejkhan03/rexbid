@@ -2,6 +2,7 @@ import nodemailer from "nodemailer";
 import Commission from "../models/commission.model.js";
 import { getCachedRates } from "../routes/currency.route.js";
 import User from "../models/user.model.js";
+import Watchlist from "../models/watchlist.model.js";
 
 const transporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST,
@@ -2784,6 +2785,162 @@ const auctionReserveNotMetEmail = async (
     }
 };
 
+// Watchlist bid notification for users watching an auction
+const watchlistBidNotificationEmail = async (
+    userEmail,
+    userName,
+    listing,
+    newBid,
+    listingUrl,
+    outBidderCurrency
+) => {
+    try {
+        const content = `
+            <h2 style="text-align: center;">New Bid on an Auction You're Watching</h2>
+            <p style="text-align: center;">A new bid has just been placed on an auction you added to your watchlist.</p>
+
+            <div style="background: ${BRAND_COLORS.grayBg}; padding: 25px; border-radius: 8px; margin: 20px 0; border-left: 4px solid ${BRAND_COLORS.primary};">
+                <p style="margin: 0 0 12px 0; font-size: 18px; font-weight: bold; color: ${BRAND_COLORS.secondary};">${listing.title}</p>
+
+                <p style="margin: 15px 0; font-size: 24px; font-weight: bold; color: ${BRAND_COLORS.secondary};">Current Highest Bid: ${formatCurrency(newBid, outBidderCurrency)}</p>
+
+                ${listing.endDate ? `
+                    <p style="margin: 10px 0; font-size: 14px; color: ${BRAND_COLORS.secondary};">
+                        <strong>Auction Ends:</strong> ${new Date(listing.endDate).toLocaleString('en-IE')}
+                    </p>
+                ` : ''}
+
+                ${listing.specifications && listing.specifications.size > 0 ? `
+                    <div style="margin: 20px 0;">
+                        <strong style="color: ${BRAND_COLORS.secondary};">Item Details</strong>
+                        ${renderSpecifications(listing.specifications)}
+                    </div>
+                ` : ''}
+            </div>
+
+            <div style="text-align: center; padding: 25px; background: ${BRAND_COLORS.grayBg}; border-radius: 8px; margin: 25px 0;">
+                <p style="margin: 0 0 15px 0; font-size: 18px; font-weight: bold; color: ${BRAND_COLORS.secondary};">Still interested? Place your bid before the auction ends.</p>
+
+                <div style="margin: 20px 0;">
+                    ${createButton('View Auction & Bid Now', listingUrl, 'primary')}
+                </div>
+
+                <div>
+                    <a href="${FRONTEND_URL}/bidder/watchlist" style="display: inline-block; background: ${BRAND_COLORS.secondary}; color: #ffffff; padding: 12px 25px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 14px; margin: 5px;">View My Watchlist</a>
+                    <a href="${FRONTEND_URL}/auctions" style="display: inline-block; background: ${BRAND_COLORS.secondary}; color: #ffffff; padding: 12px 25px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 14px; margin: 5px;">Browse Other Listings</a>
+                </div>
+            </div>
+
+            <p>Dear ${userName},</p>
+            <p>This is an automated notification to let you know that a new bid has been placed on <strong>${listing.title}</strong>, an auction you're watching.</p>
+            <p>If you're still interested, we recommend placing your bid soon. Auctions can end at any time and extensions may apply.</p>
+        `;
+
+        const html = baseTemplate(content, 'Watchlist Bid Notification');
+
+        const info = await transporter.sendMail({
+            from: `"${BRAND_NAME}" <${process.env.EMAIL_USER}>`,
+            to: userEmail,
+            subject: `New Bid on "${listing.title}" — Auction You're Watching`,
+            html
+        });
+
+        return !!info;
+    } catch (error) {
+        throw new Error(`Failed to send watchlist bid notification: ${error.message}`);
+    }
+};
+
+const WATCHLIST_DEBOUNCE_DELAY = 60 * 1000; // 1 minute per auction
+const lastWatchlistNotificationTimes = new Map();
+
+// 18. Bulk watchlist bid notifications
+const sendWatchlistBidNotifications = async (
+    auction,
+    currentBidderId,
+    newBidAmount,
+    outBidderCurrency
+) => {
+    try {
+        const auctionId = auction._id.toString();
+
+        // Per-auction debounce
+        const now = Date.now();
+        const lastTime = lastWatchlistNotificationTimes.get(auctionId) || 0;
+
+        if (now - lastTime < WATCHLIST_DEBOUNCE_DELAY) {
+            console.log(
+                `Watchlist bid notifications debounced for auction ${auctionId} - too frequent`
+            );
+            return;
+        }
+        lastWatchlistNotificationTimes.set(auctionId, now);
+
+        // Fetch all users watching this auction
+        const watchers = await Watchlist.find({ auction: auctionId }).select("user");
+        const watcherIds = watchers.map((w) => w.user.toString());
+
+        // Exclude the bidder (in case they watch their own target) and the seller
+        const sellerId =
+            auction.seller?._id?.toString() || auction.seller?.toString();
+        const recipientIds = watcherIds.filter(
+            (id) => id !== currentBidderId && id !== sellerId
+        );
+
+        if (recipientIds.length === 0) {
+            console.log("No watchlist users to notify for this bid");
+            return;
+        }
+
+        const users = await User.find({
+            _id: { $in: recipientIds },
+            isActive: true,
+        }).select("email username companyName firstName lastName");
+
+        if (users.length === 0) {
+            console.log("No active watchlist users found for this auction");
+            return;
+        }
+
+        const auctionUrl = `${process.env.FRONTEND_URL}/auction/${auction._id}`;
+
+        const notificationPromises = users.map(async (user) => {
+            try {
+                await watchlistBidNotificationEmail(
+                    user.email,
+                    user.username ||
+                        user.companyName ||
+                        `${user.firstName} ${user.lastName}`,
+                    auction,
+                    newBidAmount,
+                    auctionUrl,
+                    outBidderCurrency
+                );
+            } catch (error) {
+                console.error(
+                    `Failed to send watchlist bid notification to ${user.email}:`,
+                    error.message
+                );
+            }
+        });
+
+        const results = await Promise.allSettled(notificationPromises);
+
+        const successful = results.filter(
+            (r) => r.status === "fulfilled"
+        ).length;
+        const failed = results.filter(
+            (r) => r.status === "rejected"
+        ).length;
+
+        console.log(
+            `Watchlist bid notifications for auction ${auctionId}: ${successful} successful, ${failed} failed`
+        );
+    } catch (error) {
+        console.error("Error sending watchlist bid notifications:", error);
+    }
+};
+
 export {
     contactEmail, //done
     contactConfirmationEmail, //done
@@ -2824,4 +2981,6 @@ export {
     giveawayWinnerEmail,
     accountApprovedEmail,
     auctionReserveNotMetEmail,
+    watchlistBidNotificationEmail,
+    sendWatchlistBidNotifications,
 };
