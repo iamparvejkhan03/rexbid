@@ -637,7 +637,8 @@ export const getTopLiveAuctions = async (req, res) => {
       };
     } else if (status === "sold") {
       filter.status = {
-        $in: ["sold", "ended", "reserve_not_met"],
+        // $in: ["sold", "ended", "reserve_not_met"],
+        $in: ["sold"],
       };
     } else if (status === "approved" || status === "upcoming") {
       // Support both frontend and backend naming
