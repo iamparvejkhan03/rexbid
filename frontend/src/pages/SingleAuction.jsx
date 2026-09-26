@@ -586,7 +586,7 @@ function SingleAuction() {
                                 <p onClick={() => handleTabClick('bids')}
                                     className="flex items-center gap-2 border border-gray-200 py-1 px-3 rounded-full cursor-pointer hover:bg-gray-100">
                                     <Gavel size={20} />
-                                    <span>{auction.bids?.length || 0}</span>
+                                    <span>{auction.status === 'approved' ? '--' : (auction.bids?.length || 0)}</span>
                                 </p>
                             )
                         }
@@ -868,7 +868,7 @@ function SingleAuction() {
 
                                 <p className="flex w-full justify-between border-b pb-2">
                                     <span className="text-secondary">No. of Bids</span>
-                                    <span className="font-medium">{auction?.bidCount}</span>
+                                    <span className="font-medium">{auction.status === 'approved' ? '--' : auction?.bidCount}</span>
                                 </p>
                             </>
                         )
@@ -910,7 +910,7 @@ function SingleAuction() {
                         auction.allowOffers && (
                             <p className="flex w-full justify-between border-b pb-2">
                                 <span className="text-secondary">No. of Offers</span>
-                                <span className="font-medium">{auction?.offers?.length}</span>
+                                <span className="font-medium">{auction.status === 'approved' ? '--' : auction?.offers?.length}</span>
                             </p>
                         )
                     }

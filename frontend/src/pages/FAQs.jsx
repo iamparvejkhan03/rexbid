@@ -44,11 +44,11 @@ const faqs = [
         questions: [
             {
                 question: "What payment methods are accepted?",
-                answer: "Payments can be made either through saved card or directly to the seller by bank transfer or cash, depending on the listing.",
+                answer: "Payments can be made either through saved card, or by bank transfer to RexBid, depending on the value of the transaction.",
             },
             {
                 question: "Does RexBid handle payments?",
-                answer: "In some cases, payment may be processed using the card registered to your account.",
+                answer: "RexBid handles all payments between buyers and sellers. Under no circumstances should buyers arrange payment directly with sellers.",
             },
         ],
     },
@@ -58,7 +58,7 @@ const faqs = [
         questions: [
             {
                 question: "Do you offer delivery services?",
-                answer: "No, we don't offer delivery services. You need to arrange delivery by contacting the seller.",
+                answer: "We may be able to arrange delivery for you, please contact us on +353872039257 and we can get you a quote from our delivery partners.",
             },
             {
                 question: "Can I collect the item myself?",
@@ -76,7 +76,7 @@ const faqs = [
             },
             {
                 question: "What are the seller fees?",
-                answer: "RexBid charges a 3% seller commission, with an additional 3% for featured listings.",
+                answer: "RexBid charges a 3% seller commission, capped at €200.",
             },
         ],
     },

@@ -188,15 +188,6 @@ function Home() {
                         <div className="flex items-center  flex-wrap gap-5 order-2 mb-3">
                             <div className="flex rounded-full border border-gray-200 p-1 bg-gray-50/50">
                                 <button
-                                    onClick={() => handleTabChange('ending_soon')}
-                                    className={`px-5 py-2 text-sm font-medium rounded-full transition-all ${activeTab === 'ending_soon'
-                                        ? 'bg-[#D19F3E] text-white shadow-sm'
-                                        : 'text-gray-600 hover:text-[#D19F3E]'
-                                        }`}
-                                >
-                                    Ending Soon
-                                </button>
-                                <button
                                     onClick={() => handleTabChange('active')}
                                     className={`px-5 py-2 text-sm font-medium rounded-full transition-all ${activeTab === 'active'
                                         ? 'bg-[#D19F3E] text-white shadow-sm'
@@ -204,15 +195,6 @@ function Home() {
                                         }`}
                                 >
                                     Live
-                                </button>
-                                <button
-                                    onClick={() => handleTabChange('approved')}
-                                    className={`px-5 py-2 text-sm font-medium rounded-full transition-all ${activeTab === 'approved'
-                                        ? 'bg-[#D19F3E] text-white shadow-sm'
-                                        : 'text-gray-600 hover:text-[#D19F3E]'
-                                        }`}
-                                >
-                                    Upcoming
                                 </button>
                                 <button
                                     onClick={() => handleTabChange('sold')}
@@ -341,11 +323,11 @@ function Home() {
             </Container>
 
             {/* Who we are section */}
-            <Container className="mt-8 md:mb-0">
+            {/* <Container className="mt-8 md:mb-0">
                 <Suspense fallback={<LoadingSpinner />}>
                     <About />
                 </Suspense>
-            </Container>
+            </Container> */}
 
             {/* <Container className=""> */}
             <HowItWorks />

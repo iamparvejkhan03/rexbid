@@ -55,12 +55,22 @@ const offerSchema = new Schema(
       amount: Number,
       message: String,
     },
+    negotiationHistory: [
+      {
+        by: { type: Schema.Types.ObjectId, ref: "User" },
+        role: { type: String, enum: ["buyer", "seller", "admin"] },
+        type: { type: String, enum: ["offer", "counter", "accept", "reject"] },
+        amount: Number,
+        message: String,
+        at: { type: Date, default: Date.now },
+      },
+    ],
     expiresAt: {
       type: Date,
       default: function () {
-        // Offers expire after 48 hours by default
+        // Offers expire after 15 days by default
         const expiryDate = new Date();
-        expiryDate.setHours(expiryDate.getHours() + 48);
+        expiryDate.setHours(expiryDate.getHours() + 360);
         return expiryDate;
       },
     },
@@ -597,55 +607,6 @@ auctionSchema.methods.buyNow = async function (buyerId, buyerUsername) {
   return this.save();
 };
 
-// NEW: Method to make an offer
-// auctionSchema.methods.makeOffer = async function (
-//   buyerId,
-//   buyerUsername,
-//   amount,
-//   message = "",
-// ) {
-//   const now = new Date();
-
-//   if (!this.allowOffers) {
-//     throw new Error("Offers are not allowed for this auction");
-//   }
-
-//   if (this.status !== "active") {
-//     throw new Error("Auction is not active");
-//   }
-
-//   if (now >= this.endDate) {
-//     throw new Error("Auction has ended");
-//   }
-
-//   // Check if buyer already has a pending offer
-//   const existingPendingOffer = this.offers.find(
-//     (offer) =>
-//       offer.buyer.toString() === buyerId.toString() &&
-//       offer.status === "pending",
-//   );
-
-//   if (existingPendingOffer) {
-//     throw new Error("You already have a pending offer for this auction");
-//   }
-
-//   // Add offer
-//   this.offers.push({
-//     buyer: buyerId,
-//     buyerUsername,
-//     amount,
-//     message,
-//     status: "pending",
-//     expiresAt: new Date(now.getTime() + 48 * 60 * 60 * 1000), // 48 hours
-//   });
-
-//   // Set notification flag
-//   this.notifications.offerReceived = true;
-
-//   return this.save();
-// };
-
-// Helper: top N unique bidders by their highest bid
 auctionSchema.methods.getTopUniqueBidders = function (limit = 2) {
   const highestByBidder = new Map();
   for (const bid of this.bids) {
@@ -708,10 +669,10 @@ auctionSchema.methods.makeOffer = async function (
     throw new Error("You already have a pending offer for this auction");
   }
 
-  // Post-auction offers never expire; regular offers expire in 48h
+  // Post-auction offers never expire; regular offers expire in 15 days
   const expiresAt = isPostAuction
     ? null
-    : new Date(now.getTime() + 48 * 60 * 60 * 1000);
+    : new Date(now.getTime() + 360 * 60 * 60 * 1000);
 
   this.offers.push({
     buyer: buyerId,
@@ -792,7 +753,10 @@ auctionSchema.methods.respondToOffer = async function (
       offer.counterOffer = {
         amount: counterAmount,
         message: counterMessage,
+        createdAt: new Date(),
       };
+      // Give the buyer a fresh 15 days window to respond
+      offer.expiresAt = new Date(Date.now() + 360 * 60 * 60 * 1000);
       break;
 
     default:
@@ -851,6 +815,57 @@ auctionSchema.methods.respondToCounterOffer = async function (offerId, accept) {
     offer.status = "rejected";
     offer.sellerResponse = "Counter offer rejected by buyer";
   }
+
+  return this.save();
+};
+
+// Buyer counters the seller's counter offer (starts a new round)
+auctionSchema.methods.buyerCounterOffer = async function (offerId, buyerId, amount, message = "") {
+  const offer = this.offers.id(offerId);
+  if (!offer) throw new Error("Offer not found");
+
+  // if (offer.buyer.toString() !== buyerId.toString()) {
+  //   throw new Error("You can only counter your own offers");
+  // }
+  if (offer.status !== "countered") {
+    throw new Error("You can only counter a seller's counter offer");
+  }
+  if (offer.expiresAt && new Date() > offer.expiresAt) {
+    offer.status = "expired";
+    return this.save();
+  }
+  if (!offer.counterOffer?.amount) {
+    throw new Error("No seller counter offer to respond to");
+  }
+  if (amount <= 0) throw new Error("Invalid counter amount");
+  // if (amount >= offer.counterOffer.amount) {
+  //   throw new Error("Your counter must be lower than the seller's counter");
+  // }
+
+  // Record the previous round for audit
+  offer.negotiationHistory.push({
+    by: offer.buyer,
+    role: "seller",
+    type: "counter",
+    amount: offer.counterOffer.amount,
+    message: offer.counterOffer.message,
+  });
+
+  // Buyer's new active offer
+  offer.negotiationHistory.push({
+    by: buyerId,
+    role: "buyer",
+    type: "counter",
+    amount,
+    message,
+  });
+
+  offer.amount = amount;            // current active amount
+  offer.message = message;          // latest message shown to seller
+  offer.counterOffer = undefined;   // clear seller's counter
+  offer.status = "pending";         // back to seller's turn
+  offer.sellerResponse = "";        // reset
+  offer.expiresAt = new Date(Date.now() + 360 * 60 * 60 * 1000); // fresh window
 
   return this.save();
 };

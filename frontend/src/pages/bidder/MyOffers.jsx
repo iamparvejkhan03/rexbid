@@ -45,6 +45,10 @@ function MyOffers() {
         withdrawn: 0
     });
 
+    const [showCounterModal, setShowCounterModal] = useState(false);
+    const [counterTarget, setCounterTarget] = useState(null); // the offer
+    const [counterForm, setCounterForm] = useState({ amount: "", message: "" });
+
     const { user } = useAuth();
     const userCurrency = user?.currency || 'EUR';
 
@@ -113,6 +117,47 @@ function MyOffers() {
             console.error("Fetch my offers error:", err);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const openCounterModal = (offer) => {
+        setCounterTarget(offer);
+        setCounterForm({ amount: "", message: "" });
+        setShowCounterModal(true);
+    };
+
+    const submitBuyerCounter = async () => {
+        if (!counterTarget) return;
+        const amt = parseFloat(counterForm.amount);
+        if (isNaN(amt) || amt <= 0) {
+            toast.error("Enter a valid amount");
+            return;
+        }
+        // if (amt >= counterTarget.convertedCounterAmount) {
+        //     toast.error("Your counter must be lower than the seller's counter");
+        //     return;
+        // }
+        if (amt < counterTarget.auction.convertedStartPrice) {
+            toast.error("Counter cannot be below the starting price");
+            return;
+        }
+
+        try {
+            setResponding(true);
+            const res = await axiosInstance.post(
+                `/api/v1/offers/auction/${counterTarget.auction._id}/offer/${counterTarget._id}/buyer-counter`,
+                { amount: amt, message: counterForm.message }
+            );
+            if (res.data.success) {
+                toast.success("Counter offer sent to seller");
+                setShowCounterModal(false);
+                setCounterTarget(null);
+                await fetchMyOffers();
+            }
+        } catch (err) {
+            toast.error(err?.response?.data?.message || "Failed to send counter");
+        } finally {
+            setResponding(false);
         }
     };
 
@@ -288,6 +333,28 @@ function MyOffers() {
         } catch (error) {
             toast.error(error?.response?.data?.message || 'Failed to withdraw offer');
             console.error('Withdraw offer error:', error);
+        } finally {
+            setResponding(false);
+        }
+    };
+
+    const handleCounterResponse = async (offerId, auctionId, accept) => {
+        if (!accept) {
+            if (!window.confirm("Are you sure you want to decline this counter offer?")) return;
+        }
+        try {
+            setResponding(true);
+            const res = await axiosInstance.post(
+                `/api/v1/offers/auction/${auctionId}/offer/${offerId}/respond-to-counter`,
+                { accept }
+            );
+            if (res.data.success) {
+                toast.success(accept ? "Counter offer accepted!" : "Counter offer declined");
+                await fetchMyOffers(); // refresh from server
+            }
+        } catch (error) {
+            toast.error(error?.response?.data?.message || "Failed to respond to counter offer");
+            console.error("Counter response error:", error);
         } finally {
             setResponding(false);
         }
@@ -556,14 +623,16 @@ function MyOffers() {
                                                                     <div className="flex items-center justify-between">
                                                                         <div>
                                                                             <p className="text-xl font-bold text-blue-700">
-                                                                                {formatCurrency(offer.counterOffer.convertedAmount)}
+                                                                                {formatCurrency(offer.convertedCounterAmount)}
                                                                             </p>
                                                                             <p className="text-sm text-blue-600">New price proposed by seller</p>
                                                                         </div>
                                                                         <div className="text-right">
-                                                                            <p className="text-sm text-gray-600">Previous: {formatCurrency(offer.convertedAmount)}</p>
+                                                                            <p className="text-sm text-gray-600">
+                                                                                Your original: {formatCurrency(offer.convertedAmount)}
+                                                                            </p>
                                                                             <p className="text-sm font-medium text-blue-600">
-                                                                                +{formatCurrency(offer.counterOffer.convertedAmount - offer.convertedAmount)}
+                                                                                +{formatCurrency(offer.convertedCounterAmount - offer.convertedAmount)}
                                                                             </p>
                                                                         </div>
                                                                     </div>
@@ -573,6 +642,12 @@ function MyOffers() {
                                                                                 <span className="font-medium">Seller's message:</span> {offer.counterOffer.message}
                                                                             </p>
                                                                         </div>
+                                                                    )}
+                                                                    {offer.expiresAt && (
+                                                                        <p className="mt-2 text-xs text-blue-600">
+                                                                            <Clock size={10} className="inline mr-1" />
+                                                                            Respond within {getTimeRemaining(offer.expiresAt)}
+                                                                        </p>
                                                                     )}
                                                                 </div>
                                                             )}
@@ -641,23 +716,31 @@ function MyOffers() {
                                                             {offer.status === 'countered' && (
                                                                 <div className="space-y-2">
                                                                     <button
-                                                                        onClick={() => {
-                                                                            // Implement accept counter offer functionality
-                                                                            console.log('Accept counter offer:', offer._id);
-                                                                        }}
-                                                                        className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors w-full"
+                                                                        onClick={() => handleCounterResponse(offer._id, offer.auction._id, true)}
+                                                                        disabled={responding}
+                                                                        className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors w-full disabled:opacity-50"
                                                                     >
-                                                                        <CheckCircle size={16} />
-                                                                        Accept Counter
+                                                                        {responding ? (
+                                                                            <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></span>
+                                                                        ) : (
+                                                                            <>
+                                                                                <CheckCircle size={16} />
+                                                                                Accept Counter
+                                                                            </>
+                                                                        )}
                                                                     </button>
                                                                     <button
-                                                                        onClick={() => {
-                                                                            if (window.confirm('Are you sure you want to decline this counter offer?')) {
-                                                                                // Implement decline counter offer functionality
-                                                                                console.log('Decline counter offer:', offer._id);
-                                                                            }
-                                                                        }}
-                                                                        className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors w-full"
+                                                                        onClick={() => openCounterModal(offer)}
+                                                                        disabled={responding}
+                                                                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors w-full disabled:opacity-50"
+                                                                    >
+                                                                        <TrendingUp size={16} />
+                                                                        Counter the Counter
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => handleCounterResponse(offer._id, offer.auction._id, false)}
+                                                                        disabled={responding}
+                                                                        className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors w-full disabled:opacity-50"
                                                                     >
                                                                         <Ban size={16} />
                                                                         Decline Counter
@@ -749,6 +832,74 @@ function MyOffers() {
                                     <p className="text-2xl font-bold text-yellow-600">
                                         {statistics.pending + statistics.countered}
                                     </p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {showCounterModal && counterTarget && (
+                        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                            <div className="bg-white rounded-xl shadow-lg p-6 w-full max-w-md">
+                                <h3 className="text-lg font-semibold mb-4">Counter Seller's Offer</h3>
+
+                                <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm">
+                                    <p className="text-blue-800">
+                                        Seller proposed:{" "}
+                                        <strong>{formatCurrency(counterTarget.convertedCounterAmount)}</strong>
+                                    </p>
+                                    <p className="text-blue-600 text-xs mt-1">
+                                        Minimum: {formatCurrency(counterTarget.auction.convertedStartPrice)}
+                                    </p>
+                                </div>
+
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Your Counter <span className="text-red-500">*</span>
+                                </label>
+                                <div className="relative mb-4">
+                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
+                                        {userCurrency === "GBP" ? "£" : "€"}
+                                    </span>
+                                    <input
+                                        type="number"
+                                        className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                        value={counterForm.amount}
+                                        onChange={(e) => setCounterForm({ ...counterForm, amount: e.target.value })}
+                                        placeholder="Enter amount"
+                                        min={counterTarget.auction.convertedStartPrice}
+                                        max={counterTarget.convertedCounterAmount - 1}
+                                    />
+                                </div>
+
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Message (optional)</label>
+                                <textarea
+                                    rows="3"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 mb-4"
+                                    value={counterForm.message}
+                                    onChange={(e) => setCounterForm({ ...counterForm, message: e.target.value })}
+                                    placeholder="Explain your counter..."
+                                />
+
+                                <div className="flex justify-end gap-3">
+                                    <button
+                                        onClick={() => { setShowCounterModal(false); setCounterTarget(null); }}
+                                        className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                                        disabled={responding}
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={submitBuyerCounter}
+                                        disabled={responding || !counterForm.amount}
+                                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 disabled:opacity-50"
+                                    >
+                                        {responding ? (
+                                            <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                                        ) : (
+                                            <>
+                                                <TrendingUp size={16} /> Send Counter
+                                            </>
+                                        )}
+                                    </button>
                                 </div>
                             </div>
                         </div>

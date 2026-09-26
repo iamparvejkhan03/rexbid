@@ -169,14 +169,16 @@ function AllOffers() {
     const handleRespondToOffer = async () => {
         if (!selectedOffer) return;
 
-        // Validate counter offer amount
         if (responseData.action === 'counter') {
-            const counterAmount = parseFloat(responseData.convertedCounterAmount);
+            const counterAmount = parseFloat(responseData.counterAmount);
             if (isNaN(counterAmount) || counterAmount <= selectedOffer.convertedAmount) {
                 toast.error('Counter offer must be higher than the original offer');
                 return;
             }
-            if (selectedOffer.auction.convertedBuyNowPrice && counterAmount >= selectedOffer.auction.convertedBuyNowPrice) {
+            if (
+                selectedOffer.auction.convertedBuyNowPrice &&
+                counterAmount >= selectedOffer.auction.convertedBuyNowPrice
+            ) {
                 toast.error('Counter offer cannot exceed Buy Now price');
                 return;
             }
@@ -188,11 +190,12 @@ function AllOffers() {
             const payload = {
                 auctionId: selectedOffer.auction._id,
                 response: responseData.action,
-                message: responseData.message
+                message: responseData.message,
             };
 
             if (responseData.action === 'counter') {
-                payload.convertedCounterAmount = parseFloat(responseData.convertedCounterAmount);
+                // NOTE: this is in the SELLER's currency — server converts to base
+                payload.counterAmount = parseFloat(responseData.counterAmount);
                 payload.counterMessage = responseData.message;
             }
 
@@ -205,9 +208,7 @@ function AllOffers() {
                 toast.success(`Offer ${responseData.action}ed successfully`);
                 setShowRespondModal(false);
                 setResponseData({ action: 'accept', message: '', counterAmount: '' });
-
-                // Refresh offers
-                await fetchCompanyOffers();
+                await fetchSellerOffers();
             }
         } catch (error) {
             toast.error(error?.response?.data?.message || 'Failed to respond to offer');
@@ -673,7 +674,7 @@ function AllOffers() {
                                                     <div>
                                                         <div className="text-sm text-blue-600">Counter Amount</div>
                                                         <div className="text-xl font-bold text-blue-700">
-                                                            {formatCurrency(selectedOffer.counterOffer.convertedAmount)}
+                                                            {formatCurrency(selectedOffer.convertedCounterAmount)}
                                                         </div>
                                                     </div>
                                                     <div className="text-right">
@@ -723,7 +724,7 @@ function AllOffers() {
                                                             <XCircle size={16} />
                                                             Reject Offer
                                                         </button>
-                                                        {/* <button
+                                                        <button
                                                             onClick={() => {
                                                                 setResponseData({ action: 'counter', message: '', counterAmount: '' });
                                                                 setShowRespondModal(true);
@@ -732,7 +733,7 @@ function AllOffers() {
                                                         >
                                                             <TrendingUp size={16} />
                                                             Make Counter Offer
-                                                        </button> */}
+                                                        </button>
                                                     </div>
                                                     <div className="text-sm text-gray-500 bg-yellow-50 p-3 rounded-lg border border-yellow-200">
                                                         <AlertCircle size={16} className="inline mr-1 text-yellow-600" />
@@ -837,7 +838,7 @@ function AllOffers() {
                                     <input
                                         type="number"
                                         className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                        value={responseData.convertedCounterAmount}
+                                        value={responseData.counterAmount}
                                         onChange={(e) => setResponseData(prev => ({ ...prev, counterAmount: e.target.value }))}
                                         placeholder="Enter amount"
                                         min={selectedOffer?.convertedAmount + 1}
@@ -883,7 +884,7 @@ function AllOffers() {
                                     responseData.action === 'reject' ? 'bg-red-600 hover:bg-red-700' :
                                         'bg-blue-600 hover:bg-blue-700'
                                     }`}
-                                disabled={processing || (responseData.action === 'counter' && !responseData.convertedCounterAmount)}
+                                disabled={processing || (responseData.action === 'counter' && !responseData.counterAmount)}
                             >
                                 {processing ? (
                                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>

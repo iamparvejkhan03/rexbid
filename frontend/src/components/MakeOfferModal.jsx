@@ -242,7 +242,7 @@ const MakeOfferModal = ({
 
                         {!isPostAuction && (
                             <p className="text-sm text-gray-500 mt-1">
-                                Your offer will expire in 48 hours if not responded to.
+                                Your offer will expire in 15 days if not responded to.
                             </p>
                         )}
                     </div>

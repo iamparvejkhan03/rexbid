@@ -97,7 +97,6 @@ const BuyerAgreement = () => {
 
                             <ul className="text-gray-700 space-y-2 list-disc pl-5">
                                 <li>Payment may be processed through registered card payment</li>
-                                <li>Some sellers may accept direct bank transfer or cash payment</li>
                                 <li>Payment deadlines are shown on each listing</li>
                                 <li>Items will not be released until payment is confirmed</li>
                                 <li>Transactions may use GBP or EUR depending on region</li>

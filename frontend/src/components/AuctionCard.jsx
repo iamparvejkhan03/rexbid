@@ -266,7 +266,7 @@ function AuctionCard({ auction }) {
                                         <div className="text-xs text-gray-600 mb-1">Bids</div>
                                         <div className="font-bold text-lg text-primary flex items-center justify-center gap-1">
                                             <Users size={16} />
-                                            {auction.bidCount || 0}
+                                            {auction.status === 'approved' ? '--' : (auction.bidCount || 0)}
                                         </div>
                                     </div>
                                 )
