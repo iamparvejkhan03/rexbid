@@ -824,42 +824,60 @@ function SingleAuction() {
                                 )}
 
                                 {/* ----- RESERVE PROGRESS INDICATOR (only in last 6h) ----- */}
-                                {auction.auctionType === 'reserve' &&
-                                    auction.status === 'active' &&
-                                    countdown.status === 'counting-down' &&
-                                    timeRemaining > 0 &&                    // still active
-                                    timeRemaining < 6 * 60 * 60 * 1000 &&   // last 6 hours
+                                {auction.auctionType === "reserve" &&
+                                    auction.status === "active" &&
+                                    countdown.status === "counting-down" &&
+                                    timeRemaining > 0 && // still active
+                                    timeRemaining < 6 * 60 * 60 * 1000 && // last 6 hours
                                     auction.reservePrice > auction.startPrice &&
-                                    auction.bidCount > 0 &&                 // optional: only show if there's at least one bid
-                                    (
-                                        <div className="mt-2 border-t pt-3">
-                                            <div className="flex justify-between items-center mb-1">
-                                                <span className="text-sm text-secondary">Reserve Progress</span>
-                                                <span className="text-xs font-medium">
-                                                    {auction.convertedCurrentPrice >= auction.convertedReservePrice
-                                                        ? '✅ Met'
-                                                        : '⏳ Not met'}
-                                                </span>
-                                            </div>
+                                    auction.bidCount > 0 && // only show if there is at least one bid
+                                    (() => {
+                                        const currentBid = Number(auction.convertedCurrentPrice) || 0;
+                                        const reservePrice = Number(auction.convertedReservePrice) || 0;
+                                        const reserveProgress =
+                                            reservePrice > 0
+                                                ? Math.min(
+                                                    100,
+                                                    Math.max(
+                                                        0,
+                                                        (currentBid / reservePrice) * 100
+                                                    )
+                                                )
+                                                : 0;
 
-                                            <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
-                                                <div
-                                                    className={`h-2.5 rounded-full transition-all duration-500 ${auction.convertedCurrentPrice >= auction.convertedReservePrice
-                                                        ? 'bg-green-500'
-                                                        : 'bg-orange-400'
-                                                        }`}
-                                                    style={{
-                                                        width: `${Math.min(
-                                                            100,
-                                                            ((auction.convertedCurrentPrice - auction.convertedStartPrice) /
-                                                                (auction.convertedReservePrice - auction.convertedStartPrice)) *
-                                                            100
-                                                        )}%`,
-                                                    }}
-                                                />
+                                        const reserveMet = currentBid >= reservePrice;
+
+                                        return (
+                                            <div className="mt-2 border-t pt-3">
+                                                <div className="mb-1 flex items-center justify-between">
+                                                    <span className="text-sm text-secondary">
+                                                        Reserve Progress
+                                                    </span>
+
+                                                    <span
+                                                        className={`text-xs font-medium ${reserveMet
+                                                            ? "text-green-600"
+                                                            : "text-gray-600"
+                                                            }`}
+                                                    >
+                                                        {reserveMet ? "✅ Met" : "⏳ Not met"}
+                                                    </span>
+                                                </div>
+
+                                                <div className="h-2.5 w-full overflow-hidden rounded-full bg-gray-200">
+                                                    <div
+                                                        className={`h-2.5 rounded-full transition-all duration-500 ${reserveMet
+                                                            ? "bg-green-500"
+                                                            : "bg-orange-400"
+                                                            }`}
+                                                        style={{
+                                                            width: `${reserveProgress}%`,
+                                                        }}
+                                                    />
+                                                </div>
                                             </div>
-                                        </div>
-                                    )}
+                                        );
+                                    })()}
 
                                 <p className="flex w-full justify-between border-b pb-2">
                                     <span className="text-secondary">Starting Bid</span>
