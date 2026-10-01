@@ -1,11 +1,12 @@
 import { lazy, Suspense } from "react";
-import { Hero, Container, Testimonial, HowItWorksCard, LoadingSpinner, AuctionCard, AuctionListItem, CategoryCarousel, HowItWorks } from "../components";
+import { Hero, Container, Testimonial, HowItWorksCard, LoadingSpinner, AuctionCard, AuctionListItem, CategoryCarousel, HowItWorks, PromoBanner } from "../components";
 import Marquee from "react-fast-marquee";
 import { BadgeCheck, Gavel, Grid, List, Tag, Upload, Filter, UserCog2, LucideVerified, UserPlus, Clock, PhoneCall, Target, Users, ArrowRight, User, CarFront, Hand } from "lucide-react";
 import {
     CaseIH,
     Claas,
     Cummins,
+    darkLogo,
     Fendt,
     Freightliner,
     Hitachi,
@@ -181,7 +182,7 @@ function Home() {
             <FeaturedListings />
 
             {/* Dynamic Auctions section */}
-            <Container className="mb-14 flex flex-col">
+            <Container className="mb-8 md:mb-10 flex flex-col">
                 <div className="gap-y-3">
                     <div className="flex items-center justify-between flex-wrap gap-y-3">
                         <h2 className="text-3xl md:text-4xl font-bold text-primary order-1">{tabTitles[activeTab]}</h2>

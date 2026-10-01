@@ -25,6 +25,7 @@ import currencyRouter from "./routes/currency.route.js";
 import pilotPhaseRouter from "./routes/pilotPhase.route.js";
 import auctionDateRouter from "./routes/auctionDate.route.js";
 import reminderRouter from "./routes/reminder.route.js";
+import deliveryQuoteRouter from "./routes/deliveryQuote.route.js";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -117,6 +118,7 @@ app.use("/api/v1/currency", currencyRouter);
 app.use("/api/v1", pilotPhaseRouter);
 app.use("/api/v1/auction-dates", auctionDateRouter);
 app.use('/api/v1/reminders', reminderRouter);
+app.use("/api/v1/delivery-quote", deliveryQuoteRouter);
 
 // 404 handler - SIMPLIFIED VERSION
 app.use((req, res, next) => {

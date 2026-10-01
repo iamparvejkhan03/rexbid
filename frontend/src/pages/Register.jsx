@@ -74,14 +74,14 @@ const Register = () => {
     const [currencies, setCurrencies] = useState([{ code: 'GBP', name: 'Pound Sterling' }, { code: 'EUR', name: 'Euro' }]);
     const [states, setStates] = useState([]);
     const [counties, setCounties] = useState([
-        "Antrim", "Armagh", "Carlow", "Cavan", "Clare", "Cork", "Derry", "Donegal",
-        "Down", "Dublin", "Fermanagh", "Galway", "Kerry", "Kildare", "Kilkenny",
+        "Carlow", "Cavan", "Clare", "Cork", "Donegal",
+        "Dublin", "Galway", "Kerry", "Kildare", "Kilkenny",
         "Laois", "Leitrim", "Limerick", "Longford", "Louth", "Mayo", "Meath",
-        "Monaghan", "Offaly", "Roscommon", "Sligo", "Tipperary", "Tyrone",
+        "Monaghan", "Offaly", "Roscommon", "Sligo", "Tipperary",
         "Waterford", "Westmeath", "Wexford", "Wicklow"
     ]);
     const [selectedCountry, setSelectedCountry] = useState('');
-    const [selectedCurrency, setSelectedCurrency] = useState('');
+    const [selectedCurrency, setSelectedCurrency] = useState('EUR');
 
     const [identificationDocument, setIdentificationDocument] = useState(null);
     const [identificationDocumentPreview, setIdentificationDocumentPreview] = useState(null);
@@ -941,7 +941,7 @@ const Register = () => {
                             </div>
 
                             {/* Currency Selection */}
-                            <div className={`border-t pt-6 pb-3 ${errors.currency && 'mb-3'}`}>
+                            {/* <div className={`border-t pt-6 pb-3 ${errors.currency && 'mb-3'}`}>
                                 <label className="text-sm font-medium leading-none text-gray-700 flex items-center gap-2 mb-4">
                                     <Banknote size={20} />
                                     <span>Currency</span>
@@ -966,7 +966,7 @@ const Register = () => {
                                 {errors.currency && (
                                     <p className="text-red-500 text-sm mt-1 absolute">{errors.currency.message}</p>
                                 )}
-                            </div>
+                            </div> */}
 
                             {/* ID Verification Section */}
                             {/* <div id="id-verification-section" className="border-t border-gray-200 dark:border-bg-primary-light pt-6">

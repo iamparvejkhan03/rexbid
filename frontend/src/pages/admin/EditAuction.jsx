@@ -1995,7 +1995,7 @@ const EditAuction = () => {
                                                 </div>
 
                                                 {/* Allow Offers Toggle */}
-                                                <div className="mb-6">
+                                                {/* <div className="mb-6">
                                                     <label className="flex items-center cursor-pointer">
                                                         <div className="relative">
                                                             <input
@@ -2014,7 +2014,7 @@ const EditAuction = () => {
                                                             </p>
                                                         </div>
                                                     </label>
-                                                </div>
+                                                </div> */}
 
                                                 {/* VAT Applicable Checkbox */}
                                                 <div className="mb-6">

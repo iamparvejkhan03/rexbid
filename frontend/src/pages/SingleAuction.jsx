@@ -1,5 +1,5 @@
-import { CalendarDays, CheckSquare, Clock, Download, File, Fuel, Gauge, Gavel, Heart, Loader, MapPin, MessageCircle, PaintBucket, Plane, ShieldCheck, Tag, User, Users, Weight, Zap, Banknote, MessageSquare, Mail, Phone, Star, CreditCard, Info, Bell } from "lucide-react";
-import { BidConfirmationModal, BuyNowModal, Container, GiveawayClaimModal, LoadingSpinner, MobileBidStickyBar, RatingStars, ReminderModal, ReviewModal, SellerStatsCard, SpecificationsSection, TabSection, TimerDisplay, WatchlistButton } from "../components";
+import { CalendarDays, CheckSquare, Clock, Download, File, Fuel, Gauge, Gavel, Heart, Loader, MapPin, MessageCircle, PaintBucket, Plane, ShieldCheck, Tag, User, Users, Weight, Zap, Banknote, MessageSquare, Mail, Phone, Star, CreditCard, Info, Bell, Truck } from "lucide-react";
+import { BidConfirmationModal, BuyNowModal, Container, GiveawayClaimModal, LoadingSpinner, MobileBidBottomBar, MobileBidStickyBar, RatingStars, ReminderModal, ReviewModal, SellerStatsCard, SpecificationsSection, TabSection, TimerDisplay, WatchlistButton } from "../components";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { lazy, Suspense, useRef, useState, useEffect } from "react";
 import useAuctionCountdown from "../hooks/useAuctionCountDown";
@@ -9,6 +9,7 @@ import { useComments } from "../hooks/useComments";
 import { useWatchlist } from "../hooks/useWatchlist";
 import { useAuth } from "../contexts/AuthContext";
 import PilotPhaseModal from "../components/PilotPhaseModal";
+import PaymentMethodModal from "../components/PaymentMethodModal";
 
 const YouTubeEmbed = lazy(() => import('../components/YouTubeEmbed'));
 const ImageLightBox = lazy(() => import('../components/ImageLightBox'));
@@ -54,6 +55,9 @@ function SingleAuction() {
     const userCurrency = user?.currency || 'EUR';
     const [showReminderModal, setShowReminderModal] = useState(false);
 
+    const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+    const [paymentRedirectUrl, setPaymentRedirectUrl] = useState('');
+
     const updateAuctionState = (updatedAuction) => {
         setAuction(updatedAuction);
     };
@@ -86,6 +90,28 @@ function SingleAuction() {
         setIsMakeOfferModalOpen(false);
         setOfferAmount('');
         setOfferMessage('');
+    };
+
+    const handleClosePaymentModal = () => {
+        setIsPaymentModalOpen(false);
+        setPaymentRedirectUrl('');
+    };
+
+    const handleProceedToBilling = () => {
+        const url = paymentRedirectUrl;
+        setIsPaymentModalOpen(false);
+        setPaymentRedirectUrl('');
+        if (url) {
+            navigate(url);
+        }
+    };
+
+    const requirePaymentMethod = (error) => {
+        const redirectUrl =
+            error?.response?.data?.redirectTo ||
+            `/${user?.userType || 'bidder'}/billing`;
+        setPaymentRedirectUrl(redirectUrl);
+        setIsPaymentModalOpen(true);
     };
 
     const handleSetReminder = () => {
@@ -245,33 +271,11 @@ function SingleAuction() {
                 }
             }
         } catch (error) {
-            // ✅ NEW: Handle payment method required error
             if (error?.response?.data?.errorCode === 'PAYMENT_METHOD_REQUIRED' ||
                 error?.response?.data?.errorCode === 'PAYMENT_METHOD_INVALID' ||
                 error?.response?.data?.errorCode === 'STRIPE_CUSTOMER_INVALID') {
 
-                const redirectUrl = error.response.data.redirectTo || `/${user.userType || 'bidder'}/billing`;
-
-                // Show a more prominent message
-                toast.error(
-                    (error) => (
-                        <div>
-                            <p className="font-medium">{error.response?.data?.message || 'Payment method required'}</p>
-                            {/* <button
-                                onClick={() => navigate(redirectUrl)}
-                                className="mt-2 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors"
-                            >
-                                Add Payment Method
-                            </button> */}
-                        </div>
-                    ),
-                    { duration: 10000 }
-                );
-
-                // Optionally redirect after a delay
-                setTimeout(() => {
-                    navigate(redirectUrl);
-                }, 1500);
+                requirePaymentMethod(error);
             } else {
                 toast.error(error?.response?.data?.message || 'Failed to place bid');
             }
@@ -446,33 +450,12 @@ function SingleAuction() {
                 setActiveTab('offers');
             }
         } catch (error) {
-            // Handle payment method required error
+            // ✅ NEW: Handle payment method required error via modal instead of auto-redirect
             if (error?.response?.data?.errorCode === 'PAYMENT_METHOD_REQUIRED' ||
                 error?.response?.data?.errorCode === 'PAYMENT_METHOD_INVALID' ||
                 error?.response?.data?.errorCode === 'STRIPE_CUSTOMER_INVALID') {
 
-                const redirectUrl = error.response.data.redirectTo || `/${user?.userType || 'bidder'}/billing`;
-
-                // Show a more prominent message
-                toast.error(
-                    (error) => (
-                        <div>
-                            <p className="font-medium">{error.response?.data?.message || 'Payment method required'}</p>
-                            {/* <button
-                                onClick={() => navigate(redirectUrl)}
-                                className="mt-2 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors"
-                            >
-                                Add Payment Method
-                            </button> */}
-                        </div>
-                    ),
-                    { duration: 10000 }
-                );
-
-                // Optionally redirect after a delay
-                setTimeout(() => {
-                    navigate(redirectUrl);
-                }, 1500);
+                requirePaymentMethod(error);
             } else {
                 toast.error(error?.response?.data?.message || 'Failed to submit offer');
             }
@@ -549,10 +532,10 @@ function SingleAuction() {
     }
 
     return (
-        <Container className={`pt-32 pb-16 min-h-[70vh] grid grid-cols-1 lg:grid-cols-3 items-start gap-10`}>
+        <Container className={`pt-20 md:pt-32 pb-16 min-h-[70vh] grid grid-cols-1 lg:grid-cols-3 items-start gap-10`}>
             <section className="col-span-1 lg:col-span-2">
                 {/* Title and top section */}
-                <div className="flex flex-wrap gap-2 capitalize justify-between items-center text-secondary">
+                <div className="hidden md:flex flex-wrap gap-2 capitalize justify-between items-center text-secondary">
                     <div className="flex flex-wrap gap-2">
                         Category: {auction.categories?.map((category, index) => (
                             <Link
@@ -603,22 +586,6 @@ function SingleAuction() {
                     </div>
                 </div>
 
-                <div className="my-5">
-                    <MobileBidStickyBar
-                        currentBid={auction.convertedCurrentPrice}
-                        timeRemaining={countdown}
-                        onBidClick={() => scrollToBidSection()}
-                        convertedBuyNowPrice={auction.convertedBuyNowPrice}
-                        onBuyNowClick={isBuyNowAvailable ? handleBuyNow : null}
-                        onMakeOfferClick={isMakeOfferAvailable ? handleOpenMakeOfferModal : null}
-                        allowOffers={auction.allowOffers}
-                        auctionType={auction.auctionType}
-                        status={countdown.status}
-                        auction={auction}
-                        userCurrency={userCurrency}
-                    />
-                </div>
-
                 <div className="flex items-center gap-3 my-6 flex-wrap">
                     <h2 className="text-2xl md:text-3xl font-semibold text-primary">{auction.title}</h2>
                     {/* {auctionReviews.length > 0 && (
@@ -633,6 +600,27 @@ function SingleAuction() {
                 {/* <Suspense fallback={<LoadingSpinner />}> */}
                 <ImageLightBox isFeatured={auction.isFeatured} images={auction.photos} auctionType={auction?.auctionType} isReserveMet={auction.convertedCurrentPrice >= auction.reservePrice} />
                 {/* </Suspense> */}
+
+                <div className="my-8">
+                    <MobileBidStickyBar
+                        currentBid={auction.convertedCurrentPrice}
+                        timeRemaining={countdown}
+                        onBidClick={() => scrollToBidSection()}
+                        convertedBuyNowPrice={auction.convertedBuyNowPrice}
+                        onBuyNowClick={isBuyNowAvailable ? handleBuyNow : null}
+                        onMakeOfferClick={isMakeOfferAvailable ? handleOpenMakeOfferModal : null}
+                        allowOffers={auction.allowOffers}
+                        auctionType={auction.auctionType}
+                        status={countdown.status}
+                        auction={auction}
+                        userCurrency={userCurrency}
+                        // Add these new props:
+                        onSetReminder={handleSetReminder}
+                        isWatchlisted={isWatchlisted}
+                        watchlistCount={watchlistCount || auction?.watchlistCount || 0}
+                        views={auction?.views || 0}
+                    />
+                </div>
 
                 <hr className="my-8" />
 
@@ -819,7 +807,7 @@ function SingleAuction() {
 
                                 {auction.auctionType === 'reserve' && timeRemaining > 0 && timeRemaining > 6 * 60 * 60 * 1000 && (
                                     <p className={`${auction.convertedCurrentPrice >= auction.reservePrice ? 'text-green-600 bg-green-100' : 'text-orange-600 bg-orange-100'} flex items-start self-start text-xs font-medium px-4 py-2 rounded-md`}>
-                                        {auction.convertedCurrentPrice >= auction.reservePrice ? 'Reserve Met' : 'Reserve Not Met'}
+                                        {auction.convertedCurrentPrice >= auction.reservePrice ? 'Reserve Met' : 'Reserve Applies'}
                                     </p>
                                 )}
 
@@ -884,10 +872,10 @@ function SingleAuction() {
                                     <span className="font-medium">{userCurrency === 'GBP' ? '£' : '€'}{auction.convertedStartPrice?.toFixed(2).toLocaleString()}</span>
                                 </p>
 
-                                <p className="flex w-full justify-between border-b pb-2">
+                                {/* <p className="flex w-full justify-between border-b pb-2">
                                     <span className="text-secondary">No. of Bids</span>
                                     <span className="font-medium">{auction.status === 'approved' ? '--' : auction?.bidCount}</span>
-                                </p>
+                                </p> */}
                             </>
                         )
                     }
@@ -924,14 +912,14 @@ function SingleAuction() {
                         )
                     }
 
-                    {
+                    {/* {
                         auction.allowOffers && (
                             <p className="flex w-full justify-between border-b pb-2">
                                 <span className="text-secondary">No. of Offers</span>
                                 <span className="font-medium">{auction.status === 'approved' ? '--' : auction?.offers?.length}</span>
                             </p>
                         )
-                    }
+                    } */}
 
                     {
                         (auction.auctionType === 'reserve' || auction.auctionType === 'standard') && (
@@ -1032,7 +1020,7 @@ function SingleAuction() {
                                                 type="button"
                                                 disabled={bidding}
                                                 onClick={() => handleOpenBidModal(bidAmount)}
-                                                className="flex items-center justify-center gap-2 w-full bg-primary text-white py-3 px-6 cursor-pointer rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-primary/90 transition-colors"
+                                                className="flex items-center justify-center gap-2 w-full bg-[#D19F3E] text-black py-3 px-6 cursor-pointer rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#db9a18] transition-colors"
                                             >
                                                 {bidding ? (
                                                     <Loader size={16} className="animate-spin-slow" />
@@ -1084,7 +1072,7 @@ function SingleAuction() {
                                     )}
 
                                     {/* Make Offer Button - Show for any auction type that allows offers and is active */}
-                                    {isMakeOfferAvailable && (
+                                    {/* {isMakeOfferAvailable && (
                                         <button
                                             onClick={handleOpenMakeOfferModal}
                                             className="flex items-center justify-center gap-2 w-full bg-gradient-to-r from-orange-400 via-orange-500 to-orange-600 text-white hover:from-orange-500 hover:via-orange-600 hover:to-orange-700 py-3 px-6 cursor-pointer rounded-lg transition-colors"
@@ -1092,7 +1080,7 @@ function SingleAuction() {
                                             <Banknote />
                                             <span>Make an Offer</span>
                                         </button>
-                                    )}
+                                    )} */}
 
                                     {/* Make Offer Modal */}
                                     <Suspense fallback={null}>
@@ -1228,13 +1216,24 @@ function SingleAuction() {
                             </button>
                         )}
 
+                    <button
+                        type="button"
+                        onClick={() => navigate('/delivery-partner-signup')}
+                        className="flex items-center justify-center gap-2 w-full bg-[#000] text-white py-3 px-6 cursor-pointer rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#000]/90 transition-colors"
+                    >
+                        <>
+                            <Truck />
+                            <span>Request Delivery Quote</span>
+                        </>
+                    </button>
+
                     {/* Watchlist Count */}
-                    {auction.watchlistCount > 0 && (
+                    {/* {auction.watchlistCount > 0 && (
                         <p className="text-center bg-white p-3 text-secondary text-sm flex items-center justify-center gap-2 border border-gray-200 rounded-lg">
                             <Users className="w-4 h-4" />
                             <span>{auction.watchlistCount} user{auction.watchlistCount !== 1 ? 's' : ''} watching</span>
                         </p>
-                    )}
+                    )} */}
 
                     {/* <p className="text-center bg-white p-3 text-secondary text-sm flex items-center justify-center gap-2 border border-gray-200 rounded-lg">
                         <ShieldCheck className="w-4 h-4" />
@@ -1261,6 +1260,23 @@ function SingleAuction() {
                 onClose={() => setShowReminderModal(false)}
                 auction={auction}
             />
+
+            <PaymentMethodModal
+                isOpen={isPaymentModalOpen}
+                onClose={handleClosePaymentModal}
+                onProceed={handleProceedToBilling}
+            />
+
+            {/* {(countdown?.status === 'counting-down' || countdown?.status === 'always-available') &&
+                !auction?.winner &&
+                auction?.status === 'active' && (
+                    <MobileBidBottomBar
+                        auction={auction}
+                        onBidClick={() => scrollToBidSection()}
+                        userCurrency={userCurrency}
+                        countdown={countdown}
+                    />
+                )} */}
         </Container>
     );
 }

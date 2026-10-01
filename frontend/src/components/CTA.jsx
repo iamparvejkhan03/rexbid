@@ -1,6 +1,8 @@
 import { useNavigate } from "react-router";
 import { ArrowRight } from "lucide-react";
 import Container from "./Container";
+import PromoBanner from "./PromoBanner";
+import { darkLogo, evolve } from "../assets";
 
 function CTA() {
     const navigate = useNavigate();
@@ -10,14 +12,14 @@ function CTA() {
             {/* Gold separator line – breaks visual continuity from previous section */}
             <div className="w-full h-px bg-gradient-to-r from-transparent via-[#D19F3E] to-transparent" />
 
-            <section className="py-14 bg-gradient-to-br from-[#072342] to-[#0a2a4a] relative overflow-hidden">
+            <section className="py-10 bg-gradient-to-br from-[#072342] to-[#0a2a4a] relative overflow-hidden">
                 {/* Industrial Background Pattern - EXACT same as footer (opacity 0.1) */}
                 <div className="absolute inset-0 opacity-10 pointer-events-none">
                     <div className="absolute inset-0" style={{
                         backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%239C92AC' fill-opacity='0.15'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
                     }} />
                 </div>
-                
+
                 {/* Industrial Mesh Lines - EXACT same as footer (opacity 0.2, 40x40 grid) */}
                 <div className="absolute inset-0 opacity-20 pointer-events-none">
                     <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
@@ -46,7 +48,7 @@ function CTA() {
                         {/* Heading - white for contrast */}
 
                         <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-[#fff] mb-4 leading-tight">
-                            Buy & Sell With 
+                            Buy & Sell With
                             <span className="relative ml-2 inline-block">
                                 <span className="relative z-10 text-transparent bg-clip-text bg-gradient-to-r from-[#D19F3E] to-[#E8B86B]">
                                     Confidence
@@ -84,6 +86,14 @@ function CTA() {
                             Verified sellers • Competitive bidding • Simple process
                         </p>
                     </div>
+
+                    <PromoBanner
+                        logoUrl={evolve}
+                        title="Nationwide Delivery Available with Our Partner - EVOLVE"
+                        description=""
+                        buttonText="Get a Quote Now"
+                        buttonLink="/delivery-partner-quote"
+                    />
                 </Container>
             </section>
         </>

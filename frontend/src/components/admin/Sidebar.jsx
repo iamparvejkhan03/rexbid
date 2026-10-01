@@ -46,11 +46,11 @@ const navigation = [
         path: '/admin/users',
         icon: <Users size={20} />
     },
-    {
-        name: 'Pilot Users',
-        path: '/admin/pilot-users',
-        icon: <UserLock size={20} />
-    },
+    // {
+    //     name: 'Pilot Users',
+    //     path: '/admin/pilot-users',
+    //     icon: <UserLock size={20} />
+    // },
     {
         name: 'Guest Interests',
         path: '/admin/interests',
@@ -198,7 +198,7 @@ function Sidebar() {
                 {/* Logo/Brand */}
                 <div className="px-4 mb-8 flex items-center justify-between pb-2 border-b border-gray-700">
                     <Link to={'/'}>
-                        <img src={logo} className="h-9 md:h-10" alt="logo" />
+                        <img src={logo} className="h-10 md:h-12" alt="logo" />
                     </Link>
                     <button
                         onClick={() => setIsOpen(false)}

@@ -17,7 +17,7 @@ const FeaturedListings = () => {
     const [category, setCategory] = useState("all");
 
     const { user } = useAuth();
-      const userCurrency = user?.currency || 'EUR';
+    const userCurrency = user?.currency || 'EUR';
 
     const fetchFeaturedListings = async (page = 1, reset = true) => {
         setLoading(true);
@@ -88,20 +88,20 @@ const FeaturedListings = () => {
         return (
             <Container className="pt-14">
                 <h2 className="text-3xl md:text-4xl lg:text-4xl font-bold text-[#072342] leading-tight my-2 flex items-center gap-2">
-                        <Star className="text-[#D19F3E]" size={28} />
-                                Featured{" "}
-                                <span className="relative inline-block">
-                                    <span className="relative z-10 text-transparent bg-clip-text bg-gradient-to-r from-[#D19F3E] to-[#E8B86B]">
-                                        Listings
-                                    </span>
-                                    <svg className="absolute -bottom-3 left-0 w-full" height="12" viewBox="0 0 200 12" fill="none">
-                                        <path d="M2 9.5C50 4.5 130 2.5 198 9.5" stroke="#D19F3E" strokeWidth="2.5" strokeLinecap="round" strokeDasharray="4 6" />
-                                    </svg>
-                                </span>
-                            </h2>
-                    <p className="text-gray-500 mt-1">
+                    <Star className="text-[#D19F3E]" size={28} />
+                    Featured{" "}
+                    <span className="relative inline-block">
+                        <span className="relative z-10 text-transparent bg-clip-text bg-gradient-to-r from-[#D19F3E] to-[#E8B86B]">
+                            Listings
+                        </span>
+                        <svg className="absolute -bottom-3 left-0 w-full" height="12" viewBox="0 0 200 12" fill="none">
+                            <path d="M2 9.5C50 4.5 130 2.5 198 9.5" stroke="#D19F3E" strokeWidth="2.5" strokeLinecap="round" strokeDasharray="4 6" />
+                        </svg>
+                    </span>
+                </h2>
+                {/* <p className="text-gray-500 mt-1">
                         Premium machinery and vehicles handpicked by RexBid
-                    </p>
+                    </p> */}
                 <div className="text-center py-16 text-gray-500">
                     <Star size={48} className="mx-auto mb-4 text-gray-300" />
                     <p className="text-lg font-medium">No featured listings available</p>
@@ -112,28 +112,28 @@ const FeaturedListings = () => {
     }
 
     return (
-        <Container className="py-14">
+        <Container className="pt-5 pb-8 md:py-10">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                 <div>
                     {/* <h2 className="text-3xl md:text-4xl font-bold text-primary flex items-center gap-2">
                         <Star className="text-[#D19F3E]" size={28} />
                         Featured Listings
                     </h2> */}
-                    <h2 className="text-3xl md:text-4xl lg:text-4xl font-bold text-[#072342] leading-tight my-2 flex items-center gap-2">
+                    <h2 className="text-3xl md:text-4xl lg:text-4xl font-bold text-[#072342] leading-tight md:my-2 flex items-center gap-2">
                         <Star className="text-[#D19F3E]" size={28} />
-                                Featured{" "}
-                                <span className="relative inline-block">
-                                    <span className="relative z-10 text-transparent bg-clip-text bg-gradient-to-r from-[#D19F3E] to-[#E8B86B]">
-                                        Listings
-                                    </span>
-                                    <svg className="absolute -bottom-3 left-0 w-full" height="12" viewBox="0 0 200 12" fill="none">
-                                        <path d="M2 9.5C50 4.5 130 2.5 198 9.5" stroke="#D19F3E" strokeWidth="2.5" strokeLinecap="round" strokeDasharray="4 6" />
-                                    </svg>
-                                </span>
-                            </h2>
-                    <p className="text-gray-500 mt-1">
+                        Featured{" "}
+                        <span className="relative inline-block">
+                            <span className="relative z-10 text-transparent bg-clip-text bg-gradient-to-r from-[#D19F3E] to-[#E8B86B]">
+                                Listings
+                            </span>
+                            <svg className="absolute -bottom-3 left-0 w-full" height="12" viewBox="0 0 200 12" fill="none">
+                                <path d="M2 9.5C50 4.5 130 2.5 198 9.5" stroke="#D19F3E" strokeWidth="2.5" strokeLinecap="round" strokeDasharray="4 6" />
+                            </svg>
+                        </span>
+                    </h2>
+                    {/* <p className="text-gray-500 mt-1">
                         Premium machinery and vehicles handpicked by RexBid
-                    </p>
+                    </p> */}
                 </div>
             </div>
 

@@ -10,7 +10,7 @@ function MobileNav() {
         { name: 'Home', href: '/', icon: <Home /> },
         { name: 'Listings', href: '/auctions', icon: <Gavel /> },
         { name: 'Sell', href: `${user ? user?.userType !== "bidder" ? `/${user?.userType}/auctions/create` : '/seller/auctions/create' : '/sell'}`, icon: <Tractor /> },
-        { name: 'Account', href: `/login`, icon: <UserCircle /> },
+        { name: `${user ? 'Account' : 'Login'}`, href: `/login`, icon: <UserCircle /> },
     ];
     return (
         < nav className="lg:hidden fixed bottom-0 w-full bg-white px-5 py-2.5 text-sm [box-shadow:-5px_-5px_10px_rgba(0,0,0,0.2)] z-50" >

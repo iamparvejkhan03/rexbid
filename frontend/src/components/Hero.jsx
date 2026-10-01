@@ -134,7 +134,7 @@ function Hero() {
       <div className="absolute bottom-20 -right-32 w-96 h-96 bg-[#D19F3E] rounded-full mix-blend-overlay filter blur-3xl opacity-10 animate-pulse delay-1000" />
 
       <Container>
-        <div className="relative z-10 pt-28 pb-16 lg:pt-40 lg:pb-20">
+        <div className="relative z-10 pt-24 pb-10 lg:pt-40 lg:pb-20">
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-start">
             {/* Left Column - Main Content */}
             <div className="space-y-5 md:space-y-8">
@@ -230,10 +230,10 @@ function Hero() {
                 </div>
 
                 <ul className="text-base md:text-lg text-gray-300 leading-relaxed max-w-lg">
-                  <li>✔ Less phone calls, no haggling</li>
-                  <li>✔ Set your own reserve</li>
-                  <li>✔ Buyers compete on price</li>
-                  <li>✔ Sell from your premises</li>
+                  <li><span className="text-[#D19F3E]">✔</span> No haggling or endless phone calls</li>
+                  <li><span className="text-[#D19F3E]">✔</span> Set your own reserve</li>
+                  <li><span className="text-[#D19F3E]">✔</span> Buyers compete for your machine</li>
+                  <li><span className="text-[#D19F3E]">✔</span> Sell directly from your premises</li>
                 </ul>
 
                 {/* Trending filters - Modern chip design */}

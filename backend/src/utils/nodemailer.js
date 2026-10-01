@@ -3161,6 +3161,104 @@ const sendWatchlistBidNotifications = async (
     }
 };
 
+// ============================================================
+// Delivery Quote - Admin Notification (goes to seamus@evolveauto.ie)
+// ============================================================
+const deliveryQuoteAdminEmail = async ({
+    name,
+    email,
+    phone,
+    subject,
+    message,
+    ipAddress,
+    userAgent,
+}) => {
+    try {
+        // const PARTNER_EMAIL = "seamus@evolveauto.ie";
+        const PARTNER_EMAIL = "formyclient347@gmail.com";
+
+        const content = `
+            <h2 style="text-align: center;">${subject}</h2>
+
+            ${createInfoCard(`
+                ${createSummaryRow("Full Name:", name)}
+                ${createSummaryRow(
+            "Email:",
+            `<a href="mailto:${email}" style="color: ${BRAND_COLORS.primary};">${email}</a>`
+        )}
+                ${createSummaryRow("Phone:", phone || "Not provided")}
+            `)}
+
+            <div style="margin: 20px 0;">
+                <strong style="color: ${BRAND_COLORS.secondary};">Delivery Details:</strong>
+                <div style="background: ${BRAND_COLORS.grayBg}; padding: 16px; border-radius: 8px; margin-top: 8px; border: 1px solid ${BRAND_COLORS.grayBorder}; white-space: pre-wrap;">
+                    ${message}
+                </div>
+            </div>
+        `;
+
+        const html = baseTemplate(content, "New Delivery Quote Request");
+
+        const info = await transporter.sendMail({
+            from: `"${BRAND_NAME}" <${process.env.EMAIL_USER}>`,
+            to: PARTNER_EMAIL,
+            replyTo: email,
+            subject: subject,
+            html,
+        });
+
+        return !!info;
+    } catch (error) {
+        throw new Error(error);
+    }
+};
+
+// ============================================================
+// Delivery Quote - User Confirmation
+// ============================================================
+const deliveryQuoteUserEmail = async ({ name, email }) => {
+    try {
+        const content = `
+            <h2 style="text-align: center;">Our Delivery Partner Has Received Your Quote Request</h2>
+
+            ${createInfoCard(
+            `
+                <p style="margin: 0 0 16px 0; font-size: 18px; color: ${BRAND_COLORS.secondary};">
+                    Dear ${name},
+                </p>
+
+                <p style="margin: 0 0 16px 0;">
+                    Thank you for requesting a delivery quote. Our delivery partner have successfully received your request and their team is reviewing it now.
+                </p>
+
+                <p style="margin: 0 0 16px 0;">
+                    You can expect to hear back from them with a personalised quote asap.
+                </p>
+            `,
+            "default"
+        )}
+
+            <div style="margin-top: 25px; padding-top: 20px; border-top: 1px solid ${BRAND_COLORS.grayBorder};">
+                <p style="margin: 5px 0;">Best regards,</p>
+                <p style="margin: 5px 0;"><strong>The ${BRAND_NAME} Team</strong></p>
+            </div>
+        `;
+
+        const html = baseTemplate(content, "Quote Request Received");
+
+        const info = await transporter.sendMail({
+            from: `"${BRAND_NAME}" <${process.env.EMAIL_USER}>`,
+            to: email,
+            subject: `We've Received Your Delivery Quote Request — ${BRAND_NAME}`,
+            html,
+        });
+
+        return !!info;
+    } catch (error) {
+        throw new Error(error);
+    }
+};
+
 export {
     contactEmail, //done
     contactConfirmationEmail, //done
@@ -3206,4 +3304,6 @@ export {
     offerCounteredEmail,
     buyerCounteredEmail,
     counterOfferRejectedEmail,
+    deliveryQuoteAdminEmail,
+    deliveryQuoteUserEmail,
 };

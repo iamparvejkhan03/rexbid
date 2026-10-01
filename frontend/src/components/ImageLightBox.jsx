@@ -127,7 +127,7 @@ const ImageLightBox = ({ isFeatured = false, images = [], captions = [], auction
                     <img
                         src={mainImage}
                         alt={`Auction image ${currentIndex + 1}`}
-                        className="block object-cover w-full h-48 md:h-80 lg:h-[450px] rounded-2xl shadow-lg cursor-pointer"
+                        className="block object-cover w-full h-60 md:h-96 lg:h-[450px] rounded-2xl shadow-lg cursor-pointer"
                         onClick={() => openLightbox(0)}
                     />
 

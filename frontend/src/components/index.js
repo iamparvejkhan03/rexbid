@@ -70,6 +70,9 @@ import GiveawayClaimModal from "./GiveawayClaimModal";
 import HowitWorksForBuyers from "./HowItWorksForBuyers";
 import HowitWorksForSellers from "./HowItWorksForSellers";
 import ReminderModal from "./ReminderModal";
+import PaymentMethodModal from "./PaymentMethodModal";
+import MobileBidBottomBar from "./MobileBidBottomBar";
+import PromoBanner from "./PromoBanner";
 
 export {
     Container,
@@ -144,4 +147,7 @@ export {
     HowitWorksForBuyers,
     HowitWorksForSellers,
     ReminderModal,
+    PaymentMethodModal,
+    MobileBidBottomBar,
+    PromoBanner,
 }

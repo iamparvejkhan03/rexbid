@@ -12,6 +12,7 @@ import upcomingAuctions from './upcomingAuctions.webp';
 import spinner from './spinner.png';
 import whoWeAre from './whoWeAre.webp';
 import about from './about.webp';
+import evolve from './evolve.webp';
 
 // ✅ Machinery Brand Logos (PascalCase)
 import CaseIH from './CaseIH.webp';
@@ -102,5 +103,6 @@ export {
     aboutDigger,
     aboutExcavator,
     aboutHandle,
-    aboutTractor
+    aboutTractor,
+    evolve,
 };

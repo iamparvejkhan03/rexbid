@@ -136,10 +136,21 @@ const Login = () => {
                         >
                             {isLoading ? 'Signing in...' : 'Sign In'}
                         </button>
+
+                        {/* Sign In Button */}
+                        <button
+                            type="button"
+                            onClick={() => navigate('/register')}
+                            className="w-full bg-gradient-to-r from-[#001a35] to-[#001a35] hover:from-[#001a35]/90 hover:to-[#001a35]/90 text-white py-3 px-4 rounded-lg font-semibold transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            Register Now
+                        </button>
                     </form>
 
+                    <div className="w-full border-t border-gray-300 mt-6" />
+
                     {/* Divider */}
-                    <div className="relative my-6">
+                    {/* <div className="relative my-6">
                         <div className="absolute inset-0 flex items-center">
                             <div className="w-full border-t border-gray-300" />
                         </div>
@@ -148,7 +159,6 @@ const Login = () => {
                         </div>
                     </div>
 
-                    {/* Get in Touch/Register */}
                     <div className="text-center">
                         <p className="text-secondary text-sm">
                             Don't have an account?{' '}
@@ -156,7 +166,7 @@ const Login = () => {
                                 Register Now
                             </Link>
                         </p>
-                    </div>
+                    </div> */}
                 </div>
 
                 {/* Footer */}

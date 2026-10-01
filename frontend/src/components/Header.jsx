@@ -186,7 +186,7 @@ function Header() {
         <header className={`${isScrolled ? 'fixed bg-white bg-opacity-100 shadow-lg shadow-primary/5' : 'absolute bg-opacity-0'} w-full transition-all duration-150 z-50`}>
             <Container className={`flex items-center justify-between py-4`}>
                 <Link to="/">
-                    <img src={(isScrolled || isMenuOpen) ? `${darkLogo}` : `${logo}`} alt="RexBid's Logo" className="h-10 md:h-12 z-10" />
+                    <img src={(isScrolled || isMenuOpen) ? `${darkLogo}` : `${logo}`} alt="RexBid's Logo" className={`${isScrolled ? "h-[41px] md:h-[49px] z-10" : "h-10 md:h-12 z-10"}`} />
                 </Link>
 
                 {/* Navlinks for larger screens */}
@@ -321,7 +321,7 @@ function Header() {
                         </li>
 
                         {/* Auction Types Dropdown - Simple */}
-                        <li
+                        {/* <li
                             ref={currencySwitcherRef}
                             className={`${isScrolled ? 'text-black' : 'text-white'} relative`}
                         >
@@ -350,7 +350,7 @@ function Header() {
                                     })}
                                 </div>
                             )}
-                        </li>
+                        </li> */}
 
                         <li>
                             {
@@ -376,7 +376,7 @@ function Header() {
                         }
 
                         {/* Mobile Auction Types */}
-                        <li className="relative mx-5 py-2 mb-2">
+                        {/* <li className="relative mx-5 py-2 mb-2">
                             <button
                                 onClick={() => {
                                     setMobileAuctionTypesOpen(true);
@@ -387,7 +387,7 @@ function Header() {
                                 Auctions
                                 <ChevronRight size={16} />
                             </button>
-                        </li>
+                        </li> */}
 
                         <li className="relative mx-5 py-2 mb-2">
                             <button
@@ -402,7 +402,7 @@ function Header() {
                             </button>
                         </li>
 
-                        <li className="relative mx-5 py-2 mb-2">
+                        {/* <li className="relative mx-5 py-2 mb-2">
                             <button
                                 onClick={() => {
                                     setMobileCurrencySwitcherOpen(true);
@@ -413,7 +413,7 @@ function Header() {
                                 Currency
                                 <ChevronRight size={16} />
                             </button>
-                        </li>
+                        </li> */}
 
                         <li>
                             {

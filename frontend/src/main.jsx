@@ -26,6 +26,7 @@ const FAQs = lazy(() => import('./pages/FAQs'));
 const Checkout = lazy(() => import('./pages/Checkout'));
 const SellerReviews = lazy(() => import('./pages/SellerReviews'));
 const Sell = lazy(() => import('./pages/Sell'));
+const DeliveryPartnerQuote = lazy(() => import('./pages/DeliveryPartnerQuote'));
 
 {/* Seller Pages */ }
 const SellerLayout = lazy(() => import('./pages/seller/Layout'));
@@ -148,6 +149,8 @@ createRoot(document.getElementById('root')).render(
                         <Route path='/reset-password' element={<Suspense fallback={<LoadingSpinner height={'725px'} />}><ResetPassword /></Suspense>} />
 
                         <Route path='/sell' element={<Suspense fallback={<LoadingSpinner height={'725px'} />}><Sell /></Suspense>} />
+
+                        <Route path='/delivery-partner-quote' element={<Suspense fallback={<LoadingSpinner height={'725px'} />}><DeliveryPartnerQuote /></Suspense>} />
                     </Route>
 
                     {/* Seller Layout */}
@@ -595,14 +598,14 @@ createRoot(document.getElementById('root')).render(
                         />
 
                         {/* Admin Pilot Users */}
-                        <Route
+                        {/* <Route
                             path='/admin/pilot-users'
                             element={
                                 <Suspense fallback={<LoadingSpinner height={'750px'} />}>
                                     <PilotUsers />
                                 </Suspense>
                             }
-                        />
+                        /> */}
 
                         {/* Admin All Auctions */}
                         <Route

@@ -75,12 +75,12 @@ function Footer() {
                             Trusted listings, competitive bidding, and complete transparency — built for buyers and sellers across Ireland.
                         </p>
                         <div className='flex items-center gap-3 mt-4'>
-                            <Link to="#" target="_blank" className="hover:text-[#D19F3E] transition-colors">
+                            <a href="https://www.instagram.com/rexbid.ie" target="_blank" className="hover:text-[#D19F3E] transition-colors">
                                 <Instagram strokeWidth={1.25} />
-                            </Link>
-                            <Link to="#" target="_blank" className="hover:text-[#D19F3E] transition-colors">
+                            </a>
+                            <a href="https://www.facebook.com/profile.php?id=61572573135077" target="_blank" className="hover:text-[#D19F3E] transition-colors">
                                 <Facebook strokeWidth={1.25} />
-                            </Link>
+                            </a>
                         </div>
                     </div>
 

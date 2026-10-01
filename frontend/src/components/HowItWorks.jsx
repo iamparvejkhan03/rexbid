@@ -38,7 +38,7 @@ function HowItWorks() {
 ];
 
     return (
-        <section ref={ref} className="relative px-5 py-8 md:px-16 md:py-10 lg:px-24 lg:py-12 xl:px-28 xl:py-14 bg-gradient-to-br from-[#072342] to-[#0a2a4a] overflow-hidden">
+        <section ref={ref} className="relative px-5 py-8 md:px-16 md:py-8 lg:px-24 lg:py-10 xl:px-28 xl:py-10 bg-gradient-to-br from-[#072342] to-[#0a2a4a] overflow-hidden">
             {/* Background decorative elements */}
             <div className="absolute inset-0 pointer-events-none">
                 <div className="absolute top-0 left-0 w-96 h-96 bg-[#D19F3E]/10 rounded-full blur-3xl" />

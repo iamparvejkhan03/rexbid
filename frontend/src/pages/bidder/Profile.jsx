@@ -573,7 +573,7 @@ function Profile() {
                                                         />
                                                     </div>
                                                 </div>
-                                                <div className="space-y-1">
+                                                {/* <div className="space-y-1">
                                                     <label className="text-sm font-medium leading-none text-secondary flex items-center gap-2">
                                                         <span>Currency</span>
                                                     </label>
@@ -593,7 +593,7 @@ function Profile() {
                                                         </select>
                                                         <ChevronDown size={20} className="absolute right-3 top-3 text-secondary pointer-events-none" />
                                                     </div>
-                                                </div>
+                                                </div> */}
                                                 <div className="space-y-1">
                                                     <label className="block text-sm font-medium text-secondary">Member Since</label>
                                                     <input
