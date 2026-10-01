@@ -51,24 +51,24 @@ const TimerDisplay = ({ countdown, auction, userCurrency }) => {
     // TIMED AUCTIONS (Standard & Reserve)
     if (countdown.status === 'approved') {
         return (
-            <div className="text-center py-8">
-                <div className="text-lg font-semibold text-gray-700 mb-4">Auction Starts In</div>
-                <div className="grid grid-cols-4 gap-2 text-xl sm:text-2xl">
+            <div className="text-center py-4">
+                <div className="text-base font-semibold text-gray-700 mb-4">Auction Starts In</div>
+                <div className="grid grid-cols-4 gap-2 text-xl sm:text-[22px]">
                     <p className="flex flex-col items-center gap-2 border-r-2 border-gray-200 px-2">
                         <span>{countdown.days}</span>
-                        <span className="text-sm sm:text-base font-light">Days</span>
+                        <span className="text-sm">Days</span>
                     </p>
                     <p className="flex flex-col items-center gap-2 border-r-2 border-gray-200">
                         <span>{countdown.hours}</span>
-                        <span className="text-sm sm:text-base font-light">Hours</span>
+                        <span className="text-sm">Hours</span>
                     </p>
                     <p className="flex flex-col items-center gap-2 border-r-2 border-gray-200">
                         <span>{countdown.minutes}</span>
-                        <span className="text-sm sm:text-base font-light">Minutes</span>
+                        <span className="text-sm">Minutes</span>
                     </p>
                     <p className="flex flex-col items-center gap-2">
                         <span>{countdown.seconds}</span>
-                        <span className="text-sm sm:text-base font-light">Seconds</span>
+                        <span className="text-sm">Seconds</span>
                     </p>
                 </div>
 
@@ -84,24 +84,24 @@ const TimerDisplay = ({ countdown, auction, userCurrency }) => {
 
     if (countdown.status === 'counting-down') {
         return (
-            <div className="text-center py-8">
-                <div className="text-lg font-semibold text-red-600 mb-4">Auction Ends In</div>
-                <div className="grid grid-cols-4 gap-2 text-2xl">
+            <div className="text-center py-4">
+                <div className="text-base font-semibold text-red-600 mb-4">Auction Ends In</div>
+                <div className="grid grid-cols-4 gap-2 text-[22px]">
                     <p className="flex flex-col items-center gap-2 border-r-2 border-gray-200 px-2">
                         <span>{countdown.days}</span>
-                        <span className="text-sm sm:text-base font-light">Days</span>
+                        <span className="text-sm">Days</span>
                     </p>
                     <p className="flex flex-col items-center gap-2 border-r-2 border-gray-200">
                         <span>{countdown.hours}</span>
-                        <span className="text-sm sm:text-base font-light">Hours</span>
+                        <span className="text-sm">Hours</span>
                     </p>
                     <p className="flex flex-col items-center gap-2 border-r-2 border-gray-200">
                         <span>{countdown.minutes}</span>
-                        <span className="text-sm sm:text-base font-light">Minutes</span>
+                        <span className="text-sm">Minutes</span>
                     </p>
                     <p className="flex flex-col items-center gap-2">
                         <span>{countdown.seconds}</span>
-                        <span className="text-sm sm:text-base font-light">Seconds</span>
+                        <span className="text-sm">Seconds</span>
                     </p>
                 </div>
 

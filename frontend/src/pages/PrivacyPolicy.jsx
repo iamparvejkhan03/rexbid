@@ -144,10 +144,10 @@ const PrivacyPolicy = () => {
                             <p className="text-gray-700 mb-4">
                                 You can download a pdf version of the policy/privacy statement here:{" "}
                                 <a
-                                    href="https://rexbid.ie/privacy-policy"
+                                    href="https://rexbid.ie/privacyPolicy.pdf"
                                     className="text-blue-600 hover:underline break-all"
                                 >
-                                    https://rexbid.ie/privacy-policy
+                                    https://rexbid.ie/privacyPolicy.pdf
                                 </a>
                             </p>
 
@@ -416,7 +416,7 @@ const PrivacyPolicy = () => {
                                 3.2 Automated technologies or interactions
                             </h3>
 
-                            <p className="text-gray-700 mb-3">
+                            {/* <p className="text-gray-700 mb-3">
                                 As you interact with our Site, we will automatically collect Technical Data
                                 about your equipment, browsing actions, time spent and patterns. We collect
                                 this personal data by using cookies, server logs and other similar
@@ -429,7 +429,7 @@ const PrivacyPolicy = () => {
                                     https://www.rexbid.ie/cookies
                                 </a>{" "}
                                 for further details.
-                            </p>
+                            </p> */}
 
                             <h3 className="font-semibold text-gray-800 mb-2 mt-4">
                                 3.3 Third parties or publicly available sources
@@ -621,7 +621,7 @@ const PrivacyPolicy = () => {
                             </p>
 
                             {/* Cookies */}
-                            <h3 className="font-semibold text-gray-800 mb-2 mt-6">Cookies</h3>
+                            {/* <h3 className="font-semibold text-gray-800 mb-2 mt-6">Cookies</h3>
 
                             <p className="text-gray-700 mb-3">
                                 You can set your browser to refuse all or some browser cookies, or to alert
@@ -636,7 +636,7 @@ const PrivacyPolicy = () => {
                                     https://www.rexbid.ie/cookies
                                 </a>
                                 .
-                            </p>
+                            </p> */}
 
                             {/* Change of purpose */}
                             <h3 className="font-semibold text-gray-800 mb-2 mt-6">
@@ -900,7 +900,7 @@ const PrivacyPolicy = () => {
                                 Time limit to respond
                             </h3>
 
-                            <p className="text-gray-700">
+                            <p id="glossary" className="text-gray-700">
                                 We try to respond to all legitimate requests within one month.
                                 Occasionally it could take us longer than a month if your request is
                                 particularly complex or you have made a number of requests. In this case,
@@ -909,7 +909,7 @@ const PrivacyPolicy = () => {
                         </div>
 
                         {/* Section 10 - Glossary */}
-                        <div id="glossary" className="border-t pt-6">
+                        <div className="border-t pt-6">
                             <h2 className="text-xl font-bold text-gray-900 mb-3">10. Glossary</h2>
 
                             <h3 className="font-semibold text-gray-800 mb-2 mt-4">Lawful Basis</h3>

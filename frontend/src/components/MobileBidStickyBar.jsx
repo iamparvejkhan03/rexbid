@@ -82,8 +82,8 @@ const MobileBidStickyBar = ({
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: userCurrency || 'EUR',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
     }).format(amount);
   };
 
@@ -121,7 +121,7 @@ const MobileBidStickyBar = ({
             <p className="text-xs text-black font-semibold mb-1">
               {isGiveaway ? '' : auctionType === 'buy_now' ? 'Buy Now Price' : auction.status === 'sold' ? 'Final Bid' : auction?.bidCount > 0 ? 'Current Bid' : 'Starting Bid'}
             </p>
-            <p className="text-2xl font-bold text-gray-900">
+            <p className="text-xl font-bold text-gray-900">
               {isGiveaway ? (
                 <span className="text-green-600">GIVEAWAY 🎁</span>
               ) : auctionType === 'buy_now' ? (
@@ -143,7 +143,7 @@ const MobileBidStickyBar = ({
           </div>
 
           {/* Right Side: Timer (with your requested status handling) */}
-          <div className="flex flex-col items-start flex-shrink-0 border-l border-gray-200 pl-4">
+          <div className="flex flex-col items-start flex-shrink-0">
             <div className="flex items-center gap-1 text-xs text-gray-700 font-medium mb-1">
               <Clock size={14} />
               <span>

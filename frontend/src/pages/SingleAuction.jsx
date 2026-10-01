@@ -797,9 +797,9 @@ function SingleAuction() {
                     {
                         (auction.auctionType === 'standard' || auction.auctionType === 'reserve') && (
                             <>
-                                <div className="flex flex-col gap-2">
-                                    <p className="font-light">{auction.bidCount > 0 ? 'Current Bid' : 'Start Bidding At'}</p>
-                                    <p className="flex items-center gap-1 text-3xl sm:text-4xl font-medium">
+                                <div className="flex flex-row items-center justify-between gap-2">
+                                    <p className="font-light text-secondary text-base">{auction.bidCount > 0 ? 'Current Bid' : 'Start Bidding At'}</p>
+                                    <p className="flex items-center gap-1 text-3xl sm:text-3xl font-medium">
                                         <span>{userCurrency === 'GBP' ? '£' : '€'}</span>
                                         <span> {auction.convertedCurrentPrice?.toFixed(2).toLocaleString()}</span>
                                     </p>
@@ -868,7 +868,7 @@ function SingleAuction() {
                                     })()}
 
                                 <p className="flex w-full justify-between border-b pb-2">
-                                    <span className="text-secondary">Starting Bid</span>
+                                    <span className="text-secondary font-light">Starting Bid</span>
                                     <span className="font-medium">{userCurrency === 'GBP' ? '£' : '€'}{auction.convertedStartPrice?.toFixed(2).toLocaleString()}</span>
                                 </p>
 
@@ -924,7 +924,7 @@ function SingleAuction() {
                     {
                         (auction.auctionType === 'reserve' || auction.auctionType === 'standard') && (
                             <p className="flex w-full justify-between border-b pb-2">
-                                <span className="text-secondary">Min. Bid Increment</span>
+                                <span className="text-secondary font-light">Min. Bid Increment</span>
                                 <span className="font-medium">{userCurrency === 'GBP' ? '£' : '€'}{auction?.convertedBidIncrement?.toFixed(2).toLocaleString()}</span>
                             </p>
                         )
@@ -1218,7 +1218,7 @@ function SingleAuction() {
 
                     <button
                         type="button"
-                        onClick={() => navigate('/delivery-partner-signup')}
+                        onClick={() => navigate('/delivery-partner-quote')}
                         className="flex items-center justify-center gap-2 w-full bg-[#000] text-white py-3 px-6 cursor-pointer rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#000]/90 transition-colors"
                     >
                         <>

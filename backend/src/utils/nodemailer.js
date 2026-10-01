@@ -3174,8 +3174,7 @@ const deliveryQuoteAdminEmail = async ({
     userAgent,
 }) => {
     try {
-        // const PARTNER_EMAIL = "seamus@evolveauto.ie";
-        const PARTNER_EMAIL = "formyclient347@gmail.com";
+        const PARTNER_EMAIL = "seamus@evolveauto.ie";
 
         const content = `
             <h2 style="text-align: center;">${subject}</h2>
