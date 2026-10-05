@@ -420,7 +420,7 @@ function SoldAuctions() {
                                                     <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bidder</th>
                                                     <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Final Bid</th>
                                                     <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bid Time</th>
-                                                    <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                                    {/* <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th> */}
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-gray-200">
@@ -432,8 +432,8 @@ function SoldAuctions() {
                                                                     <User size={18} className="text-gray-500" />
                                                                 </div>
                                                                 <div className="ml-4">
-                                                                    <div className="font-medium text-gray-900">{bidder.name}</div>
-                                                                    <div className="text-sm text-gray-500">@{bidder.username}</div>
+                                                                    {/* <div classN-9ame="font-medium text-gray-900">{bidder.name}</div> */}
+                                                                    <div className="font-medium text-gray-900">@{bidder.username}</div>
                                                                 </div>
                                                             </div>
                                                         </td>
@@ -444,14 +444,14 @@ function SoldAuctions() {
                                                                 {formatDate(bidder.bidTime)} {formatTime(bidder.bidTime)}
                                                             </div>
                                                         </td>
-                                                        <td className="py-4 px-6 text-sm font-medium">
+                                                        {/* <td className="py-4 px-6 text-sm font-medium">
                                                             <button
                                                                 onClick={() => openUserModal(bidder)}
                                                                 className="text-blue-600 hover:text-blue-800"
                                                             >
                                                                 View Details
                                                             </button>
-                                                        </td>
+                                                        </td> */}
                                                     </tr>
                                                 ))}
                                             </tbody>
@@ -498,8 +498,8 @@ function SoldAuctions() {
                                             }
                                         </div>
                                         <div className="ml-4">
-                                            <div className="font-bold text-xl text-gray-900">{selectedUser.name}</div>
-                                            <div className="text-sm text-gray-500">@{selectedUser.username}</div>
+                                            {/* <div className="font-bold text-xl text-gray-900">{selectedUser.name}</div> */}
+                                            <div className="font-bold text-xl text-gray-900">@{selectedUser.username}</div>
                                             {selectedUser.isWinner && (
                                                 <div className="mt-1">
                                                     <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">

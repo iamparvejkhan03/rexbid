@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { X, Banknote, MessageSquare, Package, Hand } from "lucide-react";
 import axiosInstance from "../utils/axiosInstance";
 import { useAuth } from "../contexts/AuthContext";
+import useBodyScrollLock from "../hooks/useBodyScrollLock";
 
 const MakeOfferModal = ({
     isOpen,
@@ -26,6 +27,7 @@ const MakeOfferModal = ({
 
     const [isCapped, setIsCapped] = useState(false);
     const [capDisplay, setCapDisplay] = useState("");
+    useBodyScrollLock(isOpen);
 
     // useEffect(() => {
     //     if (!isOpen || !offerAmount) return;
@@ -141,7 +143,7 @@ const MakeOfferModal = ({
         !offerAmount || parseFloat(offerAmount) < auction?.convertedStartPrice;
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-40 p-4">
             <div className="bg-white rounded-lg w-full max-w-md">
 
                 {/* Header */}

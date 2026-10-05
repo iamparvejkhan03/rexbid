@@ -28,7 +28,8 @@ import {
     BanknoteArrowDown,
     UserLock,
     Calendar,
-    UserStar
+    UserStar,
+    Truck
 } from "lucide-react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { logo } from "../../assets";
@@ -95,6 +96,11 @@ const navigation = [
         name: 'Support',
         path: '/admin/support/inquiries',
         icon: <MessageSquare size={20} />,
+    },
+    {
+        name: 'Delivery Quotes',
+        path: '/admin/delivery-quotes',
+        icon: <Truck size={20} />,
     },
     {
         name: 'Commissions',

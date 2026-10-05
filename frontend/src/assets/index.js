@@ -43,6 +43,7 @@ import aboutDigger from './aboutDigger.webp';
 import aboutExcavator from './aboutExcavator.webp';
 import aboutHandle from './aboutHandle.webp';
 import aboutTractor from './aboutTractor.webp';
+import evolveBanner from './evolveBanner.webp';
 
 function formatPhone(phone) {
   const cleaned = phone.replace(/\D/g, '');
@@ -105,4 +106,5 @@ export {
     aboutHandle,
     aboutTractor,
     evolve,
+    evolveBanner
 };

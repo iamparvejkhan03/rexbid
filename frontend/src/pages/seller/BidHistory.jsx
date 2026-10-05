@@ -429,8 +429,8 @@ function BidHistory() {
                                                         }
                                                     </div>
                                                     <div className="ml-4">
-                                                        <div className="font-medium text-gray-900">{bid.bidder.name}</div>
-                                                        <div className="text-sm text-gray-500">
+                                                        {/* <div className="font-medium text-gray-900">{bid.bidder.name}</div> */}
+                                                        <div className="text-base font-medium text-gray-900">
                                                             {bid.bidder.company ? `${bid.bidder.company} • ` : ''}@{bid.bidder.username}
                                                         </div>
                                                     </div>

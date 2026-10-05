@@ -2,12 +2,15 @@ import { useState, useEffect } from 'react';
 import { Bell, X, CheckCircle, Mail, User } from 'lucide-react';
 import axiosInstance from '../utils/axiosInstance';
 import toast from 'react-hot-toast';
+import useBodyScrollLock from '../hooks/useBodyScrollLock';
 
 const ReminderModal = ({ isOpen, onClose, auction }) => {
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [success, setSuccess] = useState(false);
+
+    useBodyScrollLock(isOpen);
 
     // Reset state whenever the modal is reopened
     useEffect(() => {

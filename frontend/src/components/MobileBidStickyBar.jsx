@@ -1,10 +1,10 @@
-import { Gavel, Zap, Banknote, Clock, Gift, Users, ShieldCheck, Bell } from 'lucide-react';
+import { Gavel, Zap, Banknote, Clock, Gift, Users, ShieldCheck, Bell, Loader } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 const MobileBidStickyBar = ({
   currentBid,
   timeRemaining,
-  onBidClick,
+  onBidClick,          // still used for "View Auction Details" on non-active
   convertedBuyNowPrice,
   onBuyNowClick,
   onMakeOfferClick,
@@ -13,91 +13,82 @@ const MobileBidStickyBar = ({
   status,
   auction,
   userCurrency = 'EUR',
-  // New props for the bottom stats row
   onSetReminder,
   isWatchlisted,
   watchlistCount,
-  views
+  views,
+  // ✅ NEW PROPS for inline mobile bidding
+  bidAmount,
+  setBidAmount,
+  minBidAmount,
+  onPlaceBid,
+  bidding,
 }) => {
   const { days, hours, minutes, seconds, status: timeStatus } = timeRemaining;
   const isActive = timeStatus === 'counting-down' || timeStatus === 'always-available';
 
-  // State for live timer
   const [liveTimer, setLiveTimer] = useState({
     days: days || 0,
     hours: hours || 0,
     minutes: minutes || 0,
-    seconds: seconds || 0
+    seconds: seconds || 0,
   });
 
-  // Update live timer every second
   useEffect(() => {
     if (!isActive || timeStatus !== 'counting-down') return;
-
     const interval = setInterval(() => {
       setLiveTimer(prev => {
         let { days, hours, minutes, seconds } = prev;
-
-        if (seconds > 0) {
-          seconds--;
-        } else {
+        if (seconds > 0) seconds--;
+        else {
           seconds = 59;
-          if (minutes > 0) {
-            minutes--;
-          } else {
+          if (minutes > 0) minutes--;
+          else {
             minutes = 59;
-            if (hours > 0) {
-              hours--;
-            } else {
+            if (hours > 0) hours--;
+            else {
               hours = 23;
-              if (days > 0) {
-                days--;
-              }
+              if (days > 0) days--;
             }
           }
         }
-
         return { days, hours, minutes, seconds };
       });
     }, 1000);
-
     return () => clearInterval(interval);
   }, [isActive, timeStatus]);
 
-  // Sync with props when they change
   useEffect(() => {
     if (isActive && timeStatus === 'counting-down') {
       setLiveTimer({
         days: days || 0,
         hours: hours || 0,
         minutes: minutes || 0,
-        seconds: seconds || 0
+        seconds: seconds || 0,
       });
     }
   }, [days, hours, minutes, seconds, isActive, timeStatus]);
 
-  // Format currency
   const formatCurrency = (amount) => {
     if (amount === undefined || amount === null) return '0.00';
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: userCurrency || 'EUR',
       minimumFractionDigits: 0,
-      maximumFractionDigits: 0
+      maximumFractionDigits: 0,
     }).format(amount);
   };
 
-  // Determine if buttons should be shown
+  const currencySymbol = userCurrency === 'GBP' ? '£' : '€';
+
   const showBuyNow = auctionType === 'buy_now' && convertedBuyNowPrice && isActive && !auction?.winner && auction?.status === 'active';
   const showMakeOffer = allowOffers && isActive && !auction?.winner && auction?.status === 'active';
   const showBidForm = (auctionType === 'standard' || auctionType === 'reserve') && isActive && !auction?.winner && auction?.status === 'active';
   const isGiveaway = auctionType === 'giveaway';
   const showGiveawayClaim = isGiveaway && isActive && !auction?.winner && auction?.status === 'active';
 
-  // Reserve status logic
   const isReserveMet = (auction?.convertedCurrentPrice || auction?.currentPrice || 0) >= (auction?.reservePrice || 0);
 
-  // Format End Date
   const formatEndDate = (dateString) => {
     if (!dateString) return '';
     const date = new Date(dateString);
@@ -106,17 +97,16 @@ const MobileBidStickyBar = ({
       day: 'numeric',
       month: 'short',
       hour: 'numeric',
-      minute: '2-digit'
+      minute: '2-digit',
     });
   };
 
   return (
-    <div className="lg:hidden bg-white border border-gray-200 rounded-lg shadow-sm mb-6 sticky top-16 z-40">
+    <div className="lg:hidden bg-white border border-gray-200 rounded-lg shadow-sm mb-6 mt-8">
       <div className="p-4">
 
         {/* Top Row: Price & Timer */}
         <div className="flex justify-between items-start overflow-hidden mb-4 gap-4">
-          {/* Left Side: Price & Reserve */}
           <div className="flex flex-col flex-1">
             <p className="text-xs text-black font-semibold mb-1">
               {isGiveaway ? '' : auctionType === 'buy_now' ? 'Buy Now Price' : auction.status === 'sold' ? 'Final Bid' : auction?.bidCount > 0 ? 'Current Bid' : 'Starting Bid'}
@@ -131,18 +121,16 @@ const MobileBidStickyBar = ({
               )}
             </p>
 
-            {/* Reserve Badge */}
             {auctionType === 'reserve' && auction && (
               <div className={`mt-2 inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium w-fit ${isReserveMet
-                  ? 'bg-green-50 text-green-700 border border-green-200'
-                  : 'bg-orange-50 text-orange-600 border border-orange-200'
+                ? 'bg-green-50 text-green-700 border border-green-200'
+                : 'bg-orange-50 text-blue-600 border border-blue-200'
                 }`}>
-                {isReserveMet ? '✓ Reserve Met' : '⚠ Reserve Applies'}
+                {isReserveMet ? '✓ Reserve Met' : 'Reserve Applies'}
               </div>
             )}
           </div>
 
-          {/* Right Side: Timer (with your requested status handling) */}
           <div className="flex flex-col items-start flex-shrink-0">
             <div className="flex items-center gap-1 text-xs text-gray-700 font-medium mb-1">
               <Clock size={14} />
@@ -238,58 +226,83 @@ const MobileBidStickyBar = ({
           </div>
         </div>
 
-        {/* Middle Row: Action Buttons */}
-        <div className="flex gap-2 w-full mt-4">
-          {showBidForm && (
+        {/* ============ NEW: Inline Mobile Bid Input ============ */}
+        {showBidForm && (
+          <div className="flex flex-col gap-2 w-full mt-4">
+            <div className="flex-1 min-w-0 relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm font-medium pointer-events-none">
+                {currencySymbol}
+              </span>
+              <input
+                type="number"
+                inputMode="decimal"
+                value={bidAmount || ''}
+                autoFocus
+                onChange={(e) => setBidAmount(e.target.value)}
+                className="w-full pl-7 pr-3 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-2 focus:outline-primary text-sm"
+                placeholder={`Min ${minBidAmount?.toFixed(0)}`}
+                min={minBidAmount?.toFixed(2)}
+              />
+            </div>
             <button
-              onClick={onBidClick}
-              className="flex-1 bg-[#D19F3E] hover:bg-[#b88a32] text-white py-2.5 px-4 rounded-md cursor-pointer flex items-center justify-center gap-2 text-sm font-medium transition-colors"
+              type="button"
+              onClick={onPlaceBid}
+              disabled={bidding}
+              className="bg-[#D19F3E] hover:bg-[#b88a32] text-white py-2.5 px-4 rounded-md flex items-center justify-center gap-2 text-sm font-medium disabled:opacity-60 whitespace-nowrap transition-colors"
             >
-              <Gavel size={18} />
+              {bidding ? (
+                <Loader size={16} className="animate-spin" />
+              ) : (
+                <Gavel size={18} />
+              )}
               <span>Place Bid</span>
             </button>
-          )}
+          </div>
+        )}
 
-          {/* {showMakeOffer && (
-            <button
-              onClick={onMakeOfferClick}
-              className="flex-1 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 py-2.5 px-4 rounded-md cursor-pointer flex items-center justify-center gap-2 text-sm font-medium transition-colors"
-            >
-              <Banknote size={18} />
-              <span>Make an Offer</span>
-            </button>
-          )} */}
+        {/* Middle Row: Other Action Buttons */}
+        {(showMakeOffer || showBuyNow || showGiveawayClaim || (!isActive && !auction?.winner)) && (
+          <div className="flex gap-2 w-full mt-3">
+            {showMakeOffer && (
+              <button
+                onClick={onMakeOfferClick}
+                className="flex-1 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 py-2.5 px-4 rounded-md cursor-pointer flex items-center justify-center gap-2 text-sm font-medium transition-colors"
+              >
+                <Banknote size={18} />
+                <span>Make an Offer</span>
+              </button>
+            )}
 
-          {showBuyNow && (
-            <button
-              onClick={onBuyNowClick}
-              className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2.5 px-4 rounded-md cursor-pointer flex items-center justify-center gap-2 text-sm font-medium transition-colors"
-            >
-              <Zap size={18} />
-              <span>Buy Now</span>
-            </button>
-          )}
+            {showBuyNow && (
+              <button
+                onClick={onBuyNowClick}
+                className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2.5 px-4 rounded-md cursor-pointer flex items-center justify-center gap-2 text-sm font-medium transition-colors"
+              >
+                <Zap size={18} />
+                <span>Buy Now</span>
+              </button>
+            )}
 
-          {showGiveawayClaim && (
-            <button
-              onClick={onBuyNowClick}
-              className="flex-1 bg-purple-600 hover:bg-purple-700 text-white py-2.5 px-4 rounded-md cursor-pointer flex items-center justify-center gap-2 text-sm font-medium transition-colors"
-            >
-              <Gift size={18} />
-              <span>Enter Giveaway 🎁</span>
-            </button>
-          )}
+            {showGiveawayClaim && (
+              <button
+                onClick={onBuyNowClick}
+                className="flex-1 bg-purple-600 hover:bg-purple-700 text-white py-2.5 px-4 rounded-md cursor-pointer flex items-center justify-center gap-2 text-sm font-medium transition-colors"
+              >
+                <Gift size={18} />
+                <span>Enter Giveaway 🎁</span>
+              </button>
+            )}
 
-          {/* Fallback for non-active auctions */}
-          {!isActive && !auction?.winner && (
-            <button
-              onClick={onBidClick}
-              className="flex-1 bg-gray-700 hover:bg-gray-500 text-white py-2.5 px-4 rounded-md cursor-pointer flex items-center justify-center text-sm font-medium transition-colors"
-            >
-              View Auction Details
-            </button>
-          )}
-        </div>
+            {!isActive && !auction?.winner && (
+              <button
+                onClick={onBidClick}
+                className="flex-1 bg-gray-700 hover:bg-gray-500 text-white py-2.5 px-4 rounded-md cursor-pointer flex items-center justify-center text-sm font-medium transition-colors"
+              >
+                View Auction Details
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Bottom Row: Stats & Reminder */}
         <div className="flex items-center justify-between text-[13px] font-medium text-gray-700 mt-4 pt-3 border-t border-gray-100">
@@ -298,10 +311,6 @@ const MobileBidStickyBar = ({
               <Users size={14} />
               {watchlistCount || auction?.watchlistCount || 0} watching
             </span>
-            {/* <span className="flex items-center gap-1">
-              <ShieldCheck size={14} />
-              {views || auction?.views || 0} views
-            </span> */}
           </div>
 
           {onSetReminder && (

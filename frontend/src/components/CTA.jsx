@@ -87,13 +87,13 @@ function CTA() {
                         </p>
                     </div>
 
-                    <PromoBanner
+                    {/* <PromoBanner
                         logoUrl={evolve}
                         title="Nationwide Delivery Available with Our Partner - EVOLVE"
                         description=""
                         buttonText="Get a Quote Now"
                         buttonLink="/delivery-partner-quote"
-                    />
+                    /> */}
                 </Container>
             </section>
         </>

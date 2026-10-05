@@ -56,7 +56,7 @@ function SingleAuction() {
     const [showReminderModal, setShowReminderModal] = useState(false);
 
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
-    const [paymentRedirectUrl, setPaymentRedirectUrl] = useState('');
+    const [pendingAction, setPendingAction] = useState(null); // { type: 'bid' | 'offer' }
 
     const updateAuctionState = (updatedAuction) => {
         setAuction(updatedAuction);
@@ -94,24 +94,27 @@ function SingleAuction() {
 
     const handleClosePaymentModal = () => {
         setIsPaymentModalOpen(false);
-        setPaymentRedirectUrl('');
+        setPendingAction(null);
     };
 
-    const handleProceedToBilling = () => {
-        const url = paymentRedirectUrl;
-        setIsPaymentModalOpen(false);
-        setPaymentRedirectUrl('');
-        if (url) {
-            navigate(url);
-        }
-    };
-
-    const requirePaymentMethod = (error) => {
-        const redirectUrl =
-            error?.response?.data?.redirectTo ||
-            `/${user?.userType || 'bidder'}/billing`;
-        setPaymentRedirectUrl(redirectUrl);
+    // Open the payment method modal, remembering what action to resume
+    const requirePaymentMethod = (action) => {
+        setPendingAction(action);
         setIsPaymentModalOpen(true);
+    };
+
+    // Called when the card is successfully added inside the modal
+    const handleCardAdded = () => {
+        setIsPaymentModalOpen(false);
+
+        // Resume whichever action triggered this
+        if (pendingAction?.type === 'bid') {
+            setIsBidModalOpen(true);
+        } else if (pendingAction?.type === 'offer') {
+            setIsMakeOfferModalOpen(true);
+        }
+
+        setPendingAction(null);
     };
 
     const handleSetReminder = () => {
@@ -275,7 +278,7 @@ function SingleAuction() {
                 error?.response?.data?.errorCode === 'PAYMENT_METHOD_INVALID' ||
                 error?.response?.data?.errorCode === 'STRIPE_CUSTOMER_INVALID') {
 
-                requirePaymentMethod(error);
+                requirePaymentMethod({ type: 'bid' });
             } else {
                 toast.error(error?.response?.data?.message || 'Failed to place bid');
             }
@@ -283,6 +286,21 @@ function SingleAuction() {
         } finally {
             setBidding(false);
         }
+    };
+
+    const handleMobilePlaceBid = () => {
+        if (!bidAmount || parseFloat(bidAmount) <= 0) {
+            toast.error('Please enter a valid bid amount.');
+            return;
+        }
+
+        const bidValue = parseFloat(bidAmount);
+        if (bidValue < minBidAmount) {
+            toast.error(`Minimum bid is ${userCurrency === 'GBP' ? '£' : '€'}${minBidAmount.toFixed(2)}`);
+            return;
+        }
+
+        handleOpenBidModal();
     };
 
     // ============= BUY NOW HANDLER =============
@@ -450,12 +468,13 @@ function SingleAuction() {
                 setActiveTab('offers');
             }
         } catch (error) {
-            // ✅ NEW: Handle payment method required error via modal instead of auto-redirect
             if (error?.response?.data?.errorCode === 'PAYMENT_METHOD_REQUIRED' ||
                 error?.response?.data?.errorCode === 'PAYMENT_METHOD_INVALID' ||
                 error?.response?.data?.errorCode === 'STRIPE_CUSTOMER_INVALID') {
 
-                requirePaymentMethod(error);
+                // Close the offer modal first, will reopen after card is added
+                setIsMakeOfferModalOpen(false);
+                requirePaymentMethod({ type: 'offer' });
             } else {
                 toast.error(error?.response?.data?.message || 'Failed to submit offer');
             }
@@ -601,26 +620,28 @@ function SingleAuction() {
                 <ImageLightBox isFeatured={auction.isFeatured} images={auction.photos} auctionType={auction?.auctionType} isReserveMet={auction.convertedCurrentPrice >= auction.reservePrice} />
                 {/* </Suspense> */}
 
-                <div className="my-8">
-                    <MobileBidStickyBar
-                        currentBid={auction.convertedCurrentPrice}
-                        timeRemaining={countdown}
-                        onBidClick={() => scrollToBidSection()}
-                        convertedBuyNowPrice={auction.convertedBuyNowPrice}
-                        onBuyNowClick={isBuyNowAvailable ? handleBuyNow : null}
-                        onMakeOfferClick={isMakeOfferAvailable ? handleOpenMakeOfferModal : null}
-                        allowOffers={auction.allowOffers}
-                        auctionType={auction.auctionType}
-                        status={countdown.status}
-                        auction={auction}
-                        userCurrency={userCurrency}
-                        // Add these new props:
-                        onSetReminder={handleSetReminder}
-                        isWatchlisted={isWatchlisted}
-                        watchlistCount={watchlistCount || auction?.watchlistCount || 0}
-                        views={auction?.views || 0}
-                    />
-                </div>
+                <MobileBidStickyBar
+                    currentBid={auction.convertedCurrentPrice}
+                    timeRemaining={countdown}
+                    onBidClick={() => scrollToBidSection()}
+                    convertedBuyNowPrice={auction.convertedBuyNowPrice}
+                    onBuyNowClick={isBuyNowAvailable ? handleBuyNow : null}
+                    onMakeOfferClick={isMakeOfferAvailable ? handleOpenMakeOfferModal : null}
+                    allowOffers={auction.allowOffers}
+                    auctionType={auction.auctionType}
+                    status={countdown.status}
+                    auction={auction}
+                    userCurrency={userCurrency}
+                    onSetReminder={handleSetReminder}
+                    isWatchlisted={isWatchlisted}
+                    watchlistCount={watchlistCount || auction?.watchlistCount || 0}
+                    views={auction?.views || 0}
+                    bidAmount={bidAmount}
+                    setBidAmount={setBidAmount}
+                    minBidAmount={minBidAmount}
+                    onPlaceBid={handleMobilePlaceBid}
+                    bidding={bidding}
+                />
 
                 <hr className="my-8" />
 
@@ -786,7 +807,7 @@ function SingleAuction() {
             </section>
 
             {/* Bid Section */}
-            <section ref={bidSectionRef} className="col-span-1 lg:col-span-1 border border-gray-200 bg-gray-100 rounded-lg sticky top-24">
+            <section ref={bidSectionRef} className="hidden lg:block col-span-1 border border-gray-200 bg-gray-100 rounded-lg sticky top-24">
                 {/* Timer section */}
                 <TimerDisplay countdown={countdown} auction={auction} userCurrency={userCurrency} />
 
@@ -806,7 +827,7 @@ function SingleAuction() {
                                 </div>
 
                                 {auction.auctionType === 'reserve' && timeRemaining > 0 && timeRemaining > 6 * 60 * 60 * 1000 && (
-                                    <p className={`${auction.convertedCurrentPrice >= auction.reservePrice ? 'text-green-600 bg-green-100' : 'text-orange-600 bg-orange-100'} flex items-start self-start text-xs font-medium px-4 py-2 rounded-md`}>
+                                    <p className={`${auction.convertedCurrentPrice >= auction.reservePrice ? 'text-green-600 bg-green-100' : 'text-blue-600 bg-blue-100'} flex items-start self-start text-xs font-medium px-4 py-2 rounded-md`}>
                                         {auction.convertedCurrentPrice >= auction.reservePrice ? 'Reserve Met' : 'Reserve Applies'}
                                     </p>
                                 )}
@@ -1011,6 +1032,7 @@ function SingleAuction() {
                                             <input
                                                 type="number"
                                                 value={bidAmount}
+                                                autoFocus
                                                 onChange={(e) => setBidAmount(e.target.value)}
                                                 className="py-3 px-5 w-full border-2 border-gray-400 rounded-lg focus:outline-2 focus:outline-primary"
                                                 placeholder={`Enter bid amount (${userCurrency === 'GBP' ? '£' : '€'}${auction.bidCount > 0 ? minBidAmount?.toFixed(2) : auction.convertedStartPrice?.toFixed(2)} or higher)`}
@@ -1031,15 +1053,6 @@ function SingleAuction() {
                                                     </>
                                                 )}
                                             </button>
-
-                                            <BidConfirmationModal
-                                                isOpen={isBidModalOpen}
-                                                onClose={handleCloseBidModal}
-                                                onConfirm={handleConfirmBid}
-                                                bidAmount={bidAmount}
-                                                auction={auction}
-                                                ref={formRef}
-                                            />
                                         </form>
                                     )}
 
@@ -1261,10 +1274,19 @@ function SingleAuction() {
                 auction={auction}
             />
 
+            <BidConfirmationModal
+                isOpen={isBidModalOpen}
+                onClose={handleCloseBidModal}
+                onConfirm={handleConfirmBid}
+                bidAmount={bidAmount}
+                auction={auction}
+                ref={formRef}
+            />
+
             <PaymentMethodModal
                 isOpen={isPaymentModalOpen}
                 onClose={handleClosePaymentModal}
-                onProceed={handleProceedToBilling}
+                onCardAdded={handleCardAdded}
             />
 
             {/* {(countdown?.status === 'counting-down' || countdown?.status === 'always-available') &&

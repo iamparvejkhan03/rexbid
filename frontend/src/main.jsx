@@ -104,6 +104,7 @@ const AdminPayouts = lazy(() => import('./pages/admin/Payouts'));
 const AdminPayoutMethods = lazy(() => import('./pages/admin/PayoutMethods'));
 const AuctionDates = lazy(() => import('./pages/admin/AuctionDates'));
 const AdminReminders = lazy(() => import('./pages/admin/AdminReminders'));
+const DeliveryQuotes = lazy(() => import('./pages/admin/DeliveryQuotes'));
 
 createRoot(document.getElementById('root')).render(
     //<StrictMode>
@@ -753,6 +754,16 @@ createRoot(document.getElementById('root')).render(
                             element={
                                 <Suspense fallback={<LoadingSpinner height={'750px'} />}>
                                     <AdminReminders />
+                                </Suspense>
+                            }
+                        />
+
+                        {/* Admin Offers */}
+                        <Route
+                            path='/admin/delivery-quotes'
+                            element={
+                                <Suspense fallback={<LoadingSpinner height={'750px'} />}>
+                                    <DeliveryQuotes />
                                 </Suspense>
                             }
                         />

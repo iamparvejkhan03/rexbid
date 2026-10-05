@@ -406,7 +406,7 @@ function Hero() {
                     </div>
                   </div>
                 </div>
-                <div className="absolute -bottom-6 -left-6 bg-[#072342] border border-white/20 rounded-2xl shadow-xl p-3 w-44 animate-float-delayed">
+                {/* <div className="absolute -bottom-6 -left-6 bg-[#072342] border border-white/20 rounded-2xl shadow-xl p-3 w-44 animate-float-delayed">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-[#D19F3E]/20 rounded-xl flex items-center justify-center">
                       <Wrench size={20} className="text-[#D19F3E]" />
@@ -416,7 +416,7 @@ function Hero() {
                       <p className="font-semibold text-white text-sm">24/7 Expert</p>
                     </div>
                   </div>
-                </div>
+                </div> */}
               </div>
             </div>
           </div>

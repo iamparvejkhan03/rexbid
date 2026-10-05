@@ -432,8 +432,8 @@ function SoldAuctions() {
                                                                     <User size={18} className="text-gray-500" />
                                                                 </div>
                                                                 <div className="ml-4">
-                                                                    <div className="font-medium text-gray-900">{bidder.name}</div>
-                                                                    <div className="text-sm text-gray-500">@{bidder.username}</div>
+                                                                    {/* <div className="font-medium text-gray-900">{bidder.name}</div> */}
+                                                                    <div className="font-medium text-gray-900">@{bidder.username}</div>
                                                                 </div>
                                                             </div>
                                                         </td>
@@ -498,8 +498,8 @@ function SoldAuctions() {
                                             }
                                         </div>
                                         <div className="ml-4">
-                                            <div className="font-bold text-xl text-gray-900">{selectedUser.name}</div>
-                                            <div className="text-sm text-gray-500">@{selectedUser.username}</div>
+                                            {/* <div className="font-bold text-xl text-gray-900">{selectedUser.name}</div> */}
+                                            <div className="font-bold text-xl text-gray-900">@{selectedUser.username}</div>
                                             {selectedUser.isWinner && (
                                                 <div className="mt-1">
                                                     <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">

@@ -7,6 +7,7 @@ import {
     Claas,
     Cummins,
     darkLogo,
+    evolve,
     Fendt,
     Freightliner,
     Hitachi,
@@ -180,6 +181,17 @@ function Home() {
 
             {/* Featured Listings Section */}
             <FeaturedListings />
+
+            <Container>
+                <PromoBanner
+                logoUrl={evolve}
+                title="Nationwide Delivery Available with Our Partner - EVOLVE"
+                description=""
+                buttonText="Get a Quote Now"
+                buttonLink="/delivery-partner-quote"
+            />
+            </Container>
+            
 
             {/* Dynamic Auctions section */}
             <Container className="mb-8 md:mb-10 flex flex-col">
