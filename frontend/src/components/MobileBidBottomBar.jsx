@@ -14,8 +14,8 @@ const MobileBidBottomBar = ({
         return new Intl.NumberFormat('en-US', {
             style: 'currency',
             currency: userCurrency || 'EUR',
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
         }).format(amount);
     };
 

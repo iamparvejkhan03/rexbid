@@ -22,6 +22,7 @@ import {
 import User from "../models/user.model.js";
 import Watchlist from "../models/watchlist.model.js";
 import Reminder from "../models/reminder.model.js";
+import { broadcastAuctionChange } from "./realtimeService.js";
 
 /**
  * Returns up to `limit` unique bidders ordered by their highest bid (descending).
@@ -68,6 +69,8 @@ class AgendaService {
           auction.status = "active";
           await auction.save();
           await auction.populate("seller", "email username companyName firstName");
+
+          broadcastAuctionChange(auction._id);
 
           // Send email to seller
           await auctionListedEmail(auction, auction.seller);
@@ -155,6 +158,8 @@ class AgendaService {
 
           // Use the model's endAuction method to handle the business logic
           const result = await auction.endAuction();
+
+          broadcastAuctionChange(auctionId);
 
           // Re-fetch the auction with populated winner if it was sold
           if (result.wasSold) {
@@ -253,6 +258,7 @@ class AgendaService {
         ) {
           // Auction was extended, reschedule the job
           await this.scheduleAuctionEnd(auctionId, auction.endDate);
+          broadcastAuctionChange(auctionId);
           console.log(
             `🔄 Agenda: Rescheduled auction ${auctionId} to ${auction.endDate}`,
           );

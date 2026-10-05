@@ -47,7 +47,7 @@ function Hero() {
   const userCurrency = user?.currency || 'EUR';
 
   const formatPrice = (price) => {
-    return `${userCurrency === 'GBP' ? '£' : '€'}${price?.toFixed(2).toLocaleString()}`;
+    return `${userCurrency === 'GBP' ? '£' : '€'}${price?.toFixed(0).toLocaleString()}`;
   };
 
   // Helper: calculate remaining time from endDate

@@ -23,7 +23,7 @@ const TimerDisplay = ({ countdown, auction, userCurrency }) => {
                     </div>
                     <div className="text-xl font-bold text-gray-700">
                         {auction.auctionType === 'buy_now'
-                            ? `Sold for ${userCurrency === 'GBP' ? '£' : '€'}${auction.convertedFinalPrice?.toFixed(2).toLocaleString() || auction.convertedBuyNowPrice?.toFixed(2).toLocaleString()}`
+                            ? `Sold for ${userCurrency === 'GBP' ? '£' : '€'}${auction.convertedFinalPrice?.toFixed(0).toLocaleString() || auction.convertedBuyNowPrice?.toFixed(0).toLocaleString()}`
                             : `Claimed by: ${auction.winner.username}`
                         }
                     </div>
@@ -122,7 +122,7 @@ const TimerDisplay = ({ countdown, auction, userCurrency }) => {
                 <div className="text-lg font-semibold text-gray-600">Auction Ended</div>
                 {auction?.finalPrice ? (
                     <div className="text-2xl font-bold text-green-600 mt-2">
-                        Sold for {userCurrency === 'GBP' ? '£' : '€'}{auction.convertedFinalPrice?.toFixed(2).toLocaleString()}
+                        Sold for {userCurrency === 'GBP' ? '£' : '€'}{auction.convertedFinalPrice?.toFixed(0).toLocaleString()}
                     </div>
                 ) : auction?.status == 'reserve_not_met' ? (
                     <div className="text-lg text-orange-600 mt-2">
@@ -143,7 +143,7 @@ const TimerDisplay = ({ countdown, auction, userCurrency }) => {
                 <div className="text-lg font-semibold text-gray-600">Auction Pending</div>
                 {auction?.finalPrice ? (
                     <div className="text-2xl font-bold text-green-600 mt-2">
-                        Sold for {userCurrency === 'GBP' ? '£' : '€'}{auction.convertedFinalPrice?.toFixed(2).toLocaleString()}
+                        Sold for {userCurrency === 'GBP' ? '£' : '€'}{auction.convertedFinalPrice?.toFixed(0).toLocaleString()}
                     </div>
                 ) : auction?.status === 'reserve_not_met' ? (
                     <div className="text-lg text-orange-600 mt-2">
@@ -168,7 +168,7 @@ const TimerDisplay = ({ countdown, auction, userCurrency }) => {
                 <div className="text-lg font-semibold text-red-600">Auction Cancelled</div>
                 {auction?.finalPrice ? (
                     <div className="text-2xl font-bold text-green-600 mt-2">
-                        Sold for {userCurrency === 'GBP' ? '£' : '€'}{auction.convertedFinalPrice?.toFixed(2).toLocaleString()}
+                        Sold for {userCurrency === 'GBP' ? '£' : '€'}{auction.convertedFinalPrice?.toFixed(0).toLocaleString()}
                     </div>
                 ) : auction?.status === 'reserve_not_met' ? (
                     <div className="text-lg text-orange-600 mt-2">

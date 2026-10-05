@@ -256,7 +256,7 @@ function AuctionCard({ auction }) {
                             <div className="text-center p-2 bg-gray-50 rounded-lg">
                                 <div className="text-xs text-gray-600 mb-1">{auction.status === 'sold' ? 'Final Bid' : auction.bidCount > 0 ? 'Current Bid' : 'Starting Bid'}</div>
                                 <div className="font-bold text-lg text-green-600">
-                                    {userCurrency === 'GBP' ? '£' : '€'}{(auction.convertedCurrentPrice || auction.convertedStartPrice)?.toLocaleString()}
+                                    {userCurrency === 'GBP' ? '£' : '€'}{(auction.convertedCurrentPrice || auction.convertedStartPrice)?.toFixed(0)?.toLocaleString()}
                                 </div>
                             </div>
 
@@ -277,7 +277,7 @@ function AuctionCard({ auction }) {
                                     <div className="text-center p-2 bg-gray-50 rounded-lg">
                                         <div className="text-xs text-gray-600 mb-1">Buy Now</div>
                                         <div className="font-bold text-lg text-primary flex items-center justify-center gap-1">
-                                            {userCurrency === 'GBP' ? '£' : '€'}{auction?.convertedBuyNowPrice?.toLocaleString()}
+                                            {userCurrency === 'GBP' ? '£' : '€'}{auction?.convertedBuyNowPrice?.toFixed(0)?.toLocaleString()}
                                         </div>
                                     </div>
                                 )
@@ -286,7 +286,7 @@ function AuctionCard({ auction }) {
 
                         <div className="text-xs text-gray-500 text-center flex items-center justify-around">
                             <div>
-                                Bid increment: {userCurrency === 'GBP' ? '£' : '€'}{auction.convertedBidIncrement?.toFixed(2)?.toLocaleString()}
+                                Bid increment: {userCurrency === 'GBP' ? '£' : '€'}{auction.convertedBidIncrement?.toFixed(0)?.toLocaleString()}
                             </div>
                             <div className="text-xs text-gray-500 text-center">
                                 {auction.watchlistCount || 0} user{auction.watchlistCount !== 1 ? 's' : ''} watching

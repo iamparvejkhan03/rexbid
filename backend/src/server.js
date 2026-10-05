@@ -27,6 +27,10 @@ import auctionDateRouter from "./routes/auctionDate.route.js";
 import reminderRouter from "./routes/reminder.route.js";
 import deliveryQuoteRouter from "./routes/deliveryQuote.route.js";
 
+import http from "http";
+import { Server } from "socket.io";
+import { setIO } from "./utils/socket.js";
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -57,18 +61,18 @@ app.use(express.urlencoded({ limit: '16kb' }));
 
 // 1. Define allowed origins
 const allowedOrigins = [
-    'https://www.rexbid.ie', 
-    'https://rexbid.ie', 
-    'https://rexbid-frontend.onrender.com', 
-    'https://rexbid-backend.onrender.com', 
-    'http://localhost:5173', 
+    'https://www.rexbid.ie',
+    'https://rexbid.ie',
+    'https://rexbid-frontend.onrender.com',
+    'https://rexbid-backend.onrender.com',
+    'http://localhost:5173',
     'http://localhost:3000'
 ];
 
 // 2. Custom middleware to handle CORS for ALL requests (including OPTIONS)
 app.use((req, res, next) => {
     const origin = req.headers.origin;
-    
+
     // If the origin is in our list, set the headers
     if (allowedOrigins.includes(origin)) {
         res.setHeader('Access-Control-Allow-Origin', origin);
@@ -86,12 +90,12 @@ app.use((req, res, next) => {
 });
 
 // 3. (Optional but recommended) Explicitly tell Express to trust Render's proxy
-app.set('trust proxy', 1); 
+app.set('trust proxy', 1);
 
 // Health check
 app.get('/api/v1/health', (req, res) => {
-    res.status(200).json({ 
-        status: 'ok', 
+    res.status(200).json({
+        status: 'ok',
         agenda: agendaStarted ? 'running' : 'failed'
     });
 });
@@ -120,6 +124,11 @@ app.use("/api/v1/auction-dates", auctionDateRouter);
 app.use('/api/v1/reminders', reminderRouter);
 app.use("/api/v1/delivery-quote", deliveryQuoteRouter);
 
+app.get('/api/v1/time', (req, res) => {
+    res.set('Cache-Control', 'no-store'); // never cache
+    res.status(200).json({ serverTime: Date.now() });
+});
+
 // 404 handler - SIMPLIFIED VERSION
 app.use((req, res, next) => {
     res.status(404).json({
@@ -131,13 +140,53 @@ app.use((req, res, next) => {
 // Global error handler
 app.use((error, req, res, next) => {
     console.error('Unhandled error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
         success: false,
         message: 'Internal server error'
     });
 });
 
-const server = app.listen(PORT, () => {
+// ============ SOCKET.IO SETUP ============
+const server = http.createServer(app);
+
+const io = new Server(server, {
+    cors: {
+        origin: [
+            'https://www.rexbid.ie',
+            'https://rexbid.ie',
+            'https://rexbid-frontend.onrender.com',
+            'https://rexbid-backend.onrender.com',
+            'http://localhost:5173',
+            'http://localhost:3000',
+        ],
+        credentials: true,
+    },
+    transports: ["websocket", "polling"],
+
+    // Give mobile clients more room before we drop them.
+    // Default is pingInterval 25000 / pingTimeout 20000.
+    pingInterval: 20000,
+    pingTimeout: 25000,
+
+    // Fail fast on stale connections so server resources free up.
+    connectTimeout: 20000,
+});
+
+setIO(io);
+
+io.on("connection", (socket) => {
+    // Every connected client auto-joins the global feed
+    socket.join("global");
+
+    socket.on("joinAuction", (id) => {
+        if (id) socket.join(`auction:${id}`);
+    });
+    socket.on("leaveAuction", (id) => {
+        if (id) socket.leave(`auction:${id}`);
+    });
+});
+
+server.listen(PORT, () => {
     console.log(`🚀 Server is running on port ${PORT}`);
 });
 

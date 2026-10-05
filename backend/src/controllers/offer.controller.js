@@ -15,6 +15,7 @@ import {
   sendAuctionWonEmail,
 } from "../utils/nodemailer.js";
 import Stripe from 'stripe';
+import { broadcastAuctionChange } from "../services/realtimeService.js";
 
 // Initialize Stripe with your secret key
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -252,6 +253,8 @@ export const makeOffer = async (req, res) => {
       convertedFinalPrice: convertedFinalPrice !== null ? parseFloat(convertedFinalPrice.toFixed(2)) : null,
       displayCurrency: userCurrency
     };
+
+    broadcastAuctionChange(id);
 
     res.status(201).json({
       success: true,
@@ -601,6 +604,8 @@ export const respondToOffer = async (req, res) => {
       .populate("seller", "username companyName email firstName lastName currency")
       .populate("winner", "username companyName email firstName lastName currency");
 
+    broadcastAuctionChange(auctionId);
+
     res.status(200).json({
       success: true,
       message: `Offer ${response}ed successfully`,
@@ -845,6 +850,8 @@ export const acceptCounterOffer = async (req, res) => {
       // Don't fail the request if email fails
     }
 
+    broadcastAuctionChange(auctionId);
+
     res.status(200).json({
       success: true,
       message:
@@ -937,6 +944,8 @@ export const withdrawOffer = async (req, res) => {
     //   );
     //   // Don't fail the request if email fails
     // }
+
+    broadcastAuctionChange(auctionId);
 
     res.status(200).json({
       success: true,
@@ -1171,6 +1180,7 @@ export const cleanupExpiredOffers = async (req, res) => {
 
       if (changed) {
         await auction.save();
+        broadcastAuctionChange(auction._id);
       }
     }
 
@@ -1537,6 +1547,8 @@ export const adminRespondToOffer = async (req, res) => {
       .populate("seller", "username companyName firstName lastName email phone currency")
       .populate("winner", "username companyName firstName lastName email phone address currency");
 
+    broadcastAuctionChange(auctionId);
+
     res.status(200).json({
       success: true,
       message: `Offer ${response}ed by administrator`,
@@ -1635,6 +1647,8 @@ export const adminCancelOffer = async (req, res) => {
     offer.updatedAt = new Date();
 
     await auction.save();
+
+    broadcastAuctionChange(auctionId);
 
     res.status(200).json({
       success: true,
@@ -1981,6 +1995,8 @@ export const adminEndAuctionWithOffer = async (req, res) => {
     //   console.error("Failed to send notification emails:", emailError);
     // }
 
+    broadcastAuctionChange(auctionId);
+
     res.status(200).json({
       success: true,
       message: "Auction ended successfully via offer acceptance",
@@ -2046,6 +2062,8 @@ export const reactivateOffer = async (req, res) => {
       .populate("offers.buyer", "username companyName firstName lastName email phone currency")
       .populate("seller", "username companyName firstName lastName email phone currency")
       .populate("winner", "username companyName firstName lastName email phone address currency");
+
+    broadcastAuctionChange(auctionId);
 
     res.status(200).json({
       success: true,

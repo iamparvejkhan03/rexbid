@@ -354,7 +354,7 @@ function AllAuctions() {
             style: 'currency',
             currency: userCurrency,
             minimumFractionDigits: 0,
-            maximumFractionDigits: 2
+            maximumFractionDigits: 0
         }).format(amount);
     };
 

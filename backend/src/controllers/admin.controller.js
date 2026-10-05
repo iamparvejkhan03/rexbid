@@ -4,6 +4,7 @@ import Comment from "../models/comment.model.js";
 import Watchlist from "../models/watchlist.model.js";
 import agendaService from "../services/agendaService.js";
 import axios from "axios";
+import { broadcastAuctionChange, broadcastAuctionRemoved } from "../services/realtimeService.js";
 
 import {
   deleteFromCloudinary,
@@ -970,6 +971,8 @@ export const updateAuctionStatus = async (req, res) => {
       message = `Auction ${isFeatured ? "featured" : "unfeatured"} successfully`;
     }
 
+    broadcastAuctionChange(auctionId);
+
     res.status(200).json({
       success: true,
       message,
@@ -1035,6 +1038,8 @@ export const approveAuction = async (req, res) => {
 
     await auction.save();
 
+    broadcastAuctionChange(auctionId);
+
     res.status(200).json({
       success: true,
       message: "Auction approved successfully",
@@ -1084,6 +1089,8 @@ export const deleteAuction = async (req, res) => {
 
     await Auction.findByIdAndDelete(auctionId);
 
+    broadcastAuctionRemoved(auctionId);
+
     res.status(200).json({
       success: true,
       message: "Auction deleted successfully",
@@ -1119,6 +1126,8 @@ export const endAuction = async (req, res) => {
     }
 
     await auction.endAuction();
+
+    broadcastAuctionChange(auctionId);
 
     res.status(200).json({
       success: true,
@@ -2057,6 +2066,8 @@ export const updateAuction = async (req, res) => {
       }
     }
 
+    broadcastAuctionChange(id);
+
     res.status(200).json({
       success: true,
       message: isSoldAuction
@@ -2175,6 +2186,8 @@ export const updatePaymentStatus = async (req, res) => {
     const updatedAuction = await Auction.findById(id)
       .populate("seller", "username companyName firstName lastName email phone address")
       .populate("winner", "username companyName firstName lastName email phone address");
+
+    broadcastAuctionChange(id);
 
     res.status(200).json({
       success: true,

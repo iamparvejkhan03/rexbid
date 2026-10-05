@@ -388,7 +388,7 @@ const CheckoutContent = () => {
         return new Intl.NumberFormat('en-IE', {
             style: 'currency',
             currency: `${userCurrency}`,
-            minimumFractionDigits: 2
+            minimumFractionDigits: 0
         }).format(amount);
     };
 

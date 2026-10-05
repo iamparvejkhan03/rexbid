@@ -169,7 +169,7 @@ const OffersSection = ({ offers, auction, onAuctionUpdate, userCurrency }) => {
                                     <div>
                                         <div className="flex items-center gap-2">
                                             <span className={`font-semibold text-xl ${offer.status === 'accepted' ? 'text-green-600' : ''}`}>
-                                                {userCurrency === 'GBP' ? '£' : '€'}{offer?.convertedAmount?.toFixed(2)?.toLocaleString()}
+                                                {userCurrency === 'GBP' ? '£' : '€'}{offer?.convertedAmount?.toFixed(0)?.toLocaleString()}
                                             </span>
                                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusConfig.color}`}>
                                                 {statusConfig.text}
@@ -214,13 +214,13 @@ const OffersSection = ({ offers, auction, onAuctionUpdate, userCurrency }) => {
                                     <div className="flex items-center justify-between mb-3">
                                         <div>
                                             <p className="text-2xl font-bold text-blue-700">
-                                                {userCurrency === 'GBP' ? '£' : '€'}{offer?.counterOffer?.amount?.toFixed(2)?.toLocaleString()}
+                                                {userCurrency === 'GBP' ? '£' : '€'}{offer?.counterOffer?.amount?.toFixed(0)?.toLocaleString()}
                                             </p>
                                             <p className="text-sm text-blue-600">New price proposed by seller</p>
                                         </div>
 
                                         <div className="text-right">
-                                            <p className="text-sm text-gray-600">Previous: {userCurrency === 'GBP' ? '£' : '€'}{offer?.convertedAmount?.toFixed(2)?.toLocaleString()}</p>
+                                            <p className="text-sm text-gray-600">Previous: {userCurrency === 'GBP' ? '£' : '€'}{offer?.convertedAmount?.toFixed(0)?.toLocaleString()}</p>
                                         </div>
                                     </div>
 
@@ -291,7 +291,7 @@ const OffersSection = ({ offers, auction, onAuctionUpdate, userCurrency }) => {
                                             <p className="font-medium">Congratulations! This auction is sold to you.</p>
                                         </div>
                                         <p className="text-sm text-green-600 mt-1">
-                                            Final price: <span className="font-bold">{userCurrency === 'GBP' ? '£' : '€'}{offer?.convertedAmount?.toFixed(2)?.toLocaleString()}</span>
+                                            Final price: <span className="font-bold">{userCurrency === 'GBP' ? '£' : '€'}{offer?.convertedAmount?.toFixed(0)?.toLocaleString()}</span>
                                         </p>
                                     </div>
                                 )}

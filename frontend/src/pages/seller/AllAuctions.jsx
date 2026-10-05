@@ -436,10 +436,10 @@ function AllAuctions() {
                                                             </div>
                                                         </div>
                                                     </td>
-                                                    <td className="py-4 px-6 text-sm text-gray-900">{userCurrency === 'GBP' ? '£' : '€'}{auction.convertedStartPrice?.toFixed(2)?.toLocaleString('en-IE')}</td>
+                                                    <td className="py-4 px-6 text-sm text-gray-900">{userCurrency === 'GBP' ? '£' : '€'}{auction.convertedStartPrice?.toFixed(0)?.toLocaleString('en-IE')}</td>
                                                     <td className="py-4 px-6 text-sm font-medium text-green-600">
                                                         {/* ${auction.convertedCurrentPrice?.toLocaleString('en-IE')} */}
-                                                        {userCurrency === 'GBP' ? '£' : '€'}{auction.bids?.length > 0 ? auction.convertedCurrentPrice?.toFixed(2)?.toLocaleString('en-IE') : 'No Bids'}
+                                                        {userCurrency === 'GBP' ? '£' : '€'}{auction.bids?.length > 0 ? auction.convertedCurrentPrice?.toFixed(0)?.toLocaleString('en-IE') : 'No Bids'}
                                                     </td>
                                                     <td className="py-4 px-6 text-sm text-gray-900">
                                                         <div className="flex items-center">

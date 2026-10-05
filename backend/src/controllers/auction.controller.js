@@ -25,6 +25,7 @@ import Review from "../models/review.model.js";
 import { getCachedRates } from "../routes/currency.route.js";
 import Stripe from 'stripe';
 import AuctionDate from "../models/auctionDate.model.js";
+import { broadcastAuctionChange, broadcastAuctionRemoved } from "../services/realtimeService.js";
 
 // Initialize Stripe with your secret key
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -424,6 +425,8 @@ export const createAuction = async (req, res) => {
 
     // Populate seller info for response
     await auction.populate("seller", "username companyName firstName lastName");
+
+    if (auction.status === "active") broadcastAuctionChange(auction._id);
 
     res.status(201).json({
       success: true,
@@ -1845,6 +1848,8 @@ export const updateAuction = async (req, res) => {
       }
     }
 
+    broadcastAuctionChange(id);
+
     res.status(200).json({
       success: true,
       message: isEndedAuction
@@ -1902,6 +1907,8 @@ export const deleteAuction = async (req, res) => {
     }
 
     await Auction.findByIdAndDelete(id);
+
+    broadcastAuctionRemoved(id);
 
     res.status(200).json({
       success: true,
@@ -2027,6 +2034,8 @@ export const placeBid = async (req, res) => {
     const convertedBuyNowPrice = auctionObj.buyNowPrice ? convertPrice(auction, userCurrency, 'buyNowPrice') : null;
     const convertedReservePrice = auctionObj.reservePrice ? convertPrice(auction, userCurrency, 'reservePrice') : null;
     const convertedFinalPrice = auctionObj.finalPrice ? convertPrice(auction, userCurrency, 'finalPrice') : null;
+
+    broadcastAuctionChange(auction._id);
 
     // ---------- SEND RESPONSE ----------
     res.status(200).json({
@@ -2784,6 +2793,8 @@ export const lowerReservePrice = async (req, res) => {
     // Populate seller info for response
     await updatedAuction.populate("seller", "username companyName firstName lastName");
 
+    broadcastAuctionChange(id);
+
     res.status(200).json({
       success: true,
       message: "Reserve price lowered successfully",
@@ -2919,6 +2930,8 @@ export const buyNow = async (req, res) => {
       auction.auctionType === "giveaway"
         ? "🎉 Congratulations! You have claimed this item for free!"
         : "Congratulations! You have purchased this item.";
+
+    broadcastAuctionChange(id);
 
     res.status(200).json({
       success: true,

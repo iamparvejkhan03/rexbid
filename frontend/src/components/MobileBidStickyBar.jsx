@@ -241,7 +241,7 @@ const MobileBidStickyBar = ({
                 onChange={(e) => setBidAmount(e.target.value)}
                 className="w-full pl-7 pr-3 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-2 focus:outline-primary text-sm"
                 placeholder={`Min ${minBidAmount?.toFixed(0)}`}
-                min={minBidAmount?.toFixed(2)}
+                min={minBidAmount?.toFixed(0)}
               />
             </div>
             <button

@@ -129,7 +129,7 @@ const MakeOfferModal = ({
 
     const formatCurrency = (amount) => {
         if (!amount && amount !== 0) return `${userCurrency === 'GBP' ? '£' : '€'}0`;
-        return `${userCurrency === 'GBP' ? '£' : '€'}${Number(amount)?.toFixed(2).toLocaleString("en-IE")}`;
+        return `${userCurrency === 'GBP' ? '£' : '€'}${Number(amount)?.toFixed(0).toLocaleString("en-IE")}`;
     };
 
     const total = (isCommissionEnabled && commissionAppliesTo?.includes('bidder') ? Number(offerAmount) + Number(serviceFee) : Number(offerAmount));
