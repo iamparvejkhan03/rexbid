@@ -11,7 +11,7 @@ const PromoBanner = ({
     const navigate = useNavigate();
 
     return (
-        <div className="mx-auto max-w-full rounded-2xl relative z-10 mb-8 md:mb-10 bg-gradient-to-br from-[#072342] to-[#0a2a4a]">
+        <div className="mx-auto max-w-full rounded-2xl relative z-10 mb-8 md:mb-10 bg-gradient-to-br from-[#072342] to-[#0a2a4a] overflow-hidden">
             {/* Industrial Background Pattern - EXACT same as footer (opacity 0.1) */}
             <div className="absolute inset-0 opacity-10 pointer-events-none">
                 <div className="absolute inset-0" style={{
