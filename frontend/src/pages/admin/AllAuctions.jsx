@@ -6,6 +6,7 @@ import toast from "react-hot-toast";
 import axiosInstance from "../../utils/axiosInstance";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
+import ManualSellModal from "../../components/ManualSellModal";
 
 function AllAuctions() {
     const [auctions, setAuctions] = useState([]);
@@ -38,6 +39,9 @@ function AllAuctions() {
 
     const { user } = useAuth();
     const userCurrency = user?.currency || 'EUR';
+
+    const [showManualSellModal, setShowManualSellModal] = useState(false);
+    const [manualSellAuction, setManualSellAuction] = useState(null);
 
     useEffect(() => {
         function handleClickOutside(event) {
@@ -140,6 +144,17 @@ function AllAuctions() {
             console.error('Activate auction error:', err);
             toast.error(err.response?.data?.message || "Failed to activate auction");
         }
+    };
+
+    const openManualSellModal = (auction) => {
+        setManualSellAuction(auction);
+        setShowManualSellModal(true);
+        setActiveDropdown(null);
+    };
+
+    const closeManualSellModal = () => {
+        setShowManualSellModal(false);
+        setManualSellAuction(null);
     };
 
     const relistAuction = async (auctionId) => {
@@ -708,6 +723,17 @@ function AllAuctions() {
 
                                                             {activeDropdown === auction._id && (
                                                                 <div className="absolute right-0 top-full mt-1 w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-40 py-1">
+
+                                                                    {["reserve_not_met", "ended"].includes(auction.status) && (
+                                                                        <button
+                                                                            onClick={() => openManualSellModal(auction)}
+                                                                            className="flex items-center gap-3 w-full px-4 py-2 text-sm text-[#B8862A] hover:bg-amber-50 transition-colors"
+                                                                            title="Manually sell this auction"
+                                                                        >
+                                                                            <Banknote size={16} />
+                                                                            <span>Manually Sell</span>
+                                                                        </button>
+                                                                    )}
 
                                                                     {auction?.invoice?.url && (
                                                                         <Link
@@ -1386,6 +1412,13 @@ function AllAuctions() {
                     </div>
                 </div>
             )}
+
+            <ManualSellModal
+                isOpen={showManualSellModal}
+                onClose={closeManualSellModal}
+                auction={manualSellAuction}
+                onSuccess={fetchAuctions}
+            />
 
         </section>
     );

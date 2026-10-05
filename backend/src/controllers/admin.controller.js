@@ -19,9 +19,14 @@ import {
   paymentCompletedEmail,
   paymentCompletedSellerEmail,
   sendBulkAuctionNotifications,
+  sendAuctionWonEmail,
+  sendAuctionEndedSellerEmail,
+  auctionWonAdminEmail,
 } from "../utils/nodemailer.js";
+
 import { getCachedRates } from "../routes/currency.route.js";
 import AuctionDate from "../models/auctionDate.model.js";
+import { calculateCommission } from "../utils/commissionCalculator.js";
 
 const convertPrice = (auction, targetCurrency, priceField) => {
   const rates = getCachedRates();
@@ -939,6 +944,247 @@ export const getAuctionDetails = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Internal server error while fetching auction details",
+    });
+  }
+};
+
+// ============================================================
+// MANUAL SELL (reserve_not_met / ended auctions only)
+// ============================================================
+
+// Lightweight paginated user search for the Manual Sell modal.
+// Excludes admins, inactive users, and the auction's own seller.
+export const searchUsersForManualSell = async (req, res) => {
+  try {
+    const { auctionId } = req.params;
+    const { q = "", page = 1, limit = 10 } = req.query;
+
+    const auction = await Auction.findById(auctionId).select("seller");
+    if (!auction) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Auction not found" });
+    }
+
+    const currentPage = Math.max(1, parseInt(page, 10) || 1);
+    const perPage = Math.min(50, Math.max(1, parseInt(limit, 10) || 10));
+    const skip = (currentPage - 1) * perPage;
+
+    const escaped = String(q).trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+    const filter = {
+      userType: { $ne: "admin" },
+      isActive: true,
+      _id: { $nin: [auction.seller] },
+    };
+
+    if (escaped) {
+      filter.$or = [
+        { firstName: { $regex: escaped, $options: "i" } },
+        { lastName: { $regex: escaped, $options: "i" } },
+        { username: { $regex: escaped, $options: "i" } },
+        { companyName: { $regex: escaped, $options: "i" } },
+        { email: { $regex: escaped, $options: "i" } },
+        { phone: { $regex: escaped, $options: "i" } },
+      ];
+    }
+
+    const [users, total] = await Promise.all([
+      User.find(filter)
+        .select(
+          "firstName lastName username companyName email phone userType countryName"
+        )
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(perPage)
+        .lean(),
+      User.countDocuments(filter),
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        users,
+        pagination: {
+          currentPage,
+          totalPages: Math.ceil(total / perPage) || 1,
+          totalUsers: total,
+          hasNext: skip + users.length < total,
+          hasPrev: skip > 0,
+        },
+      },
+    });
+  } catch (error) {
+    console.error("Search users for manual sell error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error while searching users",
+    });
+  }
+};
+
+// Admin marks a reserve_not_met / ended auction as manually sold to a chosen buyer.
+export const manualSellAuction = async (req, res) => {
+  try {
+    const { auctionId } = req.params;
+    const { buyerId, finalPrice, paymentStatus } = req.body;
+
+    // ---- Validation ----------------------------------------------------
+    if (!buyerId) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Buyer is required" });
+    }
+
+    const parsedPrice = parseFloat(finalPrice);
+    if (!finalPrice || isNaN(parsedPrice) || parsedPrice <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Final price must be a positive number",
+      });
+    }
+
+    if (!["pending", "completed"].includes(paymentStatus)) {
+      return res.status(400).json({
+        success: false,
+        message: "Payment status must be 'pending' or 'completed'",
+      });
+    }
+
+    const auction = await Auction.findById(auctionId).populate(
+      "seller",
+      "email username companyName firstName lastName currency"
+    );
+
+    if (!auction) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Auction not found" });
+    }
+
+    // Only reserve_not_met or ended can be manually sold
+    if (!["reserve_not_met", "ended"].includes(auction.status)) {
+      return res.status(400).json({
+        success: false,
+        message: `Only reserve-not-met or ended auctions can be manually sold. Current status: ${auction.status}`,
+      });
+    }
+
+    // ---- Buyer validation ---------------------------------------------
+    const buyer = await User.findById(buyerId).select(
+      "firstName lastName username companyName email phone userType isActive currency"
+    );
+
+    if (!buyer) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Selected buyer not found" });
+    }
+
+    if (buyer.userType === "admin") {
+      return res
+        .status(400)
+        .json({ success: false, message: "An admin cannot be assigned as buyer" });
+    }
+
+    if (buyer._id.toString() === auction.seller._id.toString()) {
+      return res.status(400).json({
+        success: false,
+        message: "The auction's own seller cannot be the buyer",
+      });
+    }
+
+    // ---- Apply sale ----------------------------------------------------
+    auction.winner = buyer._id;
+    auction.finalPrice = parsedPrice;
+    auction.status = "sold";
+    auction.paymentMethod = "bank_transfer"; // recordkeeping
+
+    if (paymentStatus === "completed") {
+      auction.paymentStatus = "completed";
+      auction.paymentDate = new Date();
+    } else {
+      auction.paymentStatus = "pending";
+      auction.paymentDate = null;
+    }
+
+    // Commission (same calculation as normal sales)
+    const commissionData = await calculateCommission(
+      parsedPrice,
+      auction.isFeatured,
+      auction.baseCurrency
+    );
+    auction.commissionAmount = commissionData.commissionAmount;
+    auction.commissionType = commissionData.commissionType;
+    auction.commissionValue = commissionData.commissionValue;
+    auction.featuredPremiumAmount = commissionData.featuredPremium;
+
+    // Reject all pending offers
+    auction.offers.forEach((offer) => {
+      if (offer.status === "pending") {
+        offer.status = "rejected";
+        offer.sellerResponse = "Offer rejected - item manually sold by admin";
+      }
+    });
+
+    await auction.save();
+
+    // Reload with populated refs so emails + socket payload are complete
+    const updatedAuction = await Auction.findById(auctionId)
+      .populate("seller", "email username companyName firstName lastName currency")
+      .populate("winner", "email username companyName firstName lastName currency address")
+      .populate("bids.bidder", "username companyName firstName lastName");
+
+    // Broadcast so open tabs / cards refresh
+    broadcastAuctionChange(auctionId);
+
+    // ---- Respond immediately -------------------------------------------
+    res.status(200).json({
+      success: true,
+      message: `Auction manually sold to ${buyer.username || buyer.companyName || buyer.firstName
+        } for ${parsedPrice.toLocaleString()}`,
+      data: { auction: updatedAuction },
+    });
+
+    // ---- Fire-and-forget emails ----------------------------------------
+    setImmediate(async () => {
+      try {
+        // Buyer: "you won"
+        await sendAuctionWonEmail(updatedAuction).catch((err) =>
+          console.error("Manual-sell buyer email failed:", err)
+        );
+
+        // Seller: auction ended / sold
+        await sendAuctionEndedSellerEmail(updatedAuction).catch((err) =>
+          console.error("Manual-sell seller email failed:", err)
+        );
+
+        // Admins: sold notification
+        const admins = await User.find({ userType: "admin" }).select(
+          "email firstName currency"
+        );
+        for (const admin of admins) {
+          await auctionWonAdminEmail(
+            admin.email,
+            admin.currency,
+            updatedAuction,
+            updatedAuction.winner
+          ).catch((err) =>
+            console.error(
+              `Manual-sell admin email to ${admin.email} failed:`,
+              err
+            )
+          );
+        }
+      } catch (err) {
+        console.error("Manual-sell background emails failed:", err);
+      }
+    });
+  } catch (error) {
+    console.error("Manual sell auction error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error while manually selling auction",
     });
   }
 };

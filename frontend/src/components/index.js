@@ -74,6 +74,7 @@ import PaymentMethodModal from "./PaymentMethodModal";
 import MobileBidBottomBar from "./MobileBidBottomBar";
 import PromoBanner from "./PromoBanner";
 import HomeLiveAuctionsSection from "./HomeLiveAuctionsSection";
+import ManualSellModal from "./ManualSellModal";
 
 export {
     Container,
@@ -152,4 +153,5 @@ export {
     MobileBidBottomBar,
     PromoBanner,
     HomeLiveAuctionsSection,
+    ManualSellModal,
 }

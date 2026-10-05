@@ -18,7 +18,9 @@ import {
     verifyUserIdentity,
     verifyUser,
     rejectUserIdentity,
-    updateUserContact
+    updateUserContact,
+    searchUsersForManualSell,
+    manualSellAuction
 } from '../controllers/admin.controller.js';
 import { authAdmin } from '../middlewares/auth.middleware.js';
 import upload from '../middlewares/multer.middleware.js';
@@ -52,6 +54,8 @@ AdminRouter.put('/auctions/:id', authAdmin, upload.fields([
     { name: 'documents' },
     { name: 'serviceRecords' },
 ]), updateAuction);
+AdminRouter.get('/auctions/:auctionId/manual-sell/users', authAdmin, searchUsersForManualSell);
+AdminRouter.post('/auctions/:auctionId/manual-sell', authAdmin, manualSellAuction);
 AdminRouter.get('/transactions', authAdmin, getAdminTransactions);
 AdminRouter.get('/transactions/stats', authAdmin, getTransactionStats);
 AdminRouter.put('/:id/payment-status', 
