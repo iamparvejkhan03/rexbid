@@ -160,17 +160,31 @@ function SingleAuction() {
     useEffect(() => {
         if (!id) return;
 
-        const joinRoom = () => socket.emit("joinAuction", id);
-        joinRoom();
-        socket.on("connect", joinRoom);
+        const joinRoom = () => {
+            socket.emit("joinAuction", id);
+        };
 
-        const onUpdate = ({ auction, rates, baseCurrency }) => {
-            const merged = {
-                ...auction,
-                rates,
-                baseCurrency: baseCurrency || auction.baseCurrency,
-            };
-            setAuction(convertAuctionPrices(merged, userCurrency));
+        // On (re)connect: rejoin the room, then refetch once to catch up
+        // on any state we missed while the socket was down.
+        const onConnect = async () => {
+            joinRoom();
+            try {
+                const { data } = await axiosInstance.get(`/api/v1/auctions/${id}`);
+                if (data.success) setAuction(data.data.auction);
+            } catch (_) {
+                // silent — the live tick will fill in shortly
+            }
+        };
+
+        // Join immediately (covers the case where socket was already connected)
+        joinRoom();
+
+        // And again on every (re)connect
+        socket.on("connect", onConnect);
+
+        const onUpdate = ({ auction }) => {
+            // NOTE: server sends { serverTime, auction }
+            setAuction(auction);
         };
 
         const onRemoved = () => setAuction(null);
@@ -179,12 +193,12 @@ function SingleAuction() {
         socket.on("auction:removed", onRemoved);
 
         return () => {
-            socket.off("connect", joinRoom);
+            socket.off("connect", onConnect);
             socket.off("auction:update", onUpdate);
             socket.off("auction:removed", onRemoved);
             socket.emit("leaveAuction", id);
         };
-    }, [id, userCurrency]);
+    }, [id]);
     // ---------------------------
 
     useEffect(() => {

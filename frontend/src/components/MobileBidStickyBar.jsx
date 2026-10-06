@@ -263,7 +263,7 @@ const MobileBidStickyBar = ({
         {/* Middle Row: Other Action Buttons */}
         {(showMakeOffer || showBuyNow || showGiveawayClaim || (!isActive && !auction?.winner)) && (
           <div className="flex gap-2 w-full mt-3">
-            {showMakeOffer && (
+            {/* {showMakeOffer && (
               <button
                 onClick={onMakeOfferClick}
                 className="flex-1 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 py-2.5 px-4 rounded-md cursor-pointer flex items-center justify-center gap-2 text-sm font-medium transition-colors"
@@ -271,7 +271,7 @@ const MobileBidStickyBar = ({
                 <Banknote size={18} />
                 <span>Make an Offer</span>
               </button>
-            )}
+            )} */}
 
             {showBuyNow && (
               <button
