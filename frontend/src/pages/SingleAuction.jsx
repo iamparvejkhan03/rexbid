@@ -870,7 +870,7 @@ function SingleAuction() {
                                     auction.status === "active" &&
                                     countdown.status === "counting-down" &&
                                     timeRemaining > 0 && // still active
-                                    timeRemaining < 6 * 60 * 60 * 1000 && // last 6 hours
+                                    timeRemaining < 24 * 60 * 60 * 1000 && // last 6 hours
                                     auction.reservePrice > auction.startPrice &&
                                     auction.bidCount > 0 && // only show if there is at least one bid
                                     (() => {
