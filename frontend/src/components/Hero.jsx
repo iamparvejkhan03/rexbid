@@ -306,10 +306,10 @@ function Hero() {
                       <div className="absolute inset-0 bg-gradient-to-t from-[#072342] via-transparent to-transparent" />
 
                       {/* Hot Item Badge */}
-                      <div className="absolute top-4 left-4 bg-[#D19F3E] text-[#072342] px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 shadow-lg">
+                      {/* <div className="absolute top-4 left-4 bg-[#D19F3E] text-[#072342] px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 shadow-lg">
                         <Gavel size={12} />
                         <span>HOT ITEM</span>
-                      </div>
+                      </div> */}
 
                       {/* Video Play Button (if videoLink exists) */}
                       {hotListing.videoLink && (
