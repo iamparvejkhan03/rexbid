@@ -629,21 +629,21 @@ function SingleAuction() {
                             <span>{watchlistCount || auction?.watchlistCount || 0}</span>
                         </p> */}
 
-                        {/* <p onClick={() => handleTabClick('comments')}
+                        <p onClick={() => handleTabClick('comments')}
                             className="flex items-center gap-2 border border-gray-200 py-1 px-3 rounded-full cursor-pointer hover:bg-gray-100">
-                            <MessageSquare size={18} />
+                            <MessageSquare size={16} />
                             <span>{pagination?.totalComments || 0}</span>
-                        </p> */}
+                        </p>
 
-                        {/* {
+                        {
                             (auction.auctionType === 'standard' || auction.auctionType === 'reserve') && (
                                 <p onClick={() => handleTabClick('bids')}
                                     className="flex items-center gap-2 border border-gray-200 py-1 px-3 rounded-full cursor-pointer hover:bg-gray-100">
-                                    <Gavel size={20} />
+                                    <Gavel size={16} />
                                     <span>{auction.status === 'approved' ? '--' : (auction.bids?.length || 0)}</span>
                                 </p>
                             )
-                        } */}
+                        }
 
                         {/* Offers Count */}
                         {/* {auction?.allowOffers && (

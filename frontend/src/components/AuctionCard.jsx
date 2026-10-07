@@ -232,7 +232,7 @@ function AuctionCard({ auction }) {
             </div>
 
             {/* Content Section */}
-            <div className="my-4 flex flex-col flex-1">
+            <div className="mt-4 flex flex-col flex-1">
                 {/* Title */}
                 <Link
                     to={`/auction/${auction._id}`}
@@ -260,13 +260,25 @@ function AuctionCard({ auction }) {
                                 </div>
                             </div>
 
-                            {
+                            {/* {
                                 auction.auctionType !== 'buy_now' && (
                                     <div className="text-center p-2 bg-gray-50 rounded-lg">
                                         <div className="text-xs text-gray-600 mb-1">Bids</div>
                                         <div className="font-bold text-lg text-primary flex items-center justify-center gap-1">
                                             <Users size={16} />
                                             {auction.status === 'approved' ? '--' : (auction.bidCount || 0)}
+                                        </div>
+                                    </div>
+                                )
+                            } */}
+
+                            {
+                                auction.auctionType !== 'buy_now' && (
+                                    <div className="text-center p-2 bg-gray-50 rounded-lg">
+                                        <div className="text-xs text-gray-600 mb-1">Bid increment</div>
+                                        <div className="font-bold text-lg text-primary flex items-center justify-center gap-1">
+                                            {/* <Users size={16} /> */}
+                                            {userCurrency === 'GBP' ? '£' : '€'}{auction.convertedBidIncrement?.toFixed(0)?.toLocaleString()}
                                         </div>
                                     </div>
                                 )
@@ -285,16 +297,16 @@ function AuctionCard({ auction }) {
                         </div>
 
                         <div className="text-xs text-gray-500 text-center flex items-center justify-around">
-                            <div>
+                            {/* <div>
                                 Bid increment: {userCurrency === 'GBP' ? '£' : '€'}{auction.convertedBidIncrement?.toFixed(0)?.toLocaleString()}
-                            </div>
+                            </div> */}
                             {/* <div className="text-xs text-gray-500 text-center">
                                 {auction.watchlistCount || 0} user{auction.watchlistCount !== 1 ? 's' : ''} watching
                             </div> */}
 
-                            <div className="text-xs text-gray-500 text-center">
+                            {/* <div className="text-xs text-gray-500 text-center">
                                 Starting @ {userCurrency === 'GBP' ? '£' : '€'}{(auction.convertedCurrentPrice || auction.convertedStartPrice)?.toFixed(0)?.toLocaleString()}
-                            </div>
+                            </div> */}
 
                             {/* <div className="text-center p-2 bg-gray-50 rounded-lg">
                                 <div className="text-xs text-gray-600 mb-1">{auction.status === 'sold' ? 'Final Bid' : auction.bidCount > 0 ? 'Current Bid' : 'Starting Bid'}</div>
