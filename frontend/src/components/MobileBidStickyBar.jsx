@@ -121,6 +121,8 @@ const MobileBidStickyBar = ({
                 <span className="text-green-600">GIVEAWAY 🎁</span>
               ) : auctionType === 'buy_now' ? (
                 formatCurrency(auction?.convertedBuyNowPrice || convertedBuyNowPrice)
+              ) : auction.status === 'sold' ? (
+                formatCurrency(auction?.convertedFinalPrice || auction?.convertedCurrentPrice)
               ) : (
                 formatCurrency(currentBid)
               )}

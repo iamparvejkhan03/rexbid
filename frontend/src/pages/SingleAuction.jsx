@@ -870,25 +870,36 @@ function SingleAuction() {
                         (auction.auctionType === 'standard' || auction.auctionType === 'reserve') && (
                             <>
                                 <div className="flex flex-row items-center justify-between gap-2">
-                                    <p className="font-light text-secondary text-base">{auction.bidCount > 0 ? 'Current Bid' : 'Start Bidding At'}</p>
+                                    <p className="font-light text-secondary text-base">{auction.bidCount > 0 ? 'Current Bid' : auction.status === 'sold' ? 'Sold At' : 'Start Bidding At'}</p>
                                     <p className="flex items-center gap-1 text-3xl sm:text-3xl font-medium">
                                         <span>{userCurrency === 'GBP' ? '£' : '€'}</span>
-                                        <span> {auction.convertedCurrentPrice?.toFixed(0).toLocaleString()}</span>
+                                        <span> {auction.convertedFinalPrice?.toFixed(0).toLocaleString() || auction.convertedCurrentPrice?.toFixed(0).toLocaleString()}</span>
                                     </p>
                                 </div>
 
-                                {auction.auctionType === 'reserve' && timeRemaining > 0 && timeRemaining > 6 * 60 * 60 * 1000 && (
+                                {auction.auctionType === 'reserve' && timeRemaining > 0 && timeRemaining > 24 * 60 * 60 * 1000 && (
                                     <p className={`${auction.convertedCurrentPrice >= auction.reservePrice ? 'text-green-600 bg-green-100' : 'text-blue-600 bg-blue-100'} flex items-start self-start text-xs font-medium px-4 py-2 rounded-md`}>
                                         {auction.convertedCurrentPrice >= auction.reservePrice ? 'Reserve Met' : 'Reserve Applies'}
                                     </p>
                                 )}
 
-                                {/* ----- RESERVE PROGRESS INDICATOR (only in last 6h) ----- */}
+                                {auction.auctionType === 'reserve' && auction.status === "active" &&
+                                    countdown.status === "counting-down" &&
+                                    timeRemaining > 0 &&
+                                    timeRemaining < 24 * 60 * 60 * 1000 &&
+                                    auction.reservePrice > auction.startPrice &&
+                                    auction.bidCount === 0 && (
+                                    <p className={`${auction.convertedCurrentPrice >= auction.reservePrice ? 'text-green-600 bg-green-100' : 'text-blue-600 bg-blue-100'} flex items-start self-start text-xs font-medium px-4 py-2 rounded-md`}>
+                                        {auction.convertedCurrentPrice >= auction.reservePrice ? 'Reserve Met' : 'Reserve Applies'}
+                                    </p>
+                                )}
+
+                                {/* ----- RESERVE PROGRESS INDICATOR (only in last 24h) ----- */}
                                 {auction.auctionType === "reserve" &&
                                     auction.status === "active" &&
                                     countdown.status === "counting-down" &&
                                     timeRemaining > 0 && // still active
-                                    timeRemaining < 24 * 60 * 60 * 1000 && // last 6 hours
+                                    timeRemaining < 24 * 60 * 60 * 1000 && // last 24 hours
                                     auction.reservePrice > auction.startPrice &&
                                     auction.bidCount > 0 && // only show if there is at least one bid
                                     (() => {
