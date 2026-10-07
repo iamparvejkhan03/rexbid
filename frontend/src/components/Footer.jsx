@@ -40,7 +40,7 @@ function Footer() {
     ];
 
     return (
-        <footer className="bg-gradient-to-br from-[#072342] to-[#0a2a4a] text-gray-200 font-light py-12 relative overflow-hidden z-0">
+        <footer className="bg-gradient-to-br from-[#072342] to-[#0a2a4a] text-gray-200 font-light py-12 pb-16 md:pb-5 relative overflow-hidden z-0">
             {/* Industrial Background Pattern - Fixed pointer events */}
             <div className="absolute inset-0 opacity-10 pointer-events-none">
                 <div className="absolute inset-0" style={{

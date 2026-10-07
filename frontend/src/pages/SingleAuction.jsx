@@ -169,22 +169,24 @@ function SingleAuction() {
         const onConnect = async () => {
             joinRoom();
             try {
-                const { data } = await axiosInstance.get(`/api/v1/auctions/${id}`);
+                const { data } = await axiosInstance.get(`/api/v1/auctions/${id}?currency=${userCurrency}`);
                 if (data.success) setAuction(data.data.auction);
             } catch (_) {
                 // silent — the live tick will fill in shortly
             }
         };
 
-        // Join immediately (covers the case where socket was already connected)
         joinRoom();
-
-        // And again on every (re)connect
         socket.on("connect", onConnect);
 
-        const onUpdate = ({ auction }) => {
-            // NOTE: server sends { serverTime, auction }
-            setAuction(auction);
+        // ⬇️ THIS IS THE CHANGE ⬇️
+        const onUpdate = ({ auction, rates, baseCurrency }) => {
+            const merged = {
+                ...auction,
+                rates: rates || auction.rates,
+                baseCurrency: baseCurrency || auction.baseCurrency,
+            };
+            setAuction(convertAuctionPrices(merged, userCurrency));
         };
 
         const onRemoved = () => setAuction(null);
@@ -198,7 +200,7 @@ function SingleAuction() {
             socket.off("auction:removed", onRemoved);
             socket.emit("leaveAuction", id);
         };
-    }, [id]);
+    }, [id, userCurrency]);   // ⬅️ add userCurrency
     // ---------------------------
 
     useEffect(() => {
@@ -602,19 +604,22 @@ function SingleAuction() {
             <section className="col-span-1 lg:col-span-2">
                 {/* Title and top section */}
                 <div className="hidden md:flex flex-wrap gap-2 capitalize justify-between items-center text-secondary">
-                    <div className="flex flex-wrap gap-2">
-                        Category: {auction.categories?.map((category, index) => (
-                            <Link
-                                key={index}
-                                to={`/auctions?category=${category}`}
-                                className="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800 hover:bg-gray-200 transition-colors"
-                            >
-                                {category}
-                            </Link>
-                        ))}
+                    <div className="flex items-center flex-wrap gap-2">
+                        <span className="text-sm">Category:</span>
+                        <div>
+                            {auction.categories?.map((category, index) => (
+                                <Link
+                                    key={index}
+                                    to={`/auctions?category=${category}`}
+                                    className="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800 hover:bg-gray-200 transition-colors"
+                                >
+                                    {category}
+                                </Link>
+                            ))}
+                        </div>
                     </div>
                     <div className="flex items-center gap-3">
-                        <p onClick={toggleWatchlist}
+                        {/* <p onClick={toggleWatchlist}
                             title="Add to watchlist"
                             className={`flex items-center gap-2 py-1 px-3 border border-gray-200 rounded-full transition-colors ${isWatchlisted
                                 ? 'bg-gray-100 text-black hover:bg-gray-200'
@@ -622,15 +627,15 @@ function SingleAuction() {
                                 } disabled:opacity-50`}>
                             <Heart size={18} fill={isWatchlisted ? 'currentColor' : 'none'} />
                             <span>{watchlistCount || auction?.watchlistCount || 0}</span>
-                        </p>
+                        </p> */}
 
-                        <p onClick={() => handleTabClick('comments')}
+                        {/* <p onClick={() => handleTabClick('comments')}
                             className="flex items-center gap-2 border border-gray-200 py-1 px-3 rounded-full cursor-pointer hover:bg-gray-100">
                             <MessageSquare size={18} />
                             <span>{pagination?.totalComments || 0}</span>
-                        </p>
+                        </p> */}
 
-                        {
+                        {/* {
                             (auction.auctionType === 'standard' || auction.auctionType === 'reserve') && (
                                 <p onClick={() => handleTabClick('bids')}
                                     className="flex items-center gap-2 border border-gray-200 py-1 px-3 rounded-full cursor-pointer hover:bg-gray-100">
@@ -638,21 +643,20 @@ function SingleAuction() {
                                     <span>{auction.status === 'approved' ? '--' : (auction.bids?.length || 0)}</span>
                                 </p>
                             )
-                        }
+                        } */}
 
                         {/* Offers Count */}
-                        {auction?.allowOffers && (
+                        {/* {auction?.allowOffers && (
                             <p onClick={() => handleTabClick('offers')}
                                 className="flex items-center gap-2 border border-gray-200 py-1 px-3 rounded-full cursor-pointer hover:bg-gray-100">
                                 <Banknote size={18} />
-                                {/* <span>{auction.offers.filter(o => o.status === 'pending').length}</span> */}
                                 <span>{auction.offers?.length}</span>
                             </p>
-                        )}
+                        )} */}
                     </div>
                 </div>
 
-                <div className="flex items-center gap-3 my-6 flex-wrap">
+                <div className="flex items-center gap-3 mt-4 mb-6 flex-wrap">
                     <h2 className="text-2xl md:text-3xl font-semibold text-primary">{auction.title}</h2>
                     {/* {auctionReviews.length > 0 && (
                         <div className="flex items-center gap-1 bg-orange-100 px-3 py-1 rounded-full">

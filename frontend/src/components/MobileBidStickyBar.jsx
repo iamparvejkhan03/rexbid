@@ -1,5 +1,7 @@
-import { Gavel, Zap, Banknote, Clock, Gift, Users, ShieldCheck, Bell, Loader } from 'lucide-react';
+import { Gavel, Zap, Banknote, Clock, Gift, Users, ShieldCheck, Bell, Loader, Truck } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
 const MobileBidStickyBar = ({
   currentBid,
@@ -33,6 +35,9 @@ const MobileBidStickyBar = ({
     minutes: minutes || 0,
     seconds: seconds || 0,
   });
+
+  const navigate = useNavigate();
+  const { user } = useAuth();
 
   useEffect(() => {
     if (!isActive || timeStatus !== 'counting-down') return;
@@ -260,6 +265,33 @@ const MobileBidStickyBar = ({
           </div>
         )}
 
+        {onSetReminder && isActive && <button
+          type="button"
+          onClick={onSetReminder}
+          className={`mt-2 w-full flex items-center justify-center gap-2 text-sm font-medium py-2.5 px-4 rounded-lg border transition-colors ${user && isWatchlisted
+            ? 'bg-gray-100 border-gray-300 text-gray-700 hover:bg-gray-200'
+            : 'bg-white border-gray-300 text-primary hover:bg-gray-100'
+            }`}
+        >
+          <Bell size={14} fill={user && isWatchlisted ? 'currentColor' : 'none'} />
+          <span>
+            {user && isWatchlisted
+              ? 'Reminder Set'
+              : 'Set a Reminder'}
+          </span>
+        </button>}
+
+        <button
+          type="button"
+          onClick={() => navigate('/delivery-partner-quote')}
+          className="mt-2 w-full bg-[#000] hover:bg-[#000]/90 text-white py-2.5 px-4 rounded-md flex items-center justify-center gap-2 text-sm font-medium disabled:opacity-60 whitespace-nowrap transition-colors"
+        >
+          <>
+            <Truck size={16} />
+            <span>Request Delivery Quote</span>
+          </>
+        </button>
+
         {/* Middle Row: Other Action Buttons */}
         {(showMakeOffer || showBuyNow || showGiveawayClaim || (!isActive && !auction?.winner)) && (
           <div className="flex gap-2 w-full mt-3">
@@ -293,19 +325,19 @@ const MobileBidStickyBar = ({
               </button>
             )}
 
-            {!isActive && !auction?.winner && (
+            {/* {!isActive && !auction?.winner && (
               <button
                 onClick={onBidClick}
                 className="flex-1 bg-gray-700 hover:bg-gray-500 text-white py-2.5 px-4 rounded-md cursor-pointer flex items-center justify-center text-sm font-medium transition-colors"
               >
                 View Auction Details
               </button>
-            )}
+            )} */}
           </div>
         )}
 
         {/* Bottom Row: Stats & Reminder */}
-        <div className="flex items-center justify-between text-[13px] font-medium text-gray-700 mt-4 pt-3 border-t border-gray-100">
+        {/* <div className="flex items-center justify-between text-[13px] font-medium text-gray-700 mt-4 pt-3 border-t border-gray-100">
           <div className="flex items-center gap-4">
             <span className="flex items-center gap-1">
               <Users size={14} />
@@ -322,7 +354,7 @@ const MobileBidStickyBar = ({
               {isWatchlisted ? 'Reminder Set' : 'Set a Reminder'}
             </button>
           )}
-        </div>
+        </div> */}
 
       </div>
     </div>

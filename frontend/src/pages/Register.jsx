@@ -310,7 +310,7 @@ const Register = () => {
             formData.append('postCode', registrationData.postCode);
             formData.append('state', registrationData.state);
             formData.append('country', countries.find(c => c.code === registrationData.country)?.name || registrationData.country);
-            formData.append('currency', registrationData.currency);
+            formData.append('currency', registrationData.currency || 'EUR');
 
             if (registrationData.userType === 'company') {
                 formData.append('companyName', registrationData.companyName);

@@ -288,9 +288,20 @@ function AuctionCard({ auction }) {
                             <div>
                                 Bid increment: {userCurrency === 'GBP' ? '£' : '€'}{auction.convertedBidIncrement?.toFixed(0)?.toLocaleString()}
                             </div>
-                            <div className="text-xs text-gray-500 text-center">
+                            {/* <div className="text-xs text-gray-500 text-center">
                                 {auction.watchlistCount || 0} user{auction.watchlistCount !== 1 ? 's' : ''} watching
+                            </div> */}
+
+                            <div className="text-xs text-gray-500 text-center">
+                                Starting @ {userCurrency === 'GBP' ? '£' : '€'}{(auction.convertedCurrentPrice || auction.convertedStartPrice)?.toFixed(0)?.toLocaleString()}
                             </div>
+
+                            {/* <div className="text-center p-2 bg-gray-50 rounded-lg">
+                                <div className="text-xs text-gray-600 mb-1">{auction.status === 'sold' ? 'Final Bid' : auction.bidCount > 0 ? 'Current Bid' : 'Starting Bid'}</div>
+                                <div className="font-bold text-lg text-green-600">
+                                    {userCurrency === 'GBP' ? '£' : '€'}{(auction.convertedCurrentPrice || auction.convertedStartPrice)?.toFixed(0)?.toLocaleString()}
+                                </div>
+                            </div> */}
                         </div>
                     </>
                 }

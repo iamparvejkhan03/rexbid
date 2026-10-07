@@ -79,7 +79,8 @@ function Sell() {
                             </span>
                         </h2>
 
-                        <p className="text-sm md:text-base text-[#ff9d00]">Free to list until 1st October. Buyers commission 3% on final sale price.</p>
+                        {/* <p className="text-sm md:text-base text-[#ff9d00]">Free to list until 1st October. Buyers commission 3% on final sale price.</p> */}
+                        <p className="text-sm md:text-base text-[#ff9d00]">Free to list and sell with RexBid until January.</p>
 
                         <p className="text-gray-600 leading-relaxed text-base md:text-lg">
                             Choose the method that suits you best – take full control with your own account, or let us handle the listing for you.

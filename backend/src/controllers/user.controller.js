@@ -91,7 +91,7 @@ export const registerUser = async (req, res) => {
       companyVATNumber,
       countryCode,
       countryName,
-      currency,
+      currency = 'EUR',
       phone = '',
       image = '',
       line1 = '',
@@ -157,7 +157,7 @@ export const registerUser = async (req, res) => {
       userType,
       countryCode,
       countryName,
-      currency,
+      currency: currency || 'EUR',
       phone,
       image,
       isVerified: true, //changed
