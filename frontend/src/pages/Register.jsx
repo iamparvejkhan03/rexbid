@@ -419,6 +419,11 @@ const Register = () => {
             if (typeof window.fbq === 'function') {
                 window.fbq('track', 'CompleteRegistration');
             }
+
+            gtag('event', 'sign_up', {
+                user_type: 'buyer'
+            });
+
             navigate(redirectPath);
             toast.success(data.message);
 
