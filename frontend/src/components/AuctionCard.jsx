@@ -137,6 +137,22 @@ function AuctionCard({ auction }) {
         });
     };
 
+    const handleAuctionClick = () => {
+        sessionStorage.setItem("returnToAuction", auction._id);
+
+        sessionStorage.setItem(
+            "returnToAuctionScrollY",
+            window.scrollY.toString()
+        );
+
+        sessionStorage.setItem(
+            "returnToAuctionLoadedCount",
+            document.querySelectorAll("[id^='auction-']").length.toString()
+        );
+
+        navigate(`/auction/${auction._id}`);
+    };
+
     if (!auctionTime) return (
         <div className="border border-gray-200 p-4 h-full bg-white rounded-xl shadow-lg animate-pulse">
             <div className="w-full h-56 bg-gray-200 rounded-tr-3xl rounded-bl-3xl mb-4"></div>
@@ -155,7 +171,7 @@ function AuctionCard({ auction }) {
             onMouseMove={handleMove}
             onMouseLeave={() => setTilt({ x: 0, y: 0 })}
             style={{ transform: `perspective(1000px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)` }}
-            onClick={() => navigate(`/auction/${auction._id}`)}
+            onClick={handleAuctionClick}
         >
             {/* Image Section */}
             <div className="relative overflow-hidden rounded-tr-3xl rounded-bl-3xl">
@@ -237,7 +253,10 @@ function AuctionCard({ auction }) {
                 <Link
                     to={`/auction/${auction._id}`}
                     className="font-semibold text-lg leading-tight mb-2 line-clamp-2 hover:text-primary transition-colors"
-                    onClick={(e) => e.stopPropagation()}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        handleAuctionClick();
+                    }}
                 >
                     {auction.title}
                 </Link>
@@ -256,7 +275,7 @@ function AuctionCard({ auction }) {
                             <div className="text-center p-2 bg-gray-50 rounded-lg">
                                 <div className="text-xs text-gray-600 mb-1">{auction.status === 'sold' ? 'Final Bid' : auction.bidCount > 0 ? 'Current Bid' : 'Starting Bid'}</div>
                                 <div className="font-bold text-lg text-green-600">
-                                    {userCurrency === 'GBP' ? '£' : '€'}{(auction.convertedCurrentPrice || auction.convertedStartPrice)?.toFixed(0)?.toLocaleString()}
+                                    {userCurrency === 'GBP' ? '£' : '€'}{(auction.status === 'sold' ? auction.convertedFinalPrice : auction.bidCount > 0 ? auction.convertedCurrentPrice : auction.convertedStartPrice)?.toFixed(0)?.toLocaleString()}
                                 </div>
                             </div>
 
@@ -354,7 +373,7 @@ function AuctionCard({ auction }) {
                     // disabled={!isAuctionActive}
                     onClick={(e) => {
                         e.stopPropagation();
-                        navigate(`/auction/${auction._id}`);
+                        handleAuctionClick();
                     }}
                     className={`flex-1 py-3 px-4 cursor-pointer text-white rounded-lg flex gap-2 items-center justify-center transition-all ${isAuctionActive
                         ? 'bg-gradient-to-r from-[#D19F3E] to-[#E8B86B] bg-[#E8B86B]/90 shadow-md hover:shadow-lg'

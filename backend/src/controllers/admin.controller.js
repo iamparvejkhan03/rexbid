@@ -1097,6 +1097,7 @@ export const manualSellAuction = async (req, res) => {
     // ---- Apply sale ----------------------------------------------------
     auction.winner = buyer._id;
     auction.finalPrice = parsedPrice;
+    auction.currentPrice = parsedPrice;
     auction.status = "sold";
     auction.paymentMethod = "bank_transfer"; // recordkeeping
 

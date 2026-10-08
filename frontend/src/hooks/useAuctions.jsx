@@ -91,10 +91,17 @@ export const useAuctions = () => {
 
     // Load more auctions
     const loadMoreAuctions = async () => {
-        if (pagination?.currentPage < pagination?.totalPages) {
-            const nextPage = pagination.currentPage + 1;
-            await fetchAuctions(nextPage, 12, filters);
+        if (
+            loadingMore ||
+            !pagination ||
+            pagination.currentPage >= pagination.totalPages
+        ) {
+            return;
         }
+
+        const nextPage = pagination.currentPage + 1;
+
+        await fetchAuctions(nextPage, 12, filters);
     };
 
     // Update filters and refresh auctions
