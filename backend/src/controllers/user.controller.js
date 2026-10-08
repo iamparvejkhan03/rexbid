@@ -41,6 +41,12 @@ const generateTokensAndRespond = async (user, req, res, message) => {
 
     // Save refresh token to user document
     user.refreshToken = refreshToken;
+
+    // after successful authentication
+    if (req.body.gaClientId) {
+      user.gaClientId = req.body.gaClientId;
+    }
+
     await user.save({ validateBeforeSave: false });
 
     // Remove sensitive data from user object

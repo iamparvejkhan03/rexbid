@@ -221,25 +221,27 @@ async function handlePaymentSuccess(paymentIntent) {
             return;
         }
 
-        // Update auction
-        const auction = await Auction.findByIdAndUpdate(
-            auctionId,
-            {
-                paymentStatus: "completed",
-                paymentMethod: "credit_card",
-                paymentDate: new Date(),
-                transactionId: paymentIntent.id,
-            },
-            { new: true },
-        );
+        // Fetch the auction and update via .save() so the GA4 purchase hook fires
+        const auction = await Auction.findById(auctionId);
+        if (!auction) {
+            console.error("Auction not found for payment intent:", paymentIntent.id);
+            return;
+        }
+
+        // Only proceed if payment hasn't already been marked completed
+        // (avoids the case where the inline client path already fired)
+        if (auction.paymentStatus !== "completed") {
+            auction.paymentStatus = "completed";
+            auction.paymentMethod = "credit_card";
+            auction.paymentDate = new Date();
+            auction.transactionId = paymentIntent.id;
+            await auction.save();   // ← triggers the GA4 purchase hook
+        }
 
         // Update bid payment
         await BidPayment.findOneAndUpdate(
             { paymentIntentId: paymentIntent.id },
-            {
-                status: "succeeded",
-                chargeSucceeded: true,
-            },
+            { status: "succeeded", chargeSucceeded: true },
         );
 
         console.log(`Payment succeeded for auction ${auctionId}`);

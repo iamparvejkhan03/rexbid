@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { createContext, useContext, useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
+import { getGaClientId } from '../utils/ga.js';
 
 const AuthContext = createContext();
 
@@ -35,7 +36,14 @@ export const AuthProvider = ({ children }) => {
 
     const login = async (loginData) => {
         try {
-            const { data } = await axios.post(`${import.meta.env.VITE_DOMAIN_URL}/api/v1/users/login`, { email: loginData.email.toLowerCase(), password: loginData.password });
+            const { data } = await axios.post(
+            `${import.meta.env.VITE_DOMAIN_URL}/api/v1/users/login`,
+            {
+                email: loginData.email.toLowerCase(),
+                password: loginData.password,
+                gaClientId: getGaClientId()
+            }
+        );
 
             if (data && data.success) {
                 const userInfo = {

@@ -1582,6 +1582,7 @@ export const updateAuction = async (req, res) => {
 
         // Reset payment info
         paymentStatus: "pending",
+        purchaseEventSent: false,
         paymentMethod: null,
         paymentDate: null,
         transactionId: null,

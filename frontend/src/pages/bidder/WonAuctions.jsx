@@ -151,6 +151,18 @@ function WonAuctions() {
     const openContactModal = (auction) => {
         setSelectedAuction(auction);
         setShowContactModal(true);
+
+        // contact_seller — buyer reveals seller contact details
+        if (auction?._id) {
+            gtag('event', 'contact_seller', {
+                listing_id: auction._id,
+                item_name: auction.title,
+                category: auction.categories?.[1] || auction.categories?.[0] || '',
+                seller_type: 'seller',
+                auction_type: auction.auctionType,
+                contact_method: 'reveal'
+            });
+        }
     };
 
     const navigate = useNavigate();

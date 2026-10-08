@@ -375,6 +375,10 @@ const auctionSchema = new Schema(
       ],
       default: "pending",
     },
+    purchaseEventSent: {
+      type: Boolean,
+      default: false,
+    },
     paymentMethod: {
       type: String,
       enum: ["credit_card", "bank_transfer", "paypal", "other", null],
@@ -1184,6 +1188,84 @@ auctionSchema.pre("save", async function (next) {
     }
   }
   next();
+});
+
+// ── GA4: detect transition to "sold" ─────────────────────
+auctionSchema.pre("save", async function (next) {
+  if (this.isNew) return next();
+  if (!this.isModified("status")) return next();
+
+  try {
+    // Fetch the previous status from the DB
+    const original = await this.constructor
+      .findById(this._id)
+      .select("status")
+      .lean();
+
+    if (original) {
+      const wasSold = ["sold", "sold_buy_now"].includes(original.status);
+      const isNowSold = ["sold", "sold_buy_now"].includes(this.status);
+
+      if (!wasSold && isNowSold && this.winner) {
+        this.$locals.justBecameSold = true;
+      }
+    }
+  } catch (err) {
+    console.error("pre-save sold-transition check failed:", err);
+  }
+
+  next();
+});
+
+auctionSchema.post("save", async function (doc) {
+  if (doc.$locals?.justBecameSold) {
+    doc.$locals.justBecameSold = false;
+    try {
+      const { trackAuctionWon } = await import("../utils/ga4.js");
+      await trackAuctionWon(doc._id);
+    } catch (err) {
+      console.error("auction_won tracking failed:", err);
+    }
+  }
+});
+
+// ── GA4: detect transition to paymentStatus "completed" ──────
+auctionSchema.pre("save", async function (next) {
+  if (this.isNew) return next();
+  if (!this.isModified("paymentStatus")) return next();
+  if (this.paymentStatus !== "completed") return next();
+  if (this.purchaseEventSent) return next();
+
+  try {
+    // Fetch the previous status from the DB
+    const original = await this.constructor
+      .findById(this._id)
+      .select("paymentStatus")
+      .lean();
+
+    if (original && original.paymentStatus !== "completed") {
+      // Mark in-memory so the post-save hook knows to fire
+      this.$locals.justCompletedPayment = true;
+      // Persist the flag as part of the same save for idempotency
+      this.purchaseEventSent = true;
+    }
+  } catch (err) {
+    console.error("pre-save payment-transition check failed:", err);
+  }
+
+  next();
+});
+
+auctionSchema.post("save", async function (doc) {
+  if (doc.$locals?.justCompletedPayment) {
+    doc.$locals.justCompletedPayment = false;
+    try {
+      const { trackPurchase } = await import("../utils/ga4.js");
+      await trackPurchase(doc._id);
+    } catch (err) {
+      console.error("purchase tracking failed:", err);
+    }
+  }
 });
 
 // NEW: Middleware to clean up expired offers

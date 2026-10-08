@@ -12,6 +12,7 @@ import axiosInstance from '../utils/axiosInstance';
 import useCountryStates from '../hooks/useCountryStates';
 import PilotPhaseModal from '../components/PilotPhaseModal';
 import { useRef } from 'react';
+import { getGaClientId } from '../utils/ga.js';
 
 // Initialize Stripe
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
@@ -248,7 +249,7 @@ const Register = () => {
             setIsLoading(true);
             const { data } = await axios.post(
                 `${import.meta.env.VITE_DOMAIN_URL}/api/v1/users/register`,
-                { registrationToken: token, setupIntentId },
+                { registrationToken: token, setupIntentId, gaClientId: getGaClientId() },
                 { withCredentials: true }
             );
 
@@ -320,6 +321,8 @@ const Register = () => {
             if (identificationDocument) {
                 formData.append('identificationDocument', identificationDocument);
             }
+
+            formData.append('gaClientId', getGaClientId() || '');
 
             // Get payment method from Stripe Elements
             // if (!stripe || !elements) {
@@ -421,7 +424,8 @@ const Register = () => {
             }
 
             gtag('event', 'sign_up', {
-                user_type: 'buyer'
+                user_type: data.data.user.userType,
+                method: 'email'
             });
 
             navigate(redirectPath);

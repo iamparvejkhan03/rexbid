@@ -35,7 +35,7 @@ function SingleAuction() {
     const countdown = useAuctionCountdown(auction);
     const [activeTab, setActiveTab] = useState('description');
     const { pagination } = useComments(id);
-    const { isWatchlisted, toggleWatchlist, watchlistCount } = useWatchlist(id);
+    const { isWatchlisted, toggleWatchlist, watchlistCount } = useWatchlist(id, auction);
     const hasFetchedRef = useRef(false);
     const [isBidModalOpen, setIsBidModalOpen] = useState(false);
     const formRef = useRef();
@@ -50,6 +50,7 @@ function SingleAuction() {
     const [revieweeId, setRevieweeId] = useState(null);
     const [auctionReviews, setAuctionReviews] = useState([]);
     const makingOfferRef = useRef(false);
+    const viewedListingRef = useRef(null);   // ← add this
     // Pilot phase
     const [isPilotModalOpen, setIsPilotModalOpen] = useState(false);
     const timeRemaining = auction?.endDate ? new Date(auction.endDate) - new Date() : 0;
@@ -64,9 +65,39 @@ function SingleAuction() {
         setAuction(updatedAuction);
     };
 
+    // const handleOpenBidModal = () => {
+    //     setIsBidModalOpen(true);
+    //     // setIsPilotModalOpen(true);
+    // };
+
     const handleOpenBidModal = () => {
+        const bidValue = parseFloat(bidAmount);
+
+        // Validate — no intent recorded for invalid amounts
+        if (!bidAmount || isNaN(bidValue) || bidValue < minBidAmount) {
+            const symbol = userCurrency === 'GBP' ? '£' : '€';
+            toast.error(`Minimum bid is ${symbol}${minBidAmount.toFixed(0)}`);
+            return;
+        }
+
+        // Block intent from the seller viewing their own listing
+        if (user && user._id?.toString() === auction?.seller?._id?.toString()) {
+            toast.error(`You can't bid on your own auction.`);
+            return;
+        }
+
+        // bid_intent — valid amount entered + Place Bid pressed
+        gtag('event', 'bid_intent', {
+            listing_id: auction._id,
+            item_name: auction.title,
+            category: auction.categories?.[1] || auction.categories?.[0] || '',
+            bid_amount: bidValue,
+            currency: userCurrency,
+            auction_type: auction.auctionType,
+            bid_number: (auction.bidCount || 0) + 1
+        });
+
         setIsBidModalOpen(true);
-        // setIsPilotModalOpen(true);
     };
 
     const handleConfirmBid = (e) => {
@@ -103,11 +134,36 @@ function SingleAuction() {
     const requirePaymentMethod = (action) => {
         setPendingAction(action);
         setIsPaymentModalOpen(true);
+
+        // bidder_verification_start — fires when verification is triggered
+        if (auction?._id) {
+            gtag('event', 'bidder_verification_start', {
+                listing_id: auction._id,
+                item_name: auction.title,
+                category: auction.categories?.[1] || auction.categories?.[0] || '',
+                auction_type: auction.auctionType,
+                user_type: user?.userType || 'bidder',
+                verification_type: 'card_link',
+                action: action?.type || 'bid'   // 'bid' | 'offer'
+            });
+        }
     };
 
     // Called when the card is successfully added inside the modal
     const handleCardAdded = () => {
         setIsPaymentModalOpen(false);
+
+        // bidder_verification_complete — fires only on successful card link
+        if (auction?._id) {
+            gtag('event', 'bidder_verification_complete', {
+                listing_id: auction._id,
+                item_name: auction.title,
+                category: auction.categories?.[1] || auction.categories?.[0] || '',
+                user_type: user?.userType || 'bidder',
+                verification_type: 'card_link',
+                action: pendingAction?.type || 'bid'
+            });
+        }
 
         // Resume whichever action triggered this
         if (pendingAction?.type === 'bid') {
@@ -202,6 +258,38 @@ function SingleAuction() {
         };
     }, [id, userCurrency]);   // ⬅️ add userCurrency
     // ---------------------------
+
+    // ---- GA4 view_item ----
+    useEffect(() => {
+        if (!auction?._id) return;
+        if (viewedListingRef.current === auction._id) return;
+
+        viewedListingRef.current = auction._id;
+
+        // Pick the most meaningful price to report
+        let itemPrice = 0;
+        if (auction.auctionType === 'buy_now' && auction.convertedBuyNowPrice) {
+            itemPrice = Number(auction.convertedBuyNowPrice);
+        } else if (auction.bidCount > 0 && auction.convertedCurrentPrice) {
+            itemPrice = Number(auction.convertedCurrentPrice);
+        } else {
+            itemPrice = Number(auction.convertedStartPrice || 0);
+        }
+
+        gtag('event', 'view_item', {
+            currency: userCurrency,
+            value: itemPrice,
+            items: [{
+                item_id: auction._id,
+                item_name: auction.title,
+                item_category: auction.categories?.[0] || '',
+                item_category2: auction.categories?.[1] || '',
+                price: itemPrice,
+                quantity: 1
+            }]
+        });
+    }, [auction?._id]);
+    // -----------------------
 
     useEffect(() => {
         const fetchUserReview = async () => {
@@ -312,6 +400,17 @@ function SingleAuction() {
                 setAuction(data.data.auction);
                 setBidAmount('');
                 toast.success('Bid placed successfully!');
+
+                // place_bid — fires only after the backend confirms the bid was accepted
+                gtag('event', 'place_bid', {
+                    listing_id: data.data.auction._id,
+                    item_name: data.data.auction.title,
+                    category: data.data.auction.categories?.[1] || data.data.auction.categories?.[0] || '',
+                    bid_amount: bidValue,
+                    currency: userCurrency,
+                    auction_type: data.data.auction.auctionType,
+                    bid_number: data.data.auction.bidCount || 1
+                });
 
                 // Show anti-sniping message if the auction time was extended
                 if (data.data.extended) {
@@ -509,6 +608,16 @@ function SingleAuction() {
             if (data.success) {
                 // Update auction state
                 setAuction(data.data.auction);
+
+                // make_offer — fires only after the backend confirms the offer was submitted
+                gtag('event', 'make_offer', {
+                    listing_id: data.data.auction._id,
+                    item_name: data.data.auction.title,
+                    category: data.data.auction.categories?.[1] || data.data.auction.categories?.[0] || '',
+                    offer_amount: parseFloat(offerAmount),
+                    currency: userCurrency,
+                    auction_type: data.data.auction.auctionType
+                });
 
                 handleCloseMakeOfferModal();
                 toast.success('Your offer has been submitted successfully!');
@@ -889,10 +998,10 @@ function SingleAuction() {
                                     timeRemaining < 24 * 60 * 60 * 1000 &&
                                     auction.reservePrice > auction.startPrice &&
                                     auction.bidCount === 0 && (
-                                    <p className={`${auction.convertedCurrentPrice >= auction.reservePrice ? 'text-green-600 bg-green-100' : 'text-blue-600 bg-blue-100'} flex items-start self-start text-xs font-medium px-4 py-2 rounded-md`}>
-                                        {auction.convertedCurrentPrice >= auction.reservePrice ? 'Reserve Met' : 'Reserve Applies'}
-                                    </p>
-                                )}
+                                        <p className={`${auction.convertedCurrentPrice >= auction.reservePrice ? 'text-green-600 bg-green-100' : 'text-blue-600 bg-blue-100'} flex items-start self-start text-xs font-medium px-4 py-2 rounded-md`}>
+                                            {auction.convertedCurrentPrice >= auction.reservePrice ? 'Reserve Met' : 'Reserve Applies'}
+                                        </p>
+                                    )}
 
                                 {/* ----- RESERVE PROGRESS INDICATOR (only in last 24h) ----- */}
                                 {auction.auctionType === "reserve" &&

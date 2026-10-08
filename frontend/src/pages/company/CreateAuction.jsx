@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import parse from 'html-react-parser';
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
@@ -373,6 +373,19 @@ const CreateAuction = () => {
     const [categoryFields, setCategoryFields] = useState([]);
     const [loadingFields, setLoadingFields] = useState(false);
     const [loadingCategories, setLoadingCategories] = useState(true);
+
+    // Track whether listing_start has already fired for this session
+    const listingStartedRef = useRef(false);
+
+    const handleListingStart = () => {
+        if (listingStartedRef.current) return;
+        listingStartedRef.current = true;
+
+        gtag('event', 'listing_start', {
+            user_type: user?.userType || 'company'
+            // add category: selectedParentSlug later if you want
+        });
+    };
 
     const {
         register,
@@ -819,6 +832,20 @@ const CreateAuction = () => {
 
             if (data && data.success) {
                 toast.success(data.message);
+
+                gtag('event', 'listing_submit', {
+                    listing_id: data.data?._id,
+                    item_name: auctionData.title,
+                    category: auctionData.parentCategory,
+                    seller_type: user?.userType || 'seller',
+                    auction_type: auctionData.auctionType,
+                    allow_offers: auctionData.allowOffers || false,
+                    vat_included: Boolean(auctionData.vatIncluded),
+                    value: Number(auctionData.startPrice || auctionData.buyNowPrice || 0),
+                    reserve_price: Number(auctionData.reservePrice || 0),
+                    currency: userCurrency
+                });
+
                 // Reset form
                 setStep(1);
                 setUploadedPhotos([]);
@@ -877,7 +904,11 @@ const CreateAuction = () => {
                                 </div>
                             </div>
 
-                            <form onSubmit={handleSubmit(createAuctionHandler)} className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
+                            <form
+                                onSubmit={handleSubmit(createAuctionHandler)}
+                                onInput={handleListingStart}
+                                onChange={handleListingStart}
+                                className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
                                 {/* Step 1: Item Information */}
                                 {step === 1 && (
                                     <div>

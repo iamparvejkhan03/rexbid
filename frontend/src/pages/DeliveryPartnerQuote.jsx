@@ -41,6 +41,12 @@ function DeliveryPartnerQuote() {
             const { data } = await axiosInstance.post("/api/v1/delivery-quote/submit", formData);
 
             if (data?.success) {
+                gtag('event', 'delivery_quote_request', {
+                    lead_type: 'delivery_quote',
+                    form_location: 'delivery_partner_quote_page',
+                    has_phone: Boolean(formData.phone?.trim())
+                });
+
                 toast.success(data.message || "Your quote request has been sent successfully.");
                 reset();
                 window.scrollTo({ top: 0, behavior: "smooth" });
@@ -50,7 +56,7 @@ function DeliveryPartnerQuote() {
         } catch (error) {
             toast.error(
                 error.response?.data?.message ||
-                    "Failed to send your quote request. Please try again."
+                "Failed to send your quote request. Please try again."
             );
         } finally {
             setSending(false);

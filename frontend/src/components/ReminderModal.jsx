@@ -45,6 +45,29 @@ const ReminderModal = ({ isOpen, onClose, auction }) => {
             });
 
             if (data.success) {
+                // add_to_wishlist — anonymous reminder is treated as a watch
+                if (auction?._id) {
+                    const itemPrice = Number(
+                        auction.convertedCurrentPrice ||
+                        auction.convertedBuyNowPrice ||
+                        auction.convertedStartPrice ||
+                        0
+                    );
+
+                    gtag('event', 'set_auction_reminder', {
+                        currency: auction.baseCurrency || 'USD',
+                        value: itemPrice,
+                        items: [{
+                            item_id: auction._id,
+                            item_name: auction.title,
+                            item_category: auction.categories?.[0] || '',
+                            item_category2: auction.categories?.[1] || '',
+                            price: itemPrice,
+                            quantity: 1
+                        }]
+                    });
+                }
+
                 setSuccess(true);
             }
         } catch (error) {

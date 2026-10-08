@@ -312,6 +312,12 @@ const userSchema = new Schema(
       default: null
     },
 
+    gaClientId: {
+      type: String,
+      default: null,
+      index: true
+    }
+
   },
   { timestamps: true },
 );

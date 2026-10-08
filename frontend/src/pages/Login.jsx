@@ -43,6 +43,12 @@ const Login = () => {
 
             if (data && data.success) {
                 toast.success(data.message);
+
+                gtag('event', 'login', {
+                    method: 'email',
+                    user_type: data.userType
+                });
+
                 navigate(`/${data.userType}/dashboard`);
             }
         } catch (error) {
