@@ -2424,336 +2424,219 @@ const sendOfferOutbidNotifications = async () => {
     return false;
 };
 
+// ============================================
+// PAYOUT EMAILS (RexBid Branding)
+// ============================================
+
+// Payout Initiated
 const payoutInitiatedEmail = async (seller, auction, payout) => {
     try {
+        const displayName =
+            seller?.firstName || seller?.companyName || seller?.username || "there";
+
+        const content = `
+            <h2 style="text-align: center;">Payout Initiated</h2>
+            <p style="text-align: center; color: ${BRAND_COLORS.textLight};">
+                Good news, ${displayName}! Your payout is now being processed.
+            </p>
+
+            ${createInfoCard(`
+                <p style="margin: 0 0 12px 0; font-size: 18px; font-weight: bold; color: ${BRAND_COLORS.secondary};">
+                    ${auction.title}
+                </p>
+
+                ${createSummaryRow("Payout Method:", payout.payoutMethod)}
+                ${createSummaryRow("Total Sale Amount:", payout.formattedTotalAmount)}
+                ${createSummaryRow("Commission:", payout.formattedCommissionAmount)}
+
+                <div style="display: flex; justify-content: space-between; padding: 12px 0 0 0; margin-top: 8px; border-top: 2px solid ${BRAND_COLORS.secondary};">
+                    <span style="font-weight: bold; color: ${BRAND_COLORS.secondary}; font-size: 16px;">
+                        Your Payout Amount
+                    </span>
+                    <span style="font-weight: bold; color: ${BRAND_COLORS.primary}; font-size: 16px;">
+                        ${payout.formattedSellerAmount}
+                    </span>
+                </div>
+            `)}
+
+            <p>Dear <strong>${displayName}</strong>,</p>
+
+            <p>
+                We're pleased to inform you that the payout process for your sold item
+                has been initiated by our admin team. Your payment is now being processed.
+            </p>
+
+            <div style="background: #fffbeb; border-left: 4px solid ${BRAND_COLORS.warning}; padding: 16px; border-radius: 8px; margin: 20px 0;">
+                <p style="margin: 0 0 6px 0;"><strong>What happens next?</strong></p>
+                <p style="margin: 0; color: ${BRAND_COLORS.textLight};">
+                    The admin will process your payment manually. You'll receive another
+                    notification once the payment has been completed. Please allow
+                    1–3 business days for processing.
+                </p>
+            </div>
+
+            <p>
+                If you have any questions about this payout, please contact our support team.
+            </p>
+
+            <div style="text-align: center; margin: 25px 0;">
+                ${createButton("View Your Listing", `${FRONTEND_URL}/auction/${auction._id}`, "primary")}
+            </div>
+        `;
+
+        const html = baseTemplate(content, "Payout Initiated");
+
         const info = await transporter.sendMail({
-            from: `"RexBid" <${process.env.EMAIL_USER}>`,
+            from: `"${BRAND_NAME}" <${process.env.EMAIL_USER}>`,
             to: seller.email,
-            subject: `💰 Payout Initiated - ${auction.title}`,
-            html: `
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <style>
-                        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
-                        .container { max-width: 600px; margin: 0 auto; background: #ffffff; }
-                        .header { background: #1e2d3b; padding: 25px 20px; text-align: center; }
-                        .brand-name { color: #edcd1f; font-size: 28px; font-weight: bold; letter-spacing: 1px; margin: 10px 0; }
-                        .tagline { color: #ffffff; font-size: 16px; margin: 5px 0 0 0; opacity: 0.9; }
-                        .content { padding: 25px; }
-                        .info-box { 
-                            background: #e3f2fd; 
-                            padding: 25px; 
-                            border-radius: 8px; 
-                            margin: 20px 0; 
-                            border: 2px solid #bbdefb;
-                        }
-                        .info-title { 
-                            font-size: 22px; 
-                            font-weight: bold; 
-                            color: #0d47a1;
-                            margin-bottom: 15px;
-                            text-align: center;
-                        }
-                        .payout-details { 
-                            background: #f8f9fa; 
-                            padding: 20px; 
-                            border-radius: 8px; 
-                            margin: 20px 0; 
-                        }
-                        .amount-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #e9ecef; }
-                        .amount-row.total { border-bottom: none; font-weight: bold; font-size: 18px; margin-top: 10px; color: #1e2d3b; }
-                        .amount-label { color: #666; }
-                        .amount-value { font-weight: bold; }
-                        .method-badge {
-                            display: inline-block;
-                            padding: 5px 10px;
-                            background: #edcd1f;
-                            color: #1e2d3b;
-                            border-radius: 4px;
-                            font-weight: bold;
-                            text-transform: capitalize;
-                        }
-                        .footer { background: #f8f9fa; padding: 20px; text-align: center; color: #666; font-size: 13px; border-top: 1px solid #e9ecef; margin-top: 25px; }
-                        .highlight { color: #edcd1f; font-weight: bold; }
-                    </style>
-                </head>
-                <body>
-                    <div class="container">
-                        <div class="header">
-                            <div class="brand-name">RexBid</div>
-                            <div class="tagline">An Irish Marketplace, with an Auction Advantage.</div>
-                        </div>
-                        
-                        <div class="content">
-                            <div class="info-box">
-                                <div class="info-title">💰 PAYOUT INITIATED</div>
-                                <p style="text-align: center; font-size: 16px;">Good news, ${seller.firstName || seller?.companyName || seller.username}!</p>
-                            </div>
-                            
-                            <p>Dear <span class="highlight">${seller.firstName || seller?.companyName || seller.username}</span>,</p>
-                            
-                            <p>We're pleased to inform you that the payout process for your sold item has been initiated by our admin team. Your payment is now being processed.</p>
-                            
-                            <div class="payout-details">
-                                <h3 style="margin-bottom: 15px; color: #1e2d3b;">Payout Details:</h3>
-                                
-                                <p><strong>Item Sold:</strong> ${auction.title}</p>
-                                <p><strong>Payout Method:</strong> <span class="method-badge">${payout.payoutMethod}</span></p>
-                                
-                                <div class="amount-row">
-                                    <span class="amount-label">Total Sale Amount:</span>
-                                    <span class="amount-value">${payout.formattedTotalAmount}</span>
-                                </div>
-                                <div class="amount-row">
-                                    <span class="amount-label">Sales Tax:</span>
-                                    <span class="amount-value">${payout.formattedCommissionAmount}</span>
-                                </div>
-                                <div class="amount-row total">
-                                    <span class="amount-label">Your Payout Amount:</span>
-                                    <span class="amount-value">${payout.formattedSellerAmount}</span>
-                                </div>
-                            </div>
-                            
-                            <p><strong>What happens next?</strong></p>
-                            <p>The admin will process your payment manually. You'll receive another notification once the payment has been completed. Please allow 1-3 business days for processing.</p>
-                            
-                            <p>If you have any questions about this payout, please contact our support team.</p>
-                        </div>
-                        
-                        <div class="footer">
-                            <p class="footer-text">This is an automated message from RexBid.</p>
-                            <p class="footer-text">© ${new Date().getFullYear()} RexBid. All rights reserved.</p>
-                        </div>
-                    </div>
-                </body>
-                </html>
-            `,
+            subject: `Payout Initiated - ${auction.title}`,
+            html,
         });
 
-        console.log(`✅ Payout initiated email sent to seller ${seller.email}`);
+        console.log(`Payout initiated email sent to seller ${seller.email}`);
         return !!info;
     } catch (error) {
-        console.error("❌ Failed to send payout initiated email:", error);
+        console.error("Failed to send payout initiated email:", error);
         return false;
     }
 };
 
+// Payout Completed
 const payoutCompletedEmail = async (seller, auction, payout) => {
     try {
+        const displayName =
+            seller?.firstName || seller?.companyName || seller?.username || "there";
+
+        const content = `
+            <h2 style="text-align: center;">Payout Completed</h2>
+            <p style="text-align: center; color: ${BRAND_COLORS.textLight};">
+                Your payout has been processed, ${displayName}!
+            </p>
+
+            ${createInfoCard(`
+                <p style="margin: 0 0 12px 0; font-size: 18px; font-weight: bold; color: ${BRAND_COLORS.secondary};">
+                    ${auction.title}
+                </p>
+
+                ${createSummaryRow("Payout Method:", payout.payoutMethod)}
+                ${payout.transactionId
+                ? createSummaryRow("Transaction ID:", payout.transactionId)
+                : ""
+            }
+                ${createSummaryRow("Total Sale Amount:", payout.formattedTotalAmount)}
+                ${createSummaryRow("Commission:", payout.formattedCommissionAmount)}
+
+                <div style="display: flex; justify-content: space-between; padding: 12px 0 0 0; margin-top: 8px; border-top: 2px solid ${BRAND_COLORS.secondary};">
+                    <span style="font-weight: bold; color: ${BRAND_COLORS.secondary}; font-size: 16px;">
+                        Amount Sent to You
+                    </span>
+                    <span style="font-weight: bold; color: ${BRAND_COLORS.primary}; font-size: 16px;">
+                        ${payout.formattedSellerAmount}
+                    </span>
+                </div>
+            `)}
+
+            <p>Dear <strong>${displayName}</strong>,</p>
+
+            <p>
+                Great news! Your payout has been successfully processed and the payment
+                has been sent to your ${payout.payoutMethod} account.
+            </p>
+
+            <div style="background: #f0fdf4; border-left: 4px solid ${BRAND_COLORS.success}; padding: 16px; border-radius: 8px; margin: 20px 0;">
+                <p style="margin: 0 0 6px 0;"><strong>Payment Details</strong></p>
+                <p style="margin: 0; color: ${BRAND_COLORS.textLight};">
+                    Please check your ${payout.payoutMethod} account. The payment should
+                    appear within 1–3 business days depending on your provider.
+                </p>
+            </div>
+
+            <p>Thank you for selling with ${BRAND_NAME}! We appreciate your business.</p>
+
+            <div style="text-align: center; margin: 25px 0;">
+                ${createButton("View Your Listing", `${FRONTEND_URL}/auction/${auction._id}`, "primary")}
+            </div>
+        `;
+
+        const html = baseTemplate(content, "Payout Completed");
+
         const info = await transporter.sendMail({
-            from: `"RexBid" <${process.env.EMAIL_USER}>`,
+            from: `"${BRAND_NAME}" <${process.env.EMAIL_USER}>`,
             to: seller.email,
-            subject: `✅ Payout Completed - ${auction.title}`,
-            html: `
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <style>
-                        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
-                        .container { max-width: 600px; margin: 0 auto; background: #ffffff; }
-                        .header { background: #1e2d3b; padding: 25px 20px; text-align: center; }
-                        .brand-name { color: #edcd1f; font-size: 28px; font-weight: bold; letter-spacing: 1px; margin: 10px 0; }
-                        .tagline { color: #ffffff; font-size: 16px; margin: 5px 0 0 0; opacity: 0.9; }
-                        .content { padding: 25px; }
-                        .success-box { 
-                            background: #d4edda; 
-                            padding: 25px; 
-                            border-radius: 8px; 
-                            margin: 20px 0; 
-                            border: 2px solid #c3e6cb;
-                            text-align: center;
-                        }
-                        .success-title { 
-                            font-size: 26px; 
-                            font-weight: bold; 
-                            color: #155724;
-                            margin-bottom: 10px;
-                        }
-                        .payment-summary { 
-                            background: #f8f9fa; 
-                            padding: 25px; 
-                            border-radius: 8px; 
-                            margin: 25px 0; 
-                            border-left: 4px solid #edcd1f;
-                        }
-                        .amount-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #e9ecef; }
-                        .amount-row.total { border-bottom: none; font-weight: bold; font-size: 18px; margin-top: 10px; color: #1e2d3b; }
-                        .amount-label { color: #666; }
-                        .amount-value { font-weight: bold; }
-                        .method-badge {
-                            display: inline-block;
-                            padding: 5px 10px;
-                            background: #edcd1f;
-                            color: #1e2d3b;
-                            border-radius: 4px;
-                            font-weight: bold;
-                            text-transform: capitalize;
-                        }
-                        .transaction-id {
-                            background: #e9ecef;
-                            padding: 10px;
-                            border-radius: 4px;
-                            font-family: monospace;
-                            margin: 10px 0;
-                        }
-                        .footer { background: #f8f9fa; padding: 20px; text-align: center; color: #666; font-size: 13px; border-top: 1px solid #e9ecef; margin-top: 25px; }
-                        .highlight { color: #edcd1f; font-weight: bold; }
-                    </style>
-                </head>
-                <body>
-                    <div class="container">
-                        <div class="header">
-                            <div class="brand-name">RexBid</div>
-                            <div class="tagline">An Irish Marketplace, with an Auction Advantage.</div>
-                        </div>
-                        
-                        <div class="content">
-                            <div class="success-box">
-                                <div class="success-title">✅ PAYMENT SENT</div>
-                                <p style="font-size: 18px; color: #155724;">Your payout has been processed, ${seller.firstName || seller?.companyName || seller.username}!</p>
-                            </div>
-                            
-                            <p>Dear <span class="highlight">${seller.firstName || seller?.companyName || seller.username}</span>,</p>
-                            
-                            <p>Great news! Your payout has been successfully processed and the payment has been sent to your ${payout.payoutMethod} account.</p>
-                            
-                            <div class="payment-summary">
-                                <h3 style="margin-bottom: 15px; color: #1e2d3b;">Payment Summary:</h3>
-                                
-                                <p><strong>Item:</strong> ${auction.title}</p>
-                                <p><strong>Payout Method:</strong> <span class="method-badge">${payout.payoutMethod}</span></p>
-                                
-                                ${payout.transactionId
-                    ? `
-                                <div class="transaction-id">
-                                    <strong>Transaction ID:</strong> ${payout.transactionId}
-                                </div>
-                                `
-                    : ""
-                }
-                                
-                                <div class="amount-row">
-                                    <span class="amount-label">Total Sale Amount:</span>
-                                    <span class="amount-value">${payout.formattedTotalAmount}</span>
-                                </div>
-                                <div class="amount-row">
-                                    <span class="amount-label">Sales Tax:</span>
-                                    <span class="amount-value">${payout.formattedCommissionAmount}</span>
-                                </div>
-                                <div class="amount-row total">
-                                    <span class="amount-label">Amount Sent to You:</span>
-                                    <span class="amount-value">${payout.formattedSellerAmount}</span>
-                                </div>
-                            </div>
-                            
-                            <p><strong>Payment Details:</strong></p>
-                            <p>Please check your ${payout.payoutMethod} account. The payment should appear in your account within 1-3 business days depending on your provider.</p>
-                            
-                            <p>Thank you for selling with RexBid! We appreciate your business.</p>
-                        </div>
-                        
-                        <div class="footer">
-                            <p class="footer-text">This payment confirmation was sent by RexBid.</p>
-                            <p class="footer-text">© ${new Date().getFullYear()} RexBid. All rights reserved.</p>
-                        </div>
-                    </div>
-                </body>
-                </html>
-            `,
+            subject: `Payout Completed - ${auction.title}`,
+            html,
         });
 
-        console.log(`✅ Payout completed email sent to seller ${seller.email}`);
+        console.log(`Payout completed email sent to seller ${seller.email}`);
         return !!info;
     } catch (error) {
-        console.error("❌ Failed to send payout completed email:", error);
+        console.error("Failed to send payout completed email:", error);
         return false;
     }
 };
 
+// Payout Failed / Action Required
 const payoutFailedEmail = async (seller, payout) => {
     try {
+        const displayName =
+            seller?.firstName || seller?.companyName || seller?.username || "there";
+
+        const content = `
+            <h2 style="text-align: center;">Payout Issue</h2>
+            <p style="text-align: center; color: ${BRAND_COLORS.textLight};">
+                We encountered an issue with your payout.
+            </p>
+
+            <div style="background: #fffbeb; border-left: 4px solid ${BRAND_COLORS.warning}; padding: 16px; border-radius: 8px; margin: 20px 0;">
+                <p style="margin: 0 0 6px 0;"><strong>Reason</strong></p>
+                <p style="margin: 0; color: ${BRAND_COLORS.textLight};">
+                    ${payout.failureReason || "Payment method issue or invalid details"}
+                </p>
+            </div>
+
+            ${createInfoCard(`
+                ${createSummaryRow("Payout Amount:", payout.formattedSellerAmount)}
+                ${createSummaryRow("Payout Method:", payout.payoutMethod)}
+            `)}
+
+            <p>Dear <strong>${displayName}</strong>,</p>
+
+            <p>
+                We regret to inform you that there was an issue processing your payout of
+                <strong>${payout.formattedSellerAmount}</strong> via ${payout.payoutMethod}.
+            </p>
+
+            <div style="background: ${BRAND_COLORS.grayBg}; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid ${BRAND_COLORS.grayBorder};">
+                <p style="margin: 0 0 8px 0;"><strong>Next Steps</strong></p>
+                <p style="margin: 0; color: ${BRAND_COLORS.textLight};">
+                    Please check your payout method details in your account settings and
+                    ensure they are correct. Our admin team will review the issue and may
+                    contact you for additional information.
+                </p>
+            </div>
+
+            <p>
+                If you need immediate assistance, please contact our support team.
+            </p>
+
+            <div style="text-align: center; margin: 25px 0;">
+                ${createButton("Contact Support", `mailto:${SUPPORT_EMAIL}`, "primary")}
+            </div>
+        `;
+
+        const html = baseTemplate(content, "Payout Issue");
+
         const info = await transporter.sendMail({
-            from: `"RexBid" <${process.env.EMAIL_USER}>`,
+            from: `"${BRAND_NAME}" <${process.env.EMAIL_USER}>`,
             to: seller.email,
-            subject: `⚠️ Payout Update - Action Required`,
-            html: `
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <style>
-                        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
-                        .container { max-width: 600px; margin: 0 auto; background: #ffffff; }
-                        .header { background: #1e2d3b; padding: 25px 20px; text-align: center; }
-                        .brand-name { color: #edcd1f; font-size: 28px; font-weight: bold; letter-spacing: 1px; margin: 10px 0; }
-                        .tagline { color: #ffffff; font-size: 16px; margin: 5px 0 0 0; opacity: 0.9; }
-                        .content { padding: 25px; }
-                        .warning-box { 
-                            background: #fff3cd; 
-                            padding: 25px; 
-                            border-radius: 8px; 
-                            margin: 20px 0; 
-                            border: 2px solid #ffeaa7;
-                            text-align: center;
-                        }
-                        .warning-title { 
-                            font-size: 26px; 
-                            font-weight: bold; 
-                            color: #856404;
-                            margin-bottom: 10px;
-                        }
-                        .details-box { 
-                            background: #f8f9fa; 
-                            padding: 20px; 
-                            border-radius: 8px; 
-                            margin: 20px 0; 
-                        }
-                        .footer { background: #f8f9fa; padding: 20px; text-align: center; color: #666; font-size: 13px; border-top: 1px solid #e9ecef; margin-top: 25px; }
-                        .highlight { color: #edcd1f; font-weight: bold; }
-                    </style>
-                </head>
-                <body>
-                    <div class="container">
-                        <div class="header">
-                            <div class="brand-name">RexBid</div>
-                            <div class="tagline">An Irish Marketplace, with an Auction Advantage.</div>
-                        </div>
-                        
-                        <div class="content">
-                            <div class="warning-box">
-                                <div class="warning-title">⚠️ PAYOUT ISSUE</div>
-                                <p style="font-size: 16px;">We encountered an issue with your payout</p>
-                            </div>
-                            
-                            <p>Dear <span class="highlight">${seller.firstName || seller?.companyName || seller.username}</span>,</p>
-                            
-                            <p>We regret to inform you that there was an issue processing your payout of <strong>${payout.formattedSellerAmount}</strong> via ${payout.payoutMethod}.</p>
-                            
-                            <div class="details-box">
-                                <h4>Reason:</h4>
-                                <p>${payout.failureReason || "Payment method issue or invalid details"}</p>
-                                
-                                <h4>Next Steps:</h4>
-                                <p>Please check your payout method details in your account settings and ensure they are correct. Our admin team will review the issue and may contact you for additional information.</p>
-                            </div>
-                            
-                            <p>If you need immediate assistance, please contact our support team.</p>
-                        </div>
-                        
-                        <div class="footer">
-                            <p class="footer-text">This is an automated message from RexBid.</p>
-                            <p class="footer-text">© ${new Date().getFullYear()} RexBid. All rights reserved.</p>
-                        </div>
-                    </div>
-                </body>
-                </html>
-            `,
+            subject: `Payout Update - Action Required`,
+            html,
         });
 
-        console.log(`✅ Payout failed email sent to seller ${seller.email}`);
+        console.log(`Payout failed email sent to seller ${seller.email}`);
         return !!info;
     } catch (error) {
-        console.error("❌ Failed to send payout failed email:", error);
+        console.error("Failed to send payout failed email:", error);
         return false;
     }
 };
