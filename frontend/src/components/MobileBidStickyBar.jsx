@@ -1,4 +1,4 @@
-import { Gavel, Zap, Banknote, Clock, Gift, Users, ShieldCheck, Bell, Loader, Truck } from 'lucide-react';
+import { Gavel, Zap, Banknote, Clock, Gift, Users, ShieldCheck, Bell, Loader, Truck, Info } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -136,6 +136,8 @@ const MobileBidStickyBar = ({
                 {isReserveMet ? '✓ Reserve Met' : 'Reserve Applies'}
               </div>
             )}
+
+            <p className="mt-2 bg-blue-50 text-blue-600 border border-blue-300 px-2 py-1 rounded font-medium text-xs flex items-center gap-2 w-fit">{auction?.vatIncluded ? 'VAT to be added' : 'No VAT  to be added'}</p>
           </div>
 
           <div className="flex flex-col items-start flex-shrink-0">

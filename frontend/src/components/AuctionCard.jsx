@@ -167,14 +167,13 @@ function AuctionCard({ auction }) {
 
     return (
         <div
-            className="border border-gray-200 p-4 h-full bg-white rounded-xl shadow-lg transition-all duration-200 ease-out flex flex-col hover:shadow-xl cursor-pointer group"
+            className="border border-gray-200 p-4 h-full bg-white rounded-xl shadow-lg transition-all duration-200 ease-out flex flex-col hover:shadow-xl group"
             onMouseMove={handleMove}
             onMouseLeave={() => setTilt({ x: 0, y: 0 })}
             style={{ transform: `perspective(1000px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)` }}
-            onClick={handleAuctionClick}
         >
             {/* Image Section */}
-            <div className="relative overflow-hidden rounded-tr-3xl rounded-bl-3xl">
+            <Link to={`/auction/${auction._id}`} target="_blank" className="relative overflow-hidden rounded-tr-3xl rounded-bl-3xl">
                 <img
                     src={auction.photos?.[0]?.url || heroImg}
                     alt={auction.title}
@@ -245,7 +244,7 @@ function AuctionCard({ auction }) {
                     <Eye size={12} />
                     {auction.views?.toLocaleString() || 0}
                 </div> */}
-            </div>
+            </Link>
 
             {/* Content Section */}
             <div className="mt-4 flex flex-col flex-1">
@@ -253,10 +252,7 @@ function AuctionCard({ auction }) {
                 <Link
                     to={`/auction/${auction._id}`}
                     className="font-semibold text-lg leading-tight mb-2 line-clamp-2 hover:text-primary transition-colors"
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        handleAuctionClick();
-                    }}
+                    target="_blank"
                 >
                     {auction.title}
                 </Link>
@@ -369,12 +365,10 @@ function AuctionCard({ auction }) {
 
             {/* Button Section */}
             <div className="flex gap-2 items-center mt-auto pt-3 border-t border-gray-100">
-                <button
+                <Link
                     // disabled={!isAuctionActive}
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        handleAuctionClick();
-                    }}
+                    to={`/auction/${auction._id}`}
+                    target="_blank"
                     className={`flex-1 py-3 px-4 cursor-pointer text-white rounded-lg flex gap-2 items-center justify-center transition-all ${isAuctionActive
                         ? 'bg-gradient-to-r from-[#D19F3E] to-[#E8B86B] bg-[#E8B86B]/90 shadow-md hover:shadow-lg'
                         : 'bg-gradient-to-r from-[#D19F3E] to-[#E8B86B] hover:from-[#D19F3E]/90 hover:to-[#E8B86B]/90 shadow-md hover:shadow-lg'
@@ -386,7 +380,7 @@ function AuctionCard({ auction }) {
                     <span className="font-medium text-white">
                         {!isAuctionActive ? 'View Auction' : auction?.auctionType === 'buy_now' ? 'Buy Now' : auction?.auctionType === 'giveaway' ? 'Enter Now' : 'Place Bid'}
                     </span>
-                </button>
+                </Link>
 
                 {/* Watchlist Button */}
                 <button

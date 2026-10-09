@@ -553,129 +553,6 @@ function Auctions() {
         }));
     }, [apiFilters]);
 
-    const restorationStarted = useRef(false);
-
-    useEffect(() => {
-        const savedAuctionId = sessionStorage.getItem("returnToAuction");
-        const savedScrollY = sessionStorage.getItem("returnToAuctionScrollY");
-        const savedPage = sessionStorage.getItem("returnToAuctionPage");
-
-        if (!savedAuctionId || restorationStarted.current) {
-            return;
-        }
-
-        if (loading || loadingMore || !pagination) {
-            return;
-        }
-
-        restorationStarted.current = true;
-
-        const targetPage = Number(savedPage) || 1;
-        const currentPage = pagination.currentPage || 1;
-
-        const restorePosition = () => {
-            requestAnimationFrame(() => {
-                requestAnimationFrame(() => {
-                    const auctionElement = document.getElementById(
-                        `auction-${savedAuctionId}`
-                    );
-
-                    if (auctionElement) {
-                        auctionElement.scrollIntoView({
-                            behavior: "auto",
-                            block: "center",
-                        });
-
-                        sessionStorage.removeItem("returnToAuction");
-                        sessionStorage.removeItem("returnToAuctionScrollY");
-                        sessionStorage.removeItem("returnToAuctionPage");
-
-                        return;
-                    }
-
-                    // Fallback: restore exact previous scroll position
-                    if (savedScrollY) {
-                        window.scrollTo({
-                            top: Number(savedScrollY),
-                            behavior: "auto",
-                        });
-
-                        sessionStorage.removeItem("returnToAuction");
-                        sessionStorage.removeItem("returnToAuctionScrollY");
-                        sessionStorage.removeItem("returnToAuctionPage");
-                    }
-                });
-            });
-        };
-
-        const loadRequiredPages = async () => {
-            if (currentPage < targetPage) {
-                for (let page = currentPage; page < targetPage; page++) {
-                    await loadMoreAuctions();
-                }
-            }
-
-            restorePosition();
-        };
-
-        loadRequiredPages();
-    }, [
-        loading,
-        loadingMore,
-        pagination,
-        liveAuctions.length,
-        loadMoreAuctions,
-    ]);
-
-    useEffect(() => {
-    const auctionId = sessionStorage.getItem("returnToAuction");
-
-    if (!auctionId || loading || loadingMore || !pagination) {
-        return;
-    }
-
-    const auctionExists = liveAuctions.some(
-        auction => auction._id === auctionId
-    );
-
-    if (auctionExists) {
-        requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-                const element = document.getElementById(
-                    `auction-${auctionId}`
-                );
-
-                if (element) {
-                    element.scrollIntoView({
-                        behavior: "auto",
-                        block: "center",
-                    });
-
-                    sessionStorage.removeItem("returnToAuction");
-                    sessionStorage.removeItem("returnToAuctionScrollY");
-                    sessionStorage.removeItem("returnToAuctionLoadedCount");
-                }
-            });
-        });
-
-        return;
-    }
-
-    // Target isn't loaded yet.
-    // Automatically load the next page.
-    if (
-        pagination.currentPage < pagination.totalPages
-    ) {
-        loadMoreAuctions();
-    }
-}, [
-    liveAuctions,
-    loading,
-    loadingMore,
-    pagination,
-    loadMoreAuctions
-]);
-
     const debouncedUpdateFilters = useCallback((newFilters) => {
         if (debounceTimer) {
             clearTimeout(debounceTimer);
@@ -948,24 +825,14 @@ function Auctions() {
                                         // Grid View
                                         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-x-6 gap-y-8 md:gap-y-12">
                                             {liveAuctions.map(auction => (
-                                                <div
-                                                    key={auction._id}
-                                                    id={`auction-${auction._id}`}
-                                                >
-                                                    <AuctionCard auction={auction} />
-                                                </div>
+                                                    <AuctionCard key={auction?._id} auction={auction} />
                                             ))}
                                         </div>
                                     ) : (
                                         // List View
                                         <div className="space-y-2">
                                             {liveAuctions.map((auction) => (
-                                                <div
-                                                    key={auction._id}
-                                                    id={`auction-${auction._id}`}
-                                                >
-                                                    <AuctionListItem auction={auction} />
-                                                </div>
+                                                <AuctionListItem key={auction?._id} auction={auction} />
                                             ))}
                                         </div>
                                     )}
