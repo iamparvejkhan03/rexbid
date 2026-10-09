@@ -31,6 +31,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import axiosInstance from '../../utils/axiosInstance';
 import { useAuth } from '../../contexts/AuthContext';
+import { compressAuctionImages } from '../../utils/compressImage.js';
 
 // Drag and Drop item types
 const ItemTypes = {
@@ -504,6 +505,8 @@ const EditAuction = () => {
     const [serviceRecordCaptions, setServiceRecordCaptions] = useState([]);
     const [uploadedDocumentCaptions, setUploadedDocumentCaptions] = useState([]);
 
+    const [isCompressing, setIsCompressing] = useState(false);
+
     const { auctionId } = useParams();
     const navigate = useNavigate();
 
@@ -937,27 +940,34 @@ const EditAuction = () => {
     };
 
     // Fixed handlePhotoUpload function
-    const handlePhotoUpload = (e) => {
+    const handlePhotoUpload = async (e) => {
         const files = Array.from(e.target.files);
-
         if (files.length === 0) return;
 
-        // Generate consistent IDs using file properties and timestamp
-        const newPhotos = files.map(file => {
-            // Create a more stable ID using file properties
+        setIsCompressing(true);
+        let compressedFiles = files;
+
+        try {
+            compressedFiles = await compressAuctionImages(files);
+        } catch (err) {
+            console.error('Image processing failed:', err);
+            toast.error('Could not process one or more images');
+            setIsCompressing(false);
+            e.target.value = '';
+            return;
+        }
+
+        const newPhotos = compressedFiles.map(file => {
             const fileId = `${file.name}-${file.size}-${file.lastModified}`;
             const uniqueId = `new-${Date.now()}-${fileId.replace(/[^a-zA-Z0-9]/g, '-')}`;
-
             return {
                 file,
                 isExisting: false,
                 id: uniqueId,
-                // Add a unique identifier to prevent duplicates
                 _fileSignature: `${file.name}-${file.size}-${file.lastModified}`
             };
         });
 
-        // Filter out duplicates based on file signature
         const existingSignatures = new Set(
             allPhotos
                 .filter(photo => !photo.isExisting)
@@ -970,39 +980,47 @@ const EditAuction = () => {
 
         if (uniqueNewPhotos.length === 0) {
             toast.error('Some photos are already added');
+            setIsCompressing(false);
+            e.target.value = '';
             return;
         }
 
         setAllPhotos(prev => {
-            // Remove any potential duplicates from previous state
-            const existingSignatures = new Set(
+            const existingSigs = new Set(
                 prev.filter(p => !p.isExisting).map(p => p._fileSignature)
             );
-
-            const filteredNewPhotos = uniqueNewPhotos.filter(photo =>
-                !existingSignatures.has(photo._fileSignature)
+            const filtered = uniqueNewPhotos.filter(photo =>
+                !existingSigs.has(photo._fileSignature)
             );
-
-            return [...filteredNewPhotos, ...prev];
+            return [...filtered, ...prev];
         });
 
-        // Initialize captions for new photos
         const newCaptions = [...photoCaptions];
-        files.forEach(() => newCaptions.unshift('')); // Add empty captions at beginning
+        compressedFiles.forEach(() => newCaptions.unshift(''));
         setPhotoCaptions(newCaptions);
 
         clearErrors('photos');
-
-        // Reset the file input
+        setIsCompressing(false);
         e.target.value = '';
     };
 
-    const handleServiceRecordUpload = (e) => {
+    const handleServiceRecordUpload = async (e) => {
         const files = Array.from(e.target.files);
 
         if (files.length === 0) return;
 
-        const newServiceRecords = files.map(file => {
+        setIsCompressing(true);
+        let compressedFiles = files;
+        try {
+            compressedFiles = await compressAuctionImages(files);
+        } catch (err) {
+            console.error('Service record compression failed:', err);
+            setIsCompressing(false);
+            e.target.value = '';
+            return;
+        }
+
+        const newServiceRecords = compressedFiles.map(file => {
             const fileId = `${file.name}-${file.size}-${file.lastModified}`;
             const uniqueId = `new-servicerecord-${Date.now()}-${fileId.replace(/[^a-zA-Z0-9]/g, '-')}`;
 
@@ -1041,6 +1059,7 @@ const EditAuction = () => {
             return [...filteredNewServiceRecords, ...prev];
         });
 
+        setIsCompressing(false);
         e.target.value = '';
     };
 
@@ -2213,6 +2232,7 @@ const EditAuction = () => {
                                                 e.preventDefault();
                                                 nextStep();
                                             }}
+                                            disabled={isCompressing}
                                             className="flex items-center px-6 py-2 bg-gradient-to-r from-orange-400 via-orange-500 to-orange-600 text-white hover:from-orange-500 hover:via-orange-600 hover:to-orange-700 rounded-lg transition-colors"
                                         >
                                             Next

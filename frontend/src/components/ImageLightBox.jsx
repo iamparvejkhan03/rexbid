@@ -127,6 +127,8 @@ const ImageLightBox = ({ isFeatured = false, images = [], captions = [], auction
                     <img
                         src={mainImage}
                         alt={`Auction image ${currentIndex + 1}`}
+                        width={reversedImages[currentIndex]?.width || undefined}
+                        height={reversedImages[currentIndex]?.height || undefined}
                         className="block object-cover w-full h-60 md:h-96 lg:h-[450px] rounded-2xl shadow-lg cursor-pointer"
                         onClick={() => openLightbox(0)}
                     />
@@ -177,8 +179,10 @@ const ImageLightBox = ({ isFeatured = false, images = [], captions = [], auction
                     {reversedImages.slice(0, 2).map((image, index) => (
                         <div key={index} className="relative">
                             <img
-                                loading='lazy'
-                                src={image.url}
+                                key={index}
+                                loading="lazy"
+                                decoding="async"
+                                src={image.thumbUrl || image.url}
                                 alt={`Thumbnail ${index + 1}`}
                                 onClick={() => {
                                     setMainImage(image.url);

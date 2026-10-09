@@ -175,8 +175,12 @@ function AuctionCard({ auction }) {
             {/* Image Section */}
             <Link to={`/auction/${auction._id}`} target="_blank" className="relative overflow-hidden rounded-tr-3xl rounded-bl-3xl">
                 <img
-                    src={auction.photos?.[0]?.url || heroImg}
+                    src={auction.photos?.[0]?.thumbUrl || auction.photos?.[0]?.url || heroImg}
                     alt={auction.title}
+                    width={auction.photos?.[0]?.thumbWidth || undefined}
+                    height={auction.photos?.[0]?.thumbHeight || undefined}
+                    loading="lazy"
+                    decoding="async"
                     className="w-full h-56 object-cover transition-transform duration-300 group-hover:scale-105"
                 />
 

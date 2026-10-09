@@ -262,7 +262,16 @@ export const createAuction = async (req, res) => {
             publicId: result.public_id,
             filename: photo.originalname,
             order: index,
-            caption: photoCaptions[index] || "", // ADD THIS LINE
+            caption: photoCaptions[index] || "",
+            width: result.width,
+            height: result.height,
+            format: result.format,
+            bytes: result.bytes,
+            thumbUrl: result.thumb_url,
+            thumbPublicId: result.thumb_public_id,
+            thumbWidth: result.thumb_width,
+            thumbHeight: result.thumb_height,
+            thumbBytes: result.thumb_bytes,
           });
         } catch (uploadError) {
           console.error("Photo upload error:", uploadError);
@@ -333,7 +342,16 @@ export const createAuction = async (req, res) => {
             filename: record.originalname,
             originalName: record.originalname,
             order: index,
-            caption: serviceRecordCaptions[index] || "", // ADD THIS
+            caption: serviceRecordCaptions[index] || "",
+            width: result.width,
+            height: result.height,
+            format: result.format,
+            bytes: result.bytes,
+            thumbUrl: result.thumb_url,
+            thumbPublicId: result.thumb_public_id,
+            thumbWidth: result.thumb_width,
+            thumbHeight: result.thumb_height,
+            thumbBytes: result.thumb_bytes,
           });
         } catch (uploadError) {
           console.error("Service record upload error:", uploadError);
@@ -1353,9 +1371,8 @@ export const updateAuction = async (req, res) => {
             if (photoIndex > -1) {
               const removedPhoto = finalPhotos[photoIndex];
               // Delete from Cloudinary
-              if (removedPhoto.publicId) {
-                await deleteFromCloudinary(removedPhoto.publicId);
-              }
+              if (removedPhoto?.publicId) await deleteFromCloudinary(removedPhoto.publicId);
+              if (removedPhoto?.thumbPublicId) await deleteFromCloudinary(removedPhoto.thumbPublicId);
               finalPhotos.splice(photoIndex, 1);
             }
           }
@@ -1415,9 +1432,8 @@ export const updateAuction = async (req, res) => {
             if (recordIndex > -1) {
               const removedRecord = finalServiceRecords[recordIndex];
               // Delete from Cloudinary
-              if (removedRecord.publicId) {
-                await deleteFromCloudinary(removedRecord.publicId);
-              }
+              if (removedRecord?.publicId) await deleteFromCloudinary(removedRecord.publicId);
+              if (removedRecord?.thumbPublicId) await deleteFromCloudinary(removedRecord.thumbPublicId);
               finalServiceRecords.splice(recordIndex, 1);
             }
           }
@@ -1497,6 +1513,15 @@ export const updateAuction = async (req, res) => {
             filename: photo.originalname,
             order: finalPhotos.length + newPhotos.length,
             caption: photoCaptionsArray[index] || "",
+            width: result.width,
+            height: result.height,
+            format: result.format,
+            bytes: result.bytes,
+            thumbUrl: result.thumb_url,
+            thumbPublicId: result.thumb_public_id,
+            thumbWidth: result.thumb_width,
+            thumbHeight: result.thumb_height,
+            thumbBytes: result.thumb_bytes,
           });
         } catch (uploadError) {
           console.error("Photo upload error:", uploadError);
@@ -1645,6 +1670,15 @@ export const updateAuction = async (req, res) => {
             originalName: record.originalname,
             order: finalServiceRecords.length + newServiceRecords.length,
             caption: serviceRecordCaptionsArray[index] || "",
+            width: result.width,
+            height: result.height,
+            format: result.format,
+            bytes: result.bytes,
+            thumbUrl: result.thumb_url,
+            thumbPublicId: result.thumb_public_id,
+            thumbWidth: result.thumb_width,
+            thumbHeight: result.thumb_height,
+            thumbBytes: result.thumb_bytes,
           });
         } catch (uploadError) {
           console.error("Service record upload error:", uploadError);
@@ -1900,7 +1934,8 @@ export const deleteAuction = async (req, res) => {
 
     // Delete uploaded files from cloudinary
     for (const photo of auction.photos) {
-      await deleteFromCloudinary(photo.publicId);
+      if (photo?.publicId) await deleteFromCloudinary(photo.publicId);
+      if (photo?.thumbPublicId) await deleteFromCloudinary(photo.thumbPublicId);
     }
 
     for (const doc of auction.documents) {

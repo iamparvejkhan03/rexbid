@@ -201,15 +201,6 @@ const auctionSchema = new Schema(
     },
 
     // Media - Updated for car auctions
-    photos: [
-      {
-        url: String,
-        publicId: String,
-        filename: String,
-        order: { type: Number, default: 0 },
-        caption: { type: String, default: "" },
-      },
-    ],
     documents: [
       {
         url: String,
@@ -220,6 +211,24 @@ const auctionSchema = new Schema(
         caption: { type: String, default: "" },
       },
     ],
+    photos: [
+      {
+        url: String,
+        publicId: String,
+        filename: String,
+        order: { type: Number, default: 0 },
+        caption: { type: String, default: "" },
+        width: { type: Number },
+        height: { type: Number },
+        format: { type: String, default: "webp" },
+        bytes: { type: Number },
+        thumbUrl: { type: String },
+        thumbPublicId: { type: String },
+        thumbWidth: { type: Number },
+        thumbHeight: { type: Number },
+        thumbBytes: { type: Number },
+      },
+    ],
     serviceRecords: [
       {
         url: String,
@@ -228,6 +237,15 @@ const auctionSchema = new Schema(
         originalName: String,
         order: { type: Number, default: 0 },
         caption: { type: String, default: "" },
+        width: { type: Number },
+        height: { type: Number },
+        format: { type: String, default: "webp" },
+        bytes: { type: Number },
+        thumbUrl: { type: String },
+        thumbPublicId: { type: String },
+        thumbWidth: { type: Number },
+        thumbHeight: { type: Number },
+        thumbBytes: { type: Number },
       },
     ],
 

@@ -153,7 +153,7 @@ import path from "path";
 import { r2Client, BUCKET_NAME } from "./r2Client.js";
 // NEW: import file-type to detect MIME from buffer
 import { fileTypeFromBuffer } from 'file-type';
-import { processImageBuffer } from './imageProcessor.js';
+import { processImageBuffer, processThumbnailBuffer } from './imageProcessor.js';
 
 // Get custom domain from environment variables
 const R2_PUBLIC_URL =
@@ -211,48 +211,58 @@ const getContentTypeFromBuffer = async (buffer, originalName) => {
 // Upload images (photos)
 export const uploadImageToR2 = async (buffer, folder = 'auction-photos', originalName = 'image.jpg') => {
     try {
-        // 1. Process: auto-rotate (EXIF), resize, strip metadata, convert to WebP
-        const processed = await processImageBuffer(buffer, {
+        // Process the main image once
+        const main = await processImageBuffer(buffer, {
             maxWidth: 1600,
             maxHeight: 1600,
             quality: 80,
             effort: 4,
         });
 
-        // 2. Build the R2 key with .webp extension
-        //    We ignore the original extension because the output is always WebP.
+        // Process the thumbnail from the SAME original buffer
+        // (avoids compounding compression artifacts)
+        const thumb = await processThumbnailBuffer(buffer, 500);
+
         const nameWithoutExt = path.parse(originalName).name;
         const sanitizedName = nameWithoutExt.replace(/[^a-zA-Z0-9-_]/g, '-') || 'image';
-        const key = `${folder}/${sanitizedName}-${Date.now()}.webp`;
+        const baseKey = `${folder}/${sanitizedName}-${Date.now()}`;
 
-        // 3. Upload the processed WebP buffer
-        const upload = new Upload({
+        const mainKey = `${baseKey}.webp`;
+        const thumbKey = `${baseKey}-thumb.webp`;
+
+        // Upload both in parallel
+        const uploadOpts = (key, body) => ({
             client: r2Client,
             params: {
                 Bucket: BUCKET_NAME,
                 Key: key,
-                Body: processed.buffer,
+                Body: body,
                 ContentType: 'image/webp',
                 ContentDisposition: 'inline',
-                // Long-lived cache: these objects are immutable (unique key per upload),
-                // so browsers and Cloudflare's CDN can cache them for a year.
                 CacheControl: 'public, max-age=31536000, immutable',
             },
         });
 
-        await upload.done();
+        await Promise.all([
+            new Upload(uploadOpts(mainKey, main.buffer)).done(),
+            new Upload(uploadOpts(thumbKey, thumb.buffer)).done(),
+        ]);
 
-        // 4. Return the same shape callers already expect, plus width/height
-        const encodedKey = key.split('/').map(encodeURIComponent).join('/');
-        const secureUrl = `${R2_PUBLIC_URL}/${encodedKey}`;
+        const encodeKey = (k) => k.split('/').map(encodeURIComponent).join('/');
 
         return {
-            secure_url: secureUrl,
-            public_id: key,
+            secure_url: `${R2_PUBLIC_URL}/${encodeKey(mainKey)}`,
+            public_id: mainKey,
             format: 'webp',
-            bytes: processed.bytes,
-            width: processed.width,
-            height: processed.height,
+            bytes: main.bytes,
+            width: main.width,
+            height: main.height,
+            // NEW — thumbnail fields
+            thumb_url: `${R2_PUBLIC_URL}/${encodeKey(thumbKey)}`,
+            thumb_public_id: thumbKey,
+            thumb_width: thumb.width,
+            thumb_height: thumb.height,
+            thumb_bytes: thumb.bytes,
         };
     } catch (error) {
         console.error('Error uploading to R2:', error);

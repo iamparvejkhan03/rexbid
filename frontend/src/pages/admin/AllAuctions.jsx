@@ -1128,7 +1128,7 @@ function AllAuctions() {
                                                         </span>
                                                         <span className="font-medium text-green-600">{selectedAuction.winner?.username}</span>
                                                     </div>
-                                                )}{console.log(selectedAuction)}
+                                                )}
 
                                                 {/* Final Price */}
                                                 {selectedAuction.convertedFinalPrice && (

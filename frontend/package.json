@@ -15,6 +15,7 @@
     "@tailwindcss/typography": "^0.5.18",
     "@tinymce/tinymce-react": "^6.3.0",
     "axios": "^1.12.2",
+    "browser-image-compression": "^2.0.2",
     "html-react-parser": "^5.2.6",
     "keen-slider": "^6.8.6",
     "lucide-react": "^0.543.0",
