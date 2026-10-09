@@ -153,6 +153,7 @@ import path from "path";
 import { r2Client, BUCKET_NAME } from "./r2Client.js";
 // NEW: import file-type to detect MIME from buffer
 import { fileTypeFromBuffer } from 'file-type';
+import { processImageBuffer } from './imageProcessor.js';
 
 // Get custom domain from environment variables
 const R2_PUBLIC_URL =
@@ -210,38 +211,48 @@ const getContentTypeFromBuffer = async (buffer, originalName) => {
 // Upload images (photos)
 export const uploadImageToR2 = async (buffer, folder = 'auction-photos', originalName = 'image.jpg') => {
     try {
-        // Get correct MIME from buffer
-        const contentType = await getContentTypeFromBuffer(buffer, originalName);
+        // 1. Process: auto-rotate (EXIF), resize, strip metadata, convert to WebP
+        const processed = await processImageBuffer(buffer, {
+            maxWidth: 1600,
+            maxHeight: 1600,
+            quality: 80,
+            effort: 4,
+        });
 
-        // Sanitize filename: replace anything not alnum, hyphen, underscore with dash
-        const extension = path.extname(originalName);
+        // 2. Build the R2 key with .webp extension
+        //    We ignore the original extension because the output is always WebP.
         const nameWithoutExt = path.parse(originalName).name;
-        const sanitizedName = nameWithoutExt.replace(/[^a-zA-Z0-9-_]/g, '-');
-        const key = `${folder}/${sanitizedName}-${Date.now()}${extension}`;
+        const sanitizedName = nameWithoutExt.replace(/[^a-zA-Z0-9-_]/g, '-') || 'image';
+        const key = `${folder}/${sanitizedName}-${Date.now()}.webp`;
 
-        // Upload with proper Content-Type and force inline display
+        // 3. Upload the processed WebP buffer
         const upload = new Upload({
             client: r2Client,
             params: {
                 Bucket: BUCKET_NAME,
                 Key: key,
-                Body: buffer,
-                ContentType: contentType,
-                ContentDisposition: 'inline',   // prevents download prompt
+                Body: processed.buffer,
+                ContentType: 'image/webp',
+                ContentDisposition: 'inline',
+                // Long-lived cache: these objects are immutable (unique key per upload),
+                // so browsers and Cloudflare's CDN can cache them for a year.
+                CacheControl: 'public, max-age=31536000, immutable',
             },
         });
 
         await upload.done();
 
-        // Encode URL path to handle spaces/special characters
+        // 4. Return the same shape callers already expect, plus width/height
         const encodedKey = key.split('/').map(encodeURIComponent).join('/');
         const secureUrl = `${R2_PUBLIC_URL}/${encodedKey}`;
 
         return {
             secure_url: secureUrl,
-            public_id: key,      // keep original key for deletion
-            format: extension.replace('.', ''),
-            bytes: buffer.length,
+            public_id: key,
+            format: 'webp',
+            bytes: processed.bytes,
+            width: processed.width,
+            height: processed.height,
         };
     } catch (error) {
         console.error('Error uploading to R2:', error);
