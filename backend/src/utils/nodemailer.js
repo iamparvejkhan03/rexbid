@@ -2427,7 +2427,7 @@ const sendOfferOutbidNotifications = async () => {
 const payoutInitiatedEmail = async (seller, auction, payout) => {
     try {
         const info = await transporter.sendMail({
-            from: `"JLTM Select" <${process.env.EMAIL_USER}>`,
+            from: `"RexBid" <${process.env.EMAIL_USER}>`,
             to: seller.email,
             subject: `💰 Payout Initiated - ${auction.title}`,
             html: `
@@ -2481,8 +2481,8 @@ const payoutInitiatedEmail = async (seller, auction, payout) => {
                 <body>
                     <div class="container">
                         <div class="header">
-                            <div class="brand-name">JLTM Select</div>
-                            <div class="tagline">Furniture Auctions</div>
+                            <div class="brand-name">RexBid</div>
+                            <div class="tagline">An Irish Marketplace, with an Auction Advantage.</div>
                         </div>
                         
                         <div class="content">
@@ -2522,8 +2522,8 @@ const payoutInitiatedEmail = async (seller, auction, payout) => {
                         </div>
                         
                         <div class="footer">
-                            <p class="footer-text">This is an automated message from JLTM Select.</p>
-                            <p class="footer-text">© ${new Date().getFullYear()} JLTM Select. All rights reserved.</p>
+                            <p class="footer-text">This is an automated message from RexBid.</p>
+                            <p class="footer-text">© ${new Date().getFullYear()} RexBid. All rights reserved.</p>
                         </div>
                     </div>
                 </body>
@@ -2542,7 +2542,7 @@ const payoutInitiatedEmail = async (seller, auction, payout) => {
 const payoutCompletedEmail = async (seller, auction, payout) => {
     try {
         const info = await transporter.sendMail({
-            from: `"JLTM Select" <${process.env.EMAIL_USER}>`,
+            from: `"RexBid" <${process.env.EMAIL_USER}>`,
             to: seller.email,
             subject: `✅ Payout Completed - ${auction.title}`,
             html: `
@@ -2604,8 +2604,8 @@ const payoutCompletedEmail = async (seller, auction, payout) => {
                 <body>
                     <div class="container">
                         <div class="header">
-                            <div class="brand-name">JLTM Select</div>
-                            <div class="tagline">Furniture Auctions</div>
+                            <div class="brand-name">RexBid</div>
+                            <div class="tagline">An Irish Marketplace, with an Auction Advantage.</div>
                         </div>
                         
                         <div class="content">
@@ -2650,12 +2650,12 @@ const payoutCompletedEmail = async (seller, auction, payout) => {
                             <p><strong>Payment Details:</strong></p>
                             <p>Please check your ${payout.payoutMethod} account. The payment should appear in your account within 1-3 business days depending on your provider.</p>
                             
-                            <p>Thank you for selling with JLTM Select! We appreciate your business.</p>
+                            <p>Thank you for selling with RexBid! We appreciate your business.</p>
                         </div>
                         
                         <div class="footer">
-                            <p class="footer-text">This payment confirmation was sent by JLTM Select.</p>
-                            <p class="footer-text">© ${new Date().getFullYear()} JLTM Select. All rights reserved.</p>
+                            <p class="footer-text">This payment confirmation was sent by RexBid.</p>
+                            <p class="footer-text">© ${new Date().getFullYear()} RexBid. All rights reserved.</p>
                         </div>
                     </div>
                 </body>
@@ -2674,7 +2674,7 @@ const payoutCompletedEmail = async (seller, auction, payout) => {
 const payoutFailedEmail = async (seller, payout) => {
     try {
         const info = await transporter.sendMail({
-            from: `"JLTM Select" <${process.env.EMAIL_USER}>`,
+            from: `"RexBid" <${process.env.EMAIL_USER}>`,
             to: seller.email,
             subject: `⚠️ Payout Update - Action Required`,
             html: `
@@ -2715,8 +2715,8 @@ const payoutFailedEmail = async (seller, payout) => {
                 <body>
                     <div class="container">
                         <div class="header">
-                            <div class="brand-name">JLTM Select</div>
-                            <div class="tagline">Furniture Auctions</div>
+                            <div class="brand-name">RexBid</div>
+                            <div class="tagline">An Irish Marketplace, with an Auction Advantage.</div>
                         </div>
                         
                         <div class="content">
@@ -2741,8 +2741,8 @@ const payoutFailedEmail = async (seller, payout) => {
                         </div>
                         
                         <div class="footer">
-                            <p class="footer-text">This is an automated message from JLTM Select.</p>
-                            <p class="footer-text">© ${new Date().getFullYear()} JLTM Select. All rights reserved.</p>
+                            <p class="footer-text">This is an automated message from RexBid.</p>
+                            <p class="footer-text">© ${new Date().getFullYear()} RexBid. All rights reserved.</p>
                         </div>
                     </div>
                 </body>
