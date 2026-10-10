@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { QuickActions, StatCard, SellerContainer, SellerHeader, SellerSidebar } from "../../components";
 import { useState } from "react";
-import { TrendingUp, Gavel, Award, Heart, DollarSign, Clock, Eye } from "lucide-react";
+import { TrendingUp, Gavel, Award, Heart, DollarSign, Clock, Eye, EuroIcon } from "lucide-react";
 import axiosInstance from "../../utils/axiosInstance";
 import { useAuth } from "../../contexts/AuthContext";
 
@@ -30,7 +30,7 @@ function Dashboard() {
             title: "Total Revenue",
             value: stats?.totalRevenue?.toFixed(0).toLocaleString('en-IE'),
             change: "All Time",
-            icon: <DollarSign size={24} />,
+            icon: <EuroIcon size={24} />,
             trend: "up",
             currency: userCurrency === 'GBP' ? '£' : '€'
         },
@@ -67,7 +67,7 @@ function Dashboard() {
             title: "Avg. Sale Price",
             value: stats?.avgSalePrice?.toFixed(0).toLocaleString('en-IE'),
             change: "Per Item Sold",
-            icon: <DollarSign size={24} />,
+            icon: <EuroIcon size={24} />,
             trend: "up",
             currency: userCurrency === 'GBP' ? '£' : '€'
         },

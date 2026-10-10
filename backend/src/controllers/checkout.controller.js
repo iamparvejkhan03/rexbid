@@ -167,7 +167,7 @@ export const getCheckoutData = async (req, res) => {
                 iban: adminUser.payoutMethods.bankTransfer.iban,
                 swiftCode: adminUser.payoutMethods.bankTransfer.swiftCode,
                 bankAddress: adminUser.payoutMethods.bankTransfer.bankAddress,
-                currency: adminUser.payoutMethods.bankTransfer.currency || "USD",
+                currency: adminUser.payoutMethods.bankTransfer.currency || "EUR",
             }
             : null;
 
@@ -196,7 +196,7 @@ export const getCheckoutData = async (req, res) => {
                             iban: seller.payoutMethods.bankTransfer.iban,
                             swiftCode: seller.payoutMethods.bankTransfer.swiftCode,
                             bankAddress: seller.payoutMethods.bankTransfer.bankAddress,
-                            currency: seller.payoutMethods.bankTransfer.currency || "USD",
+                            currency: seller.payoutMethods.bankTransfer.currency || "EUR",
                         }
                         : null,
                 }

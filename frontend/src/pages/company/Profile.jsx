@@ -14,7 +14,8 @@ import {
     AlertCircle,
     Eye,
     Download,
-    RefreshCw
+    RefreshCw,
+    EuroIcon
 } from "lucide-react";
 import axiosInstance from "../../utils/axiosInstance";
 import { useAuth } from "../../contexts/AuthContext";
@@ -970,7 +971,7 @@ function Profile() {
                                     </div>
                                     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex items-center">
                                         <div className="p-3 rounded-lg mr-4 bg-purple-100">
-                                            <DollarSign size={20} className="text-purple-600" />
+                                            <EuroIcon size={20} className="text-purple-600" />
                                         </div>
                                         <div>
                                             <p className="text-sm text-gray-500">Total Revenue</p>

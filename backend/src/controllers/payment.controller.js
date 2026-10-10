@@ -73,7 +73,7 @@ export const createWonAuctionPayment = async (req, res) => {
             // Create Stripe payment intent for immediate charge
             const paymentIntent = await stripe.paymentIntents.create({
                 amount: Math.round(totalAmount * 100), // Convert to cents
-                currency: "usd",
+                currency: "EUR",
                 customer: user.stripeCustomerId,
                 payment_method: user.paymentMethodId,
                 description: `Payment for auction: ${auction.title}`,

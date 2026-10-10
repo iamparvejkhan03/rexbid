@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { SellerContainer, SellerHeader, SellerSidebar } from "../../components";
-import { Bell, BellOff, Settings, Filter, Check, X, Archive, Trash2, Eye, Gavel, Award, Clock, DollarSign, TrendingUp, Users, MessageCircle, Zap, AlertTriangle, Info, Package, Truck, Star, CreditCard, UserCheck } from "lucide-react";
+import { Bell, BellOff, Settings, Filter, Check, X, Archive, Trash2, Eye, Gavel, Award, Clock, DollarSign, TrendingUp, Users, MessageCircle, Zap, AlertTriangle, Info, Package, Truck, Star, CreditCard, UserCheck, EuroIcon } from "lucide-react";
 
 // Mock notifications data for sellers
 const notificationsData = [
@@ -210,7 +210,7 @@ function Notifications() {
             new_bid: <Gavel className="text-green-500" size={20} />,
             reserve_met: <Award className="text-amber-500" size={20} />,
             auction_ending: <Clock className="text-red-500" size={20} />,
-            auction_ended: <DollarSign className="text-blue-500" size={20} />,
+            auction_ended: <EuroIcon className="text-blue-500" size={20} />,
             buyer_inquiry: <MessageCircle className="text-purple-500" size={20} />,
             payment_received: <CreditCard className="text-emerald-500" size={20} />,
             item_shipped: <Truck className="text-orange-500" size={20} />,
@@ -591,7 +591,7 @@ function Notifications() {
                                                         )}
                                                         {notification.bidAmount && (
                                                             <span className="flex items-center gap-1">
-                                                                <DollarSign size={14} />
+                                                                <EuroIcon size={14} />
                                                                 {formatCurrency(notification.bidAmount)}
                                                             </span>
                                                         )}

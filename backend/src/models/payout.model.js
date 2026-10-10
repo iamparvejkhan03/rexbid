@@ -90,27 +90,27 @@ payoutSchema.index({ createdAt: -1 });
 
 // Virtual for formatted amounts
 payoutSchema.virtual("formattedSellerAmount").get(function () {
-    return new Intl.NumberFormat("en-US", {
+    return new Intl.NumberFormat("en-IE", {
         style: "currency",
-        currency: "USD",
+        currency: "EUR",
         minimumFractionDigits: 0,
         maximumFractionDigits: 0,
     }).format(this.sellerAmount);
 });
 
 payoutSchema.virtual("formattedCommissionAmount").get(function () {
-    return new Intl.NumberFormat("en-US", {
+    return new Intl.NumberFormat("en-IE", {
         style: "currency",
-        currency: "USD",
+        currency: "EUR",
         minimumFractionDigits: 0,
         maximumFractionDigits: 0,
     }).format(this.commissionAmount);
 });
 
 payoutSchema.virtual("formattedTotalAmount").get(function () {
-    return new Intl.NumberFormat("en-US", {
+    return new Intl.NumberFormat("en-IE", {
         style: "currency",
-        currency: "USD",
+        currency: "EUR",
         minimumFractionDigits: 0,
         maximumFractionDigits: 0,
     }).format(this.totalAmount);

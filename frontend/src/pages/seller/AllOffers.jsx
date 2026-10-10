@@ -2,7 +2,8 @@ import { useState, useEffect, useMemo } from "react";
 import {
     Search, Filter, Calendar, Clock, CheckCircle, XCircle, RefreshCw,
     MessageSquare, Eye, User, Mail, Phone, Building, TrendingUp,
-    DollarSign, Package, Award, AlertCircle, Ban, ChevronRight
+    DollarSign, Package, Award, AlertCircle, Ban, ChevronRight,
+    EuroIcon
 } from "lucide-react";
 import { LoadingSpinner, SellerContainer, SellerHeader, SellerSidebar } from "../../components";
 import axiosInstance from "../../utils/axiosInstance";
@@ -325,7 +326,7 @@ function AllOffers() {
             title: "Total Offers",
             value: stats.totalOffers?.toLocaleString('en-IE') || "0",
             change: "Across all your auctions",
-            icon: <DollarSign size={24} />,
+            icon: <EuroIcon size={24} />,
             color: "blue"
         },
         {
@@ -796,7 +797,7 @@ function AllOffers() {
                                 </div>
                             ) : (
                                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
-                                    <DollarSign size={48} className="mx-auto text-gray-300 mb-4" />
+                                    <EuroIcon size={48} className="mx-auto text-gray-300 mb-4" />
                                     <h3 className="text-lg font-semibold text-gray-700 mb-2">No Offer Selected</h3>
                                     <p className="text-gray-500">Select an offer from the list to review details and respond</p>
                                 </div>

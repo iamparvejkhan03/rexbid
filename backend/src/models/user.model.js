@@ -226,7 +226,7 @@ const userSchema = new Schema(
         },
         currency: {
           type: String,
-          default: "USD",
+          default: "EUR",
           trim: true,
         },
         bankAddress: {

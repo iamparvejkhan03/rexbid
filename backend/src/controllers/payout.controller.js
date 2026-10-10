@@ -223,7 +223,7 @@ export const updateBankMethod = async (req, res) => {
             routingNumber: routingNumber?.trim(),
             iban: iban?.trim(),
             swiftCode: swiftCode?.trim(),
-            currency: currency || "USD",
+            currency: currency || "EUR",
             bankAddress: bankAddress?.trim(),
             isVerified: false, // Will be verified by admin later
             addedAt: user.payoutMethods.bankTransfer?.addedAt || new Date(),
@@ -585,17 +585,17 @@ export const getPendingPayouts = async (req, res) => {
                         totalAmount,
                         commissionAmount,
                         sellerAmount,
-                        formattedTotal: new Intl.NumberFormat("en-US", {
+                        formattedTotal: new Intl.NumberFormat("en-IE", {
                             style: "currency",
-                            currency: "USD",
+                            currency: "EUR",
                         }).format(totalAmount),
-                        formattedCommission: new Intl.NumberFormat("en-US", {
+                        formattedCommission: new Intl.NumberFormat("en-IE", {
                             style: "currency",
-                            currency: "USD",
+                            currency: "EUR",
                         }).format(commissionAmount),
-                        formattedSeller: new Intl.NumberFormat("en-US", {
+                        formattedSeller: new Intl.NumberFormat("en-IE", {
                             style: "currency",
-                            currency: "USD",
+                            currency: "EUR",
                         }).format(sellerAmount),
                     },
                     defaultPayoutMethod,
@@ -893,17 +893,17 @@ export const getAuctionPayoutInfo = async (req, res) => {
                     totalAmount,
                     commissionAmount,
                     sellerAmount,
-                    formattedTotal: new Intl.NumberFormat("en-US", {
+                    formattedTotal: new Intl.NumberFormat("en-IE", {
                         style: "currency",
-                        currency: "USD",
+                        currency: "EUR",
                     }).format(totalAmount),
-                    formattedCommission: new Intl.NumberFormat("en-US", {
+                    formattedCommission: new Intl.NumberFormat("en-IE", {
                         style: "currency",
-                        currency: "USD",
+                        currency: "EUR",
                     }).format(commissionAmount),
-                    formattedSeller: new Intl.NumberFormat("en-US", {
+                    formattedSeller: new Intl.NumberFormat("en-IE", {
                         style: "currency",
-                        currency: "USD",
+                        currency: "EUR",
                     }).format(sellerAmount),
                 },
                 existingPayout,
@@ -1003,15 +1003,15 @@ export const getSellerPayouts = async (req, res) => {
             failureReason: payout.failureReason,
             createdAt: payout.createdAt,
             completedAt: payout.completedAt,
-            formattedSellerAmount: new Intl.NumberFormat('en-US', {
+            formattedSellerAmount: new Intl.NumberFormat('en-IE', {
                 style: 'currency',
-                currency: 'USD',
+                currency: 'EUR',
                 minimumFractionDigits: 0,
                 maximumFractionDigits: 0
             }).format(payout.sellerAmount),
-            formattedCommissionAmount: new Intl.NumberFormat('en-US', {
+            formattedCommissionAmount: new Intl.NumberFormat('en-IE', {
                 style: 'currency',
-                currency: 'USD',
+                currency: 'EUR',
                 minimumFractionDigits: 0,
                 maximumFractionDigits: 0
             }).format(payout.commissionAmount)
@@ -1027,15 +1027,15 @@ export const getSellerPayouts = async (req, res) => {
                     totalCommission: stats.totalCommission,
                     countCompleted: stats.countCompleted,
                     countPending: stats.countPending,
-                    formattedTotalPaid: new Intl.NumberFormat('en-US', {
+                    formattedTotalPaid: new Intl.NumberFormat('en-IE', {
                         style: 'currency',
-                        currency: 'USD',
+                        currency: 'EUR',
                         minimumFractionDigits: 0,
                         maximumFractionDigits: 0
                     }).format(stats.totalPaid),
-                    formattedTotalPending: new Intl.NumberFormat('en-US', {
+                    formattedTotalPending: new Intl.NumberFormat('en-IE', {
                         style: 'currency',
-                        currency: 'USD',
+                        currency: 'EUR',
                         minimumFractionDigits: 0,
                         maximumFractionDigits: 0
                     }).format(stats.totalPending)
@@ -1088,9 +1088,9 @@ export const getSellerPayoutById = async (req, res) => {
                 createdAt: payout.createdAt,
                 completedAt: payout.completedAt,
                 invoice: payout?.receipt,
-                formattedSellerAmount: new Intl.NumberFormat('en-US', {
+                formattedSellerAmount: new Intl.NumberFormat('en-IE', {
                     style: 'currency',
-                    currency: 'USD'
+                    currency: 'EUR'
                 }).format(payout.sellerAmount)
             }
         });
