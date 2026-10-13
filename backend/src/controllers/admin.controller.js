@@ -1133,7 +1133,7 @@ export const manualSellAuction = async (req, res) => {
     // Reload with populated refs so emails + socket payload are complete
     const updatedAuction = await Auction.findById(auctionId)
       .populate("seller", "email username companyName firstName lastName currency")
-      .populate("winner", "email username companyName firstName lastName currency address")
+      .populate("winner", "email username companyName firstName lastName currency")
       .populate("bids.bidder", "username companyName firstName lastName");
 
     // Broadcast so open tabs / cards refresh
@@ -2448,8 +2448,8 @@ export const updatePaymentStatus = async (req, res) => {
 
     // Populate updated auction
     const updatedAuction = await Auction.findById(id)
-      .populate("seller", "username companyName firstName lastName email phone address")
-      .populate("winner", "username companyName firstName lastName email phone address");
+      .populate("seller", "username companyName firstName lastName email phone")
+      .populate("winner", "username companyName firstName lastName email phone");
 
     broadcastAuctionChange(id);
 

@@ -437,7 +437,7 @@ function BidHistory() {
                                                             {bid.bidder.company ? `${bid.bidder.company} • ` : ''}@{bid.bidder.username}
                                                         </div>
 
-                                                        {bid.isHighestBidder && (
+                                                        {/* {bid.isHighestBidder && (
                                                             <div className="mt-1 space-y-0.5">
                                                                 {bid.bidder.name && bid.bidder.name !== 'Unknown Bidder' && (
                                                                     <div className="text-sm text-gray-700">{bid.bidder.name}</div>
@@ -459,7 +459,7 @@ function BidHistory() {
                                                                     </a>
                                                                 )}
                                                             </div>
-                                                        )}
+                                                        )} */}
                                                     </div>
                                                 </div>
                                             </td>

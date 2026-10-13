@@ -1545,7 +1545,7 @@ export const adminRespondToOffer = async (req, res) => {
     const updatedAuction = await Auction.findById(auctionId)
       .populate("offers.buyer", "companyName companyName firstName lastName email phone currency")
       .populate("seller", "username companyName firstName lastName email phone currency")
-      .populate("winner", "username companyName firstName lastName email phone address currency");
+      .populate("winner", "username companyName firstName lastName email phone currency");
 
     broadcastAuctionChange(auctionId);
 
@@ -2061,7 +2061,7 @@ export const reactivateOffer = async (req, res) => {
     const updatedAuction = await Auction.findById(auctionId)
       .populate("offers.buyer", "username companyName firstName lastName email phone currency")
       .populate("seller", "username companyName firstName lastName email phone currency")
-      .populate("winner", "username companyName firstName lastName email phone address currency");
+      .populate("winner", "username companyName firstName lastName email phone currency");
 
     broadcastAuctionChange(auctionId);
 

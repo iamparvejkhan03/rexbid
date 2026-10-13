@@ -792,7 +792,6 @@ const newAuctionNotificationEmail = async (bidder, listing, seller) => {
             <div style="background: ${BRAND_COLORS.grayBg}; padding: 20px; border-radius: 8px; margin: 25px 0;">
                 <p style="margin: 0 0 8px 0;"><strong>Seller Information</strong></p>
                 <p style="margin: 0;">${seller?.companyName || seller?.username}</p>
-                <p style="margin: 0;">${seller?.firstName} ${seller?.lastName}</p>
             </div>
             
             <div style="text-align: center; margin: 25px 0;">
@@ -942,7 +941,6 @@ const newBidNotificationEmail = async (seller, listing, bidAmount, bidder, userC
                 <div style="background: ${BRAND_COLORS.grayBg}; padding: 20px; border-radius: 8px; margin: 25px 0;">
                     <p style="margin: 0 0 8px 0;"><strong>Bidder Information</strong></p>
                     <p style="margin: 0;">${bidder.username || bidder.companyName}</p>
-                    <p style="margin: 0;">${bidder.firstName} ${bidder.lastName}</p>
                 </div>
             ` : ''}
             
@@ -1054,7 +1052,6 @@ const newOfferNotificationEmail = async (seller, listing, offerAmount, bidder, u
             ${bidder ? `
                 <div style="background: ${BRAND_COLORS.grayBg}; padding: 20px; border-radius: 8px; margin: 25px 0;">
                     <p style="margin: 0 0 8px 0;"><strong>Bidder Information</strong></p>
-                    <p style="margin: 0;">Full Name: ${bidder?.firstName} ${bidder?.lastName}</p>
                     <p style="margin: 0;">Username: ${bidder?.username || bidder?.companyName}</p>
                 </div>
             ` : ''}
@@ -2029,7 +2026,6 @@ const buyerCounteredEmail = async (
             ${buyer ? `
                 <div style="background: ${BRAND_COLORS.grayBg}; padding: 20px; border-radius: 8px; margin: 25px 0;">
                     <p style="margin: 0 0 8px 0;"><strong>Buyer Information</strong></p>
-                    ${createSummaryRow('Name:', `${buyer?.firstName || ''} ${buyer?.lastName || ''}`.trim() || buyer?.username || buyer?.companyName || 'N/A')}
                     ${createSummaryRow('Username:', buyer?.username || buyer?.companyName || 'N/A')}
                 </div>
             ` : ''}
@@ -2098,7 +2094,6 @@ const counterOfferRejectedEmail = async (
             ${buyer ? `
                 <div style="background: ${BRAND_COLORS.grayBg}; padding: 20px; border-radius: 8px; margin: 25px 0;">
                     <p style="margin: 0 0 8px 0;"><strong>Buyer Information</strong></p>
-                    ${createSummaryRow('Name:', `${buyer?.firstName || ''} ${buyer?.lastName || ''}`.trim() || buyer?.username || buyer?.companyName || 'N/A')}
                     ${createSummaryRow('Username:', buyer?.username || buyer?.companyName || 'N/A')}
                 </div>
             ` : ''}
@@ -2332,7 +2327,7 @@ const newCommentSellerEmail = async (seller, listing, comment, commentAuthor) =>
     try {
         const content = `
             <h2 style="text-align: center;">New Comment on Your Listing</h2>
-            <p style="text-align: center;">${commentAuthor?.firstName || commentAuthor?.companyName || commentAuthor?.username} has commented on your listing.</p>
+            <p style="text-align: center;">${commentAuthor?.username || commentAuthor?.companyName || commentAuthor?.firstName} has commented on your listing.</p>
             
             ${createInfoCard(`
                 <p style="margin: 0 0 12px 0; font-size: 18px; font-weight: bold; color: ${BRAND_COLORS.secondary};">${listing?.title}</p>
@@ -2377,7 +2372,7 @@ const newCommentBidderEmail = async (bidder, listing, comment, commentAuthor) =>
     try {
         const content = `
             <h2 style="text-align: center;">New Activity on Listing</h2>
-            <p style="text-align: center;">${commentAuthor?.firstName || commentAuthor?.companyName || commentAuthor?.username} has added a comment on a listing you're interested in.</p>
+            <p style="text-align: center;">${commentAuthor?.username || commentAuthor?.companyName || commentAuthor?.firstName} has added a comment on a listing you're interested in.</p>
             
             ${createInfoCard(`
                 <p style="margin: 0 0 12px 0; font-size: 18px; font-weight: bold; color: ${BRAND_COLORS.secondary};">${listing?.title}</p>

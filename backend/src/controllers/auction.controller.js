@@ -937,7 +937,7 @@ export const getAuction = async (req, res) => {
     const userCurrency = req.query.currency || 'EUR';
 
     const auction = await Auction.findById(id)
-      .populate("seller", "username companyName firstName lastName countryName phone email address")
+      .populate("seller", "username companyName firstName lastName countryName phone email")
       .populate("currentBidder", "username companyName firstName")
       .populate("winner", "username companyName firstName lastName")
       .populate("bids.bidder", "username companyName firstName");
@@ -2407,8 +2407,8 @@ export const getWonAuctions = async (req, res) => {
     }
 
     const auctions = await Auction.find(filter)
-      .populate("seller", "username companyName firstName lastName email phone address createdAt company")
-      .populate("winner", "username companyName firstName lastName email phone address image")
+      .populate("seller", "username companyName firstName lastName email phone createdAt company")
+      .populate("winner", "username companyName firstName lastName email phone image")
       .populate("currentBidder", "username companyName firstName")
       .populate("bids.bidder", "username companyName firstName lastName email")
       .sort({ endDate: -1 });
@@ -2563,8 +2563,8 @@ export const getSoldAuctions = async (req, res) => {
     }
 
     const auctions = await Auction.find(filter)
-      .populate("seller", "username companyName firstName lastName email phone createdAt address company")
-      .populate("winner", "username companyName firstName lastName email phone address image")
+      .populate("seller", "username companyName firstName lastName email phone createdAt company")
+      .populate("winner", "username companyName firstName lastName email phone image")
       .populate("currentBidder", "username companyName firstName")
       .populate("bids.bidder", "username companyName firstName lastName email phone")
       .sort({ endDate: -1 });
@@ -2678,7 +2678,6 @@ export const getSoldAuctions = async (req, res) => {
             companyName: auction.seller?.companyName || "",
             email: auction.seller.email,
             phone: auction.seller.phone,
-            address: auction.seller.address,
             createdAt: auction.seller.createdAt,
           }
           : null,
@@ -2701,7 +2700,6 @@ export const getSoldAuctions = async (req, res) => {
             email: auction.winner.email,
             phone: auction.winner.phone,
             image: auction.winner.image,
-            address: auction.winner.address,
             bidHistory: convertedBidHistory,
             bidHistoryOriginal: auction.bids
               .filter(bid => bid.bidder?._id?.toString() === auction.winner._id.toString())
@@ -2882,12 +2880,12 @@ export const buyNow = async (req, res) => {
 
     // Find auction
     const auction = await Auction.findById(id)
-      .populate("seller", "username companyName firstName lastName email phone address")
+      .populate("seller", "username companyName firstName lastName email phone")
       .populate(
         "currentBidder",
-        "username companyName firstName lastName email phone address",
+        "username companyName firstName lastName email phone",
       )
-      .populate("winner", "username companyName firstName lastName email phone address");
+      .populate("winner", "username companyName firstName lastName email phone");
 
     if (!auction) {
       return res.status(404).json({
@@ -2957,8 +2955,8 @@ export const buyNow = async (req, res) => {
 
     // Populate updated auction
     const updatedAuction = await Auction.findById(id)
-      .populate("seller", "username companyName firstName lastName email currency phone address")
-      .populate("winner", "username companyName firstName lastName email phone address currency")
+      .populate("seller", "username companyName firstName lastName email currency phone")
+      .populate("winner", "username companyName firstName lastName email phone currency")
       .populate("bids.bidder", "username companyName firstName lastName currency");
 
     // Custom message for giveaway
