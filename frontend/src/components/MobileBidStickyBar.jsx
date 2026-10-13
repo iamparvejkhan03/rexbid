@@ -28,6 +28,7 @@ const MobileBidStickyBar = ({
 }) => {
   const { days, hours, minutes, seconds, status: timeStatus } = timeRemaining;
   const isActive = timeStatus === 'counting-down' || timeStatus === 'always-available';
+  const timeRemained = auction?.endDate ? new Date(auction.endDate) - new Date() : 0;
 
   const [liveTimer, setLiveTimer] = useState({
     days: days || 0,
@@ -128,7 +129,7 @@ const MobileBidStickyBar = ({
               )}
             </p>
 
-            {auctionType === 'reserve' && auction && (
+            {auction.auctionType === 'reserve' && timeRemained > 0 && timeRemained > 24 * 60 * 60 * 1000 && (
               <div className={`mt-2 inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium w-fit ${isReserveMet
                 ? 'bg-green-50 text-green-700 border border-green-200'
                 : 'bg-orange-50 text-blue-600 border border-blue-200'
@@ -234,6 +235,62 @@ const MobileBidStickyBar = ({
             )}
           </div>
         </div>
+
+        {/* ----- RESERVE PROGRESS INDICATOR (only in last 24h) ----- */}
+        {auction.auctionType === "reserve" &&
+          auction.status === "active" &&
+          timeStatus === "counting-down" &&
+          timeRemained > 0 && // still active
+          timeRemained < 24 * 60 * 60 * 1000 && // last 24 hours
+          auction.reservePrice > auction.startPrice &&
+          auction.bidCount > 0 && // only show if there is at least one bid
+          (() => {
+            const currentBid = Number(auction.convertedCurrentPrice) || 0;
+            const reservePrice = Number(auction.convertedReservePrice) || 0;
+            const reserveProgress =
+              reservePrice > 0
+                ? Math.min(
+                  100,
+                  Math.max(
+                    0,
+                    (currentBid / reservePrice) * 100
+                  )
+                )
+                : 0;
+
+            const reserveMet = currentBid >= reservePrice;
+
+            return (
+              <div className="mt-2">
+                <div className="mb-1 flex items-center justify-between">
+                  <span className="text-xs text-secondary">
+                    Reserve Progress
+                  </span>
+
+                  <span
+                    className={`text-xs font-medium ${reserveMet
+                      ? "text-green-600"
+                      : "text-gray-600"
+                      }`}
+                  >
+                    {reserveMet ? "✅ Met" : "⏳ Not met"}
+                  </span>
+                </div>
+
+                <div className="h-2.5 w-full overflow-hidden rounded-full bg-gray-200">
+                  <div
+                    className={`h-2.5 rounded-full transition-all duration-500 ${reserveMet
+                      ? "bg-green-500"
+                      : "bg-orange-400"
+                      }`}
+                    style={{
+                      width: `${reserveProgress}%`,
+                    }}
+                  />
+                </div>
+              </div>
+            );
+          })()}
 
         {/* ============ NEW: Inline Mobile Bid Input ============ */}
         {showBidForm && (

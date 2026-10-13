@@ -2168,11 +2168,11 @@ export const getUserAuctions = async (req, res) => {
     }
 
     const auctions = await Auction.find(filter)
-      .populate("currentBidder", "username companyName firstName image")
-      .populate("winner", "username companyName firstName lastName image")
+      .populate("currentBidder", "username companyName firstName lastName email phone image")
+      .populate("winner", "username companyName firstName lastName email phone image")
       .populate(
         "bids.bidder",
-        "username companyName firstName lastName email image company",
+        "username companyName firstName lastName email phone image company",
       )
       .sort({ createdAt: -1 });
 

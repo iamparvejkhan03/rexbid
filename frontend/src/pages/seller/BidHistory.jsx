@@ -81,6 +81,7 @@ function BidHistory() {
 
                 return {
                     id: bid._id || `bid-${index}`,
+                    isHighestBidder: index === 0,
                     bidder: {
                         id: bid.bidder?._id || bid.bidder,
                         name: bid.bidder?.firstName && bid.bidder?.lastName
@@ -88,6 +89,8 @@ function BidHistory() {
                             : bid.bidder?.username || 'Unknown Bidder',
                         username: bid.bidder?.username || 'unknown',
                         email: bid.bidder?.email || '',
+                        phone: bid.bidder?.phone || '',
+                        image: bid.bidder?.image || '',
                         company: bid.bidder?.company || ''
                     },
                     amount: bidAmount || bid.amount,
@@ -320,8 +323,8 @@ function BidHistory() {
                                             <div className="font-medium">{formatCurrency(selectedAuction.startingBid)}</div>
                                         </div>
                                         <div>
-                                            <div className="text-sm text-gray-500">Winning Bid</div>
-                                            <div className="font-medium text-green-600">{formatCurrency(selectedAuction.winningBid)}</div>
+                                            <div className="text-sm text-gray-500">Highest Bid</div>
+                                            <div className="font-medium">{formatCurrency(selectedAuction.winningBid)}</div>
                                         </div>
                                         <div>
                                             <div className="text-sm text-gray-500">Total Bids</div>
@@ -433,6 +436,30 @@ function BidHistory() {
                                                         <div className="text-base font-medium text-gray-900">
                                                             {bid.bidder.company ? `${bid.bidder.company} • ` : ''}@{bid.bidder.username}
                                                         </div>
+
+                                                        {bid.isHighestBidder && (
+                                                            <div className="mt-1 space-y-0.5">
+                                                                {bid.bidder.name && bid.bidder.name !== 'Unknown Bidder' && (
+                                                                    <div className="text-sm text-gray-700">{bid.bidder.name}</div>
+                                                                )}
+                                                                {bid.bidder.email && (
+                                                                    <a
+                                                                        href={`mailto:${bid.bidder.email}`}
+                                                                        className="text-xs text-blue-600 hover:underline block"
+                                                                    >
+                                                                        {bid.bidder.email}
+                                                                    </a>
+                                                                )}
+                                                                {bid.bidder.phone && (
+                                                                    <a
+                                                                        href={`tel:${bid.bidder.phone}`}
+                                                                        className="text-xs text-blue-600 hover:underline block"
+                                                                    >
+                                                                        {bid.bidder.phone}
+                                                                    </a>
+                                                                )}
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 </div>
                                             </td>
