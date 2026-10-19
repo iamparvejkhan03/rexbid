@@ -2040,9 +2040,24 @@ export const placeBid = async (req, res) => {
     const amountInBase = parseFloat(amount) * rate;
 
     const previousHighestBidder = auction.currentBidder;
-    const previousBidders = [
-      ...new Set(auction.bids.map((bid) => bid.bidder.toString())),
-    ];
+    // Rank bidders by their highest bid
+    const highestBidPerBidder = new Map();
+    for (const bid of auction.bids) {
+      const bidderId = bid.bidder.toString();
+      const current = highestBidPerBidder.get(bidderId);
+      if (current === undefined || bid.amount > current) {
+        highestBidPerBidder.set(bidderId, bid.amount);
+      }
+    }
+
+    const currentBidderId = bidder._id.toString();
+
+    // Top 2 bidders, excluding the person currently placing the bid
+    const previousBidders = [...highestBidPerBidder.entries()]
+      .filter(([bidderId]) => bidderId !== currentBidderId) // exclude placer
+      .sort((a, b) => b[1] - a[1])                          // highest bid first
+      .slice(0, 2)                                          // top 2 remaining
+      .map(([bidderId]) => bidderId);
 
     const oldEndDate = auction.endDate;
 
