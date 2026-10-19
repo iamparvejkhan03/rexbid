@@ -1020,8 +1020,7 @@ const CreateAuction = () => {
                                             <RTE
                                                 name="description"
                                                 control={control}
-                                                label="Description:"
-                                                defaultValue={getValues('description') || ''}
+                                                rules={{ required: "Description is required" }}
                                                 placeholder="Describe the item's history, condition, and any notable details..."
                                             />
                                             {errors.description && <p className="text-red-500 text-sm mt-1">{errors.description.message}</p>}
