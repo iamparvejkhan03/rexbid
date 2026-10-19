@@ -97,9 +97,6 @@ const userSchema = new Schema(
     },
     preferences: {
       emailUpdates: { type: Boolean, default: true },
-      smsUpdates: { type: Boolean, default: true },
-      newsletter: { type: Boolean, default: true },
-      favoriteCategories: [{ type: String }],
     },
 
     createdBy: {
@@ -305,6 +302,12 @@ const userSchema = new Schema(
     emailVerificationExpiry: {
       type: Date,
     },
+    unsubscribeToken: {
+      type: String,
+    },
+    unsubscribeTokenExpiry: {
+      type: Date,
+    },
 
     // Admin contact tracking
     lastContactedAt: {
@@ -371,6 +374,16 @@ userSchema.methods.generateResetPasswordToken = function () {
   this.resetPasswordTokenExpiry = Date.now() + 60 * 60 * 1000; // 1 hour
 
   return resetToken;
+};
+
+userSchema.methods.generateUnsubscribeToken = function () {
+  const token = crypto.randomBytes(32).toString('hex');
+  this.unsubscribeToken = crypto
+    .createHash('sha256')
+    .update(token)
+    .digest('hex');
+  this.unsubscribeTokenExpiry = Date.now() + 365 * 24 * 60 * 60 * 1000; // 1 year
+  return token;
 };
 
 // Method to get user data without sensitive information

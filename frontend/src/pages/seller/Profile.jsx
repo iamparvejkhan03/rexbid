@@ -18,14 +18,11 @@ import {
 } from "lucide-react";
 import axiosInstance from "../../utils/axiosInstance";
 import { useAuth } from "../../contexts/AuthContext";
+import PreferencesPanel from "../../components/PreferencesPanel";
 
 // Default preferences
 const defaultPreferences = {
-    bidAlerts: true,
-    outbidNotifications: true,
-    newsletter: true,
-    smsUpdates: false,
-    favoriteCategories: []
+    emailUpdates: true,
 };
 
 function Profile() {
@@ -215,14 +212,18 @@ function Profile() {
 
     const handlePreferencesChange = async (preferences) => {
         try {
-            const { data } = await axiosInstance.put('/api/v1/users/preferences', { preferences });
+            const { data } = await axiosInstance.put(
+                "/api/v1/users/preferences",
+                { preferences }
+            );
             if (data.success) {
                 setUserData(data.data.user);
                 return true;
             }
+            return false;
         } catch (err) {
-            setError('Failed to update preferences');
-            console.error('Update preferences error:', err);
+            setError("Failed to update preferences");
+            console.error("Update preferences error:", err);
             return false;
         }
     };
@@ -348,7 +349,7 @@ function Profile() {
         { id: "personal", label: "Personal Info", icon: <User size={18} /> },
         { id: "address", label: "Address", icon: <MapPin size={18} /> },
         // { id: "verification", label: "ID Verification", icon: <FileText size={18} /> },
-        // { id: "preferences", label: "Preferences", icon: <Bell size={18} /> },
+        { id: "preferences", label: "Preferences", icon: <Bell size={18} /> },
         { id: "security", label: "Security", icon: <Shield size={18} /> }
     ];
 
@@ -901,6 +902,14 @@ function Profile() {
                                             </div>
                                         )}
                                     </div>
+                                )}
+
+                                {activeSection === "preferences" && (
+                                    <PreferencesPanel
+                                        initialPreferences={userData.preferences}
+                                        onSave={handlePreferencesChange}
+                                        saving={saving}
+                                    />
                                 )}
                             </div>
 

@@ -3,6 +3,7 @@ import Commission from "../models/commission.model.js";
 import { getCachedRates } from "../routes/currency.route.js";
 import User from "../models/user.model.js";
 import Watchlist from "../models/watchlist.model.js";
+import { canEmailUser, canSendEmail } from "./emailPreferences.js";
 
 const transporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST,
@@ -729,6 +730,8 @@ const auctionListedEmail = async (listing, seller) => {
 
 // 9. New auction listed notification for bidders (based on interests/categories) - sent when auction goes live or is coming soon
 const newAuctionNotificationEmail = async (bidder, listing, seller) => {
+    if (!(await canSendEmail(bidder.email, "newAuction"))) return false;
+
     try {
         const isLive = listing?.status === "active" || listing?.status === "approved";
         const listingStatus = isLive ? "Live Now" : "Coming Soon";
@@ -821,15 +824,15 @@ const sendBulkAuctionNotifications = async (bidders, listing, seller) => {
     try {
         const notificationPromises = bidders?.map(async (bidder) => {
             try {
-                if (bidder?.preferences) {
-                    await newAuctionNotificationEmail(bidder, listing, seller);
-                    return { success: true, email: bidder.email };
+                if (!canEmailUser(bidder, "newAuction")) {
+                    return {
+                        success: false,
+                        email: bidder?.email,
+                        reason: "Notifications disabled",
+                    };
                 }
-                return {
-                    success: false,
-                    email: bidder?.email,
-                    reason: "Notifications disabled",
-                };
+                await newAuctionNotificationEmail(bidder, listing, seller);
+                return { success: true, email: bidder?.email };
             } catch (error) {
                 console.error(
                     `Failed to send notification to ${bidder?.email}:`,
@@ -876,6 +879,8 @@ const bidConfirmationEmail = async (
     currentBid,
     userCurrency
 ) => {
+    if (!(await canSendEmail(userEmail, "bidConfirmation"))) return false;
+
     try {
         const isWinning = amount >= currentBid;
 
@@ -917,6 +922,8 @@ const bidConfirmationEmail = async (
 
 // 12. New bid notification for seller
 const newBidNotificationEmail = async (seller, listing, bidAmount, bidder, userCurrency) => {
+    if (!(await canSendEmail(seller.email, "newBid"))) return false;
+
     try {
         const content = `
             <h2 style="text-align: center;">New Bid Received</h2>
@@ -976,6 +983,8 @@ const offerConfirmationEmail = async (
     offerId,
     userCurrency
 ) => {
+    if (!(await canSendEmail(userEmail, "offerConfirmation"))) return false;
+
     try {
         const content = `
             <h2 style="text-align: center;">Your Offer Has Been Submitted</h2>
@@ -1027,6 +1036,8 @@ const offerConfirmationEmail = async (
 
 // 14. New offer notification for seller
 const newOfferNotificationEmail = async (seller, listing, offerAmount, bidder, userCurrency) => {
+    if (!(await canSendEmail(seller?.email, "newOffer"))) return false;
+
     try {
         const content = `
             <h2 style="text-align: center;">New Offer Received</h2>
@@ -1092,6 +1103,8 @@ const outbidNotificationEmail = async (
     listingUrl,
     outBidderCurrency
 ) => {
+    if (!(await canSendEmail(userEmail, "outbid"))) return false;
+
     try {
         const content = `
             <h2 style="text-align: center;">You've Been Outbid</h2>
@@ -1185,14 +1198,20 @@ const sendOutbidNotifications = async (
             _id: { $in: biddersToNotify },
         });
 
-        if (users.length === 0) {
+        const eligibleUsers = users.filter((u) => canEmailUser(u, "outbid"));
+        if (eligibleUsers.length === 0) {
+            console.log("No users with outbid notifications enabled");
+            return;
+        }
+
+        if (eligibleUsers.length === 0) {
             console.log("No users found with outbid notifications enabled");
             return;
         }
 
         const auctionUrl = `${process.env.FRONTEND_URL}/auction/${auction._id}`;
 
-        const notificationPromises = users.map(async (user) => {
+        const notificationPromises = eligibleUsers.map(async (user) => {
             try {
                 await outbidNotificationEmail(
                     user.email,
@@ -1227,60 +1246,13 @@ const sendOutbidNotifications = async (
     }
 };
 
-// 17. Auction ending soon notification for bidders
-// const auctionEndingSoonEmail = async (
-//     userEmail,
-//     userName,
-//     listing
-// ) => {
-//     try {
-//         const content = `
-//             <h2 style="text-align: center;">Listing Expiring Soon</h2>
-//             <p style="text-align: center;">Time is running out to get this item.</p>
-
-//             ${createInfoCard(`
-//                 <p style="margin: 0 0 12px 0; font-size: 18px; font-weight: bold; color: ${BRAND_COLORS.secondary};">${listing?.title}</p>
-//                 ${listing.subTitle ? `<p style="margin: 0 0 16px 0; text-align: center; color: ${BRAND_COLORS.textLight};">${listing.subTitle}</p>` : ''}
-
-//                 ${createSummaryRow('Listing Type:', listing?.auctionType || 'N/A')}
-//                 ${createSummaryRow('Current Offers/Bids:', (listing?.offers?.length || listing?.bids?.length || 0).toLocaleString())}
-
-//                 ${listing.specifications && listing.specifications.size > 0 ? `
-//                     <div style="margin: 16px 0 0 0;">
-//                         <strong style="color: ${BRAND_COLORS.secondary};">Item Details</strong>
-//                         ${renderSpecifications(listing.specifications)}
-//                     </div>
-//                 ` : ''}
-//             `)}
-
-//             <p>The listing for <strong>${listing?.title}</strong> is about to expire. Once expired, this item will no longer be available for purchase.</p>
-
-//             <div style="text-align: center; margin: 25px 0;">
-//                 ${createButton('View Listing Now', `${FRONTEND_URL}/auction/${listing._id}`, 'primary')}
-//             </div>
-//         `;
-
-//         const html = baseTemplate(content, 'Listing Expiring Soon');
-
-//         const info = await transporter.sendMail({
-//             from: `"${BRAND_NAME}" <${process.env.EMAIL_USER}>`,
-//             to: userEmail,
-//             subject: `Listing Expires Soon: ${listing?.title}`,
-//             html
-//         });
-
-//         return !!info;
-//     } catch (error) {
-//         console.error(`Failed to send listing expiring soon email:`, error);
-//         return false;
-//     }
-// };
-
 const auctionEndingSoonEmail = async (
     userEmail,
     userName,
     listing
 ) => {
+    if (!(await canSendEmail(userEmail, "endingSoon"))) return false;
+
     try {
         const title = listing?.title || "Auction";
         const currency = listing?.baseCurrency || "EUR";
@@ -1354,6 +1326,8 @@ const auctionEndingSoonSellerEmail = async (
     sellerName,
     listing
 ) => {
+    if (!(await canSendEmail(sellerEmail, "endingSoonSeller"))) return false;
+
     try {
         const title = listing?.title || "Your Listing";
         const currency = listing?.baseCurrency || "EUR";
@@ -2324,6 +2298,8 @@ const flaggedCommentAdminEmail = async (
 
 // Comment emails
 const newCommentSellerEmail = async (seller, listing, comment, commentAuthor) => {
+    if (!(await canSendEmail(seller?.email, "newComment"))) return false;
+
     try {
         const content = `
             <h2 style="text-align: center;">New Comment on Your Listing</h2>
@@ -2369,6 +2345,8 @@ const newCommentSellerEmail = async (seller, listing, comment, commentAuthor) =>
 };
 
 const newCommentBidderEmail = async (bidder, listing, comment, commentAuthor) => {
+    if (!(await canSendEmail(bidder?.email, "newComment"))) return false;
+
     try {
         const content = `
             <h2 style="text-align: center;">New Activity on Listing</h2>
@@ -2638,6 +2616,8 @@ const payoutFailedEmail = async (seller, payout) => {
 
 // 28. Giveaway participation confirmation email
 const giveawayParticipationEmail = async (userEmail, listing) => {
+    if (!(await canSendEmail(userEmail, "giveawayParticipation"))) return false;
+
     try {
         const content = `
             <h2 style="text-align: center;">You're in the Giveaway!</h2>
@@ -2811,9 +2791,11 @@ const auctionReserveNotMetEmail = async (
     bidderEmail,
     bidderName,
     listing,
-    bidderRank,       // 1 or 2
-    bidderAmount,     // their highest bid (auction base currency)
+    bidderRank,
+    bidderAmount,
 ) => {
+    if (!(await canSendEmail(bidderEmail, "reserveNotMet"))) return false;
+
     try {
         const title = listing?.title || "Auction";
         const currency = listing?.baseCurrency || "EUR";
@@ -2892,6 +2874,8 @@ const watchlistBidNotificationEmail = async (
     listingUrl,
     outBidderCurrency
 ) => {
+    if (!(await canSendEmail(userEmail, "watchlist"))) return false;
+
     try {
         const content = `
             <h2 style="text-align: center;">New Bid on an Auction You're Watching</h2>
@@ -2995,14 +2979,20 @@ const sendWatchlistBidNotifications = async (
             isActive: true,
         }).select("email username companyName firstName lastName");
 
-        if (users.length === 0) {
+        const eligibleUsers = users.filter((u) => canEmailUser(u, "watchlist"));
+        if (eligibleUsers.length === 0) {
+            console.log("No watchlist users with notifications enabled");
+            return;
+        }
+
+        if (eligibleUsers.length === 0) {
             console.log("No active watchlist users found for this auction");
             return;
         }
 
         const auctionUrl = `${process.env.FRONTEND_URL}/auction/${auction._id}`;
 
-        const notificationPromises = users.map(async (user) => {
+        const notificationPromises = eligibleUsers.map(async (user) => {
             try {
                 await watchlistBidNotificationEmail(
                     user.email,

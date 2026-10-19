@@ -1088,3 +1088,45 @@ export const deleteIdentification = async (req, res) => {
     });
   }
 };
+
+export const unsubscribeUser = async (req, res) => {
+  try {
+    const { token } = req.params;
+    if (!token) {
+      return res.status(400).json({
+        success: false,
+        message: "Unsubscribe token is required"
+      });
+    }
+
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+    const user = await User.findOne({
+      unsubscribeToken: hashedToken,
+      unsubscribeTokenExpiry: { $gt: Date.now() }
+    });
+
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid or expired unsubscribe token"
+      });
+    }
+
+    // Disable both email and SMS updates
+    user.preferences.emailUpdates = false;
+    user.unsubscribeToken = undefined;
+    user.unsubscribeTokenExpiry = undefined;
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: "You have been unsubscribed from all update notifications."
+    });
+  } catch (error) {
+    console.error("Unsubscribe error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to unsubscribe"
+    });
+  }
+};

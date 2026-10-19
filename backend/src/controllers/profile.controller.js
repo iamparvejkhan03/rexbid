@@ -186,21 +186,31 @@ export const updatePreferences = async (req, res) => {
     const userId = req.user._id;
     const { preferences } = req.body;
 
+    if (!preferences || typeof preferences.emailUpdates !== "boolean") {
+      return res.status(400).json({
+        success: false,
+        message: "preferences.emailUpdates must be a boolean",
+      });
+    }
+
+    // Merge instead of replacing the whole object
     const updatedUser = await User.findByIdAndUpdate(
       userId,
-      { preferences },
-      {
-        new: true,
-        runValidators: true,
-      }
+      { $set: { "preferences.emailUpdates": preferences.emailUpdates } },
+      { new: true, runValidators: true }
     ).select("-password -refreshToken");
+
+    if (!updatedUser) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
 
     res.status(200).json({
       success: true,
       message: "Preferences updated successfully",
-      data: {
-        user: updatedUser,
-      },
+      data: { user: updatedUser },
     });
   } catch (error) {
     console.error("Update preferences error:", error);

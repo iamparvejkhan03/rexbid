@@ -27,6 +27,7 @@ const Checkout = lazy(() => import('./pages/Checkout'));
 const SellerReviews = lazy(() => import('./pages/SellerReviews'));
 const Sell = lazy(() => import('./pages/Sell'));
 const DeliveryPartnerQuote = lazy(() => import('./pages/DeliveryPartnerQuote'));
+const Unsubscribe = lazy(() => import('./pages/Unsubscribe'));
 
 {/* Seller Pages */ }
 const SellerLayout = lazy(() => import('./pages/seller/Layout'));
@@ -152,6 +153,8 @@ createRoot(document.getElementById('root')).render(
                         <Route path='/sell' element={<Suspense fallback={<LoadingSpinner height={'725px'} />}><Sell /></Suspense>} />
 
                         <Route path='/delivery-partner-quote' element={<Suspense fallback={<LoadingSpinner height={'725px'} />}><DeliveryPartnerQuote /></Suspense>} />
+
+                        <Route path='/unsubscribe/:token' element={<Suspense fallback={<LoadingSpinner height={'725px'} />}><Unsubscribe /></Suspense>} />
                     </Route>
 
                     {/* Seller Layout */}

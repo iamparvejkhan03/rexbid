@@ -1,16 +1,17 @@
 import { Router } from "express";
 import upload from "../middlewares/multer.middleware.js";
-import { 
+import {
     createPaymentMethod,
     deleteIdentification,
     forgotPassword,
     getBillingInfo,
     getSellerStats,
     getVerificationStatus,
-    loginUser, 
-    refreshAccessToken, 
+    loginUser,
+    refreshAccessToken,
     registerUser,
     resetPassword,
+    unsubscribeUser,
     updatePaymentMethod,
     uploadIdentification,
 } from "../controllers/user.controller.js";
@@ -33,6 +34,7 @@ userRouter.post('/login', loginUser);
 userRouter.post('/refresh-token', refreshAccessToken);
 userRouter.post('/forgot-password', forgotPassword);
 userRouter.post('/reset-password/:token', resetPassword);
+userRouter.get('/unsubscribe/:token', unsubscribeUser);
 userRouter.get("/:userId/seller-stats", getSellerStats);
 
 // Protected routes
@@ -46,9 +48,9 @@ userRouter.post('/billing/create-card', auth, createPaymentMethod);
 userRouter.put('/billing/update-card', auth, updatePaymentMethod);
 
 // ID Verification routes (Protected)
-userRouter.post('/upload-identification', 
-    auth, 
-    upload.single('identificationDocument'), 
+userRouter.post('/upload-identification',
+    auth,
+    upload.single('identificationDocument'),
     uploadIdentification
 );
 userRouter.get('/verification-status', auth, getVerificationStatus);

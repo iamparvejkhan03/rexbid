@@ -75,6 +75,7 @@ import MobileBidBottomBar from "./MobileBidBottomBar";
 import PromoBanner from "./PromoBanner";
 import HomeLiveAuctionsSection from "./HomeLiveAuctionsSection";
 import ManualSellModal from "./ManualSellModal";
+import PreferencesPanel from "./PreferencesPanel";
 
 export {
     Container,
@@ -154,4 +155,5 @@ export {
     PromoBanner,
     HomeLiveAuctionsSection,
     ManualSellModal,
+    PreferencesPanel,
 }
