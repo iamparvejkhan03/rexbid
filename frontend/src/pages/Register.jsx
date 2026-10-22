@@ -75,10 +75,10 @@ const Register = () => {
     const [currencies, setCurrencies] = useState([{ code: 'GBP', name: 'Pound Sterling' }, { code: 'EUR', name: 'Euro' }]);
     const [states, setStates] = useState([]);
     const [counties, setCounties] = useState([
-        "Carlow", "Cavan", "Clare", "Cork", "Donegal",
-        "Dublin", "Galway", "Kerry", "Kildare", "Kilkenny",
+        "Antrim", "Armagh", "Carlow", "Cavan", "Clare", "Cork", "Derry", "Donegal", "Down",
+        "Dublin", "Fermanagh", "Galway", "Kerry", "Kildare", "Kilkenny",
         "Laois", "Leitrim", "Limerick", "Longford", "Louth", "Mayo", "Meath",
-        "Monaghan", "Offaly", "Roscommon", "Sligo", "Tipperary",
+        "Monaghan", "Offaly", "Roscommon", "Sligo", "Tipperary", "Tyrone",
         "Waterford", "Westmeath", "Wexford", "Wicklow"
     ]);
     const [selectedCountry, setSelectedCountry] = useState('');

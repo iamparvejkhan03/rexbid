@@ -89,12 +89,12 @@ function Sidebar() {
 
             {/* Sidebar */}
             <aside className={`
-        fixed md:relative w-64 bg-gradient-to-br from-[#072342] to-[#0a2a4a] text-white h-screen md:h-auto md:min-h-screen overflow-y-auto p-4 flex flex-col z-50
-        transform transition-transform duration-300 ease-in-out
-        ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
-      `}>
+                fixed md:relative w-64 bg-gradient-to-b from-[#072342] to-[#0a2a4a] text-white h-[100dvh] md:h-auto md:min-h-screen overflow-hidden z-50 p-4 flex flex-col
+                transform transition-transform duration-300 ease-in-out
+                ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+            `}>
                 {/* Logo/Brand */}
-                <div className="px-4 mb-8 flex items-center justify-between pb-2">
+                <div className="px-4 mb-8 flex items-center justify-between pb-2 border-b border-gray-700 shrink-0">
                     <Link to={'/'}>
                         <img src={logo} className="h-10 md:h-12" alt="logo" />
                     </Link>
@@ -107,7 +107,7 @@ function Sidebar() {
                 </div>
 
                 {/* Navigation */}
-                <nav className="flex-1">
+                <nav className="flex-1 overflow-y-auto min-h-0">
                     <ul className="space-y-2">
                         {navigation.map((link, i) => (
                             <li key={i}>
@@ -115,28 +115,28 @@ function Sidebar() {
                                     to={link.path}
                                     onClick={() => isMobile && setIsOpen(false)}
                                     className={({ isActive }) =>
-                                            `flex items-center p-3 rounded-lg transition-all duration-200 ${isActive
-                                                ? 'bg-gradient-to-r from-[#D19F3E] to-[#E8B86B] text-white shadow-lg'
-                                                : 'text-white hover:bg-gradient-to-r hover:from-[#D19F3E]/90 hover:to-[#E8B86B]/90 hover:text-white'
-                                            }`
-                                        }
+                                        `flex items-center p-3 rounded-lg transition-all duration-200 ${isActive
+                                            ? 'bg-gradient-to-r from-[#D19F3E] to-[#E8B86B] text-white shadow-lg'
+                                            : 'text-white hover:bg-gradient-to-r hover:from-[#D19F3E]/90 hover:to-[#E8B86B]/90 hover:text-white'
+                                        }`
+                                    }
                                 >
                                     <span className="mr-3">{link.icon}</span>
                                     <span>{link.name}</span>
                                 </NavLink>
                             </li>
                         ))}
-                        <li>
-                            <button
-                                onClick={logout}
-                                className="flex items-center w-full p-3 rounded-lg text-white hover:bg-red-600 transition-all duration-200"
-                            >
-                                <LogOut size={20} className="mr-3" />
-                                <span>Log Out</span>
-                            </button>
-                        </li>
                     </ul>
                 </nav>
+                <div className="shrink-0 pt-3 mt-3 border-t border-gray-700">
+                    <button
+                        onClick={logout}
+                        className="flex items-center w-full p-3 rounded-lg text-white hover:bg-red-600 transition-all duration-200"
+                    >
+                        <LogOut size={20} className="mr-3" />
+                        <span>Log Out</span>
+                    </button>
+                </div>
             </aside>
         </>
     );

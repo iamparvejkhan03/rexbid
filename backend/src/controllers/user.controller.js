@@ -841,8 +841,9 @@ export const getSellerStats = async (req, res) => {
 
     const itemsAdded = await Auction.countDocuments({ seller: userId });
 
-    // Get reviews where user is the reviewee (ratings received)
-    const reviews = await Review.find({ reviewee: userId });
+    // Get APPROVED reviews where user is the reviewee (ratings received)
+    // Pending / rejected reviews are excluded from count and average
+    const reviews = await Review.find({ reviewee: userId, status: "approved" });
     const totalReviews = reviews.length;
     const sellerImage = user?.image;
     const averageRating = totalReviews > 0

@@ -271,16 +271,16 @@ function Notifications() {
     };
 
     const formatCurrency = (amount) => {
-        return new Intl.NumberFormat('nb-NO', {
+        return new Intl.NumberFormat('en-IE', {
             style: 'currency',
-            currency: 'NOK',
+            currency: 'EUR',
             minimumFractionDigits: 0,
             maximumFractionDigits: 0
         }).format(amount);
     };
 
     const formatDate = (dateString) => {
-        return new Date(dateString).toLocaleDateString('nb-NO', {
+        return new Date(dateString).toLocaleDateString('en-IE', {
             year: 'numeric',
             month: 'long',
             day: 'numeric'
@@ -298,7 +298,7 @@ function Notifications() {
         if (diffMins < 60) return `${diffMins}m ago`;
         if (diffHours < 24) return `${diffHours}h ago`;
         if (diffDays < 7) return `${diffDays}d ago`;
-        return notificationTime.toLocaleDateString('nb-NO');
+        return notificationTime.toLocaleDateString('en-IE');
     };
 
     return (

@@ -63,10 +63,10 @@ const SellerStatsCard = ({ sellerId }) => {
                                 </h3>
                                 {!showDetails ? (
                                     <button
-                                        className="bg-primary text-white py-2 px-4 rounded-md hover:bg-primary-dark transition-colors flex items-center justify-center gap-2 text-xs"
+                                        className="bg-primary text-white py-2 px-4 rounded-md hover:bg-primary-dark transition-colors flex items-center justify-center gap-1 text-xs"
                                         onClick={handleContactClick}
                                     >
-                                        <MessageCircle size={16} />
+                                        <MessageCircle size={14} />
                                         Contact Seller
                                     </button>
                                 ) :
@@ -97,7 +97,7 @@ const SellerStatsCard = ({ sellerId }) => {
                 </div>
 
                 {/* Stats grid */}
-                {/* <div className="grid grid-cols-2 md:grid-cols-4 gap-2 items-center justify-between border rounded-md py-4 border-gray-200 mt-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2 items-center justify-between border rounded-md py-4 border-gray-200 mt-4">
                     <div className="text-center flex-1">
                         <div className="flex items-center justify-center gap-1 text-gray-600">
                             <Package size={16} />
@@ -106,13 +106,13 @@ const SellerStatsCard = ({ sellerId }) => {
                         <p className="text-xl font-bold text-gray-800">{stats?.itemsAdded.toLocaleString()}</p>
                     </div>
 
-                    <div className="text-center flex-1">
+                    {/* <div className="text-center flex-1">
                         <div className="flex items-center justify-center gap-1 text-gray-600">
                             <PackageCheck size={16} />
                             <span className="text-xs uppercase">Sold</span>
                         </div>
                         <p className="text-xl font-bold text-gray-800">{stats?.itemsSold.toLocaleString()}</p>
-                    </div>
+                    </div> */}
 
                     <div className="text-center flex-1 border-l border-r border-gray-100">
                         <div className="flex items-center justify-center gap-1 text-gray-600">
@@ -140,7 +140,7 @@ const SellerStatsCard = ({ sellerId }) => {
                             </Link>
                         </p>
                     </div>
-                </div> */}
+                </div>
             </div>
         </div>
     );

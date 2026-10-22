@@ -42,7 +42,7 @@ export const useAuctions = () => {
     };
 
     // Fetch auctions with pagination and filters
-    const fetchAuctions = async (page = 1, limit = 12, currentFilters = {}) => {
+    const fetchAuctions = async (page = 1, limit = 21, currentFilters = {}) => {
         const loadingState = page > 1 ? setLoadingMore : setLoading;
         loadingState(true);
 
@@ -101,14 +101,14 @@ export const useAuctions = () => {
 
         const nextPage = pagination.currentPage + 1;
 
-        await fetchAuctions(nextPage, 12, filters);
+        await fetchAuctions(nextPage, 21, filters);
     };
 
     // Update filters and refresh auctions
     const updateFilters = (newFilters) => {
         const updatedFilters = { ...filters, ...newFilters };
         setFilters(updatedFilters);
-        fetchAuctions(1, 12, updatedFilters);
+        fetchAuctions(1, 21, updatedFilters);
     };
 
     // Handle URL parameters on initial load
@@ -142,10 +142,10 @@ export const useAuctions = () => {
         if (Object.keys(cleanUrlFilters).length > 0) {
             // If we have URL parameters, use them for initial fetch
             setFilters(urlFilters);
-            fetchAuctions(1, 12, urlFilters);
+            fetchAuctions(1, 21, urlFilters);
         } else {
             // If no URL parameters, fetch with default filters
-            fetchAuctions(1, 12, filters);
+            fetchAuctions(1, 21, filters);
         }
     }, [location.search]);
 

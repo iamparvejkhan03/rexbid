@@ -1,8 +1,13 @@
-function Description({description}) {
+function Description({ description }) {
     return (
-        <div className="">
-            {/* <h3 className="my-5 text-primary text-xl font-semibold">Description</h3> */}
-            <div className="prose max-w-none rounded-lg">
+        <div className="w-full overflow-hidden">
+            <div
+                className="prose max-w-none rounded-lg break-words
+                [&_img]:max-w-full [&_img]:h-auto
+                [&_pre]:overflow-x-auto [&_pre]:max-w-full
+                [&_table]:block [&_table]:max-w-full [&_table]:overflow-x-auto
+                [&_iframe]:max-w-full"
+            >
                 {description ? (
                     <div dangerouslySetInnerHTML={{ __html: description }} />
                 ) : (

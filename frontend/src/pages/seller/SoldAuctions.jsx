@@ -390,7 +390,7 @@ function SoldAuctions() {
                                                 <User size={16} className="mr-2" />
                                                 Contact Winner
                                             </button>
-                                            {!selectedAuction.userReview && selectedAuction.status === 'sold' && (
+                                            {/* {!selectedAuction.userReview && selectedAuction.status === 'sold' && (
                                                 <button
                                                     onClick={() => {
                                                         setSelectedAuction(selectedAuction);
@@ -401,7 +401,7 @@ function SoldAuctions() {
                                                 >
                                                     Rate Bidder
                                                 </button>
-                                            )}
+                                            )} */}
                                         </div>
                                     </div>
                                 </div>

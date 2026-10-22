@@ -185,7 +185,7 @@ const Comments = () => {
 
     // Format date
     const formatDate = (dateString) => {
-        return new Date(dateString).toLocaleDateString('nb-NO', {
+        return new Date(dateString).toLocaleDateString('en-IE', {
             year: 'numeric',
             month: 'short',
             day: 'numeric',
@@ -224,7 +224,7 @@ const Comments = () => {
                                 <div className="flex justify-between items-center">
                                     <div>
                                         <p className="text-sm font-medium text-secondary">Total Comments</p>
-                                        <h3 className="text-2xl font-bold">{stats.totalComments?.toLocaleString('nb-NO')}</h3>
+                                        <h3 className="text-2xl font-bold">{stats.totalComments?.toLocaleString('en-IE')}</h3>
                                     </div>
                                     <div className="text-blue-500">
                                         <MessageCircle />
@@ -236,7 +236,7 @@ const Comments = () => {
                                 <div className="flex justify-between items-center">
                                     <div>
                                         <p className="text-sm font-medium text-secondary">Flagged Comments</p>
-                                        <h3 className="text-2xl font-bold text-yellow-600">{stats.flaggedComments?.toLocaleString('nb-NO')}</h3>
+                                        <h3 className="text-2xl font-bold text-yellow-600">{stats.flaggedComments?.toLocaleString('en-IE')}</h3>
                                     </div>
                                     <div className="text-yellow-500">
                                         <Flag />
@@ -248,7 +248,7 @@ const Comments = () => {
                                 <div className="flex justify-between items-center">
                                     <div>
                                         <p className="text-sm font-medium text-secondary">Active Comments</p>
-                                        <h3 className="text-2xl font-bold text-green-600">{stats.activeComments?.toLocaleString('nb-NO')}</h3>
+                                        <h3 className="text-2xl font-bold text-green-600">{stats.activeComments?.toLocaleString('en-IE')}</h3>
                                     </div>
                                     <div className="text-green-500">
                                         <CheckCircle />
@@ -260,7 +260,7 @@ const Comments = () => {
                                 <div className="flex justify-between items-center">
                                     <div>
                                         <p className="text-sm font-medium text-secondary">Flags This Week</p>
-                                        <h3 className="text-2xl font-bold text-purple-600">{stats.flagsThisWeek?.toLocaleString('nb-NO')}</h3>
+                                        <h3 className="text-2xl font-bold text-purple-600">{stats.flagsThisWeek?.toLocaleString('en-IE')}</h3>
                                     </div>
                                     <div className="text-purple-500">
                                         <TriangleAlert />
@@ -413,7 +413,7 @@ const Comments = () => {
                                                                     </p>
                                                                 </div>
                                                                 <p className="text-xs text-red-500">
-                                                                    {new Date(flag.flaggedAt).toLocaleDateString('nb-NO')}
+                                                                    {new Date(flag.flaggedAt).toLocaleDateString('en-IE')}
                                                                 </p>
                                                             </div>
                                                         </div>
@@ -547,7 +547,7 @@ const Comments = () => {
                                                         </td>
                                                         <td className="py-3 px-4">
                                                             <p className="text-sm text-secondary">
-                                                                {new Date(comment.createdAt).toLocaleDateString('nb-NO', {
+                                                                {new Date(comment.createdAt).toLocaleDateString('en-IE', {
                                                                     month: 'short',
                                                                     day: 'numeric',
                                                                     year: 'numeric'

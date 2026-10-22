@@ -26,21 +26,21 @@ function ActiveAuctions() {
     const auctionStats = [
         {
             title: "Active Auctions",
-            value: stats.activeAuctions?.toLocaleString('nb-NO'),
+            value: stats.activeAuctions?.toLocaleString('en-IE'),
             change: "All Time",
             icon: <Gavel size={24} />,
             trend: "up"
         },
         {
             title: "New Today",
-            value: stats.newToday?.toLocaleString('nb-NO'),
+            value: stats.newToday?.toLocaleString('en-IE'),
             change: "In Last 24 Hours",
             icon: <Award size={24} />,
             trend: "up"
         },
         {
             title: "Ending Soon",
-            value: stats.endingSoon?.toLocaleString('nb-NO'),
+            value: stats.endingSoon?.toLocaleString('en-IE'),
             change: "In Next 24 Hours",
             icon: <Clock size={24} />,
             trend: "down",

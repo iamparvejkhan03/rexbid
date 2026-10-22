@@ -22,7 +22,7 @@ const ReviewModal = ({ isOpen, onClose, auctionId, revieweeId, onSuccess }) => {
                 comment,
                 revieweeId,
             });
-            toast.success("Review submitted successfully");
+            toast.success("Review submitted! It will be visible after admin approval.");
             onSuccess?.();
             onClose();
         } catch (error) {
@@ -81,6 +81,9 @@ const ReviewModal = ({ isOpen, onClose, auctionId, revieweeId, onSuccess }) => {
                     >
                         {loading ? "Submitting..." : "Submit Review"}
                     </button>
+                    <p className="text-xs text-gray-500 text-center mt-2">
+                        Your review will be published after admin approval.
+                    </p>
                 </form>
             </div>
         </div>

@@ -141,11 +141,11 @@ const SellerReviewsPage = () => {
 
                     {/* Stats badges */}
                     <div className="flex flex-wrap gap-4 ml-auto">
-                        <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-full shadow-sm">
+                        {/* <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-full shadow-sm">
                             <Package size={18} className="text-gray-500" />
                             <span className="text-lg font-semibold">{itemsSold.toLocaleString()}</span>
                             <span className="text-sm text-gray-500">sold</span>
-                        </div>
+                        </div> */}
                         <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-full shadow-sm">
                             <PlusCircle size={18} className="text-gray-500" />
                             <span className="text-lg font-semibold">{itemsAdded.toLocaleString()}</span>

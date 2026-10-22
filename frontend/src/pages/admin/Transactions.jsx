@@ -169,23 +169,23 @@ function Transactions() {
     };
 
     const formatTime = (dateString) => {
-        return new Date(dateString).toLocaleTimeString('nb-NO', {
+        return new Date(dateString).toLocaleTimeString('en-IE', {
             hour: '2-digit',
             minute: '2-digit'
         });
     };
 
     const formatCurrency = (amount) => {
-        return new Intl.NumberFormat('nb-NO', {
+        return new Intl.NumberFormat('en-IE', {
             style: 'currency',
-            currency: 'NOK',
+            currency: 'EUR',
             minimumFractionDigits: 0,
             maximumFractionDigits: 0
         }).format(amount);
     };
 
     const formatDate = (dateString) => {
-        return new Date(dateString).toLocaleDateString('nb-NO', {
+        return new Date(dateString).toLocaleDateString('en-IE', {
             year: 'numeric',
             month: 'long',
             day: 'numeric'

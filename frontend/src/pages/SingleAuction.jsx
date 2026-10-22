@@ -1296,7 +1296,8 @@ function SingleAuction() {
                             )}
 
                             {/* Review Button for sold auctions */}
-                            {auction.status === 'sold' && user && (user._id === auction.seller?._id || user._id === auction.winner?._id) && !userReview && (
+                            {/* {auction.status === 'sold' && user && (user._id === auction.seller?._id || user._id === auction.winner?._id) && !userReview && ( */}
+                            {auction.status === 'sold' && user && (user._id === auction.winner?._id) && !userReview && (
                                 <button
                                     onClick={() => {
                                         setRevieweeId(user._id === auction.seller?._id ? auction.winner?._id : auction.seller?._id);
@@ -1314,8 +1315,7 @@ function SingleAuction() {
                                 auctionId={auction._id}
                                 revieweeId={revieweeId}
                                 onSuccess={() => {
-                                    setUserReview({}); // mark as reviewed
-                                    toast.success("Thank you for your review!");
+                                    setUserReview({});
                                 }}
                             />
 
