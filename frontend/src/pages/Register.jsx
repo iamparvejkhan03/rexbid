@@ -950,7 +950,7 @@ const Register = () => {
                             </div>
 
                             {/* Currency Selection */}
-                            {/* <div className={`border-t pt-6 pb-3 ${errors.currency && 'mb-3'}`}>
+                            <div className={`border-t pt-6 pb-3 ${errors.currency && 'mb-3'}`}>
                                 <label className="text-sm font-medium leading-none text-gray-700 flex items-center gap-2 mb-4">
                                     <Banknote size={20} />
                                     <span>Currency</span>
@@ -975,7 +975,7 @@ const Register = () => {
                                 {errors.currency && (
                                     <p className="text-red-500 text-sm mt-1 absolute">{errors.currency.message}</p>
                                 )}
-                            </div> */}
+                            </div>
 
                             {/* ID Verification Section */}
                             {/* <div id="id-verification-section" className="border-t border-gray-200 dark:border-bg-primary-light pt-6">

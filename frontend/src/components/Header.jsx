@@ -321,7 +321,7 @@ function Header() {
                         </li>
 
                         {/* Auction Types Dropdown - Simple */}
-                        {/* <li
+                        <li
                             ref={currencySwitcherRef}
                             className={`${isScrolled ? 'text-black' : 'text-white'} relative`}
                         >
@@ -350,7 +350,7 @@ function Header() {
                                     })}
                                 </div>
                             )}
-                        </li> */}
+                        </li>
 
                         <li>
                             {
@@ -402,7 +402,7 @@ function Header() {
                             </button>
                         </li>
 
-                        {/* <li className="relative mx-5 py-2 mb-2">
+                        <li className="relative mx-5 py-2 mb-2">
                             <button
                                 onClick={() => {
                                     setMobileCurrencySwitcherOpen(true);
@@ -413,7 +413,7 @@ function Header() {
                                 Currency
                                 <ChevronRight size={16} />
                             </button>
-                        </li> */}
+                        </li>
 
                         <li>
                             {
