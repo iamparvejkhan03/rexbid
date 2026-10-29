@@ -76,6 +76,7 @@ import PromoBanner from "./PromoBanner";
 import HomeLiveAuctionsSection from "./HomeLiveAuctionsSection";
 import ManualSellModal from "./ManualSellModal";
 import PreferencesPanel from "./PreferencesPanel";
+import EmailCampaignFormModal from "./admin/EmailCampaignFormModal";
 
 export {
     Container,
@@ -156,4 +157,5 @@ export {
     HomeLiveAuctionsSection,
     ManualSellModal,
     PreferencesPanel,
+    EmailCampaignFormModal,
 }

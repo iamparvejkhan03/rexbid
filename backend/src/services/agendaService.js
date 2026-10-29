@@ -272,6 +272,20 @@ class AgendaService {
       }
     });
 
+    // Job to send an email campaign at its scheduled time
+    this.agenda.define("send email campaign", async (job) => {
+      const { campaignId } = job.attrs.data;
+      try {
+        // Lazy import to avoid circular dependency with the controller
+        const { processCampaign } = await import(
+          "../controllers/emailCampaign.controller.js"
+        );
+        await processCampaign(campaignId);
+      } catch (error) {
+        console.error("Agenda job error (send email campaign):", error);
+      }
+    });
+
     // Job to send notifications for auctions ending soon
     // this.agenda.define("send ending soon notifications", async (job) => {
     //   try {

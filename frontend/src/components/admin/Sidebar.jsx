@@ -30,7 +30,8 @@ import {
     Calendar,
     UserStar,
     Truck,
-    Star
+    Star,
+    Mail
 } from "lucide-react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { logo } from "../../assets";
@@ -89,6 +90,10 @@ const navigation = [
     //     icon: <PoundSterling size={20} />
     // },
     {
+        name: 'Email Campaigns',
+        path: '/admin/email-campaigns',
+        icon: <Mail size={20} />,
+    },{
         name: 'Comments',
         path: '/admin/comments',
         icon: <MessageCircle size={20} />,

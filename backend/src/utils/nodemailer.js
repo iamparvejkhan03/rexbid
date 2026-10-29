@@ -323,6 +323,42 @@ const convertRawAmount = (amount, fromCurrency, toCurrency) => {
     return parseFloat((amount * rate).toFixed(2));
 };
 
+// ============================================================
+// MARKETING CAMPAIGN EMAIL
+// ============================================================
+const sendMarketingCampaignEmail = async (
+    user,
+    campaign,
+    unsubscribeToken,
+    personalizedBody
+) => {
+    const unsubscribeUrl = `${FRONTEND_URL}/unsubscribe/${unsubscribeToken}`;
+
+    const content = `
+    ${personalizedBody}
+
+    <div style="margin-top: 32px; padding-top: 20px; border-top: 1px solid ${BRAND_COLORS.grayBorder}; text-align: center; font-size: 12px; color: ${BRAND_COLORS.textLight}; line-height: 1.6;">
+      <p style="margin: 0 0 8px 0;">
+        You're receiving this email because you have an account on ${BRAND_NAME}.
+      </p>
+      <p style="margin: 0;">
+        <a href="${unsubscribeUrl}" style="color: ${BRAND_COLORS.primary}; text-decoration: underline;">
+          Unsubscribe from emails
+        </a>
+      </p>
+    </div>
+  `;
+
+    const html = baseTemplate(content, campaign.title);
+
+    return transporter.sendMail({
+        from: `"${BRAND_NAME}" <${process.env.EMAIL_USER}>`,
+        to: user.email,
+        subject: campaign.title,
+        html,
+    });
+};
+
 // Email Templates
 
 // 1. Contact email for admin
@@ -3173,4 +3209,5 @@ export {
     counterOfferRejectedEmail,
     deliveryQuoteAdminEmail,
     deliveryQuoteUserEmail,
+    sendMarketingCampaignEmail,
 };

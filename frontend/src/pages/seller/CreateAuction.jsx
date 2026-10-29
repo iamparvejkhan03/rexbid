@@ -29,7 +29,8 @@ import {
     ChevronRight,
     AlertCircle,
     Banknote,
-    Zap
+    Zap,
+    Info
 } from "lucide-react";
 import { RTE, SellerContainer, SellerHeader, SellerSidebar } from '../../components';
 import toast from 'react-hot-toast';
@@ -1416,7 +1417,7 @@ const CreateAuction = () => {
                                                 )}
 
                                                 {/* Payment Collection Preference */}
-                                                <div className="mb-6">
+                                                {/* <div className="mb-6">
                                                     <label htmlFor="paymentCollectionPreference" className="block text-sm font-medium text-secondary mb-1">
                                                         Payment Collection Method *
                                                     </label>
@@ -1427,8 +1428,8 @@ const CreateAuction = () => {
                                                         id="paymentCollectionPreference"
                                                         className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
                                                     >
-                                                        {/* <option value="buyer_decides">Buyer Decides</option> */}
-                                                        {/* <option value="bank_transfer">Bank Transfer</option> */}
+                                                        <option value="buyer_decides">Buyer Decides</option>
+                                                        <option value="bank_transfer">Bank Transfer</option>
                                                         <option value="credit_card">Credit Card</option>
                                                     </select>
                                                     {errors.paymentCollectionPreference && (
@@ -1437,7 +1438,7 @@ const CreateAuction = () => {
                                                     <p className="text-sm text-secondary mt-1">
                                                         Choose how you prefer to collect payment from the winning buyer
                                                     </p>
-                                                </div>
+                                                </div> */}
 
                                                 {/* Allow Offers Toggle */}
                                                 {/* <div className="mb-6">
@@ -1488,6 +1489,11 @@ const CreateAuction = () => {
                                                             </p>
                                                         </div>
                                                     </label>
+                                                </div>
+
+                                                <div className='mb-6 text-sm text-gray-600 flex flex-start md:items-center gap-2'>
+                                                    <Info size={24} className='flex-shrink-0' />
+                                                    <p>RexBid handles the payments between buyer and seller, if your sale is successful, you will be paid by Bank Transfer through Stripe Payment Services. There is currently no seller commission fee to sell with RexBid.</p>
                                                 </div>
                                             </>
                                         )}

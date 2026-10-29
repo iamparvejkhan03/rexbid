@@ -107,6 +107,7 @@ const AuctionDates = lazy(() => import('./pages/admin/AuctionDates'));
 const AdminReminders = lazy(() => import('./pages/admin/AdminReminders'));
 const DeliveryQuotes = lazy(() => import('./pages/admin/DeliveryQuotes'));
 const AdminReviews = lazy(() => import('./pages/admin/Reviews'));
+const AdminEmailCampaigns = lazy(() => import('./pages/admin/EmailCampaigns'));
 
 createRoot(document.getElementById('root')).render(
     //<StrictMode>
@@ -778,6 +779,15 @@ createRoot(document.getElementById('root')).render(
                             element={
                                 <Suspense fallback={<LoadingSpinner height={'750px'} />}>
                                     <AdminReviews />
+                                </Suspense>
+                            }
+                        />
+                        {/* Admin Email Campaigns */}
+                        <Route
+                            path='/admin/email-campaigns'
+                            element={
+                                <Suspense fallback={<LoadingSpinner height={'750px'} />}>
+                                    <AdminEmailCampaigns />
                                 </Suspense>
                             }
                         />

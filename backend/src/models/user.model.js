@@ -121,6 +121,7 @@ const userSchema = new Schema(
         "manage_inquiries",
         "manage_commissions",
         "manage_admins",
+        "manage_email",
       ],
     },
 
