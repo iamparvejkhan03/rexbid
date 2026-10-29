@@ -77,6 +77,7 @@ import HomeLiveAuctionsSection from "./HomeLiveAuctionsSection";
 import ManualSellModal from "./ManualSellModal";
 import PreferencesPanel from "./PreferencesPanel";
 import EmailCampaignFormModal from "./admin/EmailCampaignFormModal";
+import AuthBidModal from "./AuthBidModal";
 
 export {
     Container,
@@ -158,4 +159,5 @@ export {
     ManualSellModal,
     PreferencesPanel,
     EmailCampaignFormModal,
+    AuthBidModal,
 }

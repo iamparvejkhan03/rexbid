@@ -1,5 +1,5 @@
 import { CalendarDays, CheckSquare, Clock, Download, File, Fuel, Gauge, Gavel, Heart, Loader, MapPin, MessageCircle, PaintBucket, Plane, ShieldCheck, Tag, User, Users, Weight, Zap, Banknote, MessageSquare, Mail, Phone, Star, CreditCard, Info, Bell, Truck } from "lucide-react";
-import { BidConfirmationModal, BuyNowModal, Container, GiveawayClaimModal, LoadingSpinner, MobileBidBottomBar, MobileBidStickyBar, RatingStars, ReminderModal, ReviewModal, SellerStatsCard, SpecificationsSection, TabSection, TimerDisplay, WatchlistButton } from "../components";
+import { AuthBidModal, BidConfirmationModal, BuyNowModal, Container, GiveawayClaimModal, LoadingSpinner, MobileBidBottomBar, MobileBidStickyBar, RatingStars, ReminderModal, ReviewModal, SellerStatsCard, SpecificationsSection, TabSection, TimerDisplay, WatchlistButton } from "../components";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { lazy, Suspense, useRef, useState, useEffect } from "react";
 import useAuctionCountdown from "../hooks/useAuctionCountDown";
@@ -61,6 +61,9 @@ function SingleAuction() {
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
     const [pendingAction, setPendingAction] = useState(null); // { type: 'bid' | 'offer' }
 
+    const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+    const [pendingBidAmount, setPendingBidAmount] = useState('');
+
     const updateAuctionState = (updatedAuction) => {
         setAuction(updatedAuction);
     };
@@ -72,21 +75,17 @@ function SingleAuction() {
 
     const handleOpenBidModal = () => {
         const bidValue = parseFloat(bidAmount);
+        const symbol = userCurrency === 'GBP' ? '£' : '€';
 
-        // Validate — no intent recorded for invalid amounts
         if (!bidAmount || isNaN(bidValue) || bidValue < minBidAmount) {
-            const symbol = userCurrency === 'GBP' ? '£' : '€';
             toast.error(`Minimum bid is ${symbol}${minBidAmount.toFixed(0)}`);
             return;
         }
-
-        // Block intent from the seller viewing their own listing
         if (user && user._id?.toString() === auction?.seller?._id?.toString()) {
             toast.error(`You can't bid on your own auction.`);
             return;
         }
 
-        // bid_intent — valid amount entered + Place Bid pressed
         gtag('event', 'bid_intent', {
             listing_id: auction._id,
             item_name: auction.title,
@@ -94,10 +93,30 @@ function SingleAuction() {
             bid_amount: bidValue,
             currency: userCurrency,
             auction_type: auction.auctionType,
-            bid_number: (auction.bidCount || 0) + 1
+            bid_number: (auction.bidCount || 0) + 1,
         });
 
+        // Gate on auth
+        if (!user) {
+            setPendingAction({ type: 'bid', amount: bidAmount });
+            setIsAuthModalOpen(true);
+            return;
+        }
+
         setIsBidModalOpen(true);
+    };
+
+    const handleAuthSuccess = (authedUser) => {
+        setIsAuthModalOpen(false);
+
+        // Payment already on file → straight to confirmation
+        if (authedUser?.isPaymentVerified || pendingAction?.type === 'giveaway') {
+            resumePendingAction();
+            return;
+        }
+
+        // Need card first → payment modal, pendingAction stays intact
+        setIsPaymentModalOpen(true);
     };
 
     const handleConfirmBid = (e) => {
@@ -130,6 +149,27 @@ function SingleAuction() {
         setPendingAction(null);
     };
 
+    // Reopens the correct confirmation modal with the saved amount
+    const resumePendingAction = () => {
+        if (!pendingAction) return;
+
+        if (pendingAction.type === 'offer') {
+            setOfferAmount(pendingAction.amount);
+            setOfferMessage(pendingAction.message || '');
+            setIsMakeOfferModalOpen(true);
+        } else if (pendingAction.type === 'buynow') {
+            setShowBuyNowModal(true);
+        } else if (pendingAction.type === 'giveaway') {
+            setShowGiveawayModal(true);
+        } else {
+            // bid
+            setBidAmount(pendingAction.amount);
+            setIsBidModalOpen(true);
+        }
+
+        setPendingAction(null);
+    };
+
     // Open the payment method modal, remembering what action to resume
     const requirePaymentMethod = (action) => {
         setPendingAction(action);
@@ -153,7 +193,6 @@ function SingleAuction() {
     const handleCardAdded = () => {
         setIsPaymentModalOpen(false);
 
-        // bidder_verification_complete — fires only on successful card link
         if (auction?._id) {
             gtag('event', 'bidder_verification_complete', {
                 listing_id: auction._id,
@@ -161,18 +200,11 @@ function SingleAuction() {
                 category: auction.categories?.[1] || auction.categories?.[0] || '',
                 user_type: user?.userType || 'bidder',
                 verification_type: 'card_link',
-                action: pendingAction?.type || 'bid'
+                action: pendingAction?.type || 'bid',
             });
         }
 
-        // Resume whichever action triggered this
-        if (pendingAction?.type === 'bid') {
-            setIsBidModalOpen(true);
-        } else if (pendingAction?.type === 'offer') {
-            setIsMakeOfferModalOpen(true);
-        }
-
-        setPendingAction(null);
+        resumePendingAction();
     };
 
     const handleSetReminder = () => {
@@ -361,8 +393,8 @@ function SingleAuction() {
         e.preventDefault();
 
         if (!user) {
-            toast.error('You must login to bid.');
-            navigate('/login');
+            setPendingAction({ type: 'bid', amount: bidAmount });
+            setIsAuthModalOpen(true);
             return;
         }
 
@@ -422,15 +454,16 @@ function SingleAuction() {
                 }
             }
         } catch (error) {
-            if (error?.response?.data?.errorCode === 'PAYMENT_METHOD_REQUIRED' ||
+            if (
+                error?.response?.data?.errorCode === 'PAYMENT_METHOD_REQUIRED' ||
                 error?.response?.data?.errorCode === 'PAYMENT_METHOD_INVALID' ||
-                error?.response?.data?.errorCode === 'STRIPE_CUSTOMER_INVALID') {
-
-                requirePaymentMethod({ type: 'bid' });
+                error?.response?.data?.errorCode === 'STRIPE_CUSTOMER_INVALID'
+            ) {
+                setPendingAction({ type: 'bid', amount: bidAmount });
+                setIsPaymentModalOpen(true);
             } else {
                 toast.error(error?.response?.data?.message || 'Failed to place bid');
             }
-            console.error('Bid error:', error);
         } finally {
             setBidding(false);
         }
@@ -454,8 +487,8 @@ function SingleAuction() {
     // ============= BUY NOW HANDLER =============
     const handleBuyNow = async () => {
         if (!user) {
-            toast.error('You must login to buy now.');
-            navigate('/login');
+            setPendingAction({ type: 'buynow' });
+            setIsAuthModalOpen(true);
             return;
         }
 
@@ -535,8 +568,8 @@ function SingleAuction() {
 
     const handleClaimGiveaway = async () => {
         if (!user) {
-            toast.error('You must be logged in to participate in this giveaway.');
-            navigate('/login');
+            setPendingAction({ type: 'giveaway' });
+            setIsAuthModalOpen(true);
             return;
         }
 
@@ -565,14 +598,22 @@ function SingleAuction() {
         if (makingOfferRef.current) return;
         makingOfferRef.current = true;
 
+        // Gate on auth BEFORE anything else
         if (!user) {
-            toast.error('You must login to make an offer.');
-            navigate('/login');
+            setPendingAction({
+                type: 'offer',
+                amount: offerAmount,
+                message: offerMessage,
+            });
+            setIsMakeOfferModalOpen(false);   // close the modal
+            setIsAuthModalOpen(true);         // open auth popup
+            makingOfferRef.current = false;   // we haven't submitted
             return;
         }
 
         if (user._id?.toString() === auction?.seller?._id?.toString()) {
             toast.error(`You can't make an offer on your own auction.`);
+            makingOfferRef.current = false;
             return;
         }
 
@@ -626,17 +667,21 @@ function SingleAuction() {
                 setActiveTab('offers');
             }
         } catch (error) {
-            if (error?.response?.data?.errorCode === 'PAYMENT_METHOD_REQUIRED' ||
+            if (
+                error?.response?.data?.errorCode === 'PAYMENT_METHOD_REQUIRED' ||
                 error?.response?.data?.errorCode === 'PAYMENT_METHOD_INVALID' ||
-                error?.response?.data?.errorCode === 'STRIPE_CUSTOMER_INVALID') {
-
-                // Close the offer modal first, will reopen after card is added
+                error?.response?.data?.errorCode === 'STRIPE_CUSTOMER_INVALID'
+            ) {
+                setPendingAction({
+                    type: 'offer',
+                    amount: offerAmount,
+                    message: offerMessage,
+                });
                 setIsMakeOfferModalOpen(false);
-                requirePaymentMethod({ type: 'offer' });
+                setIsPaymentModalOpen(true);
             } else {
                 toast.error(error?.response?.data?.message || 'Failed to submit offer');
             }
-            console.error('Offer error:', error);
         } finally {
             setMakingOffer(false);
             makingOfferRef.current = false;
@@ -1157,7 +1202,14 @@ function SingleAuction() {
                     {auction.auctionType === 'giveaway' && auction.status !== 'sold' && countdown?.status === 'always-available' && (
                         <>
                             <button
-                                onClick={() => setShowGiveawayModal(true)}
+                                onClick={() => {
+                                    if (!user) {
+                                        setPendingAction({ type: 'giveaway' });
+                                        setIsAuthModalOpen(true);
+                                        return;
+                                    }
+                                    setShowGiveawayModal(true);
+                                }}
                                 disabled={isClaimingGiveaway}
                                 className="flex items-center justify-center gap-2 w-full bg-purple-600 text-white py-3 px-6 cursor-pointer rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-purple-700 transition-colors text-lg font-semibold"
                             >
@@ -1458,6 +1510,16 @@ function SingleAuction() {
                 isOpen={isPaymentModalOpen}
                 onClose={handleClosePaymentModal}
                 onCardAdded={handleCardAdded}
+            />
+
+            <AuthBidModal
+                isOpen={isAuthModalOpen}
+                onClose={() => {
+                    setIsAuthModalOpen(false);
+                    setPendingAction(null);
+                }}
+                onAuthSuccess={handleAuthSuccess}
+                pendingAction={pendingAction}
             />
 
             {/* {(countdown?.status === 'counting-down' || countdown?.status === 'always-available') &&

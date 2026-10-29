@@ -1,5 +1,5 @@
 import { forwardRef, useEffect, useState } from "react";
-import { CreditCard, ShieldCheck, Loader, Plus, ArrowLeft } from "lucide-react";
+import { CreditCard, ShieldCheck, Loader, Plus, ArrowLeft, Check } from "lucide-react";
 import { useStripe, useElements, CardElement, Elements } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
 import { toast } from "react-hot-toast";
@@ -134,7 +134,7 @@ const PaymentMethodModalInner = forwardRef((props, ref) => {
                 {/* Header */}
                 <div className="flex justify-between items-center py-3 px-6 border-b border-gray-200">
                     <h2 className="text-xl font-semibold text-gray-900">
-                        {step === "notice" ? "Bidder Verification Required" : "Add Card"}
+                        {step === "notice" ? "One last step to place your bid" : "Add Card"}
                     </h2>
                     <button
                         onClick={handleClose}
@@ -156,16 +156,22 @@ const PaymentMethodModalInner = forwardRef((props, ref) => {
                             </div>
 
                             <p className="text-gray-700 text-center">
-                                To help keep RexBid secure and reduce non-genuine bidding, all bidders are required to link a valid card before placing their first bid.
+                                To keep RexBid secure and ensure genuine bidding, we ask all first-time bidders to verify their account with a bank card.
                             </p>
 
                             <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
-                                <div className="flex gap-3">
-                                    <ShieldCheck className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                                    <p className="text-sm text-blue-800">
+                                <div className="flex items-center justify-center gap-3">
+                                    {/* <ShieldCheck className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" /> */}
+                                    {/* <p className="text-sm text-blue-800">
                                         No deposit is taken and your card will not be automatically charged when you bid.
                                         Winning purchases are paid separately by bank transfer.
-                                    </p>
+                                    </p> */}
+                                    <ul className="text-sm text-blue-800 list-disc">
+                                        <li>No charge or deposit will be taken.</li>
+                                        <li>Your card won't be charged for bidding.</li>
+                                        <li>You only need to verify once.</li>
+                                        <li>Securely processed by Stripe.</li>
+                                    </ul>
                                 </div>
                             </div>
                         </div>
@@ -266,12 +272,12 @@ const PaymentMethodModalInner = forwardRef((props, ref) => {
                                 {submitting ? (
                                     <>
                                         <Loader size={16} className="animate-spin" />
-                                        Adding...
+                                        Verifying...
                                     </>
                                 ) : (
                                     <>
-                                        <Plus size={16} />
-                                        Add Card
+                                        <Check size={16} />
+                                        Verify Card
                                     </>
                                 )}
                             </button>

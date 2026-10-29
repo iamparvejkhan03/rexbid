@@ -1,4 +1,3 @@
-// utils/axiosInstance.js
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
@@ -6,6 +5,8 @@ const axiosInstance = axios.create({
     baseURL: import.meta.env.VITE_DOMAIN_URL,
     withCredentials: false, // Since you're using localStorage
 });
+
+const AUTH_ENDPOINTS = ['/users/login', '/users/register', '/users/refresh-token'];
 
 // Request interceptor to add token to headers
 axiosInstance.interceptors.request.use(
@@ -29,8 +30,12 @@ axiosInstance.interceptors.response.use(
     async (error) => {
         const originalRequest = error.config;
 
+        const isAuthEndpoint = AUTH_ENDPOINTS.some((ep) =>
+            originalRequest?.url?.includes(ep)
+        );
+
         // If error is 401 and we haven't tried to refresh yet
-        if (error.response?.status === 401 && !originalRequest._retry) {
+        if (error.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint) {
             originalRequest._retry = true;
 
             try {
@@ -76,7 +81,7 @@ axiosInstance.interceptors.response.use(
                 clearUserDataAndRedirect();
                 return Promise.reject(refreshError);
             }
-        } else if (error.response?.status === 401 && originalRequest._retry) {
+        } else if (error.response?.status === 401 && originalRequest._retry && !isAuthEndpoint) {
             // If we've already tried refreshing and still get 401, clear tokens and redirect
             clearUserDataAndRedirect();
             return Promise.reject(error);
