@@ -1151,12 +1151,12 @@ export const manualSellAuction = async (req, res) => {
     setImmediate(async () => {
       try {
         // Buyer: "you won"
-        await sendAuctionWonEmail(updatedAuction).catch((err) =>
+        sendAuctionWonEmail(updatedAuction).catch((err) =>
           console.error("Manual-sell buyer email failed:", err)
         );
 
         // Seller: auction ended / sold
-        await sendAuctionEndedSellerEmail(updatedAuction).catch((err) =>
+        sendAuctionEndedSellerEmail(updatedAuction).catch((err) =>
           console.error("Manual-sell seller email failed:", err)
         );
 
@@ -1165,7 +1165,7 @@ export const manualSellAuction = async (req, res) => {
           "email firstName currency"
         );
         for (const admin of admins) {
-          await auctionWonAdminEmail(
+          auctionWonAdminEmail(
             admin.email,
             admin.currency,
             updatedAuction,

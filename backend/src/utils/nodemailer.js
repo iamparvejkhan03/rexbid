@@ -170,6 +170,27 @@ const getTimeRemaining = (endDate) => {
     return `${minutes}m`;
 };
 
+/**
+ * Returns the auction's final price converted to EUR.
+ * Returns null if conversion fails (so caller can fall back safely).
+ */
+const getFinalPriceInEUR = (listing) => {
+    const finalPrice = listing?.finalPrice || listing?.currentPrice || 0;
+    if (!finalPrice) return 0;
+
+    const baseCurrency = listing?.baseCurrency || "EUR";
+    if (baseCurrency === "EUR") return finalPrice;
+
+    try {
+        const rates = getCachedRates();
+        const rate = rates?.[baseCurrency]?.rates?.EUR;
+        if (!rate || typeof rate !== "number") return null;
+        return parseFloat((finalPrice * rate).toFixed(2));
+    } catch {
+        return null;
+    }
+};
+
 // Simple info card (no emojis/icons)
 const createInfoCard = (content, variant = 'default') => {
     const variants = {
@@ -1550,7 +1571,7 @@ const sendAuctionEndedSellerEmail = async (listing) => {
     }
 };
 // 19. Auction won notification for bidder
-const sendAuctionWonEmail = async (listing) => {
+const sendAuctionWonStandardEmail  = async (listing) => {
     try {
         // Safety check - ensure winner is populated and has email
         if (
@@ -1585,11 +1606,12 @@ const sendAuctionWonEmail = async (listing) => {
                 ` : ''}
                 
                 ${createSummaryRow('Invoice Number:', listing?.transactionId || `INV-${listing?._id?.toString()?.toUpperCase()}`)}
-                ${createSummaryRow('Total Amount Due:', formatCurrency(convertRawAmount(finalPrice, listing?.baseCurrency, listing?.winner?.currency), listing?.winner?.currency))}
+                ${createSummaryRow('Winning Bid/Offer:', formatCurrency(convertRawAmount(finalPrice, listing?.baseCurrency, listing?.winner?.currency), listing?.winner?.currency))}
             `)}
             
             <div style="text-align: center; margin: 25px 0;">
-                ${createButton('Confirm Payment', `mailto:${SUPPORT_EMAIL}?subject=Payment%20Confirmation%20-%20${listing?.title}`, 'primary')}
+                ${createButton('Pay Now', `/checkout/${listing?._id}`, 'primary')}
+                ${createButton('Confirm Payment', `mailto:${SUPPORT_EMAIL}?subject=Payment%20Confirmation%20-%20${listing?.title}`, 'secondary')}
             </div>
         `;
 
@@ -1606,6 +1628,110 @@ const sendAuctionWonEmail = async (listing) => {
         return !!info;
     } catch (error) {
         console.error(`Failed to send listing won invoice email for listing ${listing._id}:`, error);
+        return false;
+    }
+};
+
+// 19B. Auction won high amount notification for bidder
+const sendAuctionWonHighValueEmail = async (listing) => {
+    try {
+        // Safety check - ensure winner is populated and has email
+        if (
+            !listing?.winner ||
+            typeof listing?.winner === "string" ||
+            !listing?.winner.email
+        ) {
+            console.error(
+                "Winner not populated or missing email for listing:",
+                listing?._id
+            );
+            return false;
+        }
+
+        const finalPrice = listing?.finalPrice || listing?.currentPrice || 0;
+
+        const content = `
+            <h2 style="text-align: center;">Congratulations! You Won the Listing</h2>
+            <p style="text-align: center;">You are the winning bidder for this item.</p>
+
+            ${createInfoCard(`
+                <p style="margin: 0 0 12px 0; font-size: 18px; font-weight: bold; color: ${BRAND_COLORS.secondary};">${listing.title}</p>
+                ${listing.subTitle ? `<p style="margin: 0 0 16px 0; text-align: center; color: ${BRAND_COLORS.textLight};">${listing.subTitle}</p>` : ''}
+
+                <p style="margin: 15px 0; font-size: 24px; font-weight: bold; color: ${BRAND_COLORS.secondary}; text-align: center;">${formatCurrency(convertRawAmount(finalPrice, listing?.baseCurrency, listing?.winner?.currency), listing?.winner?.currency)}</p>
+
+                ${listing.specifications && listing.specifications.size > 0 ? `
+                    <div style="margin: 16px 0 0 0;">
+                        <strong style="color: ${BRAND_COLORS.secondary};">Item Details</strong>
+                        ${renderSpecifications(listing.specifications)}
+                    </div>
+                ` : ''}
+
+                ${createSummaryRow('Winning Bid/Offer:', formatCurrency(convertRawAmount(finalPrice, listing?.baseCurrency, listing?.winner?.currency), listing?.winner?.currency))}
+            `)}
+
+            <div style="margin: 25px 0;">
+                <p style="margin: 0 0 12px 0;">Admin will be in touch with you shortly with your invoice and payment link.</p>
+                <p style="margin: 0 0 12px 0;">Once the funds have cleared, collection can be arranged with the seller.</p>
+                <p style="margin: 0;">If you have any questions in the meantime, please contact us at <a href="mailto:${SUPPORT_EMAIL}" style="color: ${BRAND_COLORS.secondary};">${SUPPORT_EMAIL}</a>.</p>
+            </div>
+        `;
+
+        const html = baseTemplate(content, 'Auction Won');
+
+        const info = await transporter.sendMail({
+            from: `"${BRAND_NAME}" <${process.env.EMAIL_USER}>`,
+            to: listing?.winner?.email,
+            subject: `Congratulations - You Won ${listing?.title}`,
+            html
+        });
+
+        console.log(`High-value auction won email sent to ${listing?.winner?.email}`);
+        return !!info;
+    } catch (error) {
+        console.error(`Failed to send high-value auction won email for listing ${listing._id}:`, error);
+        return false;
+    }
+};
+
+// 19C. Send the auction won email dynamically
+const sendAuctionWonEmail = async (listing) => {
+    try {
+        // Safety check - ensure winner is populated and has email
+        if (
+            !listing?.winner ||
+            typeof listing?.winner === "string" ||
+            !listing?.winner.email
+        ) {
+            console.error(
+                "Winner not populated or missing email for listing:",
+                listing?._id
+            );
+            return false;
+        }
+
+        const finalPriceEUR = getFinalPriceInEUR(listing);
+
+        // Conversion failed → fall back to standard email (safe default)
+        if (finalPriceEUR === null) {
+            console.warn(
+                `EUR conversion failed for listing ${listing?._id}, using standard email`
+            );
+            return sendAuctionWonStandardEmail(listing);
+        }
+
+        // €1,000 or more → high-value email
+        if (finalPriceEUR >= 1000) {
+            return sendAuctionWonHighValueEmail(listing);
+        }
+
+        // Under €1,000 → standard Pay Now email
+        return sendAuctionWonStandardEmail(listing);
+    } catch (error) {
+        console.error(
+            `Failed to dispatch auction won email for listing ${listing._id}:`,
+            error
+        );
         return false;
     }
 };
@@ -3182,7 +3308,9 @@ export {
     sendOfferOutbidNotifications, //no need to do as offers cannot be outbid
     auctionEndingSoonEmail, //done
     auctionEndingSoonSellerEmail,
-    sendAuctionWonEmail, //done
+    sendAuctionWonStandardEmail , //done
+    sendAuctionWonHighValueEmail,
+    sendAuctionWonEmail,
     sendAuctionEndedSellerEmail, //done
     auctionWonAdminEmail, //done
     auctionEndedAdminEmail, //done

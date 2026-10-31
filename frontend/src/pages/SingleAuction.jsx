@@ -1024,10 +1024,10 @@ function SingleAuction() {
                         (auction.auctionType === 'standard' || auction.auctionType === 'reserve') && (
                             <>
                                 <div className="flex flex-row items-center justify-between gap-2">
-                                    <p className="font-light text-secondary text-base">{auction.bidCount > 0 ? 'Current Bid' : auction.status === 'sold' ? 'Sold At' : 'Start Bidding At'}</p>
+                                    <p className="font-light text-secondary text-base">{auction.status === 'sold' ? 'Sold At' : auction.bidCount > 0 ? 'Current Bid' : 'Start Bidding At'}</p>
                                     <p className="flex items-center gap-1 text-3xl sm:text-3xl font-medium">
                                         <span>{userCurrency === 'GBP' ? '£' : '€'}</span>
-                                        <span> {auction.convertedFinalPrice?.toFixed(0).toLocaleString() || auction.convertedCurrentPrice?.toFixed(0).toLocaleString()}</span>
+                                        <span> {auction.convertedCurrentPrice?.toFixed(0).toLocaleString() || auction.convertedFinalPrice?.toFixed(0).toLocaleString()}</span>
                                     </p>
                                 </div>
 
