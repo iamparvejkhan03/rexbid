@@ -31,7 +31,8 @@ import {
     UserStar,
     Truck,
     Star,
-    Mail
+    Mail,
+    BookMarked
 } from "lucide-react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { logo } from "../../assets";
@@ -70,6 +71,11 @@ const navigation = [
         icon: <Calendar size={20} />,
     },
     {
+        name: "Catalogues",
+        path: "/admin/catalogues",
+        icon: <BookMarked size={20} />,
+    },
+    {
         name: 'Bids',
         path: '/admin/bids',
         icon: <Hand size={20} />
@@ -93,7 +99,7 @@ const navigation = [
         name: 'Email Campaigns',
         path: '/admin/email-campaigns',
         icon: <Mail size={20} />,
-    },{
+    }, {
         name: 'Comments',
         path: '/admin/comments',
         icon: <MessageCircle size={20} />,

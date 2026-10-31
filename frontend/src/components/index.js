@@ -78,6 +78,8 @@ import ManualSellModal from "./ManualSellModal";
 import PreferencesPanel from "./PreferencesPanel";
 import EmailCampaignFormModal from "./admin/EmailCampaignFormModal";
 import AuthBidModal from "./AuthBidModal";
+import CatalogueCard from "./CatalogueCard";
+import HomeCataloguesSection from "./HomeCataloguesSection";
 
 export {
     Container,
@@ -160,4 +162,6 @@ export {
     PreferencesPanel,
     EmailCampaignFormModal,
     AuthBidModal,
+    CatalogueCard,
+    HomeCataloguesSection,
 }

@@ -31,6 +31,7 @@ import http from "http";
 import { Server } from "socket.io";
 import { setIO } from "./utils/socket.js";
 import emailRouter from "./routes/email.route.js";
+import catalogueRouter from "./routes/catalogue.route.js";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -125,6 +126,7 @@ app.use("/api/v1/auction-dates", auctionDateRouter);
 app.use('/api/v1/reminders', reminderRouter);
 app.use("/api/v1/delivery-quote", deliveryQuoteRouter);
 app.use("/api/v1/admin/email", emailRouter);
+app.use("/api/v1/catalogues", catalogueRouter);
 
 app.get('/api/v1/time', (req, res) => {
     res.set('Cache-Control', 'no-store'); // never cache

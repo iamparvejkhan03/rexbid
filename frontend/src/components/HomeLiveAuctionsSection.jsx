@@ -47,7 +47,7 @@ function HomeAuctionsSection() {
     const fetchAuctions = async (
         tab = activeTab,
         category = null,
-        limit = 4,
+        limit = 8,
         sortBy = "highestBid"
     ) => {
         setLoading(true);

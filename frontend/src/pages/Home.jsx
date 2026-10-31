@@ -42,6 +42,7 @@ const TestimonialSection = lazy(() => import('../components/TestimonialSection')
 const About = lazy(() => import('../components/About'));
 const FeaturedListings = lazy(() => import('../components/FeaturedListings'));
 const HomeLiveAuctionsSection = lazy(() =>import("../components/HomeLiveAuctionsSection"));
+const HomeCataloguesSection = lazy(() =>import("../components/HomeCataloguesSection"));
 
 const trustedBrands = [
     { src: CaseIH, alt: 'Case IH' },
@@ -99,6 +100,9 @@ function Home() {
             {/* <Suspense fallback={<LoadingSpinner />}>
                 <CategoryIconsSection />
             </Suspense> */}
+            
+            {/* Featured Listings Section */}
+            <HomeCataloguesSection />
 
             {/* Featured Listings Section */}
             <FeaturedListings />
