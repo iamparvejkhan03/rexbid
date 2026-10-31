@@ -30,6 +30,8 @@ const DeliveryPartnerQuote = lazy(() => import('./pages/DeliveryPartnerQuote'));
 const Unsubscribe = lazy(() => import('./pages/Unsubscribe'));
 const SingleCatalogue = lazy(() => import('./pages/SingleCatalogue'));
 const Catalogues = lazy(() => import('./pages/Catalogues'));
+const RateUs = lazy(() => import('./pages/RateUs'));
+const Reviews = lazy(() => import('./pages/WhatOurClientsSay'));
 
 {/* Seller Pages */ }
 const SellerLayout = lazy(() => import('./pages/seller/Layout'));
@@ -110,7 +112,8 @@ const AdminReminders = lazy(() => import('./pages/admin/AdminReminders'));
 const DeliveryQuotes = lazy(() => import('./pages/admin/DeliveryQuotes'));
 const AdminReviews = lazy(() => import('./pages/admin/Reviews'));
 const AdminEmailCampaigns = lazy(() => import('./pages/admin/EmailCampaigns'));
-const AdminAllCatalogues = lazy(() => import('./pages/admin/AllCatalogues.jsx'));
+const AdminAllCatalogues = lazy(() => import('./pages/admin/AllCatalogues'));
+const AdminWebsiteReviews = lazy(() => import('./pages/admin/WebsiteReviews'));
 
 createRoot(document.getElementById('root')).render(
     //<StrictMode>
@@ -164,6 +167,10 @@ createRoot(document.getElementById('root')).render(
                         <Route path='/catalogue/:id' element={<Suspense fallback={<LoadingSpinner height={'725px'} />}><SingleCatalogue /></Suspense>} />
 
                         <Route path='/catalogues' element={<Suspense fallback={<LoadingSpinner height={'725px'} />}><Catalogues /></Suspense>} />
+
+                        <Route path='/rate-us' element={<Suspense fallback={<LoadingSpinner height={'725px'} />}><RateUs /></Suspense>} />
+
+                        <Route path='/reviews' element={<Suspense fallback={<LoadingSpinner height={'725px'} />}><Reviews /></Suspense>} />
                     </Route>
 
                     {/* Seller Layout */}
@@ -782,7 +789,7 @@ createRoot(document.getElementById('root')).render(
 
                         {/* Admin Reviews */}
                         <Route
-                            path='/admin/reviews'
+                            path='/admin/seller-reviews'
                             element={
                                 <Suspense fallback={<LoadingSpinner height={'750px'} />}>
                                     <AdminReviews />
@@ -804,6 +811,15 @@ createRoot(document.getElementById('root')).render(
                             element={
                                 <Suspense fallback={<LoadingSpinner height={'750px'} />}>
                                     <AdminAllCatalogues />
+                                </Suspense>
+                            }
+                        />
+                        {/* Admin All Reviews */}
+                        <Route
+                            path='/admin/website-reviews'
+                            element={
+                                <Suspense fallback={<LoadingSpinner height={'750px'} />}>
+                                    <AdminWebsiteReviews />
                                 </Suspense>
                             }
                         />

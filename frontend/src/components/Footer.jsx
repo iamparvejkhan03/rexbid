@@ -11,6 +11,8 @@ function Footer() {
         { name: 'About', href: '/about' },
         { name: 'Contact', href: '/contact' },
         { name: 'FAQs', href: '/faqs' },
+        { name: 'Rate Us', href: '/rate-us' },
+        { name: 'What Our Clients Say', href: '/reviews' },
     ];
 
     const legalPolicies = [

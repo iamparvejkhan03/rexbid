@@ -56,7 +56,9 @@ const COMPANY_LOCATION = 'Ireland';
 
 // URLs (adjust based on your environment)
 const FRONTEND_URL = process.env.FRONTEND_URL || 'https://rexbid.ie';
-const ADMIN_URL = `${process.env.FRONTEND_URL}/admin` || 'https://rexbid.ie/admin';
+const ADMIN_URL = process.env.FRONTEND_URL
+    ? `${process.env.FRONTEND_URL}/admin`
+    : 'https://rexbid.ie/admin';
 
 // ============================================
 // DYNAMIC SPECIFICATIONS RENDERER (NO HARDCODED FIELDS)
@@ -232,6 +234,32 @@ const createButton = (text, url, variant = 'primary') => {
         </div>
     `;
 };
+
+// Large visual star display — for the top of review emails
+const createStarRating = (rating, size = 22) => {
+    const stars = [];
+    for (let i = 1; i <= 5; i++) {
+        const filled = i <= rating;
+        stars.push(
+            `<span style="font-size: ${size}px; color: ${filled ? BRAND_COLORS.primary : '#d1d5db'};">★</span>`
+        );
+    }
+    return `<div style="letter-spacing: 4px;">${stars.join('')}</div>`;
+};
+
+// Hero-style rating badge (big number + stars) — good visual anchor
+const createRatingBadge = (rating) => `
+    <div style="text-align: center; margin: 20px 0;">
+        <div style="display: inline-block; background: ${BRAND_COLORS.secondary}; border-radius: 16px; padding: 22px 36px;">
+            <div style="color: ${BRAND_COLORS.primary}; font-size: 44px; font-weight: 700; line-height: 1;">
+                ${rating}<span style="font-size: 20px; opacity: 0.7;">/5</span>
+            </div>
+            <div style="margin-top: 10px;">
+                ${createStarRating(rating, 20)}
+            </div>
+        </div>
+    </div>
+`;
 
 // ============================================
 // BASE EMAIL TEMPLATE (RexBid branding)
@@ -3288,6 +3316,152 @@ const deliveryQuoteUserEmail = async ({ name, email }) => {
     }
 };
 
+// ============================================================
+// Website Review - Admin Notification
+// ============================================================
+const websiteReviewAdminEmail = async (review) => {
+    try {
+        const userTypeDisplay =
+            review.userType === "delivery-partner"
+                ? "Delivery Partner"
+                : (review.userType || "other").charAt(0).toUpperCase() +
+                  (review.userType || "other").slice(1);
+
+        const content = `
+            <h2 style="text-align: center;">New Website Review Submitted</h2>
+            <p style="text-align: center; color: ${BRAND_COLORS.textLight}; margin-top: -8px;">
+                A new review has been submitted and is pending your approval.
+            </p>
+
+            ${createRatingBadge(review.rating)}
+
+            ${createInfoCard(`
+                <p style="margin: 0 0 12px 0;"><strong>Reviewer Information</strong></p>
+                ${createSummaryRow("Full Name:", review.name)}
+                ${createSummaryRow(
+                    "Email:",
+                    `<a href="mailto:${review.email}" style="color: ${BRAND_COLORS.primary};">${review.email}</a>`
+                )}
+                ${createSummaryRow("Phone:", review.phone || "Not provided")}
+                ${createSummaryRow("Location:", review.location)}
+                ${createSummaryRow("User Type:", userTypeDisplay)}
+            `)}
+
+            <div style="margin: 20px 0;">
+                <strong style="color: ${BRAND_COLORS.secondary};">Their Feedback:</strong>
+                <div style="background: ${BRAND_COLORS.grayBg}; padding: 16px; border-radius: 8px; margin-top: 8px; border: 1px solid ${BRAND_COLORS.grayBorder}; border-left: 4px solid ${BRAND_COLORS.primary}; white-space: pre-wrap; font-style: italic; color: ${BRAND_COLORS.text};">
+                    "${review.feedback}"
+                </div>
+            </div>
+
+            <div style="background: #fffbeb; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid ${BRAND_COLORS.warning};">
+                <p style="margin: 0; color: ${BRAND_COLORS.secondary}; font-size: 14px;">
+                    <strong>Action Required:</strong> Please review this feedback and
+                    approve or reject it from the admin panel. Only approved reviews
+                    appear publicly on the "What Our Clients Say" page.
+                </p>
+            </div>
+
+            <div style="text-align: center; margin: 25px 0;">
+                ${createButton("Review in Admin Panel", `${ADMIN_URL}/website-reviews`, "primary")}
+            </div>
+        `;
+
+        const html = baseTemplate(content, "New Website Review");
+
+        const info = await transporter.sendMail({
+            from: `"${BRAND_NAME}" <${process.env.EMAIL_USER}>`,
+            to: process.env.EMAIL_USER,
+            replyTo: review.email,
+            subject: `New Website Review — ${review.rating}★ from ${review.name}`,
+            html,
+        });
+
+        console.log(
+            `Website review admin email sent for review ${review._id || "(new)"}`
+        );
+        return !!info;
+    } catch (error) {
+        console.error(`Failed to send website review admin email:`, error);
+        return false;
+    }
+};
+
+// ============================================================
+// Website Review - User Confirmation
+// ============================================================
+const websiteReviewUserEmail = async ({ name, email }) => {
+    try {
+        const content = `
+            <h2 style="text-align: center;">Thank You for Your Review!</h2>
+
+            ${createInfoCard(`
+                <p style="margin: 0 0 16px 0; font-size: 18px; color: ${BRAND_COLORS.secondary};">
+                    Dear ${name},
+                </p>
+
+                <p style="margin: 0 0 16px 0;">
+                    We really appreciate you taking the time to share your experience
+                    with <strong>${BRAND_NAME}</strong>. Your feedback helps us improve
+                    our platform for everyone.
+                </p>
+
+                <p style="margin: 0;">
+                    Our team is reviewing your submission now. Once approved, your
+                    review will be published on our public
+                    <strong>"What Our Clients Say"</strong> page so others can read
+                    about your experience.
+                </p>
+            `, "default")}
+
+            <div style="background: ${BRAND_COLORS.secondary}; color: #ffffff; padding: 22px; border-radius: 12px; margin: 25px 0; text-align: center;">
+                <div style="color: ${BRAND_COLORS.primary}; font-size: 16px; margin-bottom: 10px; font-weight: bold;">
+                    Want to See What Others Are Saying?
+                </div>
+                <p style="font-size: 14px; margin: 0 0 18px 0; opacity: 0.9;">
+                    Visit our reviews page to read feedback from other buyers and
+                    sellers across Ireland.
+                </p>
+                <a href="${FRONTEND_URL}/reviews" style="display: inline-block; background: ${BRAND_COLORS.primary}; color: #ffffff; padding: 12px 28px; text-decoration: none; border-radius: 40px; font-weight: 600; font-size: 15px;">
+                    View All Reviews
+                </a>
+            </div>
+
+            <div style="background: ${BRAND_COLORS.grayBg}; padding: 18px; border-radius: 8px; margin: 20px 0; text-align: center; font-size: 14px; border: 1px solid ${BRAND_COLORS.grayBorder};">
+                <p style="margin: 0 0 8px 0;">
+                    <strong style="color: ${BRAND_COLORS.secondary};">Need to Get in Touch?</strong>
+                </p>
+                <p style="margin: 0;">
+                    Email: <a href="mailto:${SUPPORT_EMAIL}" style="color: ${BRAND_COLORS.primary};">${SUPPORT_EMAIL}</a>
+                </p>
+            </div>
+
+            <div style="margin-top: 25px; padding-top: 20px; border-top: 1px solid ${BRAND_COLORS.grayBorder};">
+                <p style="margin: 5px 0;">Warm regards,</p>
+                <p style="margin: 5px 0;"><strong>The ${BRAND_NAME} Team</strong></p>
+            </div>
+        `;
+
+        const html = baseTemplate(content, "Review Received");
+
+        const info = await transporter.sendMail({
+            from: `"${BRAND_NAME}" <${process.env.EMAIL_USER}>`,
+            to: email,
+            subject: `Thank You for Your Review — ${BRAND_NAME}`,
+            html,
+        });
+
+        console.log(`Website review confirmation email sent to ${email}`);
+        return !!info;
+    } catch (error) {
+        console.error(
+            `Failed to send website review confirmation email:`,
+            error
+        );
+        return false;
+    }
+};
+
 export {
     contactEmail, //done
     contactConfirmationEmail, //done
@@ -3338,4 +3512,6 @@ export {
     deliveryQuoteAdminEmail,
     deliveryQuoteUserEmail,
     sendMarketingCampaignEmail,
+    websiteReviewAdminEmail,
+    websiteReviewUserEmail,
 };

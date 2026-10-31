@@ -32,7 +32,8 @@ import {
     Truck,
     Star,
     Mail,
-    BookMarked
+    BookMarked,
+    Stars
 } from "lucide-react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { logo } from "../../assets";
@@ -105,9 +106,14 @@ const navigation = [
         icon: <MessageCircle size={20} />,
     },
     {
-        name: 'Reviews',
-        path: '/admin/reviews',
+        name: 'Seller Reviews',
+        path: '/admin/seller-reviews',
         icon: <Star size={20} />,
+    },
+    {
+        name: 'Website Reviews',
+        path: '/admin/website-reviews',
+        icon: <Stars size={20} />,
     },
     {
         name: 'Support',
