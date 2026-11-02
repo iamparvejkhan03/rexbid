@@ -1547,7 +1547,7 @@ const EditAuction = () => {
                                                         id="location"
                                                         type="text"
                                                         className="w-full pl-10 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
-                                                        placeholder="e.g., Dallas, Texas"
+                                                        placeholder="e.g., Cavan"
                                                     />
                                                 </div>
                                             </div>

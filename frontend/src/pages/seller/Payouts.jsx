@@ -20,6 +20,7 @@ import {
 import axiosInstance from "../../utils/axiosInstance";
 import { toast } from "react-hot-toast";
 import { Link } from "react-router-dom";
+import { useAuth } from "../../contexts/AuthContext";
 
 function Payouts() {
     const [payouts, setPayouts] = useState([]);
@@ -28,6 +29,8 @@ function Payouts() {
     const [loading, setLoading] = useState(true);
     const [loadingDetails, setLoadingDetails] = useState(false);
     const [showDetailsModal, setShowDetailsModal] = useState(false);
+    const { user: currentUser } = useAuth();
+    const userCurrency = currentUser?.currency || "EUR";
 
     useEffect(() => {
         fetchPayouts();
@@ -36,7 +39,7 @@ function Payouts() {
     const fetchPayouts = async () => {
         try {
             setLoading(true);
-            const response = await axiosInstance.get("/api/v1/payouts/seller");
+            const response = await axiosInstance.get(`/api/v1/payouts/seller?currency=${userCurrency}`);
             if (response.data.success) {
                 setPayouts(response.data.data.payouts);
                 setStats(response.data.data.statistics);
@@ -66,11 +69,11 @@ function Payouts() {
     };
 
     const formatCurrency = (amount) => {
-        return new Intl.NumberFormat('en-US', {
-            style: 'currency',
-            currency: 'USD',
+        return new Intl.NumberFormat("en-IE", {
+            style: "currency",
+            currency: userCurrency,
             minimumFractionDigits: 0,
-            maximumFractionDigits: 0
+            maximumFractionDigits: 0,
         }).format(amount);
     };
 
@@ -143,7 +146,7 @@ function Payouts() {
                                 <div>
                                     <p className="text-sm text-gray-600">Total Paid</p>
                                     <p className="text-2xl font-bold text-green-600 mt-1">
-                                        {stats.formattedTotalPaid || "$0"}
+                                        {stats.formattedTotalPaid || formatCurrency(0)}
                                     </p>
                                     <p className="text-xs text-gray-500 mt-1">
                                         {stats.countCompleted || 0} completed payouts
@@ -160,7 +163,7 @@ function Payouts() {
                                 <div>
                                     <p className="text-sm text-gray-600">Pending Payouts</p>
                                     <p className="text-2xl font-bold text-yellow-600 mt-1">
-                                        {stats.formattedTotalPending || "$0"}
+                                        {stats.formattedTotalPending || formatCurrency(0)}
                                     </p>
                                     <p className="text-xs text-gray-500 mt-1">
                                         {stats.countPending || 0} pending payouts
@@ -232,7 +235,7 @@ function Payouts() {
                                             <div className="flex items-center gap-4">
                                                 <div className="text-right">
                                                     <p className="text-lg font-bold text-green-600">
-                                                        {formatCurrency(payout.sellerAmount)}
+                                                        {formatCurrency(payout.convertedSellerAmount)}
                                                     </p>
                                                     <p className="text-xs text-gray-500">
                                                         Commission: {formatCurrency(payout.commissionAmount)}
@@ -330,7 +333,7 @@ function Payouts() {
                                             <div>
                                                 <p className="text-sm text-gray-600">Final Price</p>
                                                 <p className="font-medium text-green-600">
-                                                    {formatCurrency(selectedPayout.auction?.finalPrice || selectedPayout.auction?.currentPrice)}
+                                                    {formatCurrency(selectedPayout.convertedAuctionFinalPrice ?? 0)}
                                                 </p>
                                             </div>
                                         </div>
@@ -353,15 +356,15 @@ function Payouts() {
                                         <div className="space-y-3">
                                             <div className="flex justify-between items-center py-2 border-b border-gray-200">
                                                 <span className="text-gray-600">Total Sale Amount:</span>
-                                                <span className="font-medium">{formatCurrency(selectedPayout.totalAmount)}</span>
+                                                <span className="font-medium">{formatCurrency(selectedPayout.convertedTotalAmount)}</span>
                                             </div>
                                             <div className="flex justify-between items-center py-2 border-b border-gray-200">
                                                 <span className="text-gray-600">Platform Commission:</span>
-                                                <span className="font-medium text-blue-600">{formatCurrency(selectedPayout.commissionAmount)}</span>
+                                                <span className="font-medium text-blue-600">{formatCurrency(selectedPayout.convertedCommissionAmount)}</span>
                                             </div>
                                             <div className="flex justify-between items-center py-2 text-lg">
                                                 <span className="font-semibold">Your Net Amount:</span>
-                                                <span className="font-bold text-green-600">{formatCurrency(selectedPayout.sellerAmount)}</span>
+                                                <span className="font-bold text-green-600">{formatCurrency(selectedPayout.convertedSellerAmount)}</span>
                                             </div>
                                         </div>
                                     </div>

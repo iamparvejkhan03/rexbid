@@ -80,6 +80,7 @@ import EmailCampaignFormModal from "./admin/EmailCampaignFormModal";
 import AuthBidModal from "./AuthBidModal";
 import CatalogueCard from "./CatalogueCard";
 import HomeCataloguesSection from "./HomeCataloguesSection";
+import Pagination from "./Pagination";
 
 export {
     Container,
@@ -164,4 +165,5 @@ export {
     AuthBidModal,
     CatalogueCard,
     HomeCataloguesSection,
+    Pagination,
 }

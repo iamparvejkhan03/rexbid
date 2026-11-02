@@ -6,6 +6,7 @@ import { useAuctions } from "../hooks/useAuctions";
 import { useLocation } from "react-router-dom";
 import axiosInstance from "../utils/axiosInstance";
 import { useLiveAuctionTicks } from "../hooks/useLiveAuctionTicks";
+import Pagination from "../components/Pagination";
 
 // Car filters that apply to ALL categories
 const carFilters = {
@@ -64,6 +65,7 @@ const FiltersSection = ({
             searchParams.delete('category');
             searchParams.delete('subcategory');
         }
+        searchParams.delete('page');
         const newUrl = `${location.pathname}?${searchParams.toString()}`;
         window.history.replaceState(null, '', newUrl);
     };
@@ -94,6 +96,7 @@ const FiltersSection = ({
                 searchParams.delete('subcategory');
             }
         }
+        searchParams.delete('page');
         const newUrl = `${location.pathname}?${searchParams.toString()}`;
         window.history.replaceState(null, '', newUrl);
     };
@@ -376,6 +379,7 @@ function Auctions() {
         pagination,
         filters: apiFilters,
         loadMoreAuctions,
+        goToPage,
         updateFilters
     } = useAuctions();
 
@@ -383,6 +387,7 @@ function Auctions() {
     const [liveAuctions, setLiveAuctions] = useState([]);
     useEffect(() => { setLiveAuctions(auctions); }, [auctions]);
     useLiveAuctionTicks(setLiveAuctions);
+    const hasRestoredScroll = useRef(false);
 
     const [uiFilters, setUiFilters] = useState({
         categories: [],
@@ -467,6 +472,31 @@ function Auctions() {
             updateFilters(newFilters);
         }
     }, [location.search]);
+
+    useEffect(() => {
+        if (hasRestoredScroll.current) return;
+        if (loading) return;
+        if (!liveAuctions?.length) return;
+
+        const savedScrollY = sessionStorage.getItem("returnToAuctionScrollY");
+        if (!savedScrollY) return;
+
+        hasRestoredScroll.current = true;
+
+        // consume — so it doesn't restore again on next visit
+        sessionStorage.removeItem("returnToAuction");
+        sessionStorage.removeItem("returnToAuctionScrollY");
+        sessionStorage.removeItem("returnToAuctionLoadedCount");
+
+        const y = parseInt(savedScrollY, 10);
+
+        // wait two frames so the grid is laid out at full height
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                window.scrollTo(0, y);
+            });
+        });
+    }, [loading, liveAuctions]);
 
     // Fetch parent categories on mount
     useEffect(() => {
@@ -581,6 +611,7 @@ function Auctions() {
         } else {
             searchParams.delete(name);
         }
+        searchParams.delete('page');
         const newUrl = `${location.pathname}?${searchParams.toString()}`;
         window.history.replaceState(null, '', newUrl);
 
@@ -665,6 +696,7 @@ function Auctions() {
         const searchParams = new URLSearchParams(location.search);
         searchParams.set('sortBy', sortBy);
         searchParams.set('sortOrder', sortOrder);
+        searchParams.delete('page');
         const newUrl = `${location.pathname}?${searchParams.toString()}`;
         window.history.replaceState(null, '', newUrl);
     };
@@ -823,44 +855,32 @@ function Auctions() {
                                 <>
                                     {viewMode === "grid" ? (
                                         // Grid View
-                                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-x-6 gap-y-8 md:gap-y-12">
+                                        <div
+                                            className={`grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-x-6 gap-y-8 md:gap-y-12 transition-opacity ${loading ? "opacity-50 pointer-events-none" : "opacity-100"
+                                                }`}
+                                        >
                                             {liveAuctions.map(auction => (
-                                                    <AuctionCard key={auction?._id} auction={auction} />
+                                                <AuctionCard key={auction?._id} auction={auction} />
                                             ))}
                                         </div>
                                     ) : (
                                         // List View
-                                        <div className="space-y-2">
+                                        <div
+                                            className={`grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-x-6 gap-y-8 md:gap-y-12 transition-opacity ${loading ? "opacity-50 pointer-events-none" : "opacity-100"
+                                                }`}
+                                        >
                                             {liveAuctions.map((auction) => (
                                                 <AuctionListItem key={auction?._id} auction={auction} />
                                             ))}
                                         </div>
                                     )}
 
-                                    {/* Load More Button */}
-                                    {pagination?.currentPage < pagination?.totalPages && (
-                                        <div className="flex justify-center mt-12">
-                                            <button
-                                                onClick={handleLoadMore}
-                                                disabled={loadingMore}
-                                                className="px-8 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
-                                            >
-                                                {loadingMore ? (
-                                                    <>
-                                                        <Loader size={16} className="animate-spin" />
-                                                        Loading...
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        Load More Listings
-                                                        <span className="text-xs bg-white/20 px-2 py-1 rounded-full">
-                                                            {pagination.totalAuctions - liveAuctions.length} more
-                                                        </span>
-                                                    </>
-                                                )}
-                                            </button>
-                                        </div>
-                                    )}
+                                    {/* Numbered Pagination */}
+                                    <Pagination
+                                        currentPage={pagination.currentPage}
+                                        totalPages={pagination.totalPages}
+                                        onPageChange={goToPage}
+                                    />
 
                                     {/* End of Auctions Message */}
                                     {pagination?.currentPage >= pagination?.totalPages && liveAuctions.length > 0 && (

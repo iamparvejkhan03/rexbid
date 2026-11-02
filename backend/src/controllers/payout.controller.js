@@ -12,6 +12,7 @@ import {
     deleteFromCloudinary,
 } from "../utils/cloudinary.js";
 import { getCommissionSettings } from "../utils/commissionCalculator.js";
+import { getCachedRates } from "../routes/currency.route.js";
 
 // Get seller payout methods
 export const getPayoutMethods = async (req, res) => {
@@ -358,17 +359,13 @@ export const getAdminPayouts = async (req, res) => {
             limit = 12,
             status,
             search,
-            sortBy = "recent",
+            currency = "EUR",
         } = req.query;
+        const userCurrency = currency;
+        const rates = getCachedRates();
 
-        // Build filter
         const filter = {};
-
-        if (status && status !== "all") {
-            filter.status = status;
-        }
-
-        // Search filter
+        if (status && status !== "all") filter.status = status;
         if (search) {
             filter.$or = [
                 { "auction.title": { $regex: search, $options: "i" } },
@@ -379,27 +376,33 @@ export const getAdminPayouts = async (req, res) => {
             ];
         }
 
-        // Get payouts with populated data
         const payouts = await Payout.find(filter)
             .populate(
                 "seller",
-                "firstName lastName email username companyName phone payoutMethods",
+                "firstName lastName email username companyName phone payoutMethods"
             )
             .populate(
                 "auction",
-                "title finalPrice currentPrice commissionAmount endDate",
+                "title finalPrice currentPrice commissionAmount endDate baseCurrency"
             )
             .populate("initiatedBy", "firstName lastName email username companyName")
             .sort({ createdAt: -1 })
             .limit(limit * 1)
             .skip((page - 1) * limit);
 
-        // Transform data for frontend
+        const convert = (amount, baseCurrency) => {
+            if (!amount && amount !== 0) return 0;
+            if (!rates || !baseCurrency) return amount;
+            const rate = rates[baseCurrency]?.rates[userCurrency];
+            if (!rate) return amount;
+            return parseFloat((amount * rate).toFixed(2));
+        };
+
         const transformedPayouts = payouts.map((payout) => {
             const seller = payout.seller || {};
             const auction = payout.auction || {};
+            const baseCurr = auction.baseCurrency || "EUR";
 
-            // Get payout method details
             let payoutMethodDisplay = {};
             if (payout.payoutMethod && payout.payoutDetails) {
                 payoutMethodDisplay = {
@@ -416,13 +419,19 @@ export const getAdminPayouts = async (req, res) => {
                 };
             }
 
+            const convertedTotalAmount = convert(payout.totalAmount, baseCurr);
+            const convertedCommissionAmount = convert(payout.commissionAmount, baseCurr);
+            const convertedSellerAmount = convert(payout.sellerAmount, baseCurr);
+
             return {
                 id: payout._id,
                 seller: {
                     id: seller._id,
                     name: seller.firstName
                         ? `${seller.firstName} ${seller.lastName || ""}`.trim()
-                        : seller.username ? seller.username : seller.companyName || "Unknown",
+                        : seller.username
+                            ? seller.username
+                            : seller.companyName || "Unknown",
                     email: seller.email,
                     phone: seller.phone,
                 },
@@ -431,9 +440,17 @@ export const getAdminPayouts = async (req, res) => {
                     title: auction.title || "Unknown Auction",
                     finalPrice: auction.finalPrice || auction.currentPrice || 0,
                 },
+                baseCurrency: baseCurr,
+                // raw
                 totalAmount: payout.totalAmount,
                 commissionAmount: payout.commissionAmount,
                 sellerAmount: payout.sellerAmount,
+                // converted
+                convertedTotalAmount,
+                convertedCommissionAmount,
+                convertedSellerAmount,
+                displayCurrency: userCurrency,
+                // other
                 payoutMethod: payoutMethodDisplay,
                 status: payout.status,
                 transactionId: payout.transactionId,
@@ -450,47 +467,41 @@ export const getAdminPayouts = async (req, res) => {
             };
         });
 
-        // Get statistics
-        const totalPayouts = await Payout.countDocuments(filter);
+        // ---- Stats: compute in JS from CONVERTED values ----
+        const allFilteredPayouts = await Payout.find(filter)
+            .populate("auction", "baseCurrency")
+            .select("status sellerAmount commissionAmount auction");
 
-        const stats = await Payout.aggregate([
-            {
-                $group: {
-                    _id: null,
-                    totalPending: {
-                        $sum: {
-                            $cond: [{ $eq: ["$status", "pending"] }, "$sellerAmount", 0],
-                        },
-                    },
-                    totalCompleted: {
-                        $sum: {
-                            $cond: [{ $eq: ["$status", "completed"] }, "$sellerAmount", 0],
-                        },
-                    },
-                    totalCommission: { $sum: "$commissionAmount" },
-                    countPending: {
-                        $sum: { $cond: [{ $eq: ["$status", "pending"] }, 1, 0] },
-                    },
-                    countCompleted: {
-                        $sum: { $cond: [{ $eq: ["$status", "completed"] }, 1, 0] },
-                    },
-                },
-            },
-        ]);
-
-        const statistics = stats[0] || {
+        const statistics = {
             totalPending: 0,
             totalCompleted: 0,
             totalCommission: 0,
             countPending: 0,
             countCompleted: 0,
         };
+        for (const p of allFilteredPayouts) {
+            const bc = p.auction?.baseCurrency || "EUR";
+            const convSeller = convert(p.sellerAmount, bc);
+            const convComm = convert(p.commissionAmount, bc);
+
+            if (p.status === "pending") {
+                statistics.totalPending += convSeller;
+                statistics.countPending++;
+            } else if (p.status === "completed") {
+                statistics.totalCompleted += convSeller;
+                statistics.countCompleted++;
+            }
+            statistics.totalCommission += convComm;
+        }
+
+        const totalPayouts = await Payout.countDocuments(filter);
 
         res.status(200).json({
             success: true,
             data: {
                 payouts: transformedPayouts,
                 statistics,
+                displayCurrency: userCurrency,
                 pagination: {
                     currentPage: parseInt(page),
                     totalPages: Math.ceil(totalPayouts / limit),
@@ -509,7 +520,10 @@ export const getAdminPayouts = async (req, res) => {
 
 // Get pending payouts for admin
 export const getPendingPayouts = async (req, res) => {
+    const rates = getCachedRates();
     try {
+        const userCurrency = req.query.currency || "EUR";
+
         // Find all sold auctions that don't have a payout yet
         const soldAuctions = await Auction.find({
             status: { $in: ["sold", "sold_buy_now"] },
@@ -542,6 +556,20 @@ export const getPendingPayouts = async (req, res) => {
                 const totalAmount = auction.finalPrice || auction.currentPrice || 0;
                 const commissionAmount = auction.sellerCommissionAmount || 0;
                 const sellerAmount = totalAmount - commissionAmount;
+
+                // Compute after `const sellerAmount = totalAmount - commissionAmount;`
+                const baseCurr = auction.baseCurrency || "EUR";
+                const convert = (amount) => {
+                    if (!amount && amount !== 0) return 0;
+                    if (!rates) return amount;
+                    const rate = rates[baseCurr]?.rates[userCurrency];
+                    if (!rate) return amount;
+                    return parseFloat((amount * rate).toFixed(2));
+                };
+
+                const convertedTotalAmount = convert(totalAmount);
+                const convertedCommissionAmount = convert(commissionAmount);
+                const convertedSellerAmount = convert(sellerAmount);
 
                 // Get seller's default payout method
                 const seller = auction.seller || {};
@@ -584,18 +612,22 @@ export const getPendingPayouts = async (req, res) => {
                         totalAmount,
                         commissionAmount,
                         sellerAmount,
+                        baseCurrency: baseCurr,
+                        convertedTotalAmount,
+                        convertedCommissionAmount,
+                        convertedSellerAmount,
                         formattedTotal: new Intl.NumberFormat("en-IE", {
                             style: "currency",
-                            currency: "EUR",
-                        }).format(totalAmount),
+                            currency: userCurrency,
+                        }).format(convertedTotalAmount),
                         formattedCommission: new Intl.NumberFormat("en-IE", {
                             style: "currency",
-                            currency: "EUR",
-                        }).format(commissionAmount),
+                            currency: userCurrency,
+                        }).format(convertedCommissionAmount),
                         formattedSeller: new Intl.NumberFormat("en-IE", {
                             style: "currency",
-                            currency: "EUR",
-                        }).format(sellerAmount),
+                            currency: userCurrency,
+                        }).format(convertedSellerAmount),
                     },
                     defaultPayoutMethod,
                     payoutDetails,
@@ -954,98 +986,119 @@ export const getPayoutById = async (req, res) => {
 
 export const getSellerPayouts = async (req, res) => {
     try {
-        const sellerId = req.user.id; // From auth middleware
+        const sellerId = req.user.id;
+        const userCurrency = req.query.currency || "EUR";
+        const rates = getCachedRates();
 
-        // Find all payouts for this seller
         const payouts = await Payout.find({ seller: sellerId })
             .populate({
                 path: "auction",
-                select: "title finalPrice currentPrice commissionAmount endDate photos"
+                select: "title finalPrice currentPrice commissionAmount endDate photos baseCurrency",
             })
             .sort({ createdAt: -1 });
 
-        // Calculate statistics
+        const convert = (amount, baseCurrency) => {
+            if (!amount && amount !== 0) return 0;
+            if (!rates || !baseCurrency) return amount;
+            const rate = rates[baseCurrency]?.rates[userCurrency];
+            if (!rate) return amount;
+            return parseFloat((amount * rate).toFixed(2));
+        };
+
         const stats = {
             totalPaid: 0,
             totalPending: 0,
             totalCommission: 0,
             countCompleted: 0,
-            countPending: 0
+            countPending: 0,
         };
 
-        payouts.forEach(payout => {
+        const formattedPayouts = payouts.map((payout) => {
+            const baseCurr = payout.auction?.baseCurrency || "EUR";
+
+            const convertedTotalAmount = convert(payout.totalAmount, baseCurr);
+            const convertedCommissionAmount = convert(payout.commissionAmount, baseCurr);
+            const convertedSellerAmount = convert(payout.sellerAmount, baseCurr);
+
             if (payout.status === "completed") {
-                stats.totalPaid += payout.sellerAmount;
+                stats.totalPaid += convertedSellerAmount;
                 stats.countCompleted++;
             } else if (payout.status === "pending" || payout.status === "processing") {
-                stats.totalPending += payout.sellerAmount;
+                stats.totalPending += convertedSellerAmount;
                 stats.countPending++;
             }
-            stats.totalCommission += payout.commissionAmount;
-        });
+            stats.totalCommission += convertedCommissionAmount;
 
-        // Format the response data
-        const formattedPayouts = payouts.map(payout => ({
-            _id: payout._id,
-            auction: {
-                _id: payout.auction?._id,
-                title: payout.auction?.title || "Unknown Auction",
-                finalPrice: payout.auction?.finalPrice || payout.auction?.currentPrice,
-                endDate: payout.auction?.endDate
-            },
-            totalAmount: payout.totalAmount,
-            commissionAmount: payout.commissionAmount,
-            sellerAmount: payout.sellerAmount,
-            status: payout.status,
-            transactionId: payout.transactionId,
-            failureReason: payout.failureReason,
-            createdAt: payout.createdAt,
-            completedAt: payout.completedAt,
-            formattedSellerAmount: new Intl.NumberFormat('en-IE', {
-                style: 'currency',
-                currency: 'EUR',
-                minimumFractionDigits: 0,
-                maximumFractionDigits: 0
-            }).format(payout.sellerAmount),
-            formattedCommissionAmount: new Intl.NumberFormat('en-IE', {
-                style: 'currency',
-                currency: 'EUR',
-                minimumFractionDigits: 0,
-                maximumFractionDigits: 0
-            }).format(payout.commissionAmount)
-        }));
+            return {
+                _id: payout._id,
+                auction: {
+                    _id: payout.auction?._id,
+                    title: payout.auction?.title || "Unknown Auction",
+                    finalPrice: payout.auction?.finalPrice || payout.auction?.currentPrice,
+                    endDate: payout.auction?.endDate,
+                },
+                // raw
+                totalAmount: payout.totalAmount,
+                commissionAmount: payout.commissionAmount,
+                sellerAmount: payout.sellerAmount,
+                baseCurrency: baseCurr,
+                // converted
+                convertedTotalAmount,
+                convertedCommissionAmount,
+                convertedSellerAmount,
+                displayCurrency: userCurrency,
+                // other
+                status: payout.status,
+                transactionId: payout.transactionId,
+                failureReason: payout.failureReason,
+                createdAt: payout.createdAt,
+                completedAt: payout.completedAt,
+                formattedSellerAmount: new Intl.NumberFormat("en-IE", {
+                    style: "currency",
+                    currency: userCurrency,
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0,
+                }).format(convertedSellerAmount),
+                formattedCommissionAmount: new Intl.NumberFormat("en-IE", {
+                    style: "currency",
+                    currency: userCurrency,
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0,
+                }).format(convertedCommissionAmount),
+            };
+        });
 
         res.status(200).json({
             success: true,
             data: {
                 payouts: formattedPayouts,
+                displayCurrency: userCurrency,
                 statistics: {
                     totalPaid: stats.totalPaid,
                     totalPending: stats.totalPending,
                     totalCommission: stats.totalCommission,
                     countCompleted: stats.countCompleted,
                     countPending: stats.countPending,
-                    formattedTotalPaid: new Intl.NumberFormat('en-IE', {
-                        style: 'currency',
-                        currency: 'EUR',
+                    formattedTotalPaid: new Intl.NumberFormat("en-IE", {
+                        style: "currency",
+                        currency: userCurrency,
                         minimumFractionDigits: 0,
-                        maximumFractionDigits: 0
+                        maximumFractionDigits: 0,
                     }).format(stats.totalPaid),
-                    formattedTotalPending: new Intl.NumberFormat('en-IE', {
-                        style: 'currency',
-                        currency: 'EUR',
+                    formattedTotalPending: new Intl.NumberFormat("en-IE", {
+                        style: "currency",
+                        currency: userCurrency,
                         minimumFractionDigits: 0,
-                        maximumFractionDigits: 0
-                    }).format(stats.totalPending)
-                }
-            }
+                        maximumFractionDigits: 0,
+                    }).format(stats.totalPending),
+                },
+            },
         });
-
     } catch (error) {
         console.error("Get seller payouts error:", error);
         res.status(500).json({
             success: false,
-            message: "Internal server error while fetching your payouts"
+            message: "Internal server error while fetching your payouts",
         });
     }
 };
@@ -1055,22 +1108,35 @@ export const getSellerPayoutById = async (req, res) => {
     try {
         const { payoutId } = req.params;
         const sellerId = req.user.id;
+        const userCurrency = req.query.currency || "EUR";
+        const rates = getCachedRates();
 
-        const payout = await Payout.findOne({
-            _id: payoutId,
-            seller: sellerId // Ensure seller owns this payout
-        })
+        const payout = await Payout.findOne({ _id: payoutId, seller: sellerId })
             .populate({
                 path: "auction",
-                select: "title description finalPrice currentPrice commissionAmount endDate photos"
+                select: "title description finalPrice currentPrice commissionAmount endDate photos baseCurrency",
             });
 
         if (!payout) {
-            return res.status(404).json({
-                success: false,
-                message: "Payout not found"
-            });
+            return res.status(404).json({ success: false, message: "Payout not found" });
         }
+
+        const baseCurr = payout.auction?.baseCurrency || "EUR";
+        const convert = (amount) => {
+            if (!amount && amount !== 0) return 0;
+            if (!rates || !baseCurr) return amount;
+            const rate = rates[baseCurr]?.rates[userCurrency];
+            if (!rate) return amount;
+            return parseFloat((amount * rate).toFixed(2));
+        };
+
+        const convertedTotalAmount = convert(payout.totalAmount);
+        const convertedCommissionAmount = convert(payout.commissionAmount);
+        const convertedSellerAmount = convert(payout.sellerAmount);
+        const auctionRawFinalPrice =
+            payout.auction?.finalPrice ?? payout.auction?.currentPrice ?? null;
+        const convertedAuctionFinalPrice =
+            auctionRawFinalPrice !== null ? convert(auctionRawFinalPrice) : null;
 
         res.status(200).json({
             success: true,
@@ -1080,24 +1146,26 @@ export const getSellerPayoutById = async (req, res) => {
                 totalAmount: payout.totalAmount,
                 commissionAmount: payout.commissionAmount,
                 sellerAmount: payout.sellerAmount,
+                baseCurrency: baseCurr,
+                convertedTotalAmount,
+                convertedCommissionAmount,
+                convertedSellerAmount,
+                convertedAuctionFinalPrice,
+                displayCurrency: userCurrency,
                 status: payout.status,
                 transactionId: payout.transactionId,
                 failureReason: payout.failureReason,
                 createdAt: payout.createdAt,
                 completedAt: payout.completedAt,
                 invoice: payout?.receipt,
-                formattedSellerAmount: new Intl.NumberFormat('en-IE', {
-                    style: 'currency',
-                    currency: 'EUR'
-                }).format(payout.sellerAmount)
-            }
+                formattedSellerAmount: new Intl.NumberFormat("en-IE", {
+                    style: "currency",
+                    currency: userCurrency,
+                }).format(convertedSellerAmount),
+            },
         });
-
     } catch (error) {
         console.error("Get seller payout by ID error:", error);
-        res.status(500).json({
-            success: false,
-            message: "Internal server error"
-        });
+        res.status(500).json({ success: false, message: "Internal server error" });
     }
 };

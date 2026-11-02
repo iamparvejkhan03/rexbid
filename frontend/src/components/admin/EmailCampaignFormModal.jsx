@@ -294,7 +294,7 @@ const EmailCampaignFormModal = ({ isOpen, onClose, onSuccess, campaign }) => {
                         </div>
 
                         {/* Placeholder helper */}
-                        <div className="mt-2 text-xs text-gray-500">
+                        {/* <div className="mt-2 text-xs text-gray-500">
                             <p className="font-medium mb-1 flex items-center gap-1">
                                 <Info size={12} /> Available placeholders (auto-replaced at
                                 send time):
@@ -310,7 +310,7 @@ const EmailCampaignFormModal = ({ isOpen, onClose, onSuccess, campaign }) => {
                                     </span>
                                 ))}
                             </div>
-                        </div>
+                        </div> */}
                     </div>
 
                     {/* Recipients */}

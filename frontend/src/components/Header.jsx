@@ -69,6 +69,14 @@ function Header() {
         }
     }, [categories]);
 
+    useEffect(() => {
+        if(user) {
+            setUserCurrency(user.currency || 'EUR');
+        }else {
+            setUserCurrency(localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')).currency : 'EUR');
+        }
+    }, [user])
+
     // Add click outside handler
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -329,7 +337,7 @@ function Header() {
                                 onClick={() => setIsCurrencySwitcherOpen(!isCurrencySwitcherOpen)}
                                 className="currency-switcher-trigger flex gap-1 items-center cursor-pointer hover:underline"
                             >
-                                <span>Currency</span>
+                                <span>{userCurrency}</span>
                                 <ChevronDown size={16} className={`transition-transform ${isCurrencySwitcherOpen ? 'rotate-180' : ''}`} />
                             </button>
 
@@ -410,7 +418,7 @@ function Header() {
                                 }}
                                 className="flex items-center gap-1"
                             >
-                                Currency
+                                {userCurrency}
                                 <ChevronRight size={16} />
                             </button>
                         </li>
@@ -559,7 +567,7 @@ function Header() {
                 >
                     <div className="h-full overflow-y-auto">
                         <div className="flex items-center justify-between p-5 border-b">
-                            <h2 className="text-xl font-bold">Currency</h2>
+                            <h2 className="text-xl font-bold">{userCurrency}</h2>
                             <X
                                 className="cursor-pointer"
                                 onClick={() => setMobileCurrencySwitcherOpen(false)}

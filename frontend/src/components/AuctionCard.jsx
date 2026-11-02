@@ -139,18 +139,14 @@ function AuctionCard({ auction }) {
 
     const handleAuctionClick = () => {
         sessionStorage.setItem("returnToAuction", auction._id);
-
         sessionStorage.setItem(
             "returnToAuctionScrollY",
             window.scrollY.toString()
         );
-
         sessionStorage.setItem(
             "returnToAuctionLoadedCount",
             document.querySelectorAll("[id^='auction-']").length.toString()
         );
-
-        navigate(`/auction/${auction._id}`);
     };
 
     if (!auctionTime) return (
@@ -173,7 +169,7 @@ function AuctionCard({ auction }) {
             style={{ transform: `perspective(1000px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)` }}
         >
             {/* Image Section */}
-            <Link to={`/auction/${auction._id}`} target="_blank" className="relative overflow-hidden rounded-tr-3xl rounded-bl-3xl">
+            <Link to={`/auction/${auction._id}`} onClick={handleAuctionClick} className="relative overflow-hidden rounded-tr-3xl rounded-bl-3xl">
                 <img
                     src={auction.photos?.[0]?.thumbUrl || auction.photos?.[0]?.url || heroImg}
                     alt={auction.title}
@@ -255,8 +251,8 @@ function AuctionCard({ auction }) {
                 {/* Title */}
                 <Link
                     to={`/auction/${auction._id}`}
+                    onClick={handleAuctionClick}
                     className="font-semibold text-lg leading-tight mb-2 line-clamp-2 hover:text-primary transition-colors"
-                    target="_blank"
                 >
                     {auction.title}
                 </Link>
@@ -372,7 +368,7 @@ function AuctionCard({ auction }) {
                 <Link
                     // disabled={!isAuctionActive}
                     to={`/auction/${auction._id}`}
-                    target="_blank"
+                    onClick={handleAuctionClick}
                     className={`flex-1 py-3 px-4 cursor-pointer text-white rounded-lg flex gap-2 items-center justify-center transition-all ${isAuctionActive
                         ? 'bg-gradient-to-r from-[#D19F3E] to-[#E8B86B] bg-[#E8B86B]/90 shadow-md hover:shadow-lg'
                         : 'bg-gradient-to-r from-[#D19F3E] to-[#E8B86B] hover:from-[#D19F3E]/90 hover:to-[#E8B86B]/90 shadow-md hover:shadow-lg'

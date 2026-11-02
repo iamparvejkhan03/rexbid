@@ -27,41 +27,33 @@ export const useAuctions = () => {
         allowOffers: ''
     });
 
-    // Clean filters - remove empty values
     const cleanFilters = (currentFilters) => {
         return Object.fromEntries(
             Object.entries(currentFilters).filter(([key, value]) => {
-                // Special handling for categories array
                 if (key === 'categories') {
                     return Array.isArray(value) && value.length > 0;
                 }
-                // For other fields
                 return value !== '' && value !== null && value !== undefined && value !== false;
             })
         );
     };
 
-    // Fetch auctions with pagination and filters
     const fetchAuctions = async (page = 1, limit = 21, currentFilters = {}) => {
         const loadingState = page > 1 ? setLoadingMore : setLoading;
         loadingState(true);
 
         try {
-            // Clean up filters
             const clean = cleanFilters(currentFilters);
 
-            // Build query string with all filters
             const params = new URLSearchParams({
                 page: page.toString(),
                 limit: limit.toString(),
                 currency: `${userCurrency}`,
-                // Copy all filters except categories
                 ...Object.fromEntries(
                     Object.entries(clean).filter(([key]) => key !== 'categories')
                 )
             });
 
-            // Handle categories array separately - append each category
             if (clean.categories && Array.isArray(clean.categories) && clean.categories.length > 0) {
                 clean.categories.forEach(cat => {
                     params.append('categories', cat);
@@ -73,10 +65,8 @@ export const useAuctions = () => {
 
             if (data.success) {
                 if (page > 1) {
-                    // Append new auctions for pagination
                     setAuctions(prev => [...prev, ...data.data.auctions]);
                 } else {
-                    // Replace auctions for first load or filter change
                     setAuctions(data.data.auctions);
                 }
                 setPagination(data.data.pagination);
@@ -89,7 +79,6 @@ export const useAuctions = () => {
         }
     };
 
-    // Load more auctions
     const loadMoreAuctions = async () => {
         if (
             loadingMore ||
@@ -98,33 +87,78 @@ export const useAuctions = () => {
         ) {
             return;
         }
-
         const nextPage = pagination.currentPage + 1;
-
         await fetchAuctions(nextPage, 21, filters);
     };
 
-    // Update filters and refresh auctions
+    // ============ NEW: goToPage — replaces list (no append) ============
+    const goToPage = async (page) => {
+        if (!pagination) return;
+        if (page < 1 || page > pagination.totalPages) return;
+        if (page === pagination.currentPage) return;
+
+        setLoading(true);
+        try {
+            const clean = cleanFilters(filters);
+            const params = new URLSearchParams({
+                page: page.toString(),
+                limit: "21",
+                currency: `${userCurrency}`,
+                ...Object.fromEntries(
+                    Object.entries(clean).filter(([key]) => key !== 'categories')
+                )
+            });
+            if (clean.categories?.length > 0) {
+                clean.categories.forEach(cat => params.append('categories', cat));
+            }
+
+            const { data } = await axiosInstance.get(
+                `/api/v1/auctions?${params.toString()}`
+            );
+
+            if (data.success) {
+                setAuctions(data.data.auctions);
+                setPagination(data.data.pagination);
+
+                // Update URL → back button returns to this page
+                const searchParams = new URLSearchParams(window.location.search);
+                if (page > 1) searchParams.set('page', page.toString());
+                else searchParams.delete('page');
+                window.history.replaceState(
+                    null,
+                    '',
+                    `${window.location.pathname}?${searchParams.toString()}`
+                );
+
+                window.scrollTo({ top: 0, behavior: "smooth" });
+            }
+        } catch (error) {
+            console.error('Error fetching page:', error);
+            toast.error('Failed to load page');
+        } finally {
+            setLoading(false);
+        }
+    };
+    // ===================================================================
+
     const updateFilters = (newFilters) => {
         const updatedFilters = { ...filters, ...newFilters };
         setFilters(updatedFilters);
         fetchAuctions(1, 21, updatedFilters);
     };
 
-    // Handle URL parameters on initial load
     useEffect(() => {
         const searchParams = new URLSearchParams(location.search);
+        const pageParam = parseInt(searchParams.get('page'), 10) || 1;
 
-        // Handle categories from URL (can be comma-separated string)
         let categories = [];
         const categoriesParam = searchParams.get('categories');
         if (categoriesParam) {
             categories = categoriesParam.split(',').filter(cat => cat.trim() !== '');
         }
 
-        // Extract ALL URL parameters including new ones
         const urlFilters = {
-            categories: categories, // Now an array
+            categories,
             status: searchParams.get('status') || 'active',
             search: searchParams.get('search') || '',
             priceMin: searchParams.get('priceMin') || '',
@@ -136,16 +170,13 @@ export const useAuctions = () => {
             sortOrder: searchParams.get('sortOrder') || 'asc'
         };
 
-        // Clean empty values
         const cleanUrlFilters = cleanFilters(urlFilters);
 
         if (Object.keys(cleanUrlFilters).length > 0) {
-            // If we have URL parameters, use them for initial fetch
             setFilters(urlFilters);
-            fetchAuctions(1, 21, urlFilters);
+            fetchAuctions(pageParam, 21, urlFilters);
         } else {
-            // If no URL parameters, fetch with default filters
-            fetchAuctions(1, 21, filters);
+            fetchAuctions(pageParam, 21, filters);
         }
     }, [location.search]);
 
@@ -157,6 +188,7 @@ export const useAuctions = () => {
         filters,
         fetchAuctions,
         loadMoreAuctions,
+        goToPage,
         updateFilters
     };
 };
