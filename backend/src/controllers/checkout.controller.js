@@ -138,10 +138,12 @@ export const getCheckoutData = async (req, res) => {
             }
             : null;
 
-        // Convert auction prices
+        // Convert auction prices — the buyer pays finalPrice + bidder commission
         const convertedFinalPrice = convertAmount(auction.finalPrice || auction.currentPrice, auction);
-        const convertedCommissionAmount = convertAmount(auction.commissionAmount, auction);
-        const convertedTotalAmount = convertedFinalPrice + convertedCommissionAmount;
+        const convertedBidderCommission = convertAmount(auction.bidderCommissionAmount || 0, auction);
+        const convertedSellerCommission = convertAmount(auction.sellerCommissionAmount || 0, auction);
+        const convertedTotalAmount = convertedFinalPrice + convertedBidderCommission;
+
 
         // Prepare auction data for response with converted amounts
         const auctionData = {
@@ -150,10 +152,14 @@ export const getCheckoutData = async (req, res) => {
             description: auction.description,
             // Original values
             finalPriceOriginal: auction.finalPrice || 0,
-            commissionAmountOriginal: auction.commissionAmount || 0,
+            commissionAmountOriginal: auction.bidderCommissionAmount || 0,
+            sellerCommissionAmountOriginal: auction.sellerCommissionAmount || 0,
             // Converted values
             finalPrice: convertedFinalPrice,
-            commissionAmount: convertedCommissionAmount,
+            // `commissionAmount` is the buyer's side — kept for frontend compat
+            commissionAmount: convertedBidderCommission,
+            bidderCommissionAmount: convertedBidderCommission,
+            sellerCommissionAmount: convertedSellerCommission,
             auctionType: auction.auctionType,
             status: auction.status,
             paymentStatus: auction.paymentStatus,
@@ -246,10 +252,12 @@ export const getCheckoutData = async (req, res) => {
                 totals: {
                     winningBid: convertedFinalPrice,
                     winningBidOriginal: auction.finalPrice || 0,
-                    commission: convertedCommissionAmount,
-                    commissionOriginal: auction.commissionAmount || 0,
+                    commission: convertedBidderCommission,
+                    commissionOriginal: auction.bidderCommissionAmount || 0,
                     subtotal: parseFloat(convertedTotalAmount.toFixed(2)),
-                    subtotalOriginal: (auction.finalPrice || 0) + (auction.commissionAmount || 0),
+                    subtotalOriginal:
+                        (auction.finalPrice || 0) +
+                        (auction.bidderCommissionAmount || 0),
                     displayCurrency: userCurrency,
                 },
                 adminBankDetails: adminBankDetails,

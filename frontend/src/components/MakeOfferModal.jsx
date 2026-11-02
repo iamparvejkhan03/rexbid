@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { X, Banknote, MessageSquare, Package, Hand } from "lucide-react";
+import { X, Banknote, MessageSquare } from "lucide-react";
 import axiosInstance from "../utils/axiosInstance";
 import { useAuth } from "../contexts/AuthContext";
 import useBodyScrollLock from "../hooks/useBodyScrollLock";
@@ -17,48 +17,13 @@ const MakeOfferModal = ({
     isPostAuction = false,
 }) => {
     const [serviceFee, setServiceFee] = useState(0);
-    const [commissionType, setCommissionType] = useState("percentage");
-    const [commissionValue, setCommissionValue] = useState(0);
-    const [isCommissionEnabled, setIsCommissionEnabled] = useState(null);
-    const [commissionAppliesTo, setCommissionAppliesTo] = useState([]);
-
-    const { user } = useAuth();
-    const userCurrency = user?.currency || 'EUR';
-
+    const [isCommissionEnabled, setIsCommissionEnabled] = useState(false);
     const [isCapped, setIsCapped] = useState(false);
     const [capDisplay, setCapDisplay] = useState("");
+
+    const { user } = useAuth();
+    const userCurrency = user?.currency || "EUR";
     useBodyScrollLock(isOpen);
-
-    // useEffect(() => {
-    //     if (!isOpen || !offerAmount) return;
-
-    //     const getCommission = async () => {
-    //         try {
-    //             const { data } = await axiosInstance.get("/api/v1/commissions");
-    //             const commission = data?.data?.commission;
-    //             if (!commission) return;
-
-    //             setCommissionType(commission.commissionType);
-    //             setCommissionValue(commission.commissionValue);
-    //             setIsCommissionEnabled(commission.isEnabled);
-    //             setCommissionAppliesTo(commission.appliesTo);
-
-    //             const amount = Number(offerAmount);
-
-    //             if (commission.commissionType === "fixed") {
-    //                 setServiceFee(Number(commission.commissionValue));
-    //             } else {
-    //                 setServiceFee(
-    //                     (amount * Number(commission.commissionValue)) / 100
-    //                 );
-    //             }
-    //         } catch (error) {
-    //             console.error("Error fetching commission:", error);
-    //         }
-    //     };
-
-    //     getCommission();
-    // }, [offerAmount, isOpen]);
 
     useEffect(() => {
         if (!isOpen || !offerAmount) return;
@@ -69,53 +34,54 @@ const MakeOfferModal = ({
                 const commission = data?.data?.commission;
                 if (!commission) return;
 
-                setCommissionType(commission.commissionType);
-                setCommissionValue(commission.commissionValue);
-                setIsCommissionEnabled(commission.isEnabled);
-                setCommissionAppliesTo(commission.appliesTo);
+                const tiers = commission.bidderTiers || [];
+                const appliesToBidder = commission.appliesTo?.includes("bidder");
+                setIsCommissionEnabled(
+                    !!commission.isEnabled && appliesToBidder && tiers.length > 0
+                );
 
-                const amount = Number(offerAmount);
-
-                // ---- 1. Compute raw fee in user's currency ----
-                let fee =
-                    commission.commissionType === "fixed"
-                        ? Number(commission.commissionValue)
-                        : (amount * Number(commission.commissionValue)) / 100;
-
-                // ---- 2. Fetch FX rates and convert cap ----
-                const capAmount = commission.maxCommissionAmount ?? 500;
-                const capCurrency = commission.maxCommissionCurrency ?? "EUR";
-
-                // Label always shown in the cap's ORIGINAL currency
-                const symbol =
-                    capCurrency === "GBP" ? "£" : capCurrency === "EUR" ? "€" : "";
-                setCapDisplay(`${symbol}${capAmount}`);
-
-                let capInUserCurrency = capAmount;
-
-                if (capCurrency !== userCurrency) {
-                    const ratesRes = await axiosInstance.get("/api/v1/currency/rates");
-                    const rates = ratesRes.data || {}; // direct object (no "data" wrapper)
-                    const rate = rates[capCurrency]?.rates?.[userCurrency];
-
-                    if (rate) {
-                        capInUserCurrency = capAmount * rate;
-                    } else {
-                        console.warn(
-                            `FX rate missing for ${capCurrency} → ${userCurrency}. ` +
-                            `Cap will not be converted correctly.`
-                        );
+                const amount = Number(offerAmount) || 0;
+                let fee = 0;
+                if (commission.isEnabled && appliesToBidder) {
+                    for (const tier of tiers) {
+                        const from = Number(tier.from) || 0;
+                        const to =
+                            tier.to === null || tier.to === undefined
+                                ? Infinity
+                                : Number(tier.to);
+                        if (amount <= from) break;
+                        const slice = Math.min(amount, to) - from;
+                        fee += slice * (Number(tier.value) / 100);
                     }
                 }
 
-                // ---- 3. Apply the cap ----
-                if (capInUserCurrency > 0 && fee > capInUserCurrency) {
-                    fee = capInUserCurrency;
-                    setIsCapped(true);
+                const capAmount = commission.maxCommissionAmount;
+                const capCurrency = commission.maxCommissionCurrency ?? "EUR";
+                let capped = false;
+                let capInUserCurrency = 0;
+
+                if (capAmount && capAmount > 0) {
+                    capInUserCurrency = capAmount;
+                    const symbol =
+                        capCurrency === "GBP" ? "£" : capCurrency === "EUR" ? "€" : "";
+                    setCapDisplay(`${symbol}${capAmount}`);
+
+                    if (capCurrency !== userCurrency) {
+                        const ratesRes = await axiosInstance.get("/api/v1/currency/rates");
+                        const rates = ratesRes.data || {};
+                        const rate = rates[capCurrency]?.rates?.[userCurrency];
+                        if (rate) capInUserCurrency = capAmount * rate;
+                    }
+
+                    if (fee > capInUserCurrency) {
+                        fee = capInUserCurrency;
+                        capped = true;
+                    }
                 } else {
-                    setIsCapped(false);
+                    setCapDisplay("");
                 }
 
+                setIsCapped(capped);
                 setServiceFee(fee);
             } catch (error) {
                 console.error("Error fetching commission:", error);
@@ -128,11 +94,17 @@ const MakeOfferModal = ({
     if (!isOpen) return null;
 
     const formatCurrency = (amount) => {
-        if (!amount && amount !== 0) return `${userCurrency === 'GBP' ? '£' : '€'}0`;
-        return `${userCurrency === 'GBP' ? '£' : '€'}${Number(amount)?.toFixed(0).toLocaleString("en-IE")}`;
+        if (!amount && amount !== 0) {
+            return `${userCurrency === "GBP" ? "£" : "€"}0`;
+        }
+        return `${userCurrency === "GBP" ? "£" : "€"}${Number(amount)
+            ?.toFixed(0)
+            .toLocaleString("en-IE")}`;
     };
 
-    const total = (isCommissionEnabled && commissionAppliesTo?.includes('bidder') ? Number(offerAmount) + Number(serviceFee) : Number(offerAmount));
+    const total = isCommissionEnabled
+        ? Number(offerAmount) + Number(serviceFee)
+        : Number(offerAmount);
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -145,23 +117,7 @@ const MakeOfferModal = ({
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-40 p-4">
             <div className="bg-white rounded-lg w-full max-w-md">
-
-                {/* Header */}
-                {/* <div className="flex justify-between items-center p-6 border-b">
-                    <h3 className="text-xl font-semibold text-gray-800">
-                        Make an Offer
-                    </h3>
-                    <button
-                        onClick={onClose}
-                        className="text-gray-500 hover:text-gray-700"
-                    >
-                        <X size={24} />
-                    </button>
-                </div> */}
-
                 <form onSubmit={handleSubmit} className="p-6">
-
-                    {/* Offer Amount */}
                     <div className="mb-4">
                         <label className="flex items-center gap-2 justify-start text-lg font-medium text-gray-700 mb-2">
                             Offer Amount
@@ -182,14 +138,15 @@ const MakeOfferModal = ({
                             />
                         </div>
 
-                        {!isPostAuction && auction?.convertedStartPrice && auction?.convertedStartPrice > 0 && (
-                            <p className="text-sm text-gray-500 mt-1">
-                                Minimum offer: {formatCurrency(auction?.convertedStartPrice)}
-                            </p>
-                        )}
+                        {!isPostAuction &&
+                            auction?.convertedStartPrice &&
+                            auction?.convertedStartPrice > 0 && (
+                                <p className="text-sm text-gray-500 mt-1">
+                                    Minimum offer: {formatCurrency(auction?.convertedStartPrice)}
+                                </p>
+                            )}
                     </div>
 
-                    {/* Fee Breakdown */}
                     {offerAmount && !isInvalidOffer && (
                         <div className="bg-gray-50 rounded-lg p-4 mb-6 space-y-2">
                             <div className="flex justify-between text-gray-700">
@@ -197,15 +154,10 @@ const MakeOfferModal = ({
                                 <span>{formatCurrency(offerAmount)}</span>
                             </div>
 
-                            {/* {isCommissionEnabled && commissionAppliesTo?.includes('bidder') && <div className="flex justify-between text-gray-700">
-                                <span>Service Fee</span>
-                                <span>{formatCurrency(serviceFee)}</span>
-                            </div>} */}
-
-                            {isCommissionEnabled && commissionAppliesTo?.includes('bidder') && (
+                            {isCommissionEnabled && (
                                 <div className="flex justify-between text-gray-700">
                                     <span>
-                                        Service Fee
+                                        Commission Fee
                                         {isCapped && capDisplay && (
                                             <span className="ml-2 text-xs text-gray-400">
                                                 (capped at {capDisplay})
@@ -223,7 +175,6 @@ const MakeOfferModal = ({
                         </div>
                     )}
 
-                    {/* Message */}
                     <div className="mb-6">
                         <label className="block text-sm font-medium text-gray-700 mb-2">
                             Message to Seller (Optional)
@@ -249,7 +200,6 @@ const MakeOfferModal = ({
                         )}
                     </div>
 
-                    {/* Buttons */}
                     <div className="flex flex-col sm:flex-row gap-3">
                         <button
                             type="button"

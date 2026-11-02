@@ -1116,10 +1116,11 @@ export const manualSellAuction = async (req, res) => {
       auction.baseCurrency
     );
     auction.commissionAmount = commissionData.commissionAmount;
+    auction.sellerCommissionAmount = commissionData.sellerCommissionAmount;   // NEW
+    auction.bidderCommissionAmount = commissionData.bidderCommissionAmount;   // NEW
     auction.commissionType = commissionData.commissionType;
     auction.commissionValue = commissionData.commissionValue;
     auction.featuredPremiumAmount = commissionData.featuredPremium;
-
     // Reject all pending offers
     auction.offers.forEach((offer) => {
       if (offer.status === "pending") {
@@ -2293,6 +2294,8 @@ export const updateAuction = async (req, res) => {
       };
       updateData.lastBidTime = null;
       updateData.commissionAmount = 0;
+      updateData.sellerCommissionAmount = 0;
+      updateData.bidderCommissionAmount = 0;
       updateData.bidPaymentRequired = true;
     }
 
@@ -2357,8 +2360,8 @@ export const updatePaymentStatus = async (req, res) => {
 
     // Find auction with populated data
     const auction = await Auction.findById(id)
-      .populate("seller", "email username companyName firstName lastName")
-      .populate("winner", "email username companyName firstName lastName");
+      .populate("seller", "username companyName firstName lastName email phone currency")
+      .populate("winner", "username companyName firstName lastName email phone currency")
 
     if (!auction) {
       return res.status(404).json({
@@ -2448,8 +2451,8 @@ export const updatePaymentStatus = async (req, res) => {
 
     // Populate updated auction
     const updatedAuction = await Auction.findById(id)
-      .populate("seller", "username companyName firstName lastName email phone")
-      .populate("winner", "username companyName firstName lastName email phone");
+      .populate("seller", "username companyName firstName lastName email phone currency")
+      .populate("winner", "username companyName firstName lastName email phone currency")
 
     broadcastAuctionChange(id);
 
@@ -2491,86 +2494,6 @@ export const updatePaymentStatus = async (req, res) => {
     });
   }
 };
-
-// export const fetchDVLAData = async (req, res) => {
-//   try {
-//     const { registrationNumber } = req.params;
-
-//     // Make sure registrationNumber exists
-//     if (!registrationNumber) {
-//       return res.status(400).json({
-//         success: false,
-//         message: "Registration number is required",
-//       });
-//     }
-
-//     // Call DVLA API with correct structure
-//     const dvlaResponse = await backendAxios.post(
-//       `https://driver-vehicle-licensing.api.gov.uk/vehicle-enquiry/v1/vehicles`,
-//       {
-//         registrationNumber: registrationNumber
-//       },
-//       {
-//         headers: {
-//           "x-api-key": "kkrJPemNwS7mTx65GqRBH4njJd1fyz5h23k8udHD",
-//           "Content-Type": "application/json",
-//           // Optional: Add Accept header for good practice
-//           "Accept": "application/json"
-//         }
-//       }
-//     );
-
-//     // DVLA API typically returns 200 for successful requests
-//     // But let's check for any 2xx status code
-//     if (dvlaResponse.status < 200 || dvlaResponse.status >= 300) {
-//       return res.status(dvlaResponse.status).json({
-//         success: false,
-//         message: "Failed to fetch data from DVLA",
-//         error: dvlaResponse.data
-//       });
-//     }
-
-//     const vehicleData = dvlaResponse.data;
-
-//     console.log("DVLA vehicle data:", vehicleData);
-
-//     res.status(200).json({
-//       success: true,
-//       data: vehicleData,
-//     });
-//   } catch (error) {
-//     console.error("Fetch DVLA data error:", error);
-
-//     // Provide more specific error messages
-//     if (error.response) {
-//       // The request was made and the server responded with a status code
-//       // that falls out of the range of 2xx
-//       console.error("Error response data:", error.response.data);
-//       console.error("Error status:", error.response.status);
-//       console.error("Error headers:", error.response.headers);
-
-//       return res.status(error.response.status).json({
-//         success: false,
-//         message: `DVLA API error: ${error.response.status} - ${error.response.statusText}`,
-//         error: error.response.data
-//       });
-//     } else if (error.request) {
-//       // The request was made but no response was received
-//       console.error("No response received:", error.request);
-//       return res.status(503).json({
-//         success: false,
-//         message: "No response from DVLA API. Please try again later.",
-//       });
-//     } else {
-//       // Something happened in setting up the request that triggered an Error
-//       console.error("Request setup error:", error.message);
-//       return res.status(500).json({
-//         success: false,
-//         message: "Internal server error while fetching DVLA data",
-//       });
-//     }
-//   }
-// };
 
 export const fetchDVLAData = async (req, res) => {
   try {

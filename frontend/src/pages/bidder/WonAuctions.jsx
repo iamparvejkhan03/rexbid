@@ -412,9 +412,14 @@ function WonAuctions() {
                                         <div className="text-right">
                                             <div className="text-2xl font-bold text-green-600">
                                                 {formatCurrency(auction.convertedFinalPrice)}
+                                                {auction.bidderCommissionAmount > 0 && (
+                                                    <span className="text-sm text-gray-500 ml-1">
+                                                        + {formatCurrency(auction.bidderCommissionAmount)}
+                                                    </span>
+                                                )}
                                             </div>
                                             {/* <div className="text-sm text-gray-500">Winning Bid</div> */}
-                                            <div className="text-sm text-gray-500">Winning Amount</div>
+                                            <div className="text-sm text-gray-500">Winning Amount {auction?.bidderCommissionAmount > 0 && ' + Commission Fee'}</div>
                                         </div>
                                     </div>
 

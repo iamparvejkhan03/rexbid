@@ -337,12 +337,21 @@ const auctionSchema = new Schema(
       type: Number,
     },
     commissionAmount: {
+      // Legacy total = sellerCommissionAmount + bidderCommissionAmount
+      type: Number,
+      default: 0,
+    },
+    sellerCommissionAmount: {
+      type: Number,
+      default: 0,
+    },
+    bidderCommissionAmount: {
       type: Number,
       default: 0,
     },
     commissionType: {
       type: String,
-      enum: ["fixed", "percentage", null],
+      enum: ["fixed", "percentage", "tiered", null],
       default: null,
     },
     commissionValue: {
@@ -610,6 +619,8 @@ auctionSchema.methods.buyNow = async function (buyerId, buyerUsername) {
   if (this.auctionType !== "giveaway") {
     const commissionData = await calculateCommission(this.finalPrice, this.isFeatured, this.baseCurrency);
     this.commissionAmount = commissionData.commissionAmount;
+    this.sellerCommissionAmount = commissionData.sellerCommissionAmount;
+    this.bidderCommissionAmount = commissionData.bidderCommissionAmount;
     this.commissionType = commissionData.commissionType;
     this.commissionValue = commissionData.commissionValue;
     this.featuredPremiumAmount = commissionData.featuredPremium; // NEW
@@ -746,6 +757,8 @@ auctionSchema.methods.respondToOffer = async function (
       // Calculate and store commission
       const commissionData = await calculateCommission(this.finalPrice, this.isFeatured, this.baseCurrency);
       this.commissionAmount = commissionData.commissionAmount;
+      this.sellerCommissionAmount = commissionData.sellerCommissionAmount;
+      this.bidderCommissionAmount = commissionData.bidderCommissionAmount;
       this.commissionType = commissionData.commissionType;
       this.commissionValue = commissionData.commissionValue;
       this.featuredPremiumAmount = commissionData.featuredPremium;
@@ -818,6 +831,8 @@ auctionSchema.methods.respondToCounterOffer = async function (offerId, accept) {
     // Calculate and store commission
     const commissionData = await calculateCommission(this.finalPrice, this.isFeatured, this.baseCurrency);
     this.commissionAmount = commissionData.commissionAmount;
+    this.sellerCommissionAmount = commissionData.sellerCommissionAmount;
+    this.bidderCommissionAmount = commissionData.bidderCommissionAmount;
     this.commissionType = commissionData.commissionType;
     this.commissionValue = commissionData.commissionValue;
     this.featuredPremiumAmount = commissionData.featuredPremium;
@@ -963,6 +978,8 @@ auctionSchema.methods.reactivateAndAcceptOffer = async function (
   // Calculate and store commission
   const commissionData = await calculateCommission(this.finalPrice, this.isFeatured, this.baseCurrency);
   this.commissionAmount = commissionData.commissionAmount;
+  this.sellerCommissionAmount = commissionData.sellerCommissionAmount;
+  this.bidderCommissionAmount = commissionData.bidderCommissionAmount;
   this.commissionType = commissionData.commissionType;
   this.commissionValue = commissionData.commissionValue;
   this.featuredPremiumAmount = commissionData.featuredPremium;
@@ -1060,6 +1077,8 @@ auctionSchema.methods.endAuction = async function () {
       // Calculate and store commission
       const commissionData = await calculateCommission(this.finalPrice, this.isFeatured, this.baseCurrency);
       this.commissionAmount = commissionData.commissionAmount;
+      this.sellerCommissionAmount = commissionData.sellerCommissionAmount;
+      this.bidderCommissionAmount = commissionData.bidderCommissionAmount;
       this.commissionType = commissionData.commissionType;
       this.commissionValue = commissionData.commissionValue;
       this.featuredPremiumAmount = commissionData.featuredPremium;
@@ -1075,6 +1094,8 @@ auctionSchema.methods.endAuction = async function () {
         // Calculate and store commission
         const commissionData = await calculateCommission(this.finalPrice, this.isFeatured, this.baseCurrency);
         this.commissionAmount = commissionData.commissionAmount;
+        this.sellerCommissionAmount = commissionData.sellerCommissionAmount;
+        this.bidderCommissionAmount = commissionData.bidderCommissionAmount;
         this.commissionType = commissionData.commissionType;
         this.commissionValue = commissionData.commissionValue;
         this.featuredPremiumAmount = commissionData.featuredPremium;
@@ -1092,6 +1113,8 @@ auctionSchema.methods.endAuction = async function () {
         // Calculate and store commission
         const commissionData = await calculateCommission(this.finalPrice, this.isFeatured, this.baseCurrency);
         this.commissionAmount = commissionData.commissionAmount;
+        this.sellerCommissionAmount = commissionData.sellerCommissionAmount;
+        this.bidderCommissionAmount = commissionData.bidderCommissionAmount;
         this.commissionType = commissionData.commissionType;
         this.commissionValue = commissionData.commissionValue;
         this.featuredPremiumAmount = commissionData.featuredPremium;

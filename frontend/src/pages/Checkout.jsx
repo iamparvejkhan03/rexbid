@@ -388,13 +388,12 @@ const CheckoutContent = () => {
     };
 
     // Calculate total
+    // `auction.commissionAmount` is the bidder's commission (0 if bidder doesn't pay)
     const calculateTotal = () => {
         if (!auction) return 0;
-
         const winningBid = auction.finalPrice || auction.currentPrice || 0;
         const commission = auction.commissionAmount || 0;
-
-        return commissionAppliesTo?.includes('bidder') ? winningBid + commission : winningBid;
+        return winningBid + commission;
     };
 
     // Format currency
@@ -637,9 +636,9 @@ const CheckoutContent = () => {
                                             <span className="font-medium">{formatCurrency(auction.finalPrice || 0)}</span>
                                         </div>
 
-                                        {commissionAppliesTo?.includes('bidder') && auction.commissionAmount > 0 && (
+                                        {auction.commissionAmount > 0 && (
                                             <div className="flex justify-between">
-                                                <span className="text-gray-600">Service Fee</span>
+                                                <span className="text-gray-600">Commission Fee</span>
                                                 <span className="font-medium">{formatCurrency(auction.commissionAmount)}</span>
                                             </div>
                                         )}

@@ -540,9 +540,8 @@ export const getPendingPayouts = async (req, res) => {
             .filter((auction) => !processedAuctionIds.has(auction._id.toString()))
             .map((auction) => {
                 const totalAmount = auction.finalPrice || auction.currentPrice || 0;
-                const commissionAmount = auction.commissionAmount || 0;
-                const sellerPaysCommission = settings?.isEnabled && settings?.appliesTo?.includes('seller');
-                const sellerAmount = sellerPaysCommission ? totalAmount - commissionAmount : totalAmount;
+                const commissionAmount = auction.sellerCommissionAmount || 0;
+                const sellerAmount = totalAmount - commissionAmount;
 
                 // Get seller's default payout method
                 const seller = auction.seller || {};
@@ -682,9 +681,8 @@ export const initiatePayout = async (req, res) => {
 
         // Calculate amounts
         const totalAmount = auction.finalPrice || auction.currentPrice || 0;
-        const commissionAmount = auction.commissionAmount || 0;
-        const sellerPaysCommission = settings?.isEnabled && settings?.appliesTo?.includes('seller');
-        const sellerAmount = sellerPaysCommission ? totalAmount - commissionAmount : totalAmount;
+        const commissionAmount = auction.sellerCommissionAmount || 0;
+        const sellerAmount = totalAmount - commissionAmount;
 
         // Create payout record
         const payout = await Payout.create({
@@ -862,7 +860,7 @@ export const getAuctionPayoutInfo = async (req, res) => {
 
         const seller = auction.seller;
         const totalAmount = auction.finalPrice || auction.currentPrice || 0;
-        const commissionAmount = auction.commissionAmount || 0;
+        const commissionAmount = auction.sellerCommissionAmount || 0;
         const sellerAmount = totalAmount - commissionAmount;
 
         // Check existing payout

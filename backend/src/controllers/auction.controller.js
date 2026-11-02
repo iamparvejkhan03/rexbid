@@ -1856,6 +1856,8 @@ export const updateAuction = async (req, res) => {
       };
       updateData.lastBidTime = null;
       updateData.commissionAmount = 0;
+      updateData.sellerCommissionAmount = 0;
+      updateData.bidderCommissionAmount = 0;
       updateData.bidPaymentRequired = true;
     }
 
@@ -2447,7 +2449,7 @@ export const getWonAuctions = async (req, res) => {
       let convertedBuyNowPrice = auctionObj.buyNowPrice;
       let convertedReservePrice = auctionObj.reservePrice;
       let convertedBidIncrement = auctionObj.bidIncrement;
-      let convertedCommissionAmount = auctionObj.commissionAmount;
+      let convertedCommissionAmount = auctionObj.bidderCommissionAmount || 0;
       let convertedFeaturedPremium = auctionObj.featuredPremium;
 
       if (rates && auctionObj.baseCurrency) {
@@ -2461,7 +2463,7 @@ export const getWonAuctions = async (req, res) => {
           convertedBuyNowPrice = auctionObj.buyNowPrice ? auctionObj.buyNowPrice * rate : null;
           convertedReservePrice = auctionObj.reservePrice ? auctionObj.reservePrice * rate : null;
           convertedBidIncrement = auctionObj.bidIncrement ? auctionObj.bidIncrement * rate : null;
-          convertedCommissionAmount = auctionObj.commissionAmount ? auctionObj.commissionAmount * rate : null;
+          convertedCommissionAmount = auctionObj.bidderCommissionAmount ? auctionObj.bidderCommissionAmount * rate : null;
           convertedFeaturedPremium = auctionObj.featuredPremium ? auctionObj.featuredPremium * rate : null;
         }
       }
@@ -2608,7 +2610,7 @@ export const getSoldAuctions = async (req, res) => {
       const convertedFinalPrice = convert(auction.finalPrice);
       const convertedReservePrice = convert(auction.reservePrice);
       const convertedBidIncrement = convert(auction.bidIncrement);
-      const convertedCommissionAmount = convert(auction.commissionAmount);
+      const convertedCommissionAmount = convert(auction.sellerCommissionAmount || 0);
       const convertedFeaturedPremium = convert(auction.featuredPremium);
 
       // Build list of unique bidders with their highest bid (convert bid amounts)
@@ -3115,6 +3117,8 @@ export const getAuctionCommission = async (req, res) => {
         auctionId: auction._id,
         finalPrice: auction.finalPrice,
         commissionAmount: auction.commissionAmount,
+        sellerCommissionAmount: auction.sellerCommissionAmount || 0,
+        bidderCommissionAmount: auction.bidderCommissionAmount || 0,
         commissionType: auction.commissionType,
         commissionValue: auction.commissionValue,
         globalSettings: commission,

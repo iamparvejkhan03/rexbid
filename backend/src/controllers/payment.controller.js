@@ -60,9 +60,8 @@ export const createWonAuctionPayment = async (req, res) => {
 
         // Calculate total amount (finalPrice + commission)
         const bidAmount = auction.finalPrice || auction.currentPrice;
-        const commissionAmount = auction.commissionAmount || 0;
-        // const totalAmount = bidAmount + commissionAmount;
-        const totalAmount = commissionSettings && commissionSettings.isEnabled && commissionSettings.appliesTo?.includes('bidder') ? bidAmount + commissionAmount : bidAmount;
+        const commissionAmount = auction.bidderCommissionAmount || 0;
+        const totalAmount = bidAmount + commissionAmount;
         // Check if payment record already exists
         let bidPayment = await BidPayment.findOne({
             auction: auctionId,
@@ -527,10 +526,9 @@ export const createCheckoutPayment = async (req, res) => {
 
         // 3. Calculate total in base currency (original)
         const bidAmount = auction.finalPrice || auction.currentPrice;
-        const commissionAmount = auction.commissionAmount || 0;
-        const totalAmountInBase = commissionSettings && commissionSettings.isEnabled && commissionSettings.appliesTo?.includes('bidder')
-            ? bidAmount + commissionAmount
-            : bidAmount;
+        const commissionAmount = auction.bidderCommissionAmount || 0;
+        // bidderCommissionAmount is 0 when bidder is not in appliesTo.
+        const totalAmountInBase = bidAmount + commissionAmount;
 
         // Convert to user's currency before charging
         const totalAmountConverted = convertAmount(totalAmountInBase, auction);
@@ -670,10 +668,8 @@ export const createBankTransferPayment = async (req, res) => {
 
         // Calculate total in base currency
         const bidAmount = auction.finalPrice || auction.currentPrice;
-        const commissionAmount = auction.commissionAmount || 0;
-        const totalAmountInBase = commissionSettings && commissionSettings.isEnabled && commissionSettings.appliesTo?.includes('bidder')
-            ? bidAmount + commissionAmount
-            : bidAmount;
+        const commissionAmount = auction.bidderCommissionAmount || 0;
+        const totalAmountInBase = bidAmount + commissionAmount;
 
         // Convert to user's currency for display
         const convertedBidAmount = convertAmount(bidAmount, auction);
@@ -869,8 +865,8 @@ export const paySellerCommission = async (req, res) => {
             return res.status(400).json({ success: false, message: "Commission already paid" });
         }
 
-        // 2. Get commission amount (already includes featured premium if applicable)
-        const commissionAmount = auction.commissionAmount || 0;
+        // 2. Get seller commission amount (already includes featured premium if applicable)
+        const commissionAmount = auction.sellerCommissionAmount || 0;
         if (commissionAmount <= 0) {
             return res.status(400).json({ success: false, message: "No commission due" });
         }

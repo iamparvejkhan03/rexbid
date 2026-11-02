@@ -1585,7 +1585,6 @@ const sendAuctionEndedSellerEmail = async (listing) => {
 // 19. Auction won notification for bidder
 const sendAuctionWonStandardEmail = async (listing) => {
     try {
-        // Safety check - ensure winner is populated and has email
         if (
             !listing?.winner ||
             typeof listing?.winner === "string" ||
@@ -1599,6 +1598,21 @@ const sendAuctionWonStandardEmail = async (listing) => {
         }
 
         const finalPrice = listing?.finalPrice || listing?.currentPrice || 0;
+        const bidderCommission = listing?.bidderCommissionAmount || 0;
+
+        const winnerCurrency = listing?.winner?.currency;
+        const finalPriceInCurrency = convertRawAmount(
+            finalPrice,
+            listing?.baseCurrency,
+            winnerCurrency
+        );
+        const bidderCommissionInCurrency = convertRawAmount(
+            bidderCommission,
+            listing?.baseCurrency,
+            winnerCurrency
+        );
+        const totalInCurrency =
+            Math.round((finalPriceInCurrency + bidderCommissionInCurrency) * 100) / 100;
 
         const content = `
             <h2 style="text-align: center;">Congratulations! You Won the Listing</h2>
@@ -1608,7 +1622,7 @@ const sendAuctionWonStandardEmail = async (listing) => {
                 <p style="margin: 0 0 12px 0; font-size: 18px; font-weight: bold; color: ${BRAND_COLORS.secondary};">${listing.title}</p>
                 ${listing.subTitle ? `<p style="margin: 0 0 16px 0; text-align: center; color: ${BRAND_COLORS.textLight};">${listing.subTitle}</p>` : ''}
                 
-                <p style="margin: 15px 0; font-size: 24px; font-weight: bold; color: ${BRAND_COLORS.secondary}; text-align: center;">${formatCurrency(convertRawAmount(finalPrice, listing?.baseCurrency, listing?.winner?.currency), listing?.winner?.currency)}</p>
+                <p style="margin: 15px 0; font-size: 24px; font-weight: bold; color: ${BRAND_COLORS.secondary}; text-align: center;">${formatCurrency(finalPriceInCurrency, winnerCurrency)}</p>
                 
                 ${listing.specifications && listing.specifications.size > 0 ? `
                     <div style="margin: 16px 0 0 0;">
@@ -1618,7 +1632,20 @@ const sendAuctionWonStandardEmail = async (listing) => {
                 ` : ''}
                 
                 ${createSummaryRow('Invoice Number:', listing?.transactionId || `INV-${listing?._id?.toString()?.toUpperCase()}`)}
-                ${createSummaryRow('Winning Bid/Offer:', formatCurrency(convertRawAmount(finalPrice, listing?.baseCurrency, listing?.winner?.currency), listing?.winner?.currency))}
+                ${createSummaryRow('Winning Bid/Offer:', formatCurrency(finalPriceInCurrency, winnerCurrency))}
+
+                ${bidderCommission > 0
+                ? createSummaryRow('Buyer Commission:', formatCurrency(bidderCommissionInCurrency, winnerCurrency))
+                : ''
+            }
+
+                ${bidderCommission > 0
+                ? `<div style="display: flex; justify-content: space-between; padding: 12px 0 0 0; margin-top: 8px; border-top: 2px solid ${BRAND_COLORS.secondary};">
+                        <span style="font-weight: 700; color: ${BRAND_COLORS.secondary}; font-size: 16px;">Total Payable</span>
+                        <span style="font-weight: 700; color: ${BRAND_COLORS.primary}; font-size: 16px;">${formatCurrency(totalInCurrency, winnerCurrency)}</span>
+                    </div>`
+                : ''
+            }
             `)}
             
             <div style="text-align: center; margin: 25px 0;">
@@ -1633,13 +1660,16 @@ const sendAuctionWonStandardEmail = async (listing) => {
             from: `"${BRAND_NAME}" <${process.env.EMAIL_USER}>`,
             to: listing?.winner?.email,
             subject: `Invoice - ${listing?.title}`,
-            html
+            html,
         });
 
         console.log(`Listing won invoice email sent to ${listing?.winner?.email}`);
         return !!info;
     } catch (error) {
-        console.error(`Failed to send listing won invoice email for listing ${listing._id}:`, error);
+        console.error(
+            `Failed to send listing won invoice email for listing ${listing._id}:`,
+            error
+        );
         return false;
     }
 };
@@ -1647,7 +1677,6 @@ const sendAuctionWonStandardEmail = async (listing) => {
 // 19B. Auction won high amount notification for bidder
 const sendAuctionWonHighValueEmail = async (listing) => {
     try {
-        // Safety check - ensure winner is populated and has email
         if (
             !listing?.winner ||
             typeof listing?.winner === "string" ||
@@ -1661,6 +1690,21 @@ const sendAuctionWonHighValueEmail = async (listing) => {
         }
 
         const finalPrice = listing?.finalPrice || listing?.currentPrice || 0;
+        const bidderCommission = listing?.bidderCommissionAmount || 0;
+
+        const winnerCurrency = listing?.winner?.currency;
+        const finalPriceInCurrency = convertRawAmount(
+            finalPrice,
+            listing?.baseCurrency,
+            winnerCurrency
+        );
+        const bidderCommissionInCurrency = convertRawAmount(
+            bidderCommission,
+            listing?.baseCurrency,
+            winnerCurrency
+        );
+        const totalInCurrency =
+            Math.round((finalPriceInCurrency + bidderCommissionInCurrency) * 100) / 100;
 
         const content = `
             <h2 style="text-align: center;">Congratulations! You Won the Listing</h2>
@@ -1670,7 +1714,7 @@ const sendAuctionWonHighValueEmail = async (listing) => {
                 <p style="margin: 0 0 12px 0; font-size: 18px; font-weight: bold; color: ${BRAND_COLORS.secondary};">${listing.title}</p>
                 ${listing.subTitle ? `<p style="margin: 0 0 16px 0; text-align: center; color: ${BRAND_COLORS.textLight};">${listing.subTitle}</p>` : ''}
 
-                <p style="margin: 15px 0; font-size: 24px; font-weight: bold; color: ${BRAND_COLORS.secondary}; text-align: center;">${formatCurrency(convertRawAmount(finalPrice, listing?.baseCurrency, listing?.winner?.currency), listing?.winner?.currency)}</p>
+                <p style="margin: 15px 0; font-size: 24px; font-weight: bold; color: ${BRAND_COLORS.secondary}; text-align: center;">${formatCurrency(finalPriceInCurrency, winnerCurrency)}</p>
 
                 ${listing.specifications && listing.specifications.size > 0 ? `
                     <div style="margin: 16px 0 0 0;">
@@ -1679,7 +1723,20 @@ const sendAuctionWonHighValueEmail = async (listing) => {
                     </div>
                 ` : ''}
 
-                ${createSummaryRow('Winning Bid/Offer:', formatCurrency(convertRawAmount(finalPrice, listing?.baseCurrency, listing?.winner?.currency), listing?.winner?.currency))}
+                ${createSummaryRow('Winning Bid/Offer:', formatCurrency(finalPriceInCurrency, winnerCurrency))}
+
+                ${bidderCommission > 0
+                ? createSummaryRow('Buyer Commission:', formatCurrency(bidderCommissionInCurrency, winnerCurrency))
+                : ''
+            }
+
+                ${bidderCommission > 0
+                ? `<div style="display: flex; justify-content: space-between; padding: 12px 0 0 0; margin-top: 8px; border-top: 2px solid ${BRAND_COLORS.secondary};">
+                        <span style="font-weight: 700; color: ${BRAND_COLORS.secondary}; font-size: 16px;">Total Payable</span>
+                        <span style="font-weight: 700; color: ${BRAND_COLORS.primary}; font-size: 16px;">${formatCurrency(totalInCurrency, winnerCurrency)}</span>
+                    </div>`
+                : ''
+            }
             `)}
 
             <div style="margin: 25px 0;">
@@ -1695,13 +1752,16 @@ const sendAuctionWonHighValueEmail = async (listing) => {
             from: `"${BRAND_NAME}" <${process.env.EMAIL_USER}>`,
             to: listing?.winner?.email,
             subject: `Congratulations - You Won ${listing?.title}`,
-            html
+            html,
         });
 
         console.log(`High-value auction won email sent to ${listing?.winner?.email}`);
         return !!info;
     } catch (error) {
-        console.error(`Failed to send high-value auction won email for listing ${listing._id}:`, error);
+        console.error(
+            `Failed to send high-value auction won email for listing ${listing._id}:`,
+            error
+        );
         return false;
     }
 };
@@ -1878,6 +1938,14 @@ const offerAcceptedEmail = async (
     offerId
 ) => {
     try {
+        const currency = buyerCurrency || listing?.winner?.currency || listing?.baseCurrency || 'EUR';
+        const finalPrice = listing?.finalPrice || listing?.currentPrice || 0;
+        const bidderCommission = listing?.bidderCommissionAmount || 0;
+
+        const finalPriceInCurrency = convertRawAmount(finalPrice, listing?.baseCurrency, currency);
+        const bidderCommissionInCurrency = convertRawAmount(bidderCommission, listing?.baseCurrency, currency);
+        const totalInCurrency = Math.round((finalPriceInCurrency + bidderCommissionInCurrency) * 100) / 100;
+
         const content = `
             <h2 style="text-align: center;">Offer Accepted</h2>
             <p style="text-align: center;">Congratulations! The seller has accepted your offer.</p>
@@ -1893,8 +1961,19 @@ const offerAcceptedEmail = async (
                     </div>
                 ` : ''}
                 
-                ${createSummaryRow('Original Price:', formatCurrency(convertRawAmount(listing?.buyNowPrice || listing?.startPrice || 0, listing?.baseCurrency, buyerCurrency), buyerCurrency))}
-                ${createSummaryRow('Final Price:', formatCurrency(convertRawAmount(listing?.finalPrice || listing?.currentPrice || 0, listing?.baseCurrency, buyerCurrency), buyerCurrency))}
+                ${createSummaryRow('Original Price:', formatCurrency(convertRawAmount(listing?.buyNowPrice || listing?.startPrice || 0, listing?.baseCurrency, currency), currency))}
+                ${createSummaryRow('Final Price:', formatCurrency(finalPriceInCurrency, currency))}
+                ${bidderCommission > 0
+                ? createSummaryRow('Buyer Commission:', formatCurrency(bidderCommissionInCurrency, currency))
+                : ''
+            }
+                ${bidderCommission > 0
+                ? `<div style="display: flex; justify-content: space-between; padding: 12px 0 0 0; margin-top: 8px; border-top: 2px solid ${BRAND_COLORS.secondary};">
+                        <span style="font-weight: 700; color: ${BRAND_COLORS.secondary}; font-size: 16px;">Total Payable</span>
+                        <span style="font-weight: 700; color: ${BRAND_COLORS.primary}; font-size: 16px;">${formatCurrency(totalInCurrency, currency)}</span>
+                    </div>`
+                : ''
+            }
                 ${createSummaryRow('Offer ID:', offerId)}
             `)}
             
@@ -2260,6 +2339,14 @@ const counterOfferRejectedEmail = async (
 // 25. Payment completed notification for bidder
 const paymentCompletedEmail = async (user, listing) => {
     try {
+        const currency = user?.currency || listing?.winner?.currency || listing?.baseCurrency || 'EUR';
+        const finalPrice = listing?.finalPrice || listing?.currentPrice || 0;
+        const bidderCommission = listing?.bidderCommissionAmount || 0;
+
+        const finalPriceInCurrency = convertRawAmount(finalPrice, listing?.baseCurrency, currency);
+        const bidderCommissionInCurrency = convertRawAmount(bidderCommission, listing?.baseCurrency, currency);
+        const totalInCurrency = Math.round((finalPriceInCurrency + bidderCommissionInCurrency) * 100) / 100;
+
         const content = `
             <h2 style="text-align: center;">Payment Confirmed</h2>
             <p style="text-align: center;">Thank you for your payment, ${user?.firstName || user?.companyName || user?.username}!</p>
@@ -2274,6 +2361,17 @@ const paymentCompletedEmail = async (user, listing) => {
                         ${renderSpecifications(listing.specifications)}
                     </div>
                 ` : ''}
+                
+                ${createSummaryRow('Winning Bid:', formatCurrency(finalPriceInCurrency, currency))}
+                ${bidderCommission > 0
+                ? createSummaryRow('Buyer Commission:', formatCurrency(bidderCommissionInCurrency, currency))
+                : ''
+            }
+                <div style="display: flex; justify-content: space-between; padding: 12px 0 0 0; margin-top: 8px; border-top: 2px solid ${BRAND_COLORS.secondary};">
+                    <span style="font-weight: 700; color: ${BRAND_COLORS.secondary}; font-size: 16px;">Total Paid</span>
+                    <span style="font-weight: 700; color: ${BRAND_COLORS.primary}; font-size: 16px;">${formatCurrency(totalInCurrency, currency)}</span>
+                </div>
+                ${listing?.transactionId ? createSummaryRow('Transaction ID:', listing.transactionId) : ''}
             `)}
             
             <p>Great news! Your payment has been successfully processed and confirmed.</p>
@@ -2346,6 +2444,14 @@ const paymentSuccessEmail = async (user, listing) => {
 // 27. Payment completed notification for seller
 const paymentCompletedSellerEmail = async (seller, listing, buyer) => {
     try {
+        const currency = seller?.currency || listing?.baseCurrency || 'EUR';
+        const finalPrice = listing?.finalPrice || listing?.currentPrice || 0;
+        const sellerCommission = listing?.sellerCommissionAmount || 0;
+
+        const finalPriceInCurrency = convertRawAmount(finalPrice, listing?.baseCurrency, currency);
+        const sellerCommissionInCurrency = convertRawAmount(sellerCommission, listing?.baseCurrency, currency);
+        const netInCurrency = Math.round((finalPriceInCurrency - sellerCommissionInCurrency) * 100) / 100;
+
         const content = `
             <h2 style="text-align: center;">Payment Received</h2>
             <p style="text-align: center;">Great news, ${seller?.firstName || seller?.companyName || seller?.username}!</p>
@@ -2360,6 +2466,16 @@ const paymentCompletedSellerEmail = async (seller, listing, buyer) => {
                         ${renderSpecifications(listing.specifications)}
                     </div>
                 ` : ''}
+                
+                ${createSummaryRow('Final Sale Amount:', formatCurrency(finalPriceInCurrency, currency))}
+                ${sellerCommission > 0
+                ? createSummaryRow('Platform Commission:', formatCurrency(sellerCommissionInCurrency, currency))
+                : ''
+            }
+                <div style="display: flex; justify-content: space-between; padding: 12px 0 0 0; margin-top: 8px; border-top: 2px solid ${BRAND_COLORS.secondary};">
+                    <span style="font-weight: 700; color: ${BRAND_COLORS.secondary}; font-size: 16px;">Amount You Receive</span>
+                    <span style="font-weight: 700; color: ${BRAND_COLORS.primary}; font-size: 16px;">${formatCurrency(netInCurrency, currency)}</span>
+                </div>
             `)}
             
             <p>We're pleased to inform you that the buyer has successfully completed payment for your item. The funds have been received and confirmed.</p>
