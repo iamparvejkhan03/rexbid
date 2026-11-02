@@ -13,6 +13,11 @@ import {
     Phone,
     ChevronDown,
     ChevronUp,
+    Package,
+    Scale,
+    MapPin,
+    Home,
+    ArrowRight,
 } from "lucide-react";
 import axiosInstance from "../../utils/axiosInstance";
 import { toast } from "react-hot-toast";
@@ -133,13 +138,10 @@ function DeliveryQuotes() {
                                             Name
                                         </th>
                                         <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Email
-                                        </th>
-                                        <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             Phone
                                         </th>
                                         <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Content
+                                            Shipment
                                         </th>
                                         <th className="py-3 px-6 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             Action
@@ -149,8 +151,17 @@ function DeliveryQuotes() {
 
                                 <tbody className="divide-y divide-gray-200">
                                     {quotes.map((q) => {
+                                        // New structured records have at least
+                                        // one of these populated. Old records
+                                        // only have `message`.
+                                        const hasStructured =
+                                            !!(q.whatDelivered ||
+                                                q.collectionAddress ||
+                                                q.deliveryAddress);
+
                                         const isLong =
-                                            (q.message?.length || 0) > PREVIEW_LENGTH;
+                                            (q.message?.length || 0) >
+                                            PREVIEW_LENGTH;
                                         const isExpanded = !!expanded[q._id];
 
                                         const displayMessage =
@@ -175,24 +186,22 @@ function DeliveryQuotes() {
                                                                 className="text-blue-600"
                                                             />
                                                         </div>
-                                                        <span className="font-medium text-gray-900 whitespace-nowrap">
-                                                            {q.name}
-                                                        </span>
+                                                        <div className="flex flex-col items-start gap-1">
+                                                            <span className="font-medium text-gray-900 whitespace-nowrap">
+                                                                {q.name}
+                                                            </span>
+                                                            <a
+                                                                href={`mailto:${q.email}`}
+                                                                className="text-sm text-blue-600 hover:underline break-all flex items-center gap-2"
+                                                            >
+                                                                <Mail
+                                                                    size={14}
+                                                                    className="flex-shrink-0"
+                                                                />
+                                                                {q.email}
+                                                            </a>
+                                                        </div>
                                                     </div>
-                                                </td>
-
-                                                {/* Email */}
-                                                <td className="py-4 px-6">
-                                                    <a
-                                                        href={`mailto:${q.email}`}
-                                                        className="text-sm text-blue-600 hover:underline break-all flex items-center gap-2"
-                                                    >
-                                                        <Mail
-                                                            size={14}
-                                                            className="flex-shrink-0"
-                                                        />
-                                                        {q.email}
-                                                    </a>
                                                 </td>
 
                                                 {/* Phone */}
@@ -218,31 +227,131 @@ function DeliveryQuotes() {
                                                     )}
                                                 </td>
 
-                                                {/* Content (expandable) */}
-                                                <td className="py-4 px-6 min-w-[280px] max-w-[520px]">
-                                                    <p className="text-sm text-gray-700 whitespace-pre-wrap break-words">
-                                                        {displayMessage}
-                                                    </p>
+                                                {/* Shipment */}
+                                                <td className="py-4 px-6 min-w-[320px] max-w-[520px]">
+                                                    {hasStructured ? (
+                                                        <div className="space-y-2">
+                                                            {/* What is being delivered */}
+                                                            <div className="flex items-start gap-2">
+                                                                <Package
+                                                                    size={14}
+                                                                    className="text-gray-400 flex-shrink-0 mt-0.5"
+                                                                />
+                                                                <span className="text-sm font-semibold text-gray-900 break-words">
+                                                                    {q.whatDelivered ||
+                                                                        "—"}
+                                                                </span>
+                                                            </div>
 
-                                                    {isLong && (
-                                                        <button
-                                                            onClick={() =>
-                                                                toggleExpanded(q._id)
-                                                            }
-                                                            className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-800"
-                                                        >
-                                                            {isExpanded ? (
-                                                                <>
-                                                                    Show less{" "}
-                                                                    <ChevronUp size={12} />
-                                                                </>
-                                                            ) : (
-                                                                <>
-                                                                    Show more{" "}
-                                                                    <ChevronDown size={12} />
-                                                                </>
+                                                            {/* Weight / dimensions */}
+                                                            {q.weightDimensions && (
+                                                                <div className="flex items-start gap-2">
+                                                                    <Scale
+                                                                        size={14}
+                                                                        className="text-gray-400 flex-shrink-0 mt-0.5"
+                                                                    />
+                                                                    <span className="text-xs text-gray-600">
+                                                                        {
+                                                                            q.weightDimensions
+                                                                        }
+                                                                    </span>
+                                                                </div>
                                                             )}
-                                                        </button>
+
+                                                            {/* From → To */}
+                                                            <div className="flex items-center gap-5 mt-2 rounded-lg bg-gray-50 border border-gray-100 p-3 space-y-1.5">
+                                                                <div className="flex items-start gap-2">
+                                                                    <MapPin
+                                                                        size={13}
+                                                                        className="text-blue-600 flex-shrink-0 mt-0.5"
+                                                                    />
+                                                                    <div className="min-w-0">
+                                                                        <p className="text-[10px] uppercase tracking-wide text-gray-500 font-medium">
+                                                                            From
+                                                                        </p>
+                                                                        <p className="text-xs text-gray-800 break-words">
+                                                                            {q.collectionAddress ||
+                                                                                "—"}
+                                                                        </p>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div className="pl-[5px]">
+                                                                    <ArrowRight
+                                                                        size={12}
+                                                                        className="text-gray-300"
+                                                                    />
+                                                                </div>
+
+                                                                <div className="flex items-start gap-2">
+                                                                    <Home
+                                                                        size={13}
+                                                                        className="text-[#D19F3E] flex-shrink-0 mt-0.5"
+                                                                    />
+                                                                    <div className="min-w-0">
+                                                                        <p className="text-[10px] uppercase tracking-wide text-gray-500 font-medium">
+                                                                            To
+                                                                        </p>
+                                                                        <p className="text-xs text-gray-800 break-words">
+                                                                            {q.deliveryAddress ||
+                                                                                "—"}
+                                                                        </p>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+
+                                                            {/* Legacy note — some old
+                                                                records may also
+                                                                have a free-text
+                                                                message. Show it if
+                                                                present. */}
+                                                            {q.message && (
+                                                                <p className="text-xs text-gray-500 whitespace-pre-wrap break-words pt-1">
+                                                                    {q.message}
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    ) : (
+                                                        /* Legacy record — only
+                                                           has `message` */
+                                                        <>
+                                                            <p className="text-sm text-gray-700 whitespace-pre-wrap break-words">
+                                                                {displayMessage}
+                                                            </p>
+
+                                                            {isLong && (
+                                                                <button
+                                                                    onClick={() =>
+                                                                        toggleExpanded(
+                                                                            q._id
+                                                                        )
+                                                                    }
+                                                                    className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-800"
+                                                                >
+                                                                    {isExpanded ? (
+                                                                        <>
+                                                                            Show
+                                                                            less{" "}
+                                                                            <ChevronUp
+                                                                                size={
+                                                                                    12
+                                                                                }
+                                                                            />
+                                                                        </>
+                                                                    ) : (
+                                                                        <>
+                                                                            Show
+                                                                            more{" "}
+                                                                            <ChevronDown
+                                                                                size={
+                                                                                    12
+                                                                                }
+                                                                            />
+                                                                        </>
+                                                                    )}
+                                                                </button>
+                                                            )}
+                                                        </>
                                                     )}
                                                 </td>
 

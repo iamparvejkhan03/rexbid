@@ -1,6 +1,10 @@
 import Auction from "../models/auction.model.js";
 import User from "../models/user.model.js";
 import { getCachedRates } from "../routes/currency.route.js";
+import {
+    getManualPaymentFlags,
+    isManualPaymentRequired,
+} from "../utils/manualPayment.js";
 
 const convertPrice = (auction, targetCurrency, priceField) => {
     const rates = getCachedRates();
@@ -78,6 +82,17 @@ export const getCheckoutData = async (req, res) => {
             return res.status(400).json({
                 success: false,
                 message: `Payment for this auction is already ${auction.paymentStatus}`,
+            });
+        }
+
+        // ─── Manual payment gate (≥ €1,000, fail-safe on rate error) ───
+        if (isManualPaymentRequired(auction)) {
+            return res.status(403).json({
+                success: false,
+                errorCode: "MANUAL_PAYMENT_REQUIRED",
+                message:
+                    "This item requires manual payment arrangement. Our admin team will be in touch shortly with your invoice and payment link.",
+                data: getManualPaymentFlags(auction),
             });
         }
 
@@ -210,7 +225,10 @@ export const getCheckoutData = async (req, res) => {
             success: true,
             message: "Checkout data retrieved successfully",
             data: {
-                auction: auctionData,
+                auction: {
+                    ...auctionData,
+                    ...getManualPaymentFlags(auction),
+                },
                 seller: sellerData,
                 bidderAddress: bidderAddressData,
                 paymentInfo: {
@@ -286,6 +304,17 @@ export const verifyCheckoutAccess = async (req, res, next) => {
             return res.status(400).json({
                 success: false,
                 message: `Payment for this auction is already ${auction.paymentStatus}`,
+            });
+        }
+
+        // ─── Manual payment gate ───
+        if (isManualPaymentRequired(auction)) {
+            return res.status(403).json({
+                success: false,
+                errorCode: "MANUAL_PAYMENT_REQUIRED",
+                message:
+                    "This item requires manual payment arrangement. Our admin team will be in touch shortly with your invoice and payment link.",
+                data: getManualPaymentFlags(auction),
             });
         }
 

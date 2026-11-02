@@ -171,6 +171,7 @@ const CheckoutContent = () => {
     const { auctionId } = useParams();
     const navigate = useNavigate();
     const { user: currentUser } = useAuth();
+    const [manualPaymentBlocked, setManualPaymentBlocked] = useState(null);
 
     const [loading, setLoading] = useState(true);
     const [verifying, setVerifying] = useState(true);
@@ -268,6 +269,19 @@ const CheckoutContent = () => {
                 }
             } catch (error) {
                 console.error("Checkout verification error:", error);
+
+                const errCode = error.response?.data?.errorCode;
+
+                if (errCode === "MANUAL_PAYMENT_REQUIRED") {
+                    setManualPaymentBlocked({
+                        message:
+                            error.response?.data?.message ||
+                            "This item requires manual payment arrangement. Our admin team will be in touch shortly with your invoice and payment link.",
+                        finalPriceInEUR: error.response?.data?.data?.finalPriceInEUR,
+                    });
+                    return; // don't set error, don't navigate — dedicated card will render
+                }
+
                 if (error.response?.status === 403) {
                     toast.error("You are not authorized to access this checkout");
                     navigate('/bidder/auctions/won');
@@ -414,6 +428,59 @@ const CheckoutContent = () => {
                     <Container className={`pt-16 md:pt-32 pb-16`}>
                         <div className="flex justify-center items-center min-h-96">
                             <LoadingSpinner />
+                        </div>
+                    </Container>
+                </div>
+            </section>
+        );
+    }
+
+    if (manualPaymentBlocked) {
+        return (
+            <section className="flex min-h-screen">
+                <div className="w-full relative">
+                    <Header />
+                    <Container className={`pt-16 md:pt-32 pb-16`}>
+                        <AccountInactiveBanner />
+
+                        <div className="max-w-2xl mx-auto mt-8">
+                            <button
+                                onClick={() => navigate('/bidder/auctions/won')}
+                                className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6 transition-colors"
+                            >
+                                <ArrowLeft size={20} />
+                                <span>Back to Won Auctions</span>
+                            </button>
+
+                            <div className="bg-amber-50 border border-amber-200 rounded-xl p-8 text-center">
+                                <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <CreditCard size={32} className="text-amber-600" />
+                                </div>
+
+                                <h2 className="text-2xl font-bold text-amber-900 mb-2">
+                                    Manual Payment Required
+                                </h2>
+
+                                <p className="text-amber-800 mb-4">
+                                    {manualPaymentBlocked.message}
+                                </p>
+
+                                {manualPaymentBlocked.finalPriceInEUR != null && (
+                                    <p className="text-sm text-amber-700">
+                                        Winning amount:{" "}
+                                        <strong>
+                                            €{Number(manualPaymentBlocked.finalPriceInEUR).toLocaleString()}
+                                        </strong>
+                                    </p>
+                                )}
+
+                                <button
+                                    onClick={() => navigate('/bidder/auctions/won')}
+                                    className="mt-6 bg-amber-600 text-white hover:bg-amber-700 px-6 py-3 rounded-lg font-semibold transition-colors"
+                                >
+                                    Back to Won Auctions
+                                </button>
+                            </div>
                         </div>
                     </Container>
                 </div>

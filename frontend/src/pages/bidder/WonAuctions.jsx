@@ -506,38 +506,42 @@ function WonAuctions() {
                                     <div className="flex flex-col gap-3">
                                         {
                                             canPayForAuction(auction) && (
-                                                <div className="flex gap-3">
-                                                    <button
-                                                        onClick={() => handlePayNow(auction)}
-                                                        disabled={processingPayment === auction._id}
-                                                        className={`flex-1 flex items-center justify-center gap-2 ${processingPayment === auction._id
-                                                            ? "bg-gray-400 cursor-not-allowed"
-                                                            : auction.paymentStatus === "failed"
-                                                                ? "bg-orange-600 hover:bg-orange-700"
-                                                                : "bg-green-600 hover:bg-green-700"
-                                                            } text-white py-3 rounded-lg font-semibold transition-all`}
-                                                    >
-                                                        {processingPayment === auction._id ? (
-                                                            <>
-                                                                <Loader size={18} />
-                                                                Processing...
-                                                            </>
-                                                        ) : (
-                                                            <>
-                                                                <CreditCard size={18} />
-                                                                {auction.paymentStatus === "failed" ? "Retry Payment" : "Pay Now"}
-                                                            </>
-                                                        )}
-                                                    </button>
-
-                                                    {/* <Link
-                                                        to={`/auction/${auction._id}`}
-                                                        target="_blank"
-                                                        className="flex-1 text-center bg-primary text-white hover:bg-primary/90 py-3 rounded-lg font-semibold transition-all"
-                                                    >
-                                                        View Auction
-                                                    </Link> */}
-                                                </div>
+                                                auction.isManualPaymentRequired ? (
+                                                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                                                        <p className="font-medium text-amber-800 flex items-center gap-2">
+                                                            <CreditCard size={16} />
+                                                            Awaiting Invoice
+                                                        </p>
+                                                        <p className="text-sm text-amber-700 mt-1">
+                                                            Our admin team will be in touch shortly with your invoice and payment link.
+                                                        </p>
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex gap-3">
+                                                        <button
+                                                            onClick={() => handlePayNow(auction)}
+                                                            disabled={processingPayment === auction._id}
+                                                            className={`flex-1 flex items-center justify-center gap-2 ${processingPayment === auction._id
+                                                                ? "bg-gray-400 cursor-not-allowed"
+                                                                : auction.paymentStatus === "failed"
+                                                                    ? "bg-orange-600 hover:bg-orange-700"
+                                                                    : "bg-green-600 hover:bg-green-700"
+                                                                } text-white py-3 rounded-lg font-semibold transition-all`}
+                                                        >
+                                                            {processingPayment === auction._id ? (
+                                                                <>
+                                                                    <Loader size={18} />
+                                                                    Processing...
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <CreditCard size={18} />
+                                                                    {auction.paymentStatus === "failed" ? "Retry Payment" : "Pay Now"}
+                                                                </>
+                                                            )}
+                                                        </button>
+                                                    </div>
+                                                )
                                             )
                                         }
 

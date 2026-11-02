@@ -5,11 +5,17 @@ const deliveryQuoteRequestSchema = new mongoose.Schema(
         // Contact info
         name: { type: String, required: true, trim: true },
         email: { type: String, required: true, trim: true, lowercase: true },
-        phone: { type: String, trim: true, default: "" },
+        phone: { type: String, required: true, trim: true }, // 👈 now required
 
         // Request details
+        whatDelivered: { type: String, required: true, trim: true },   // e.g. "Massey Ferguson 6270"
+        weightDimensions: { type: String, trim: true, default: "" },   // optional
+        collectionAddress: { type: String, required: true, trim: true },
+        deliveryAddress: { type: String, required: true, trim: true },
+
+        // Legacy fields — kept for backward compatibility with old records
         subject: { type: String, trim: true, default: "" },
-        message: { type: String, required: true, trim: true },
+        message: { type: String, trim: true, default: "" },
 
         // Auction context (optional — set when submitted from an auction page)
         auction: {
@@ -34,7 +40,6 @@ const deliveryQuoteRequestSchema = new mongoose.Schema(
     { timestamps: true }
 );
 
-// Indexes for admin filtering
 deliveryQuoteRequestSchema.index({ status: 1, createdAt: -1 });
 deliveryQuoteRequestSchema.index({ auction: 1 });
 

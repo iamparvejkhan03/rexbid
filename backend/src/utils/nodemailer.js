@@ -4,6 +4,7 @@ import { getCachedRates } from "../routes/currency.route.js";
 import User from "../models/user.model.js";
 import Watchlist from "../models/watchlist.model.js";
 import { canEmailUser, canSendEmail } from "./emailPreferences.js";
+import { isManualPaymentRequired } from "../utils/manualPayment.js";
 
 const transporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST,
@@ -53,6 +54,10 @@ const BRAND_TAGLINE = 'Ireland\'s Marketplace for Machinery & Commercials';
 const SUPPORT_EMAIL = process.env.EMAIL_USER;
 const SUPPORT_PHONE = '';
 const COMPANY_LOCATION = 'Ireland';
+const DELIVERY_PARTNER_EMAILS = (process.env.DELIVERY_PARTNER_EMAILS || "seamus@evolveauto.ie")
+    .split(",")
+    .map((e) => e.trim())
+    .filter(Boolean);
 
 // URLs (adjust based on your environment)
 const FRONTEND_URL = process.env.FRONTEND_URL || 'https://rexbid.ie';
@@ -170,27 +175,6 @@ const getTimeRemaining = (endDate) => {
     if (days > 0) return `${days}d ${hours}h`;
     if (hours > 0) return `${hours}h ${minutes}m`;
     return `${minutes}m`;
-};
-
-/**
- * Returns the auction's final price converted to EUR.
- * Returns null if conversion fails (so caller can fall back safely).
- */
-const getFinalPriceInEUR = (listing) => {
-    const finalPrice = listing?.finalPrice || listing?.currentPrice || 0;
-    if (!finalPrice) return 0;
-
-    const baseCurrency = listing?.baseCurrency || "EUR";
-    if (baseCurrency === "EUR") return finalPrice;
-
-    try {
-        const rates = getCachedRates();
-        const rate = rates?.[baseCurrency]?.rates?.EUR;
-        if (!rate || typeof rate !== "number") return null;
-        return parseFloat((finalPrice * rate).toFixed(2));
-    } catch {
-        return null;
-    }
 };
 
 // Simple info card (no emojis/icons)
@@ -1599,7 +1583,7 @@ const sendAuctionEndedSellerEmail = async (listing) => {
     }
 };
 // 19. Auction won notification for bidder
-const sendAuctionWonStandardEmail  = async (listing) => {
+const sendAuctionWonStandardEmail = async (listing) => {
     try {
         // Safety check - ensure winner is populated and has email
         if (
@@ -1725,7 +1709,7 @@ const sendAuctionWonHighValueEmail = async (listing) => {
 // 19C. Send the auction won email dynamically
 const sendAuctionWonEmail = async (listing) => {
     try {
-        // Safety check - ensure winner is populated and has email
+        // Safety check
         if (
             !listing?.winner ||
             typeof listing?.winner === "string" ||
@@ -1738,22 +1722,11 @@ const sendAuctionWonEmail = async (listing) => {
             return false;
         }
 
-        const finalPriceEUR = getFinalPriceInEUR(listing);
-
-        // Conversion failed → fall back to standard email (safe default)
-        if (finalPriceEUR === null) {
-            console.warn(
-                `EUR conversion failed for listing ${listing?._id}, using standard email`
-            );
-            return sendAuctionWonStandardEmail(listing);
-        }
-
-        // €1,000 or more → high-value email
-        if (finalPriceEUR >= 1000) {
+        // Fail-safe: rate lookup failure → treat as high-value
+        if (isManualPaymentRequired(listing)) {
             return sendAuctionWonHighValueEmail(listing);
         }
 
-        // Under €1,000 → standard Pay Now email
         return sendAuctionWonStandardEmail(listing);
     } catch (error) {
         console.error(
@@ -3227,40 +3200,61 @@ const deliveryQuoteAdminEmail = async ({
     email,
     phone,
     subject,
-    message,
+    whatDelivered,
+    weightDimensions,
+    collectionAddress,
+    deliveryAddress,
     ipAddress,
     userAgent,
+    message, // legacy fallback
 }) => {
     try {
-        const PARTNER_EMAIL = "seamus@evolveauto.ie";
+        if (DELIVERY_PARTNER_EMAILS.length === 0) {
+            console.warn(
+                "deliveryQuoteAdminEmail: no DELIVERY_PARTNER_EMAILS configured"
+            );
+            return false;
+        }
+
+        const displayWhatDelivered = whatDelivered || message || "—";
+        const emailSubject =
+            subject || `New Delivery Quote Request - ${displayWhatDelivered}`;
 
         const content = `
-            <h2 style="text-align: center;">${subject}</h2>
+            <h2 style="text-align: center;">New Delivery Quote Request</h2>
 
             ${createInfoCard(`
-                ${createSummaryRow("Full Name:", name)}
-                ${createSummaryRow(
-            "Email:",
-            `<a href="mailto:${email}" style="color: ${BRAND_COLORS.primary};">${email}</a>`
-        )}
-                ${createSummaryRow("Phone:", phone || "Not provided")}
+                <p style="margin: 0 0 12px 0; font-size: 18px; font-weight: bold; color: ${BRAND_COLORS.secondary};">
+                    ${displayWhatDelivered}
+                </p>
+
+                <div style="margin-top: 8px;">
+                    ${weightDimensions
+                ? createSummaryRow("Weight / Dimensions:", weightDimensions)
+                : ""}
+                    ${createSummaryRow("Collection Address:", collectionAddress || "—")}
+                    ${createSummaryRow("Delivery Address:", deliveryAddress || "—")}
+                </div>
             `)}
 
-            <div style="margin: 20px 0;">
-                <strong style="color: ${BRAND_COLORS.secondary};">Delivery Details:</strong>
-                <div style="background: ${BRAND_COLORS.grayBg}; padding: 16px; border-radius: 8px; margin-top: 8px; border: 1px solid ${BRAND_COLORS.grayBorder}; white-space: pre-wrap;">
-                    ${message}
-                </div>
-            </div>
+            ${createInfoCard(`
+                <p style="margin: 0 0 12px 0;"><strong>Contact Information</strong></p>
+                ${createSummaryRow("Full Name:", name)}
+                ${createSummaryRow(
+                    "Email:",
+                    `<a href="mailto:${email}" style="color: ${BRAND_COLORS.primary};">${email}</a>`
+                )}
+                ${createSummaryRow("Phone:", phone || "Not provided")}
+            `)}
         `;
 
         const html = baseTemplate(content, "New Delivery Quote Request");
 
         const info = await transporter.sendMail({
             from: `"${BRAND_NAME}" <${process.env.EMAIL_USER}>`,
-            to: PARTNER_EMAIL,
-            replyTo: email,
-            subject: subject,
+            to: DELIVERY_PARTNER_EMAILS, // 👈 array from DELIVERY_PARTNER_EMAILS env
+            replyTo: email,              // 👈 replies go back to the submitter
+            subject: emailSubject,
             html,
         });
 
@@ -3325,7 +3319,7 @@ const websiteReviewAdminEmail = async (review) => {
             review.userType === "delivery-partner"
                 ? "Delivery Partner"
                 : (review.userType || "other").charAt(0).toUpperCase() +
-                  (review.userType || "other").slice(1);
+                (review.userType || "other").slice(1);
 
         const content = `
             <h2 style="text-align: center;">New Website Review Submitted</h2>
@@ -3339,9 +3333,9 @@ const websiteReviewAdminEmail = async (review) => {
                 <p style="margin: 0 0 12px 0;"><strong>Reviewer Information</strong></p>
                 ${createSummaryRow("Full Name:", review.name)}
                 ${createSummaryRow(
-                    "Email:",
-                    `<a href="mailto:${review.email}" style="color: ${BRAND_COLORS.primary};">${review.email}</a>`
-                )}
+            "Email:",
+            `<a href="mailto:${review.email}" style="color: ${BRAND_COLORS.primary};">${review.email}</a>`
+        )}
                 ${createSummaryRow("Phone:", review.phone || "Not provided")}
                 ${createSummaryRow("Location:", review.location)}
                 ${createSummaryRow("User Type:", userTypeDisplay)}
@@ -3482,7 +3476,7 @@ export {
     sendOfferOutbidNotifications, //no need to do as offers cannot be outbid
     auctionEndingSoonEmail, //done
     auctionEndingSoonSellerEmail,
-    sendAuctionWonStandardEmail , //done
+    sendAuctionWonStandardEmail, //done
     sendAuctionWonHighValueEmail,
     sendAuctionWonEmail,
     sendAuctionEndedSellerEmail, //done

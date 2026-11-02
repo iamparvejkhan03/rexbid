@@ -1337,14 +1337,21 @@ function SingleAuction() {
 
                             {/* Make Payment Button for sold auctions */}
                             {auction.status === 'sold' && user && (user._id === auction.winner?._id) && (
-                                <button
-                                    onClick={() => {
-                                        navigate(`/checkout/${auction?._id}`)
-                                    }}
-                                    className="w-full bg-green-600 text-white py-3 px-6 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
-                                >
-                                    <CreditCard size={18} /> Pay Now
-                                </button>
+                                auction?.isManualPaymentRequired ? (
+                                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-center">
+                                        <p className="font-medium text-amber-800">Awaiting Invoice</p>
+                                        <p className="text-sm text-amber-700 mt-1">
+                                            Our admin team will be in touch shortly with your invoice and payment link.
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <button
+                                        onClick={() => navigate(`/checkout/${auction?._id}`)}
+                                        className="w-full bg-green-600 text-white py-3 px-6 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
+                                    >
+                                        <CreditCard size={18} /> Pay Now
+                                    </button>
+                                )
                             )}
 
                             {/* Review Button for sold auctions */}

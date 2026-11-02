@@ -1,5 +1,6 @@
 import { getCachedRates } from "../routes/currency.route.js";
 import { getIO } from "../utils/socket.js";
+import { getManualPaymentFlags } from "../utils/manualPayment.js";
 
 const TICK_FIELDS = [
     "_id",
@@ -59,13 +60,17 @@ export const broadcastAuctionChange = async (auctionId) => {
             baseCurrency,
             rates,
             serverTime,
+            ...getManualPaymentFlags(auction),
         });
 
         io.to(`auction:${auctionId}`).emit("auction:update", {
             serverTime,
             baseCurrency,
             rates,
-            auction,
+            auction: {
+                ...auction,
+                ...getManualPaymentFlags(auction),   // ← add
+            },
         });
     } catch (err) {
         console.error("broadcastAuctionChange error:", err);

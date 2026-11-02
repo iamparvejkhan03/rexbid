@@ -26,6 +26,7 @@ import { getCachedRates } from "../routes/currency.route.js";
 import Stripe from 'stripe';
 import AuctionDate from "../models/auctionDate.model.js";
 import { broadcastAuctionChange, broadcastAuctionRemoved } from "../services/realtimeService.js";
+import { getManualPaymentFlags } from "../utils/manualPayment.js";
 
 // Initialize Stripe with your secret key
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -1008,7 +1009,8 @@ export const getAuction = async (req, res) => {
           convertedBuyNowPrice,
           convertedReservePrice,
           convertedFinalPrice,
-          displayCurrency: userCurrency
+          displayCurrency: userCurrency,
+          ...getManualPaymentFlags(auction),
         }
       }
     });
@@ -2475,6 +2477,7 @@ export const getWonAuctions = async (req, res) => {
         convertedCommissionAmount: convertedCommissionAmount !== null ? parseFloat(convertedCommissionAmount.toFixed(2)) : null,
         convertedFeaturedPremium: convertedFeaturedPremium !== null ? parseFloat(convertedFeaturedPremium.toFixed(2)) : null,
         displayCurrency: userCurrency,
+        ...getManualPaymentFlags(auction),
         // Add review info (unchanged)
         userReview: reviewedAuctionIds.includes(auction._id.toString()),
       };

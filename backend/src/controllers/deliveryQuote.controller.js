@@ -13,17 +13,30 @@ export const submitDeliveryQuote = async (req, res) => {
             name,
             email,
             phone,
+            whatDelivered,
+            weightDimensions,
+            collectionAddress,
+            deliveryAddress,
+            // legacy (still accepted if any external caller sends them)
             subject,
             message,
             auctionId,
             auctionTitle,
         } = req.body;
 
-        // Validate
-        if (!name || !email || !message) {
+        // Validate required fields
+        if (
+            !name ||
+            !email ||
+            !phone ||
+            !whatDelivered ||
+            !collectionAddress ||
+            !deliveryAddress
+        ) {
             return res.status(400).json({
                 success: false,
-                message: "Name, email, and delivery details are required.",
+                message:
+                    "Name, email, phone, what needs to be delivered, collection address, and delivery address are required.",
             });
         }
 
@@ -35,30 +48,38 @@ export const submitDeliveryQuote = async (req, res) => {
             });
         }
 
+        // Subject is derived from whatDelivered for a meaningful email subject
         const finalSubject =
-            subject?.trim() || `New Delivery Quote Request - ${name}`;
+            subject?.trim() ||
+            `New Delivery Quote Request - ${whatDelivered}`;
 
         // Save to DB
         const quoteRequest = await DeliveryQuoteRequest.create({
             name,
             email,
-            phone: phone || "",
+            phone,
+            whatDelivered,
+            weightDimensions: weightDimensions || "",
+            collectionAddress,
+            deliveryAddress,
             subject: finalSubject,
-            message,
+            message: message || "",
             auction: auctionId || null,
             auctionTitle: auctionTitle || "",
             ipAddress: req.ip,
             userAgent: req.get("User-Agent"),
         });
 
-        // Fire emails in background (don't block response)
+        // Fire emails in background (don't block the response)
         deliveryQuoteAdminEmail({
             name,
             email,
-            phone: phone || "",
+            phone,
             subject: finalSubject,
-            message,
-            auctionTitle: auctionTitle || "",
+            whatDelivered,
+            weightDimensions: weightDimensions || "",
+            collectionAddress,
+            deliveryAddress,
             ipAddress: req.ip,
             userAgent: req.get("User-Agent"),
         }).catch((err) =>
