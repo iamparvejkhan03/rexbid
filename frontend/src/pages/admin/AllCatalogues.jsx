@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import axiosInstance from "../../utils/axiosInstance";
+import { getDayKey, formatDayKey, isCataloguePast } from "../../utils/catalogueDate";
 
 function AllCatalogues() {
   const [catalogues, setCatalogues] = useState([]);
@@ -107,14 +108,8 @@ function AllCatalogues() {
     }
   };
 
-  const formatDate = (dateStr) =>
-    new Date(dateStr).toLocaleDateString("en-IE", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-
-  const isPast = (dateStr) => new Date(dateStr) < new Date();
+  const formatDate = (dateStr) => formatDayKey(getDayKey(dateStr));
+  const isPast = (dateStr) => isCataloguePast(dateStr);
 
   return (
     <section className="flex min-h-screen bg-gray-50">
@@ -216,7 +211,7 @@ function AllCatalogues() {
                             </span>
                           ) : (
                             <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                              Upcoming
+                              Live
                             </span>
                           )}
                         </td>
@@ -262,6 +257,7 @@ function AllCatalogues() {
                     <input
                       type="text"
                       value={form.title}
+                      maxLength={50}
                       onChange={(e) =>
                         setForm({ ...form, title: e.target.value })
                       }

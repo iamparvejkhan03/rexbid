@@ -12,6 +12,7 @@ import {
     registerUser,
     resetPassword,
     unsubscribeUser,
+    updateCurrency,
     updatePaymentMethod,
     uploadIdentification,
 } from "../controllers/user.controller.js";
@@ -46,6 +47,7 @@ userRouter.get('/stats/:userType', auth, getUserStats);
 userRouter.get('/billing', auth, getBillingInfo);
 userRouter.post('/billing/create-card', auth, createPaymentMethod);
 userRouter.put('/billing/update-card', auth, updatePaymentMethod);
+userRouter.put("/currency", auth, updateCurrency);
 
 // ID Verification routes (Protected)
 userRouter.post('/upload-identification',

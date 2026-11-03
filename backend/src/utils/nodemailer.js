@@ -1649,7 +1649,7 @@ const sendAuctionWonStandardEmail = async (listing) => {
             `)}
             
             <div style="text-align: center; margin: 25px 0;">
-                ${createButton('Pay Now', `/checkout/${listing?._id}`, 'primary')}
+                ${createButton('Pay Now', `${FRONTEND_URL}/checkout/${listing?._id}`, 'primary')}
                 ${createButton('Confirm Payment', `mailto:${SUPPORT_EMAIL}?subject=Payment%20Confirmation%20-%20${listing?.title}`, 'secondary')}
             </div>
         `;

@@ -70,9 +70,9 @@ function Header() {
     }, [categories]);
 
     useEffect(() => {
-        if(user) {
+        if (user) {
             setUserCurrency(user.currency || 'EUR');
-        }else {
+        } else {
             setUserCurrency(localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')).currency : 'EUR');
         }
     }, [user])
@@ -162,32 +162,60 @@ function Header() {
         setMobileAuctionTypesOpen(false);
     };
 
-    const handleCurrencySelect = (slug) => {
-        if (user) {
-            const updatedUser = { ...user, currency: slug };
-            localStorage.setItem('user', JSON.stringify(updatedUser));
-            setUser(updatedUser);
+    // const handleCurrencySelect = (slug) => {
+    //     if (user) {
+    //         const updatedUser = { ...user, currency: slug };
+    //         localStorage.setItem('user', JSON.stringify(updatedUser));
+    //         setUser(updatedUser);
 
-            // Close dropdowns first
-            setIsCurrencySwitcherOpen(false);
-            setMobileCurrencySwitcherOpen(false);
+    //         // Close dropdowns first
+    //         setIsCurrencySwitcherOpen(false);
+    //         setMobileCurrencySwitcherOpen(false);
 
-            // Reload after a tiny delay to ensure localStorage is written
-            setTimeout(() => {
-                window.location.reload();
-            }, 100);
-        } else {
-            localStorage.setItem('user', JSON.stringify({ currency: slug }));
+    //         // Reload after a tiny delay to ensure localStorage is written
+    //         setTimeout(() => {
+    //             window.location.reload();
+    //         }, 100);
+    //     } else {
+    //         localStorage.setItem('user', JSON.stringify({ currency: slug }));
 
-            // Close dropdowns first
-            setIsCurrencySwitcherOpen(false);
-            setMobileCurrencySwitcherOpen(false);
+    //         // Close dropdowns first
+    //         setIsCurrencySwitcherOpen(false);
+    //         setMobileCurrencySwitcherOpen(false);
 
-            // Reload after a tiny delay
-            setTimeout(() => {
-                window.location.reload();
-            }, 100);
+    //         // Reload after a tiny delay
+    //         setTimeout(() => {
+    //             window.location.reload();
+    //         }, 100);
+    //     }
+    // };
+
+    const handleCurrencySelect = async (slug) => {
+        // 1. Optimistically update local state + localStorage so the UI feels instant
+        const currentUser = user && user.userType
+            ? { ...user, currency: slug }
+            : { currency: slug };
+
+        localStorage.setItem("user", JSON.stringify(currentUser));
+        if (user && user.userType) setUser(currentUser);
+
+        setIsCurrencySwitcherOpen(false);
+        setMobileCurrencySwitcherOpen(false);
+
+        // 2. Persist to DB only if the user is actually logged in
+        //    (non-logged-in users have a `user` object with only `currency`,
+        //     so check `user.userType` / `user._id`, not just `user`)
+        if (user && user.userType) {
+            try {
+                await axiosInstance.put("/api/v1/users/currency", { currency: slug });
+            } catch (error) {
+                console.error("Failed to persist currency to DB:", error);
+                // Optional: revert localStorage & state to previous value on failure
+            }
         }
+
+        // 3. Reload so all screens fetch/convert using the new currency
+        setTimeout(() => window.location.reload(), 200);
     };
 
     return (

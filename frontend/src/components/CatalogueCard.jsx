@@ -1,9 +1,15 @@
 import { Link } from "react-router-dom";
 import { Calendar, ArrowUpRight } from "lucide-react";
+import {
+    getDayKey,
+    formatDayKey,
+    isCataloguePast,
+} from "../utils/catalogueDate";
 
 function CatalogueCard({ catalogue }) {
-    const closingDate = new Date(catalogue.closingDate);
-    const isPast = closingDate < new Date();
+    const dayKey = getDayKey(catalogue.closingDate);
+    const isPast = isCataloguePast(catalogue.closingDate);
+    const displayDate = formatDayKey(dayKey);
 
     return (
         <Link
@@ -22,8 +28,8 @@ function CatalogueCard({ catalogue }) {
                     <div className="absolute left-3 top-3">
                         <span
                             className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-semibold backdrop-blur-md ${isPast
-                                    ? "bg-gray-100/90 text-gray-700 border-gray-200"
-                                    : "bg-emerald-50/90 text-emerald-700 border-emerald-200"
+                                ? "bg-gray-100/90 text-gray-700 border-gray-200"
+                                : "bg-emerald-50/90 text-emerald-700 border-emerald-200"
                                 }`}
                         >
                             {isPast ? "Past" : "Live"}
@@ -37,14 +43,7 @@ function CatalogueCard({ catalogue }) {
                     </h3>
                     <div className="mt-2 flex items-center gap-1.5 text-xs text-gray-500">
                         <Calendar size={13} className="shrink-0" />
-                        <span>
-                            Closing{" "}
-                            {closingDate.toLocaleDateString("en-IE", {
-                                day: "numeric",
-                                month: "long",
-                                year: "numeric",
-                            })}
-                        </span>
+                        <span>Closing {displayDate}</span>
                     </div>
 
                     <div className="mt-auto flex items-center justify-between pt-4">

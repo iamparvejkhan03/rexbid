@@ -503,12 +503,19 @@ function EmailCampaigns() {
                                             <h5 className="font-medium text-gray-700 flex items-center gap-2 mb-2">
                                                 <FileText size={18} /> Email Body
                                             </h5>
-                                            <div className="bg-white border border-gray-200 rounded-lg p-4 max-h-64 overflow-y-auto prose prose-sm max-w-none">
+                                            <div className="w-full overflow-hidden">
                                                 <div
-                                                    dangerouslySetInnerHTML={{
-                                                        __html: detailsCampaign.body,
-                                                    }}
-                                                />
+                                                    className="bg-white border border-gray-200 rounded-lg p-4
+                                                    max-h-64 overflow-y-auto
+                                                    prose prose-sm max-w-none
+                                                    [overflow-wrap:anywhere]
+                                                    [&_img]:max-w-full [&_img]:h-auto
+                                                    [&_pre]:overflow-x-auto [&_pre]:max-w-full
+                                                    [&_table]:block [&_table]:max-w-full [&_table]:overflow-x-auto
+                                                    [&_iframe]:max-w-full"
+                                                >
+                                                    <div dangerouslySetInnerHTML={{ __html: detailsCampaign.body }} />
+                                                </div>
                                             </div>
                                         </div>
 

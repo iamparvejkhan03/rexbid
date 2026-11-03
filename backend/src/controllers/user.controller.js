@@ -1131,3 +1131,38 @@ export const unsubscribeUser = async (req, res) => {
     });
   }
 };
+
+export const updateCurrency = async (req, res) => {
+  try {
+    const { currency } = req.body;
+
+    const allowed = ["EUR", "GBP"];
+    if (!currency || !allowed.includes(currency)) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid currency. Allowed: ${allowed.join(", ")}`,
+      });
+    }
+
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      { currency },
+      { new: true, runValidators: true }
+    ).select("currency");
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Currency updated successfully",
+      data: { currency: user.currency },
+    });
+  } catch (error) {
+    console.error("Update currency error:", error);
+    return res
+      .status(500)
+      .json({ success: false, message: "Failed to update currency" });
+  }
+};

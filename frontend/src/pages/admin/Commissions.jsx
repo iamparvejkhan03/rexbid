@@ -324,7 +324,7 @@ const Commissions = () => {
                 </div>
 
                 {/* Live preview */}
-                <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                {/* <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
                     <div className="flex items-center justify-between mb-2">
                         <span className="text-xs font-medium text-gray-600">
                             Preview at sale amount:
@@ -370,7 +370,7 @@ const Commissions = () => {
                             </div>
                         </div>
                     )}
-                </div>
+                </div> */}
             </div>
         );
     };
@@ -486,7 +486,7 @@ const Commissions = () => {
                                 </div>
 
                                 {/* Optional cap */}
-                                <div className="px-6 pb-6">
+                                {/* <div className="px-6 pb-6">
                                     <label className="block text-sm font-medium text-gray-700 mb-2">
                                         Optional Commission Cap (per party)
                                     </label>
@@ -515,7 +515,7 @@ const Commissions = () => {
                                         commission. Featured premium (3%) is added on top,
                                         uncapped.
                                     </p>
-                                </div>
+                                </div> */}
 
                                 {/* Tier editors */}
                                 <div className="px-6 pb-6 grid grid-cols-1 lg:grid-cols-2 gap-6">

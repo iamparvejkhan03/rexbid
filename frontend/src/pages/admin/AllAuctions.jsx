@@ -949,8 +949,17 @@ function AllAuctions() {
                                                 )}
                                                 {/* {getConditionBadge(selectedAuction.specifications)} */}
                                             </div>
-                                            <div className="text-gray-600 prose">
-                                                <div dangerouslySetInnerHTML={{ __html: selectedAuction.description }} />
+                                            <div className="w-full overflow-hidden">
+                                                <div
+                                                    className="text-gray-600 prose max-w-none
+                                                        [overflow-wrap:anywhere]
+                                                        [&_img]:max-w-full [&_img]:h-auto
+                                                        [&_pre]:overflow-x-auto [&_pre]:max-w-full
+                                                        [&_table]:block [&_table]:max-w-full [&_table]:overflow-x-auto
+                                                        [&_iframe]:max-w-full"
+                                                >
+                                                    <div dangerouslySetInnerHTML={{ __html: selectedAuction.description }} />
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -1135,6 +1144,22 @@ function AllAuctions() {
                                                     <div className="flex justify-between">
                                                         <span className="text-gray-500">Final Price</span>
                                                         <span className="font-bold text-green-600">{formatCurrency(selectedAuction.convertedFinalPrice)}</span>
+                                                    </div>
+                                                )}{console.log(selectedAuction)}
+
+                                                {/* Bidder Commission */}
+                                                {selectedAuction.bidderCommissionAmount > 0 && (
+                                                    <div className="flex justify-between">
+                                                        <span className="text-gray-500">Bidder Commission</span>
+                                                        <span className="font-bold text-green-600">{formatCurrency(selectedAuction.bidderCommissionAmount)}</span>
+                                                    </div>
+                                                )}
+
+                                                {/* Seller Commission */}
+                                                {selectedAuction.sellerCommissionAmount > 0 && (
+                                                    <div className="flex justify-between">
+                                                        <span className="text-gray-500">Seller Commission</span>
+                                                        <span className="font-bold text-green-600">{formatCurrency(selectedAuction.sellerCommissionAmount)}</span>
                                                     </div>
                                                 )}
 

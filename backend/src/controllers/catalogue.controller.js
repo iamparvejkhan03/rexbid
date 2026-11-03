@@ -17,23 +17,6 @@ const convertPrice = (auction, targetCurrency, priceField) => {
     return auction[priceField] * rate;
 };
 
-// Parse "YYYY-MM-DD" (from <input type="date">) into a Date at local noon.
-const parseDateLocalNoon = (str) => {
-    if (!str) return null;
-    const [y, m, d] = String(str).split("-").map(Number);
-    if (!y || !m || !d) return null;
-    return new Date(y, m - 1, d, 12, 0, 0, 0);
-};
-
-// Given any Date, return the local-day [start, end] window.
-const getLocalDayWindow = (date) => {
-    const start = new Date(date);
-    start.setHours(0, 0, 0, 0);
-    const end = new Date(date);
-    end.setHours(23, 59, 59, 999);
-    return { start, end };
-};
-
 // -------------------- CREATE --------------------
 
 export const createCatalogue = async (req, res) => {
@@ -54,12 +37,9 @@ export const createCatalogue = async (req, res) => {
             });
         }
 
-        const parsedClosing = parseDateLocalNoon(closingDate);
-        if (!parsedClosing) {
-            return res.status(400).json({
-                success: false,
-                message: "Invalid closing date format",
-            });
+        const parsedClosing = new Date(`${closingDate}T00:00:00.000Z`);
+        if (isNaN(parsedClosing.getTime())) {
+            return res.status(400).json({ success: false, message: "Invalid closing date format" });
         }
 
         const upload = await uploadImageToCloudinary(
@@ -100,9 +80,12 @@ export const getCatalogues = async (req, res) => {
         const { status, search = "", page = 1, limit = 50 } = req.query;
         const now = new Date();
 
+        const todayUTC = new Date();
+        todayUTC.setUTCHours(0, 0, 0, 0);
+
         const filter = {};
-        if (status === "upcoming") filter.closingDate = { $gte: now };
-        else if (status === "past") filter.closingDate = { $lt: now };
+        if (status === "upcoming") filter.closingDate = { $gte: todayUTC };
+        else if (status === "past") filter.closingDate = { $lt: todayUTC };
 
         if (search && search.trim()) {
             filter.title = { $regex: search.trim(), $options: "i" };
@@ -168,23 +151,31 @@ export const getCatalogue = async (req, res) => {
 export const getCatalogueAuctions = async (req, res) => {
     try {
         const { id } = req.params;
-        const { currency = "EUR", page = 1, limit = 12 } = req.query;
+        const { currency = "EUR", page = 1, limit = 12, start, end } = req.query;
 
         const catalogue = await Catalogue.findById(id);
         if (!catalogue) {
-            return res.status(404).json({
-                success: false,
-                message: "Catalogue not found",
-            });
+            return res.status(404).json({ success: false, message: "Catalogue not found" });
         }
 
-        const { start, end } = getLocalDayWindow(catalogue.closingDate);
+        let dayStart, dayEnd;
+
+        if (start && end) {
+            dayStart = new Date(start);
+            dayEnd = new Date(end);
+            if (isNaN(dayStart.getTime()) || isNaN(dayEnd.getTime()) || dayEnd < dayStart) {
+                return res.status(400).json({ success: false, message: "Invalid start/end range" });
+            }
+        } else {
+            // Fallback: treat closingDate as UTC day-key
+            const key = catalogue.closingDate.toISOString().slice(0, 10);
+            dayStart = new Date(`${key}T00:00:00.000Z`);
+            dayEnd = new Date(`${key}T23:59:59.999Z`);
+        }
 
         const filter = {
-            status: {
-                $in: ["active", "approved", "ended", "sold", "reserve_not_met"],
-            },
-            endDate: { $gte: start, $lte: end },
+            status: { $in: ["active", "approved", "ended", "sold", "reserve_not_met"] },
+            endDate: { $gte: dayStart, $lte: dayEnd },
         };
 
         const skip = (parseInt(page) - 1) * parseInt(limit);
@@ -204,22 +195,10 @@ export const getCatalogueAuctions = async (req, res) => {
             return {
                 ...auctionObj,
                 convertedStartPrice: convertPrice(auction, currency, "startPrice"),
-                convertedCurrentPrice: convertPrice(
-                    auction,
-                    currency,
-                    "currentPrice"
-                ),
-                convertedBidIncrement: convertPrice(
-                    auction,
-                    currency,
-                    "bidIncrement"
-                ),
+                convertedCurrentPrice: convertPrice(auction, currency, "currentPrice"),
+                convertedBidIncrement: convertPrice(auction, currency, "bidIncrement"),
                 convertedBuyNowPrice: convertPrice(auction, currency, "buyNowPrice"),
-                convertedReservePrice: convertPrice(
-                    auction,
-                    currency,
-                    "reservePrice"
-                ),
+                convertedReservePrice: convertPrice(auction, currency, "reservePrice"),
                 convertedFinalPrice: convertPrice(auction, currency, "finalPrice"),
                 displayCurrency: currency,
             };
