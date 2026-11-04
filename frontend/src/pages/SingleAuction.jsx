@@ -122,6 +122,19 @@ function SingleAuction() {
         setIsPaymentModalOpen(true);
     };
 
+    const handleOpenProxyBidModal = () => {
+        if (!user) {
+            setPendingAction({ type: 'proxy-bid' });
+            setIsAuthModalOpen(true);
+            return;
+        }
+        if (user._id?.toString() === auction?.seller?._id?.toString()) {
+            toast.error(`You can't proxy bid on your own auction.`);
+            return;
+        }
+        setShowProxyBidModal(true);
+    };
+
     const handleConfirmBid = (e) => {
         handleBid(e);
         setIsBidModalOpen(false);
@@ -162,6 +175,8 @@ function SingleAuction() {
             setIsMakeOfferModalOpen(true);
         } else if (pendingAction.type === 'buynow') {
             setShowBuyNowModal(true);
+        } else if (pendingAction.type === 'proxy-bid') {
+            setShowProxyBidModal(true);
         } else if (pendingAction.type === 'giveaway') {
             setShowGiveawayModal(true);
         } else {
@@ -238,9 +253,6 @@ function SingleAuction() {
         const currentBidderId =
             auction.currentBidder?._id?.toString() ?? auction.currentBidder?.toString();
         if (currentBidderId === uid) return "highest";
-
-        // maxAmount & currentPrice are both BASE — safe comparison
-        if (userProxy && userProxy.maxAmount > auction.currentPrice) return "proxy-active";
         return "outbid";
     })();
 
@@ -874,7 +886,7 @@ function SingleAuction() {
                     onPlaceBid={handleMobilePlaceBid}
                     bidding={bidding}
                     countdown={countdown}
-                    onProxyBidClick={() => setShowProxyBidModal(true)}
+                    onProxyBidClick={handleOpenProxyBidModal}
                 />
 
                 <hr className="my-8" />
@@ -1068,11 +1080,6 @@ function SingleAuction() {
                                 {userBidStatus === "outbid" && (
                                     <span className="inline-flex self-start items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700 border border-red-200">
                                         <Gavel size={13} /> You've been outbid
-                                    </span>
-                                )}
-                                {userBidStatus === "proxy-active" && (
-                                    <span className="inline-flex self-start items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700 border border-blue-200">
-                                        <Gauge size={13} /> Your proxy bid is active
                                     </span>
                                 )}
 
@@ -1326,7 +1333,7 @@ function SingleAuction() {
 
                                     <button
                                         type="button"
-                                        onClick={() => setShowProxyBidModal(true)}
+                                        onClick={handleOpenProxyBidModal}
                                         className="flex items-center justify-center gap-2 w-full border bg-blue-600 border-blue-600 text-white hover:bg-blue-700 py-3 px-6 rounded-lg transition-colors"
                                     >
                                         <Gauge size={18} /> Set a Proxy Bid (Auto-bid)

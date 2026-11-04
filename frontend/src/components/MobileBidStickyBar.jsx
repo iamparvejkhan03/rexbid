@@ -60,9 +60,6 @@ const MobileBidStickyBar = ({
     const currentBidderId =
       auction.currentBidder?._id?.toString() ?? auction.currentBidder?.toString();
     if (currentBidderId === uid) return "highest";
-
-    // maxAmount & currentPrice are both BASE — safe comparison
-    if (userProxy && userProxy.maxAmount > auction.currentPrice) return "proxy-active";
     return "outbid";
   })();
 
@@ -166,11 +163,6 @@ const MobileBidStickyBar = ({
               {userBidStatus === "outbid" && (
                 <span className="text-red-700">
                   <Gavel size={20} />
-                </span>
-              )}
-              {userBidStatus === "proxy-active" && (
-                <span className="text-blue-700">
-                  <Gauge size={20} />
                 </span>
               )}
             </div>
