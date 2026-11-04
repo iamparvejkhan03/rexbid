@@ -4,6 +4,10 @@ import EmailCampaign from "../models/emailCampaign.model.js";
 import User from "../models/user.model.js";
 import agendaService from "../services/agendaService.js";
 import { sendMarketingCampaignEmail } from "../utils/nodemailer.js";
+import {
+    deleteFromCloudinary,
+    uploadImageToCloudinary,
+} from "../utils/cloudinary.js";
 
 // ─── Placeholder keys supported in the body ─────────────────
 const PLACEHOLDER_KEYS = [
@@ -111,12 +115,50 @@ const validateUserIds = (ids) => {
     return null;
 };
 
+// ─── Extract R2 object keys (public IDs) from HTML ─────────
+const getR2BaseUrl = () => {
+    if (process.env.R2_PUBLIC_URL) {
+        return process.env.R2_PUBLIC_URL.replace(/\/$/, "");
+    }
+    const bucket = process.env.R2_BUCKET_NAME || process.env.BUCKET_NAME;
+    const accountId = process.env.R2_ACCOUNT_ID;
+    if (bucket && accountId) {
+        return `https://${bucket}.${accountId}.r2.cloudflarestorage.com`;
+    }
+    return null;
+};
+
+const extractR2PublicIds = (html) => {
+    if (!html) return [];
+    const baseUrl = getR2BaseUrl();
+    if (!baseUrl) {
+        console.warn(
+            "⚠️ R2_PUBLIC_URL not configured — cannot extract image keys for cleanup"
+        );
+        return [];
+    }
+
+    const keys = new Set();
+    const srcRegex = /<img[^>]+src=["']([^"']+)["']/gi;
+    let match;
+
+    while ((match = srcRegex.exec(html)) !== null) {
+        const rawUrl = match[1].split("?")[0].split("#")[0];
+        if (!rawUrl.startsWith(baseUrl + "/")) continue;
+
+        const encodedKey = rawUrl.slice(baseUrl.length + 1);
+        const decodedKey = encodedKey.split("/").map(decodeURIComponent).join("/");
+        if (decodedKey) keys.add(decodedKey);
+    }
+
+    return Array.from(keys);
+};
+
 // ═══════════════════════════════════════════════════════════
 // Background processor
 // ═══════════════════════════════════════════════════════════
 export const processCampaign = async (campaignId) => {
     try {
-        // Atomic claim: only proceed if not already sending/sent
         const campaign = await EmailCampaign.findOneAndUpdate(
             { _id: campaignId, status: { $nin: ["sending", "sent"] } },
             { $set: { status: "sending" } },
@@ -126,7 +168,10 @@ export const processCampaign = async (campaignId) => {
         if (!campaign) {
             const existing = await EmailCampaign.findById(campaignId);
             if (!existing) console.error(`❌ Campaign ${campaignId} not found`);
-            else console.log(`ℹ️ Campaign ${campaignId} is already ${existing.status}, skipping`);
+            else
+                console.log(
+                    `ℹ️ Campaign ${campaignId} is already ${existing.status}, skipping`
+                );
             return;
         }
 
@@ -136,53 +181,56 @@ export const processCampaign = async (campaignId) => {
 
         let sentCount = 0;
         let failedCount = 0;
+        let completed = 0;
+        const PERSIST_EVERY = 50;
 
-        const batchSize = 25;
-        const concurrency = 5;
-
-        for (let i = 0; i < users.length; i += batchSize) {
-            const batch = users.slice(i, i + batchSize);
-
-            for (let j = 0; j < batch.length; j += concurrency) {
-                const chunk = batch.slice(j, j + concurrency);
-                await Promise.allSettled(
-                    chunk.map(async (user) => {
-                        try {
-                            // Generate + persist unsubscribe token (reuses existing flow)
-                            const token = user.generateUnsubscribeToken();
-                            await user.save({ validateBeforeSave: false });
-
-                            const personalizedBody = substitutePlaceholders(
-                                campaign.body,
-                                user
-                            );
-
-                            await sendMarketingCampaignEmail(
-                                user,
-                                campaign,
-                                token,
-                                personalizedBody
-                            );
-                            sentCount++;
-                        } catch (err) {
-                            failedCount++;
-                            console.error(
-                                `❌ Email send failed for ${user.email}:`,
-                                err.message
-                            );
-                        }
-                    })
-                );
+        const persistProgress = async () => {
+            completed++;
+            if (
+                completed % PERSIST_EVERY === 0 ||
+                completed === users.length
+            ) {
+                campaign.stats.sent = sentCount;
+                campaign.stats.failed = failedCount;
+                await campaign
+                    .save()
+                    .catch((err) =>
+                        console.error(
+                            "Failed to persist campaign progress:",
+                            err.message
+                        )
+                    );
             }
+        };
 
-            campaign.stats.sent = sentCount;
-            campaign.stats.failed = failedCount;
-            await campaign.save();
+        // Fire all sends at once — Nodemailer's pool queues them
+        // internally against `maxConnections`, so no manual throttling needed.
+        await Promise.allSettled(
+            users.map(async (user) => {
+                try {
+                    const token = user.generateUnsubscribeToken();
+                    await user.save({ validateBeforeSave: false });
 
-            if (i + batchSize < users.length) {
-                await new Promise((r) => setTimeout(r, 1000));
-            }
-        }
+                    const personalizedBody = substitutePlaceholders(campaign.body, user);
+
+                    await sendMarketingCampaignEmail(
+                        user,
+                        campaign,
+                        token,
+                        personalizedBody
+                    );
+                    sentCount++;
+                } catch (err) {
+                    failedCount++;
+                    console.error(
+                        `❌ Email send failed for ${user.email}:`,
+                        err.message
+                    );
+                } finally {
+                    await persistProgress();
+                }
+            })
+        );
 
         campaign.stats.sent = sentCount;
         campaign.stats.failed = failedCount;
@@ -475,6 +523,25 @@ export const deleteCampaign = async (req, res) => {
             await agendaService.agenda.cancel({ "data.campaignId": campaign._id });
         }
 
+        // Clean up R2 images referenced in the body (main + thumb variants)
+        const mainKeys = extractR2PublicIds(campaign.body);
+        const allKeys = [];
+        for (const key of mainKeys) {
+            allKeys.push(key);
+            // uploadImageToR2 also uploads a "-thumb.webp" alongside each image
+            if (key.endsWith(".webp")) {
+                allKeys.push(key.replace(/\.webp$/, "-thumb.webp"));
+            }
+        }
+
+        await Promise.allSettled(
+            allKeys.map((key) =>
+                deleteFromCloudinary(key).catch((err) =>
+                    console.error(`Failed to delete R2 object ${key}:`, err.message)
+                )
+            )
+        );
+
         await campaign.deleteOne();
         res.status(200).json({ success: true, message: "Campaign deleted" });
     } catch (error) {
@@ -602,5 +669,42 @@ export const previewRecipients = async (req, res) => {
         res
             .status(500)
             .json({ success: false, message: "Failed to preview recipients" });
+    }
+};
+
+// ─── Upload an image for use inside the campaign body ───────
+export const uploadCampaignImage = async (req, res) => {
+    try {
+        if (!req.file) {
+            return res
+                .status(400)
+                .json({ success: false, message: "No image file provided" });
+        }
+
+        if (!req.file.mimetype.startsWith("image/")) {
+            return res
+                .status(400)
+                .json({ success: false, message: "Only image files are allowed" });
+        }
+
+        const result = await uploadImageToCloudinary(
+            req.file.buffer,
+            "email-campaigns"
+        );
+
+        return res.status(200).json({
+            success: true,
+            data: {
+                url: result.secure_url || result.url,
+                publicId: result.public_id,
+                width: result.width,
+                height: result.height,
+            },
+        });
+    } catch (error) {
+        console.error("Email campaign image upload error:", error);
+        return res
+            .status(500)
+            .json({ success: false, message: "Failed to upload image" });
     }
 };

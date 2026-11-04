@@ -10,6 +10,9 @@ const transporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST,
     port: 465,
     secure: true,
+    pool: true,
+    maxConnections: 3,
+    maxMessages: 100,
     auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASSWORD,
@@ -367,8 +370,21 @@ const sendMarketingCampaignEmail = async (
 ) => {
     const unsubscribeUrl = `${FRONTEND_URL}/unsubscribe/${unsubscribeToken}`;
 
+    // 1. Clamp images FIRST
+    const clampedBody = personalizedBody.replace(
+        /<img\b([^>]*?)>/gi,
+        (match, attrs) => {
+            const cleaned = attrs
+                .replace(/\sstyle=("[^"]*"|'[^']*')/gi, "")
+                .replace(/\swidth=("[^"]*"|'[^']*')/gi, "")
+                .replace(/\sheight=("[^"]*"|'[^']*')/gi, "");
+            return `<img${cleaned} style="max-width:100%;max-height:400px;width:auto;height:auto;display:block;margin:0 auto;">`;
+        }
+    );
+
+    // 2. Then build content using clampedBody (NOT personalizedBody)
     const content = `
-    ${personalizedBody}
+    ${clampedBody}
 
     <div style="margin-top: 32px; padding-top: 20px; border-top: 1px solid ${BRAND_COLORS.grayBorder}; text-align: center; font-size: 12px; color: ${BRAND_COLORS.textLight}; line-height: 1.6;">
       <p style="margin: 0 0 8px 0;">

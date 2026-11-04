@@ -9,12 +9,22 @@ import {
     sendCampaignNow,
     cancelScheduledCampaign,
     previewRecipients,
+    uploadCampaignImage,
 } from "../controllers/emailCampaign.controller.js";
+import upload from "../middlewares/multer.middleware.js";
 
 const emailRouter = express.Router();
 
 // All routes require authentication + admin + manage_email permission
 emailRouter.use(auth, authAdmin);
+
+// Image upload
+emailRouter.post(
+  "/upload-image",
+  upload.single("image"),
+  uploadCampaignImage
+);
+
 
 // Preview (must come before /campaigns/:id route)
 emailRouter.post("/campaigns/preview-recipients", previewRecipients);

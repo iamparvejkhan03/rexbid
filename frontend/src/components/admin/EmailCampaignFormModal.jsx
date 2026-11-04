@@ -232,7 +232,7 @@ const EmailCampaignFormModal = ({ isOpen, onClose, onSuccess, campaign }) => {
                 toast.success(response.data.message || "Campaign saved");
                 onSuccess();
                 onClose();
-                scrollTo({top: 0, behavior: 'smooth'});
+                scrollTo({ top: 0, behavior: 'smooth' });
             }
         } catch (error) {
             toast.error(error.response?.data?.message || "Operation failed");
@@ -290,6 +290,7 @@ const EmailCampaignFormModal = ({ isOpen, onClose, onSuccess, campaign }) => {
                                 name="body"
                                 control={control}
                                 placeholder="Write your email content..."
+                                imageUploadUrl="/api/v1/admin/email/upload-image"
                             />
                         </div>
 
@@ -323,8 +324,8 @@ const EmailCampaignFormModal = ({ isOpen, onClose, onSuccess, campaign }) => {
                                 <label
                                     key={g.value}
                                     className={`flex items-center gap-2 px-3 py-2 border rounded-lg cursor-pointer transition-colors ${formData.recipientGroups.includes(g.value)
-                                            ? "border-primary bg-primary/5 text-primary"
-                                            : "border-gray-300 hover:bg-gray-50"
+                                        ? "border-primary bg-primary/5 text-primary"
+                                        : "border-gray-300 hover:bg-gray-50"
                                         }`}
                                 >
                                     <input
