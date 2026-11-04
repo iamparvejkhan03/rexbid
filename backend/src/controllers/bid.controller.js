@@ -526,7 +526,8 @@ export const getSellerBidHistory = async (req, res) => {
                 convertedAmount: convert(bid.amount),
                 originalAmount: bid.amount,
                 originalCurrency: base,
-                bidder: bid.bidder
+                bidder: bid.bidder,
+                isProxyBid: bid.isProxyBid || false,
             }));
 
             // Calculate bid statistics for this auction
@@ -719,7 +720,8 @@ export const getAdminBidHistory = async (req, res) => {
                     convertedAmount: convertAmount(bid.amount, auction),
                     time: bid.timestamp,
                     status: status,
-                    isHighest: index === 0
+                    isHighest: index === 0,
+                    isProxyBid: bid.isProxyBid || false,
                 };
             });
 

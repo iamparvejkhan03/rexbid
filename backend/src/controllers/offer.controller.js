@@ -833,7 +833,7 @@ export const acceptCounterOffer = async (req, res) => {
 
     // Send email notification to seller
     try {
-      await offerAcceptedEmail(
+      offerAcceptedEmail(
         offer.buyer.email,
         offer.buyer.firstName || offer.buyer.username || offer.buyer.companyName,
         offer.buyer.currency,
@@ -841,7 +841,7 @@ export const acceptCounterOffer = async (req, res) => {
         updatedAuction,
         offer.amount,
         offer?._id
-      );
+      ).catch(err => console.error("failed to send offer accepted email:", err));;
     } catch (emailError) {
       console.error(
         "Failed to send acceptance notification email:",

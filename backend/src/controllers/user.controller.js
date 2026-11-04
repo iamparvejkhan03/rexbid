@@ -193,7 +193,7 @@ export const registerUser = async (req, res) => {
     await generateTokensAndRespond(user, req, res, "Registration successful");
 
     //send registration email
-    await welcomeEmail(user);
+    welcomeEmail(user).catch(err => console.error("failed to send welcome email:", err));
 
     // const adminUsers = await User.find({ userType: "admin" });
     // for (const admin of adminUsers) {

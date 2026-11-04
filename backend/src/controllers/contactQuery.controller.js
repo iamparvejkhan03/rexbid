@@ -1,4 +1,3 @@
-// controllers/contactQuery.controller.js
 import ContactQuery from '../models/contactQuery.model.js';
 import { contactConfirmationEmail, contactEmail } from '../utils/nodemailer.js';
 

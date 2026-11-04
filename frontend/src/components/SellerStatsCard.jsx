@@ -67,7 +67,7 @@ const SellerStatsCard = ({ sellerId }) => {
                                         onClick={handleContactClick}
                                     >
                                         <MessageCircle size={14} />
-                                        Contact Seller
+                                        Contact
                                     </button>
                                 ) :
                                     <div className="flex items-center flex-wrap gap-3 text-gray-500 text-sm">

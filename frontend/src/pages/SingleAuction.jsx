@@ -1,5 +1,5 @@
 import { CalendarDays, CheckSquare, Clock, Download, File, Fuel, Gauge, Gavel, Heart, Loader, MapPin, MessageCircle, PaintBucket, Plane, ShieldCheck, Tag, User, Users, Weight, Zap, Banknote, MessageSquare, Mail, Phone, Star, CreditCard, Info, Bell, Truck, Stars } from "lucide-react";
-import { AuthBidModal, BidConfirmationModal, BuyNowModal, Container, GiveawayClaimModal, LoadingSpinner, MobileBidBottomBar, MobileBidStickyBar, RatingStars, ReminderModal, ReviewModal, SellerStatsCard, SpecificationsSection, TabSection, TimerDisplay, WatchlistButton } from "../components";
+import { AuthBidModal, BidConfirmationModal, BuyNowModal, Container, GiveawayClaimModal, LoadingSpinner, MobileBidBottomBar, MobileBidStickyBar, ProxyBidSection, RatingStars, ReminderModal, ReviewModal, SellerStatsCard, SpecificationsSection, TabSection, TimerDisplay, WatchlistButton } from "../components";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { lazy, Suspense, useRef, useState, useEffect } from "react";
 import useAuctionCountdown from "../hooks/useAuctionCountDown";
@@ -63,6 +63,9 @@ function SingleAuction() {
 
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
     const [pendingBidAmount, setPendingBidAmount] = useState('');
+
+    const [showProxyBidModal, setShowProxyBidModal] = useState(false);
+    const prevStatusRef = useRef(null);
 
     const updateAuctionState = (updatedAuction) => {
         setAuction(updatedAuction);
@@ -216,6 +219,30 @@ function SingleAuction() {
             setShowReminderModal(true);
         }
     };
+
+    const userBidStatus = (() => {
+        if (!user || !auction) return null;
+        if (auction.seller?._id?.toString() === user._id?.toString()) return null;
+        if (auction.status !== "active") return null;
+        if (countdown.status !== "counting-down" && countdown.status !== "always-available") return null;
+
+        const uid = user._id?.toString();
+        const hasBid = (auction.bids || []).some(
+            (b) => (b.bidder?._id ?? b.bidder)?.toString() === uid
+        );
+        const userProxy = (auction.proxyBids || []).find(
+            (pb) => (pb.bidder?._id ?? pb.bidder)?.toString() === uid && pb.isActive
+        );
+        if (!hasBid && !userProxy) return null;
+
+        const currentBidderId =
+            auction.currentBidder?._id?.toString() ?? auction.currentBidder?.toString();
+        if (currentBidderId === uid) return "highest";
+
+        // maxAmount & currentPrice are both BASE — safe comparison
+        if (userProxy && userProxy.maxAmount > auction.currentPrice) return "proxy-active";
+        return "outbid";
+    })();
 
     useEffect(() => {
         const fetchAuction = async () => {
@@ -846,6 +873,8 @@ function SingleAuction() {
                     minBidAmount={minBidAmount}
                     onPlaceBid={handleMobilePlaceBid}
                     bidding={bidding}
+                    countdown={countdown}
+                    onProxyBidClick={() => setShowProxyBidModal(true)}
                 />
 
                 <hr className="my-8" />
@@ -1030,6 +1059,22 @@ function SingleAuction() {
                                         <span> {auction.convertedCurrentPrice?.toFixed(0).toLocaleString() || auction.convertedFinalPrice?.toFixed(0).toLocaleString()}</span>
                                     </p>
                                 </div>
+
+                                {userBidStatus === "highest" && (
+                                    <span className="inline-flex self-start items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700 border border-green-200">
+                                        <CheckSquare size={13} /> You're the highest bidder
+                                    </span>
+                                )}
+                                {userBidStatus === "outbid" && (
+                                    <span className="inline-flex self-start items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700 border border-red-200">
+                                        <Gavel size={13} /> You've been outbid
+                                    </span>
+                                )}
+                                {userBidStatus === "proxy-active" && (
+                                    <span className="inline-flex self-start items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700 border border-blue-200">
+                                        <Gauge size={13} /> Your proxy bid is active
+                                    </span>
+                                )}
 
                                 {auction.auctionType === 'reserve' && timeRemaining > 0 && timeRemaining > 24 * 60 * 60 * 1000 && (
                                     <p className={`${auction.convertedCurrentPrice >= auction.reservePrice ? 'text-green-600 bg-green-100' : 'text-blue-600 bg-blue-100'} flex items-start self-start text-xs font-medium px-4 py-2 rounded-md`}>
@@ -1278,6 +1323,14 @@ function SingleAuction() {
                                             </button>
                                         </form>
                                     )}
+
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowProxyBidModal(true)}
+                                        className="flex items-center justify-center gap-2 w-full border bg-blue-600 border-blue-600 text-white hover:bg-blue-700 py-3 px-6 rounded-lg transition-colors"
+                                    >
+                                        <Gauge size={18} /> Set a Proxy Bid (Auto-bid)
+                                    </button>
 
                                     {/* Buy Now Button - Show for buy_now auctions */}
                                     {auction.auctionType === 'buy_now' && isBuyNowAvailable && (
@@ -1536,6 +1589,27 @@ function SingleAuction() {
                 onAuthSuccess={handleAuthSuccess}
                 pendingAction={pendingAction}
             />
+
+            {showProxyBidModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50"
+                    onClick={() => setShowProxyBidModal(false)}>
+                    <div className="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto"
+                        onClick={(e) => e.stopPropagation()}>
+                        <div className="flex justify-between items-center pt-3 px-6">
+                            <h2 className="text-lg font-semibold text-gray-900">Set a Proxy Bid</h2>
+                            <button onClick={() => setShowProxyBidModal(false)}
+                                className="text-gray-400 hover:text-gray-600 text-2xl font-light">×</button>
+                        </div>
+                        <div className="px-3 pb-3">
+                            <ProxyBidSection
+                                auction={auction}
+                                userCurrency={userCurrency}
+                                onClose={() => setShowProxyBidModal(false)}
+                            />
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* {(countdown?.status === 'counting-down' || countdown?.status === 'always-available') &&
                 !auction?.winner &&

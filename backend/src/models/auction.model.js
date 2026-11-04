@@ -263,10 +263,11 @@ const auctionSchema = new Schema(
           default: Date.now,
         },
         isBuyNow: {
-          // NEW: Flag for buy now purchases
           type: Boolean,
           default: false,
         },
+        isProxyBid: { type: Boolean, default: false },
+        proxyBidId: { type: Schema.Types.ObjectId },
       },
     ],
     currentBidder: {
@@ -276,6 +277,23 @@ const auctionSchema = new Schema(
     bidCount: {
       type: Number,
       default: 0,
+    },
+    // ── Proxy Bidding — amounts stored in auction.baseCurrency ──
+    proxyBids: [
+      {
+        bidder: { type: Schema.Types.ObjectId, ref: "User", required: true },
+        bidderUsername: { type: String, required: true },
+        maxAmount: { type: Number, required: true, min: 0 },
+        currentBid: { type: Number, default: 0 },
+        isActive: { type: Boolean, default: true },
+        createdAt: { type: Date, default: Date.now },
+        updatedAt: { type: Date, default: Date.now },
+      },
+    ],
+    allowProxyBidding: { type: Boolean, default: true },
+    proxyBidConfig: {
+      maxBidPerUser: { type: Number, default: 1 },
+      autoIncrease: { type: Boolean, default: true },
     },
 
     isFeatured: {
@@ -444,8 +462,10 @@ auctionSchema.index({ status: 1, endDate: 1 });
 auctionSchema.index({ seller: 1, createdAt: -1 });
 auctionSchema.index({ category: 1, status: 1 });
 auctionSchema.index({ startDate: 1, endDate: 1 });
-auctionSchema.index({ "offers.status": 1 }); // NEW: Index for offer status
-auctionSchema.index({ "offers.expiresAt": 1 }); // NEW: Index for offer expiry
+auctionSchema.index({ "offers.status": 1 });
+auctionSchema.index({ "offers.expiresAt": 1 });
+auctionSchema.index({ "proxyBids.bidder": 1, "proxyBids.isActive": 1 });
+auctionSchema.index({ "proxyBids.maxAmount": -1 });
 
 // Virtual for time remaining
 auctionSchema.virtual("timeRemaining").get(function () {
@@ -557,6 +577,8 @@ auctionSchema.methods.placeBid = async function (
     amount,
     timestamp: now,
     isBuyNow: false,
+    isProxyBid: false,
+    proxyBidId: null,
   });
 
   this.currentPrice = amount;

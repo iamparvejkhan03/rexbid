@@ -1274,7 +1274,7 @@ export const approveAuction = async (req, res) => {
 
       await auction.populate("seller", "email username companyName firstName lastName");
 
-      await auctionListedEmail(auction, auction.seller).catch((error) =>
+      auctionListedEmail(auction, auction.seller).catch((error) =>
         console.error("Failed to send auction listed email:", error),
       );
 

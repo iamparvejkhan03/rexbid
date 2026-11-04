@@ -97,11 +97,17 @@ const BidHistory = ({ bids, auction, userCurrency }) => {
                     <div className="flex items-center">
                       <User className="w-3 h-3 mr-2 text-gray-400" />
                       <span className={`font-medium ${isWinner ? 'text-green-600' :
-                          isCurrentHighest ? 'text-blue-600' :
-                            'text-primary'
+                        isCurrentHighest ? 'text-blue-600' :
+                          'text-primary'
                         }`}>
                         {bid.bidderUsername || 'Unknown Bidder'}
                       </span>
+
+                      {bid.isProxyBid && (
+                        <span className="bg-blue-100 text-blue-700 text-xs font-medium px-2 py-1 rounded-full ml-2">
+                          Proxy
+                        </span>
+                      )}
 
                       {/* Badges */}
                       <div className="ml-2 flex gap-1">
@@ -123,8 +129,8 @@ const BidHistory = ({ bids, auction, userCurrency }) => {
                   {/* Amount */}
                   <td className="py-3 px-4 text-right">
                     <span className={`font-semibold ${isWinner ? 'text-green-600' :
-                        isCurrentHighest ? 'text-blue-600' :
-                          'text-primary'
+                      isCurrentHighest ? 'text-blue-600' :
+                        'text-primary'
                       }`}>
                       {userCurrency === 'GBP' ? '£' : '€'}{bid?.convertedAmount?.toFixed(0)?.toLocaleString()}
                     </span>
@@ -160,9 +166,9 @@ const BidHistory = ({ bids, auction, userCurrency }) => {
             <div className="flex justify-between items-center text-xs">
               <span className="text-secondary">Auction Status:</span>
               <span className={`font-medium ${auction.status === 'active' ? 'text-green-600' :
-                  auction.status === 'sold' ? 'text-green-600' :
-                    auction.status === 'ended' ? 'text-gray-600' :
-                      'text-orange-600'
+                auction.status === 'sold' ? 'text-green-600' :
+                  auction.status === 'ended' ? 'text-gray-600' :
+                    'text-orange-600'
                 }`}>
                 {auction.status === 'active' && '🟢 Active'}
                 {auction.status === 'sold' && '✅ Sold'}

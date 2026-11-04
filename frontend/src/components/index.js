@@ -81,6 +81,7 @@ import AuthBidModal from "./AuthBidModal";
 import CatalogueCard from "./CatalogueCard";
 import HomeCataloguesSection from "./HomeCataloguesSection";
 import Pagination from "./Pagination";
+import ProxyBidSection from "./ProxyBidSection";
 
 export {
     Container,
@@ -166,4 +167,5 @@ export {
     CatalogueCard,
     HomeCataloguesSection,
     Pagination,
+    ProxyBidSection,
 }

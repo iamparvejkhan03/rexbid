@@ -153,10 +153,23 @@ class AgendaService {
             );
             return;
           }
+          // ⬇️ ADD — let any last-moment proxies fire before we finalize
+          const { processProxyBids } = await import("./proxyBidService.js");
+          await processProxyBids(auctionId);
 
-          console.log(`✅ Agenda: Ending auction ${auctionId}`);
+          // Re-fetch — proxy auto-bids may have extended endDate or changed winner
+          auction = await Auction.findById(auctionId).populate(
+            "seller", "email phone username companyName firstName currency"
+          );
 
-          // Use the model's endAuction method to handle the business logic
+          if (new Date() < auction.endDate) {
+            await this.scheduleAuctionEnd(auctionId, auction.endDate);
+            broadcastAuctionChange(auctionId);
+            console.log(`🔄 Agenda: Extended by proxy — rescheduled ${auctionId} to ${auction.endDate}`);
+            return;
+          }
+          if (auction.winner) return;
+
           const result = await auction.endAuction();
 
           broadcastAuctionChange(auctionId);

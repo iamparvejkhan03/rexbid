@@ -1,4 +1,4 @@
-import { Gavel, Zap, Banknote, Clock, Gift, Users, ShieldCheck, Bell, Loader, Truck, Info } from 'lucide-react';
+import { Gavel, Zap, Banknote, Clock, Gift, Users, ShieldCheck, Bell, Loader, Truck, Info, CheckSquare, Gauge } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -25,6 +25,8 @@ const MobileBidStickyBar = ({
   minBidAmount,
   onPlaceBid,
   bidding,
+  countdown,
+  onProxyBidClick,
 }) => {
   const { days, hours, minutes, seconds, status: timeStatus } = timeRemaining;
   const isActive = timeStatus === 'counting-down' || timeStatus === 'always-available';
@@ -39,6 +41,30 @@ const MobileBidStickyBar = ({
 
   const navigate = useNavigate();
   const { user } = useAuth();
+
+  const userBidStatus = (() => {
+    if (!user || !auction) return null;
+    if (auction.seller?._id?.toString() === user._id?.toString()) return null;
+    if (auction.status !== "active") return null;
+    if (countdown.status !== "counting-down" && countdown.status !== "always-available") return null;
+
+    const uid = user._id?.toString();
+    const hasBid = (auction.bids || []).some(
+      (b) => (b.bidder?._id ?? b.bidder)?.toString() === uid
+    );
+    const userProxy = (auction.proxyBids || []).find(
+      (pb) => (pb.bidder?._id ?? pb.bidder)?.toString() === uid && pb.isActive
+    );
+    if (!hasBid && !userProxy) return null;
+
+    const currentBidderId =
+      auction.currentBidder?._id?.toString() ?? auction.currentBidder?.toString();
+    if (currentBidderId === uid) return "highest";
+
+    // maxAmount & currentPrice are both BASE — safe comparison
+    if (userProxy && userProxy.maxAmount > auction.currentPrice) return "proxy-active";
+    return "outbid";
+  })();
 
   useEffect(() => {
     if (!isActive || timeStatus !== 'counting-down') return;
@@ -92,6 +118,7 @@ const MobileBidStickyBar = ({
   const showBidForm = (auctionType === 'standard' || auctionType === 'reserve') && isActive && !auction?.winner && auction?.status === 'active';
   const isGiveaway = auctionType === 'giveaway';
   const showGiveawayClaim = isGiveaway && isActive && !auction?.winner && auction?.status === 'active';
+  const showProxyBid = showBidForm && auction?.allowProxyBidding;
 
   const isReserveMet = (auction?.convertedCurrentPrice || auction?.currentPrice || 0) >= (auction?.reservePrice || 0);
 
@@ -114,20 +141,39 @@ const MobileBidStickyBar = ({
         {/* Top Row: Price & Timer */}
         <div className="flex justify-between items-start overflow-hidden mb-4 gap-4">
           <div className="flex flex-col flex-1">
-            <p className="text-xs text-black font-semibold mb-1">
-              {isGiveaway ? '' : auctionType === 'buy_now' ? 'Buy Now Price' : auction.status === 'sold' ? 'Final Bid' : auction?.bidCount > 0 ? 'Current Bid' : 'Starting Bid'}
-            </p>
-            <p className="text-xl font-bold text-gray-900">
-              {isGiveaway ? (
-                <span className="text-green-600">GIVEAWAY 🎁</span>
-              ) : auctionType === 'buy_now' ? (
-                formatCurrency(auction?.convertedBuyNowPrice || convertedBuyNowPrice)
-              ) : auction.status === 'sold' ? (
-                formatCurrency(auction?.convertedFinalPrice || auction?.convertedCurrentPrice)
-              ) : (
-                formatCurrency(currentBid)
+            <div className="flex items-start gap-2 text-sm text-gray-600 mb-1">
+              <div>
+                <p className="text-xs text-black font-semibold mb-1">
+                  {isGiveaway ? '' : auctionType === 'buy_now' ? 'Buy Now Price' : auction.status === 'sold' ? 'Final Bid' : auction?.bidCount > 0 ? 'Current Bid' : 'Starting Bid'}
+                </p>
+                <p className="text-xl font-bold text-gray-900">
+                  {isGiveaway ? (
+                    <span className="text-green-600">GIVEAWAY 🎁</span>
+                  ) : auctionType === 'buy_now' ? (
+                    formatCurrency(auction?.convertedBuyNowPrice || convertedBuyNowPrice)
+                  ) : auction.status === 'sold' ? (
+                    formatCurrency(auction?.convertedFinalPrice || auction?.convertedCurrentPrice)
+                  ) : (
+                    formatCurrency(currentBid)
+                  )}
+                </p>
+              </div>
+              {userBidStatus === "highest" && (
+                <span className="text-green-700">
+                  <CheckSquare size={20} />
+                </span>
               )}
-            </p>
+              {userBidStatus === "outbid" && (
+                <span className="text-red-700">
+                  <Gavel size={20} />
+                </span>
+              )}
+              {userBidStatus === "proxy-active" && (
+                <span className="text-blue-700">
+                  <Gauge size={20} />
+                </span>
+              )}
+            </div>
 
             {auction.auctionType === 'reserve' && timeRemained > 0 && timeRemained > 24 * 60 * 60 * 1000 && (
               <div className={`mt-2 inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium w-fit ${isReserveMet
@@ -322,6 +368,19 @@ const MobileBidStickyBar = ({
                 <Gavel size={18} />
               )}
               <span>Place Bid</span>
+            </button>
+          </div>
+        )}
+
+        {/* Secondary actions row — proxy bid */}
+        {showProxyBid && (
+          <div className="mt-2">
+            <button
+              onClick={onProxyBidClick}
+              className="flex items-center justify-center gap-2 w-full border bg-blue-600 border-blue-600 text-white hover:bg-blue-700 py-2.5 px-4 text-sm rounded-md transition-colors"
+            >
+              <Gauge size={18} />
+              <span>Set a Proxy Bid (Auto-bid)</span>
             </button>
           </div>
         )}

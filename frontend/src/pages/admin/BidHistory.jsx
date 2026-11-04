@@ -469,6 +469,7 @@ function BidHistory() {
                                                                 <div className={`font-medium text-sm ${bid.isHighest ? 'text-green-600' : 'text-gray-900'
                                                                     }`}>
                                                                     {formatCurrency(bid.convertedAmount)}
+                                                                    <span className="block text-xs">({bid.isProxyBid ? 'Proxy Bid' : 'Manual Bid'})</span>
                                                                 </div>
                                                             </td>
                                                             <td className="py-3 px-4 text-sm text-gray-900">

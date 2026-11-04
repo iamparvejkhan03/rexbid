@@ -74,12 +74,12 @@ export const addComment = async (req, res) => {
 
         // 1. Notify the seller (if comment author is not the seller)
         if (populatedComment.auction.seller._id.toString() !== userId.toString()) {
-            await newCommentSellerEmail(
+            newCommentSellerEmail(
                 populatedComment.auction.seller,
                 populatedComment.auction,
                 populatedComment,
                 populatedComment.user
-            );
+            ).catch((error) => console.error("Failed to send new comment seller email:", error));
         }
 
         // Get previous commenters
@@ -101,12 +101,12 @@ export const addComment = async (req, res) => {
 
             if (!isSeller && !isCurrentUser) {
                 console.log(`Sending comment notification to: ${commenter.email}`);
-                await newCommentBidderEmail(
+                newCommentBidderEmail(
                     commenter,
                     populatedComment.auction,
                     populatedComment,
                     populatedComment.user
-                );
+                ).catch(err => console.error("failed to send new comment bidder email:", err));;
             }
         }
 
@@ -407,13 +407,13 @@ export const flagComment = async (req, res) => {
         const reportedByUser = req.user;
 
         for (const admin of adminUsers) {
-            await flaggedCommentAdminEmail(
+            flaggedCommentAdminEmail(
                 admin.email,
                 reason || 'Inappropriate content',
                 commentWithAuction,
                 commentWithAuction.auction,
                 reportedByUser
-            );
+            ).catch(err => console.error("Failed to send flagged comment email:", err));;
         }
 
     } catch (error) {

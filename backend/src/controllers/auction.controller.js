@@ -27,6 +27,7 @@ import Stripe from 'stripe';
 import AuctionDate from "../models/auctionDate.model.js";
 import { broadcastAuctionChange, broadcastAuctionRemoved } from "../services/realtimeService.js";
 import { getManualPaymentFlags } from "../utils/manualPayment.js";
+import { processProxyBids } from "../services/proxyBidService.js";
 
 // Initialize Stripe with your secret key
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -2068,27 +2069,34 @@ export const placeBid = async (req, res) => {
     // Place bid using the model method
     await auction.placeBid(bidder._id, bidder.username || bidder.companyName, amountInBase);
 
+    const priceBeforeBid = auction.currentPrice;
+
     const extended = auction.endDate > oldEndDate;
 
-    await auction.populate("currentBidder", "username companyName firstName lastname email");
-    await auction.populate("seller", "username companyName firstName lastname email");
+    // ⬇️ Fire proxy cascade (base-currency internal)
+    await processProxyBids(auction._id);
+
+    // ⬇️ Re-fetch — proxy bids may have changed price/leader/endDate
+    const finalAuction = await Auction.findById(auction._id)
+      .populate("currentBidder", "username companyName firstName lastname email")
+      .populate("seller", "username companyName firstName lastname email");
 
     const userCurrency = currency;
-    const auctionObj = auction.toObject();
+    const auctionObj = finalAuction.toObject();
 
-    // Convert bids
-    const convertedBids = auction.bids.map(bid => ({
+    // convert the fresh bids array (base → user currency)
+    const convertedBids = finalAuction.bids.map((bid) => ({
       ...bid.toObject(),
       convertedAmount: parseFloat((bid.amount * rate).toFixed(2)),
-      originalAmount: bid.amount
+      originalAmount: bid.amount,
     }));
 
-    const convertedStartPrice = convertPrice(auction, userCurrency, 'startPrice');
-    const convertedCurrentPrice = convertPrice(auction, userCurrency, 'currentPrice');
-    const convertedBidIncrement = auctionObj.bidIncrement ? convertPrice(auction, userCurrency, 'bidIncrement') : null;
-    const convertedBuyNowPrice = auctionObj.buyNowPrice ? convertPrice(auction, userCurrency, 'buyNowPrice') : null;
-    const convertedReservePrice = auctionObj.reservePrice ? convertPrice(auction, userCurrency, 'reservePrice') : null;
-    const convertedFinalPrice = auctionObj.finalPrice ? convertPrice(auction, userCurrency, 'finalPrice') : null;
+    const convertedStartPrice = convertPrice(finalAuction, userCurrency, "startPrice");
+    const convertedCurrentPrice = convertPrice(finalAuction, userCurrency, "currentPrice");
+    const convertedBidIncrement = auctionObj.bidIncrement ? convertPrice(finalAuction, userCurrency, "bidIncrement") : null;
+    const convertedBuyNowPrice = auctionObj.buyNowPrice ? convertPrice(finalAuction, userCurrency, "buyNowPrice") : null;
+    const convertedReservePrice = auctionObj.reservePrice ? convertPrice(finalAuction, userCurrency, "reservePrice") : null;
+    const convertedFinalPrice = auctionObj.finalPrice ? convertPrice(finalAuction, userCurrency, "finalPrice") : null;
 
     broadcastAuctionChange(auction._id);
 
@@ -2113,55 +2121,54 @@ export const placeBid = async (req, res) => {
     });
 
     // ---------- SEND EMAILS IN BACKGROUND (NON‑BLOCKING) ----------
-    setImmediate(() => {
-      // 1. Confirmation email to the bidder
-      bidConfirmationEmail(
-        bidder.email,
-        bidder.username || bidder.companyName,
-        auction,
-        amount,
-        convertedCurrentPrice,
-        userCurrency
-      ).catch((err) => {
-        console.error('Failed to send bid confirmation email:', err);
-      });
+    setImmediate(async () => {
+      const placerStr = bidder._id.toString();
+      const winnerStr = finalAuction.currentBidder?._id?.toString();
+      const auctionBase = finalAuction.baseCurrency || "EUR";
+      const userCur = currency || auctionBase;
+      const rates = getCachedRates();
+      const baseToUser = (amt, cur) => {
+        if (!amt || cur === auctionBase) return amt;
+        const r = rates?.[auctionBase]?.rates?.[cur];
+        return r ? parseFloat((amt * r).toFixed(2)) : amt;
+      };
 
-      // 2. Notification to the seller
-      newBidNotificationEmail(
-        auction.seller,
-        auction,
-        convertAmountToBase(amount, userCurrency, auction),
-        bidder,
-        auction?.baseCurrency
-      ).catch((err) => {
-        console.error('Failed to send new bid notification to seller:', err);
-      });
-
-      // 3. Outbid notifications to previous bidders (if any)
-      if (
-        previousHighestBidder &&
-        previousHighestBidder.toString() !== bidder._id.toString()
-      ) {
-        sendOutbidNotifications(
-          auction,
-          previousBidders,
-          bidder._id.toString(),
-          amount,
-          userCurrency
-        ).catch((err) => {
-          console.error('Failed to send outbid notifications:', err);
-        });
+      // 1. Bid confirmation — ONLY if placer actually won the cascade
+      if (winnerStr === placerStr) {
+        bidConfirmationEmail(
+          bidder.email,
+          bidder.username || bidder.companyName,
+          finalAuction,
+          baseToUser(amountInBase, userCur),
+          baseToUser(finalAuction.currentPrice, userCur),
+          userCur
+        ).catch(err => console.error("bid confirm:", err));
       }
 
-      // 4. Watchlist bid notifications to users watching this auction
-      sendWatchlistBidNotifications(
-        auction,
-        bidder._id.toString(),
-        amount,
-        userCurrency
-      ).catch((err) => {
-        console.error('Failed to send watchlist bid notifications:', err);
-      });
+      // 2. Seller notification — only if price actually moved (cascade or manual)
+      if (finalAuction.currentPrice > priceBeforeBid) {
+        const sellerCur = finalAuction.seller?.currency || auctionBase;
+        newBidNotificationEmail(
+          finalAuction.seller,
+          finalAuction,
+          baseToUser(finalAuction.currentPrice, sellerCur),
+          bidder,
+          sellerCur
+        ).catch(err => console.error("new bid seller:", err));
+      }
+
+      // 3. Outbid — batcher handles cascade collapse
+      const allIds = [...new Set((finalAuction.bids || [])
+        .map(b => (b.bidder?._id ?? b.bidder)?.toString())
+        .filter(Boolean))];
+      const outbidRecipients = allIds.filter(uid => uid !== winnerStr);
+      if (outbidRecipients.length > 0) {
+        sendOutbidNotifications(finalAuction, outbidRecipients, winnerStr, finalAuction.currentPrice);
+      }
+
+      // 4. Watchlist — also use finalAuction
+      sendWatchlistBidNotifications(finalAuction, placerStr, finalAuction.currentPrice, currency)
+        .catch(err => console.error("watchlist bid:", err));
     });
 
   } catch (error) {
@@ -2170,6 +2177,485 @@ export const placeBid = async (req, res) => {
       success: false,
       message: error.message,
     });
+  }
+};
+
+/**
+ * Place a bid atomically without going through the model's `placeBid`.
+ * Used by proxy cascade. Receives amounts in BASE currency.
+ */
+export const placeBidDirect = async (
+  auctionId, bidderId, bidderUsername, amount,
+  proxyBidId = null, maxRetries = 3
+) => {
+  let attempt = 0, lastError = null;
+
+  while (attempt < maxRetries) {
+    try {
+      const auction = await Auction.findById(auctionId).select(
+        "status currentPrice currentBidder bidCount bidIncrement startPrice autoExtend endDate"
+      );
+      if (!auction || auction.status !== "active")
+        throw new Error("Auction not active or not found");
+
+      if (auction.currentBidder?.toString() === bidderId.toString()) {
+        return auction; // already winning
+      }
+
+      const minBid = auction.bidCount === 0
+        ? auction.startPrice
+        : auction.currentPrice + auction.bidIncrement;
+      if (amount < minBid) throw new Error(`Bid must be at least ${minBid}`);
+
+      const now = new Date();
+      const update = {
+        $inc: { bidCount: 1 },
+        $set: {
+          currentPrice: amount,
+          currentBidder: bidderId,
+          lastBidTime: now,
+        },
+        $push: {
+          bids: {
+            bidder: bidderId,
+            bidderUsername,
+            amount,
+            timestamp: now,
+            isBuyNow: false,
+            isProxyBid: true,
+            proxyBidId,
+          },
+        },
+      };
+
+      const arrayFilters = [];
+      if (proxyBidId) {
+        update.$set["proxyBids.$[elem].currentBid"] = amount;
+        update.$set["proxyBids.$[elem].updatedAt"] = now;
+        arrayFilters.push({ "elem._id": proxyBidId });
+      }
+
+      // Auto-extend — match your existing rule (+1 min additive)
+      let extended = false;
+      if (auction.autoExtend) {
+        const timeRemaining = auction.endDate - now;
+        if (timeRemaining < 2 * 60 * 1000) {
+          const newEndDate = new Date(auction.endDate.getTime() + 1 * 60 * 1000);
+          update.$set.endDate = newEndDate;
+          extended = true;
+        }
+      }
+
+      // CAS guard — only commit if price/leader unchanged
+      const query = {
+        _id: auctionId,
+        status: "active",
+        currentPrice: auction.currentPrice,
+        currentBidder: auction.currentBidder || null,
+      };
+
+      const updatedAuction = await Auction.findOneAndUpdate(query, update, {
+        new: true, runValidators: true, arrayFilters,
+      });
+
+      if (!updatedAuction) throw new Error("Auction state changed, retrying...");
+
+      if (extended) {
+        await agendaService.cancelAuctionJobs(auctionId);
+        await agendaService.scheduleAuctionEnd(auctionId, updatedAuction.endDate);
+      }
+
+      return updatedAuction;
+    } catch (err) {
+      lastError = err;
+      attempt++;
+      if (err.message === "Auction state changed, retrying..." && attempt < maxRetries) {
+        await new Promise((r) => setTimeout(r, 50 * attempt));
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw lastError || new Error("Failed after retries");
+};
+
+export const placeProxyBid = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { maxAmount, currency } = req.body;
+    const bidder = req.user;
+
+    if (!bidder?.isActive) return res.status(400).json({ success: false, message: "Account is inactive." });
+    if (!bidder?.isVerified) return res.status(400).json({ success: false, message: "Account not verified." });
+
+    const auction = await Auction.findById(id);
+    if (!auction) return res.status(404).json({ success: false, message: "Auction not found" });
+    if (auction.status !== "active") return res.status(400).json({ success: false, message: "Auction is not active" });
+    if (new Date() >= auction.endDate) return res.status(400).json({ success: false, message: "Auction has ended" });
+    if (auction.seller.toString() === bidder._id.toString())
+      return res.status(400).json({ success: false, message: "You can't place a proxy bid on your own auction" });
+
+    const existing = auction.proxyBids.find(
+      (pb) => pb.bidder.toString() === bidder._id.toString() && pb.isActive
+    );
+    if (existing) return res.status(400).json({ success: false, message: "You already have an active proxy bid." });
+
+    // ⚠️ MULTI-CURRENCY: client → base
+    const ratesData = getCachedRates();
+    if (!ratesData) return res.status(503).json({ success: false, message: "Rates unavailable, retry" });
+    const base = auction.baseCurrency;
+    const buyerCurr = currency || base;
+    const clientToBase = ratesData?.[buyerCurr]?.rates?.[base];
+    const baseToClient = ratesData?.[base]?.rates?.[buyerCurr];
+    if (!clientToBase || !baseToClient)
+      return res.status(400).json({ success: false, message: "Currency conversion unavailable" });
+
+    const maxAmountInBase = parseFloat(maxAmount) * clientToBase;
+
+    const minBidBase = auction.bidCount === 0
+      ? auction.startPrice
+      : auction.currentPrice + auction.bidIncrement;
+
+    if (isNaN(maxAmountInBase) || maxAmountInBase < minBidBase) {
+      const minClient = (minBidBase * baseToClient).toFixed(2);
+      return res.status(400).json({
+        success: false,
+        message: `Maximum bid must be at least ${minClient} ${buyerCurr}`,
+      });
+    }
+
+    const priceBeforeProxy = auction.currentPrice;
+
+    auction.proxyBids.push({
+      bidder: bidder._id,
+      bidderUsername: bidder.username || bidder.companyName,
+      maxAmount: maxAmountInBase,
+      currentBid: minBidBase,
+      isActive: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    await auction.save();
+
+    await processProxyBids(id);
+    broadcastAuctionChange(id);   // sockets fire — frontend refreshes
+
+    const stored = auction.proxyBids[auction.proxyBids.length - 1];
+
+    res.status(200).json({
+      success: true,
+      message: "Proxy bid placed successfully",
+      data: {
+        proxyBid: {
+          _id: stored._id,
+          isActive: stored.isActive,
+          maxAmount: stored.maxAmount,
+          currentBid: stored.currentBid,
+          convertedMaxAmount: parseFloat((stored.maxAmount * baseToClient).toFixed(2)),
+          convertedCurrentBid: parseFloat((stored.currentBid * baseToClient).toFixed(2)),
+          displayCurrency: buyerCurr,
+          createdAt: stored.createdAt,
+          updatedAt: stored.updatedAt,
+        },
+      },
+    });
+
+    // ─── Proxy bid emails (fire-and-forget, post-response) ─────────
+    setImmediate(async () => {
+      try {
+        const emailAuction = await Auction.findById(id)
+          .populate("seller", "email username companyName firstName lastName currency")
+          .populate("currentBidder", "email username companyName firstName lastName")
+          .populate("bids.bidder", "email username companyName firstName lastName");
+        if (!emailAuction) return;
+
+        const placerIdStr = bidder._id.toString();
+        const finalWinnerId =
+          emailAuction.currentBidder?._id?.toString() ||
+          emailAuction.currentBidder?.toString();
+        const isPlacerHighest = finalWinnerId === placerIdStr;
+        const priceChanged = priceBeforeProxy !== emailAuction.currentPrice;
+
+        // Placer's own highest bid (base currency)
+        const userHighestBase = (emailAuction.bids || []).reduce((max, b) => {
+          const rawId = b.bidder?._id ?? b.bidder;
+          return rawId?.toString() === placerIdStr && b.amount > max ? b.amount : max;
+        }, 0);
+
+        // 1) Bid confirmation — placer is currently winning
+        if (isPlacerHighest) {
+          const bidBase = userHighestBase > 0 ? userHighestBase : emailAuction.currentPrice;
+          const bidUser = parseFloat((bidBase * baseToClient).toFixed(2));
+          const currUser = parseFloat((emailAuction.currentPrice * baseToClient).toFixed(2));
+
+          bidConfirmationEmail(
+            bidder.email,
+            bidder.username || bidder.companyName,
+            emailAuction,
+            bidUser,
+            currUser,
+            buyerCurr
+          ).catch((err) => console.error("Proxy bid confirmation email:", err));
+        }
+
+        // 2) Seller notification — price moved during cascade
+        if (priceChanged) {
+          newBidNotificationEmail(
+            emailAuction.seller,
+            emailAuction,
+            emailAuction.currentPrice,   // BASE
+            bidder,
+            emailAuction.baseCurrency
+          ).catch((err) => console.error("Proxy seller email:", err));
+        }
+
+        // 3) Outbid — displaced bidders (batcher dedupes the whole cascade)
+        if (priceChanged && finalWinnerId) {
+          const allBidderIds = [
+            ...new Set(
+              (emailAuction.bids || [])
+                .map((b) => (b.bidder?._id ?? b.bidder)?.toString())
+                .filter(Boolean)
+            ),
+          ];
+          const displacedIds = allBidderIds.filter((uid) => uid !== finalWinnerId);
+
+          if (displacedIds.length > 0) {
+            sendOutbidNotifications(
+              emailAuction,
+              displacedIds,
+              finalWinnerId,
+              parseFloat((emailAuction.currentPrice * baseToClient).toFixed(2)),
+              buyerCurr
+            ).catch((err) => console.error("Proxy outbid notifications:", err));
+          }
+        }
+      } catch (err) {
+        console.error("Proxy email dispatch:", err);
+      }
+    });
+  } catch (error) {
+    console.error("Place proxy bid error:", error);
+    res.status(500).json({ success: false, message: "Failed to place proxy bid" });
+  }
+};
+
+export const updateProxyBid = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { maxAmount, currency } = req.body;
+    const userId = req.user._id;
+
+    if (!maxAmount || parseFloat(maxAmount) <= 0)
+      return res.status(400).json({ success: false, message: "Valid amount required" });
+
+    const auction = await Auction.findById(id);
+    if (!auction) return res.status(404).json({ success: false, message: "Auction not found" });
+    if (auction.status !== "active") return res.status(400).json({ success: false, message: "Auction is not active" });
+    if (new Date() >= auction.endDate) return res.status(400).json({ success: false, message: "Auction has ended" });
+    if (auction.seller.toString() === userId.toString())
+      return res.status(400).json({ success: false, message: "Seller cannot have a proxy bid" });
+
+    const proxy = auction.proxyBids.find((pb) => pb.bidder.toString() === userId.toString());
+    if (!proxy) return res.status(404).json({ success: false, message: "No proxy bid found" });
+
+    // ⚠️ MULTI-CURRENCY: client → base
+    const ratesData = getCachedRates();
+    if (!ratesData) return res.status(503).json({ success: false, message: "Rates unavailable" });
+    const base = auction.baseCurrency;
+    const buyerCurr = currency || base;
+    const clientToBase = ratesData?.[buyerCurr]?.rates?.[base];
+    const baseToClient = ratesData?.[base]?.rates?.[buyerCurr];
+    if (!clientToBase || !baseToClient)
+      return res.status(400).json({ success: false, message: "Currency conversion unavailable" });
+
+    const newMaxBase = parseFloat(maxAmount) * clientToBase;
+
+    const minBidBase = auction.bidCount === 0
+      ? auction.startPrice
+      : auction.currentPrice + auction.bidIncrement;
+
+    if (newMaxBase < minBidBase) {
+      const minClient = (minBidBase * baseToClient).toFixed(2);
+      return res.status(400).json({
+        success: false,
+        message: `Maximum bid must be at least ${minClient} ${buyerCurr}`,
+      });
+    }
+
+    if (proxy.isActive && proxy.currentBid > newMaxBase) {
+      const currentClient = (proxy.currentBid * baseToClient).toFixed(2);
+      return res.status(400).json({
+        success: false,
+        message: `New max cannot be lower than your current proxy bid (${currentClient} ${buyerCurr})`,
+      });
+    }
+
+    const priceBeforeProxy = auction.currentPrice;
+    proxy.maxAmount = newMaxBase;
+    proxy.isActive = true;
+    proxy.updatedAt = new Date();
+    await auction.save();
+
+    await processProxyBids(id);
+    broadcastAuctionChange(id);
+
+    res.status(200).json({
+      success: true,
+      message: "Proxy bid updated",
+      data: {
+        proxyBid: {
+          _id: proxy._id,
+          isActive: proxy.isActive,
+          maxAmount: proxy.maxAmount,
+          currentBid: proxy.currentBid,
+          convertedMaxAmount: parseFloat((proxy.maxAmount * baseToClient).toFixed(2)),
+          convertedCurrentBid: parseFloat((proxy.currentBid * baseToClient).toFixed(2)),
+          displayCurrency: buyerCurr,
+          updatedAt: proxy.updatedAt,
+        },
+      },
+    });
+
+    setImmediate(async () => {
+      try {
+        const emailAuction = await Auction.findById(id)
+          .populate("seller", "email username companyName firstName lastName currency")
+          .populate("currentBidder", "email username companyName firstName lastName")
+          .populate("bids.bidder", "email username companyName firstName lastName");
+        if (!emailAuction) return;
+
+        const userIdStr = userId.toString();
+        const finalWinnerId =
+          emailAuction.currentBidder?._id?.toString() ||
+          emailAuction.currentBidder?.toString();
+        const isPlacerHighest = finalWinnerId === userIdStr;
+        const priceChanged = priceBeforeProxy !== emailAuction.currentPrice;
+
+        const userHighestBase = (emailAuction.bids || []).reduce((max, b) => {
+          const rawId = b.bidder?._id ?? b.bidder;
+          return rawId?.toString() === userIdStr && b.amount > max ? b.amount : max;
+        }, 0);
+
+        if (isPlacerHighest) {
+          const bidBase = userHighestBase > 0 ? userHighestBase : emailAuction.currentPrice;
+          const bidUser = parseFloat((bidBase * baseToClient).toFixed(2));
+          const currUser = parseFloat((emailAuction.currentPrice * baseToClient).toFixed(2));
+
+          bidConfirmationEmail(
+            req.user.email,
+            req.user.username || req.user.companyName,
+            emailAuction,
+            bidUser,
+            currUser,
+            buyerCurr
+          ).catch((err) => console.error("Proxy update confirmation:", err));
+        }
+
+        if (priceChanged) {
+          newBidNotificationEmail(
+            emailAuction.seller,
+            emailAuction,
+            emailAuction.currentPrice,
+            req.user,
+            emailAuction.baseCurrency
+          ).catch((err) => console.error("Proxy update seller email:", err));
+        }
+
+        if (priceChanged && finalWinnerId) {
+          const allBidderIds = [
+            ...new Set(
+              (emailAuction.bids || [])
+                .map((b) => (b.bidder?._id ?? b.bidder)?.toString())
+                .filter(Boolean)
+            ),
+          ];
+          const displacedIds = allBidderIds.filter((uid) => uid !== finalWinnerId);
+
+          if (displacedIds.length > 0) {
+            sendOutbidNotifications(
+              emailAuction,
+              displacedIds,
+              finalWinnerId,
+              parseFloat((emailAuction.currentPrice * baseToClient).toFixed(2)),
+              buyerCurr
+            ).catch((err) => console.error("Proxy update outbid:", err));
+          }
+        }
+      } catch (err) {
+        console.error("Proxy update email dispatch:", err);
+      }
+    });
+  } catch (error) {
+    console.error("Update proxy bid error:", error);
+    res.status(500).json({ success: false, message: "Failed to update proxy bid" });
+  }
+};
+
+export const cancelProxyBid = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user._id;
+
+    const auction = await Auction.findById(id);
+    if (!auction) return res.status(404).json({ success: false, message: "Auction not found" });
+
+    const proxy = auction.proxyBids.find(
+      (pb) => pb.bidder.toString() === userId.toString() && pb.isActive
+    );
+    if (!proxy) return res.status(404).json({ success: false, message: "No active proxy bid" });
+
+    proxy.isActive = false;
+    proxy.updatedAt = new Date();
+    await auction.save();
+
+    broadcastAuctionChange(id);
+
+    res.status(200).json({ success: true, message: "Proxy bid cancelled" });
+  } catch (error) {
+    console.error("Cancel proxy bid error:", error);
+    res.status(500).json({ success: false, message: "Failed to cancel proxy bid" });
+  }
+};
+
+export const getProxyBidStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user._id;
+    const userCurrency = req.query.currency || "EUR";
+
+    const auction = await Auction.findById(id).select("proxyBids baseCurrency");
+    if (!auction) return res.status(404).json({ success: false, message: "Auction not found" });
+
+    const proxy = auction.proxyBids.find((pb) => pb.bidder.toString() === userId.toString());
+    if (!proxy) {
+      return res.status(200).json({
+        success: true,
+        data: { hasProxyBid: false, displayCurrency: userCurrency },
+      });
+    }
+
+    const ratesData = getCachedRates();
+    const base = auction.baseCurrency;
+    const baseToClient = ratesData?.[base]?.rates?.[userCurrency] || 1;
+
+    res.status(200).json({
+      success: true,
+      data: {
+        hasProxyBid: true,
+        isActive: proxy.isActive,
+        maxAmount: proxy.maxAmount,
+        currentBid: proxy.currentBid,
+        convertedMaxAmount: parseFloat((proxy.maxAmount * baseToClient).toFixed(2)),
+        convertedCurrentBid: parseFloat((proxy.currentBid * baseToClient).toFixed(2)),
+        displayCurrency: userCurrency,
+        createdAt: proxy.createdAt,
+        updatedAt: proxy.updatedAt,
+      },
+    });
+  } catch (error) {
+    console.error("Get proxy bid status error:", error);
+    res.status(500).json({ success: false, message: "Failed to fetch proxy bid status" });
   }
 };
 
@@ -3014,7 +3500,7 @@ export const buyNow = async (req, res) => {
         console.log('⚠️ No admin users found with userType: "admin"');
       } else {
         for (const admin of adminUsers) {
-          await auctionWonAdminEmail(
+          auctionWonAdminEmail(
             admin?.email,
             admin?.currency,
             updatedAuction,

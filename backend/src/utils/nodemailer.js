@@ -1225,13 +1225,20 @@ const outbidNotificationEmail = async (
     }
 };
 
-const DEBOUNCE_DELAY = 5000; // 5 seconds
-const lastNotificationTimes = new Map(); // Store last notification time per auction
+// ─────────────────────────────────────────────
+// Outbid batching — accumulate candidates, flush after quiet period
+// ─────────────────────────────────────────────
+const OUTBID_FLUSH_DELAY_MS = 3000;
+const pendingOutbidFlushes = new Map();
 
-// 16. Bulk outbid notifications for multiple bidders
+/**
+ * Schedule outbid emails. Does NOT send immediately — accumulates
+ * recipients and flushes after a quiet window, so a proxy cascade
+ * produces exactly one email per user with the FINAL price.
+ * Callers can `await` this; it returns synchronously (safe).
+ */
 const sendOutbidNotifications = async (
     auction,
-    // previousHighestBidder, // <-- removed (unused)
     previousBidders,
     currentBidderId,
     newBidAmount,
@@ -1240,78 +1247,94 @@ const sendOutbidNotifications = async (
     try {
         const auctionId = auction._id.toString();
 
-        // Per-auction debounce check
-        const now = Date.now();
-        const lastTime = lastNotificationTimes.get(auctionId) || 0;
-
-        if (now - lastTime < DEBOUNCE_DELAY) {
-            console.log(
-                `Outbid notifications debounced for auction ${auctionId} - too frequent`
-            );
-            return;
-        }
-        lastNotificationTimes.set(auctionId, now);
-
-        // Get all unique bidders who should be notified
-        const biddersToNotify = previousBidders.filter(
-            (bidderId) => bidderId !== currentBidderId.toString()
-        );
-
-        if (biddersToNotify.length === 0) {
-            console.log("No bidders to notify for outbid");
-            return;
+        let entry = pendingOutbidFlushes.get(auctionId);
+        if (!entry) {
+            entry = { candidateIds: new Set(), timer: null, currency: outBidderCurrency };
+            pendingOutbidFlushes.set(auctionId, entry);
         }
 
-        // Fetch users (now using top-level import)
-        const users = await User.find({
-            _id: { $in: biddersToNotify },
-        });
+        // Latest currency wins (same user might view in different currencies)
+        entry.currency = outBidderCurrency || entry.currency;
 
-        const eligibleUsers = users.filter((u) => canEmailUser(u, "outbid"));
-        if (eligibleUsers.length === 0) {
-            console.log("No users with outbid notifications enabled");
-            return;
+        const winnerId = currentBidderId?.toString();
+        for (const bidderId of previousBidders || []) {
+            const idStr = bidderId?.toString();
+            if (idStr && idStr !== winnerId) entry.candidateIds.add(idStr);
         }
 
-        if (eligibleUsers.length === 0) {
-            console.log("No users found with outbid notifications enabled");
-            return;
-        }
-
-        const auctionUrl = `${process.env.FRONTEND_URL}/auction/${auction._id}`;
-
-        const notificationPromises = eligibleUsers.map(async (user) => {
-            try {
-                await outbidNotificationEmail(
-                    user.email,
-                    user.username || user?.companyName || `${user.firstName} ${user.lastName}`,
-                    auction,
-                    newBidAmount,
-                    auctionUrl,
-                    outBidderCurrency
-                );
-            } catch (error) {
-                console.error(
-                    `Failed to send outbid notification to ${user.email}:`,
-                    error.message
+        // Reset the timer — cascade keeps pushing the quiet-window out
+        if (entry.timer) clearTimeout(entry.timer);
+        entry.timer = setTimeout(() => {
+            const captured = pendingOutbidFlushes.get(auctionId);
+            pendingOutbidFlushes.delete(auctionId);
+            if (captured?.candidateIds.size) {
+                flushOutbidNotifications(
+                    auctionId,
+                    captured.candidateIds,
+                    captured.currency
+                ).catch((err) =>
+                    console.error("flushOutbidNotifications:", err)
                 );
             }
-        });
+        }, OUTBID_FLUSH_DELAY_MS);
+    } catch (err) {
+        console.error("sendOutbidNotifications schedule:", err);
+    }
+};
 
-        const results = await Promise.allSettled(notificationPromises);
+const flushOutbidNotifications = async (auctionId, candidateIds, currency) => {
+    try {
+        if (!candidateIds || candidateIds.size === 0) return;
 
-        const successful = results.filter(
-            (result) => result.status === "fulfilled"
-        ).length;
-        const failed = results.filter(
-            (result) => result.status === "rejected"
-        ).length;
+        const Auction = (await import("../models/auction.model.js")).default;
+        const auction = await Auction.findById(auctionId)
+            .populate("seller", "username companyName firstName lastName")
+            .lean();
+        if (!auction) return;
 
-        console.log(
-            `Outbid notifications for auction ${auctionId}: ${successful} successful, ${failed} failed`
+        const finalWinnerId = auction.currentBidder?.toString();
+        const toNotifyIds = [...candidateIds].filter((id) => id !== finalWinnerId);
+        if (toNotifyIds.length === 0) {
+            console.log(`Outbid flush ${auctionId}: all candidates ended up winning — skip`);
+            return;
+        }
+
+        const users = await User.find({ _id: { $in: toNotifyIds } });
+        const eligible = users.filter((u) => canEmailUser(u, "outbid"));
+        if (eligible.length === 0) return;
+
+        // Convert final price base → user currency
+        const rates = getCachedRates();
+        const base = auction.baseCurrency;
+        const baseToUser = rates?.[base]?.rates?.[currency] || 1;
+        const finalBidInUserCurrency = parseFloat(
+            (auction.currentPrice * baseToUser).toFixed(2)
         );
-    } catch (error) {
-        console.error("Error sending outbid notifications:", error);
+        const auctionUrl = `${process.env.FRONTEND_URL}/auction/${auction._id}`;
+
+        const results = await Promise.allSettled(
+            eligible.map((user) =>
+                outbidNotificationEmail(
+                    user.email,
+                    user.username ||
+                    user.companyName ||
+                    `${user.firstName} ${user.lastName}`,
+                    auction,
+                    finalBidInUserCurrency,
+                    auctionUrl,
+                    currency
+                ).catch((err) =>
+                    console.error(`outbid email to ${user.email}:`, err.message)
+                )
+            )
+        );
+
+        const ok = results.filter((r) => r.status === "fulfilled").length;
+        console.log(
+            `Outbid flush ${auctionId}: ${ok}/${eligible.length} sent (final ${auction.currentPrice} ${base})`
+        );
+    } catch (err) {
+        console.error("flushOutbidNotifications:", err);
     }
 };
 

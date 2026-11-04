@@ -731,7 +731,7 @@ export const initiatePayout = async (req, res) => {
         });
 
         // Send email notification to seller
-        await payoutInitiatedEmail(seller, auction, payout);
+        payoutInitiatedEmail(seller, auction, payout).catch(err => console.error("failed to send payout initiated email:", err));;
 
         res.status(201).json({
             success: true,
@@ -807,7 +807,7 @@ export const completePayout = async (req, res) => {
         await payout.save();
 
         // Send email notification to seller
-        await payoutCompletedEmail(payout.seller, payout.auction, payout);
+        payoutCompletedEmail(payout.seller, payout.auction, payout).catch(err => console.error("failed to send payout completed email:", err));
 
         res.status(200).json({
             success: true,
@@ -857,7 +857,7 @@ export const failPayout = async (req, res) => {
         await payout.save();
 
         // Send email notification to seller
-        await payoutFailedEmail(payout.seller, payout);
+        payoutFailedEmail(payout.seller, payout).catch(err => console.error("failed to send payout failed email:", err));
 
         res.status(200).json({
             success: true,
