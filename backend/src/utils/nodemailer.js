@@ -2847,6 +2847,17 @@ const payoutCompletedEmail = async (seller, auction, payout) => {
             <div style="text-align: center; margin: 25px 0;">
                 ${createButton("View Your Listing", `${FRONTEND_URL}/auction/${auction._id}`, "primary")}
             </div>
+
+            <!-- Rate Us CTA -->
+            <div style="background: ${BRAND_COLORS.grayBg}; border: 1px solid ${BRAND_COLORS.grayBorder}; border-radius: 12px; padding: 20px; margin: 28px 0 0 0; text-align: center;">
+                <p style="margin: 0 0 6px 0; font-size: 16px; font-weight: 600; color: ${BRAND_COLORS.secondary};">
+                    How was your experience?
+                </p>
+                <p style="margin: 0 0 12px 0; color: ${BRAND_COLORS.textLight}; font-size: 14px;">
+                    A quick rating helps other buyers and sellers trust ${BRAND_NAME}.
+                </p>
+                ${createButton("Rate Us", `${FRONTEND_URL}/rate-us`, "outline")}
+            </div>
         `;
 
         const html = baseTemplate(content, "Payout Completed");
@@ -3611,6 +3622,105 @@ const websiteReviewUserEmail = async ({ name, email }) => {
     }
 };
 
+// Seller nudge: last hour, bid is within 25% of reserve
+const auctionReserveNudgeEmail = async (seller, listing) => {
+    if (!(await canSendEmail(seller.email, "reserveNudge"))) return false;
+
+    try {
+        const base = listing?.baseCurrency || "EUR";
+        const currency = seller?.currency || base;
+
+        const currentBidBase = Number(listing?.currentPrice || 0);
+        const reserveBase = Number(listing?.reservePrice || 0);
+        const gapBase = Math.max(0, reserveBase - currentBidBase);
+
+        // Convert all three to seller's currency
+        const currentBid = convertRawAmount(currentBidBase, base, currency);
+        const reservePrice = convertRawAmount(reserveBase, base, currency);
+        const gap = convertRawAmount(gapBase, base, currency);
+
+        const gapPercent = reserveBase > 0
+            ? ((gapBase / reserveBase) * 100).toFixed(1)
+            : "0";
+
+        const minutesRemaining = Math.max(
+            1,
+            Math.ceil((new Date(listing.endDate) - new Date()) / (60 * 1000))
+        );
+
+        const suggestedReserve = currentBid; // lower it to the current bid to guarantee a sale
+
+        const content = `
+            <h2 style="text-align: center;">Your reserve is within reach</h2>
+            <p style="text-align: center; color: ${BRAND_COLORS.textLight}; margin-top: -6px;">
+                Your auction ends in <strong>${minutesRemaining} minute${minutesRemaining === 1 ? "" : "s"}</strong> —
+                the highest bid is only <strong>${gapPercent}%</strong> below your reserve.
+            </p>
+
+            ${createInfoCard(`
+                <p style="margin: 0 0 12px 0; font-size: 18px; font-weight: bold; color: ${BRAND_COLORS.secondary};">
+                    ${listing.title}
+                </p>
+                ${listing.subTitle
+                ? `<p style="margin: 0 0 16px 0; text-align: center; color: ${BRAND_COLORS.textLight};">${listing.subTitle}</p>`
+                : ""}
+
+                ${createSummaryRow("Current Bid:", formatCurrency(currentBid, currency))}
+                ${createSummaryRow("Your Reserve:", formatCurrency(reservePrice, currency))}
+                ${createSummaryRow("Gap to Reserve:", formatCurrency(gap, currency))}
+                ${createSummaryRow("Ends In:", `${minutesRemaining} minute${minutesRemaining === 1 ? "" : "s"}`)}
+            `)}
+
+            <div style="background: #FFF7ED; border-left: 4px solid #F97316; padding: 16px; border-radius: 8px; margin: 20px 0;">
+                <p style="margin: 0 0 8px 0; font-weight: bold; color: #9A3412;">
+                    Lower your reserve to secure the sale
+                </p>
+                <p style="margin: 0; color: ${BRAND_COLORS.textLight};">
+                    If the reserve isn't met by the time bidding closes, the auction will end
+                    without a sale. Lowering your reserve to
+                    <strong>${formatCurrency(suggestedReserve, currency)}</strong>
+                    or just below would convert this bidder into a buyer.
+                </p>
+            </div>
+
+            <p>Hi ${seller.firstName || seller.companyName || seller.username || "there"},</p>
+            <p>
+                Your listing <strong>${listing.title}</strong> is in its final hour.
+                The current highest bid is <strong>${formatCurrency(currentBid, currency)}</strong>,
+                and your reserve is <strong>${formatCurrency(reservePrice, currency)}</strong> — a
+                difference of just <strong>${formatCurrency(gap, currency)}</strong>.
+            </p>
+
+            <p>
+                You can lower the reserve directly from your seller dashboard
+                right up until bidding closes.
+            </p>
+
+            <div style="text-align: center; margin: 25px 0;">
+                ${createButton("Lower Reserve Price", `${FRONTEND_URL}/seller/auctions/all`, "primary")}
+            </div>
+
+            <p style="text-align: center; color: ${BRAND_COLORS.textLight}; font-size: 13px;">
+                ⏱ Once bidding closes, the reserve cannot be changed.
+            </p>
+        `;
+
+        const html = baseTemplate(content, "Last Chance to Lower Your Reserve");
+
+        const info = await transporter.sendMail({
+            from: `"${BRAND_NAME}" <${process.env.EMAIL_USER}>`,
+            to: seller.email,
+            subject: `⏰ ${minutesRemaining}m left — your reserve is ${gapPercent}% away from a sale`,
+            html,
+        });
+
+        return !!info;
+    } catch (error) {
+        console.error("Failed to send reserve nudge email:", error);
+        return false;
+    }
+};
+
 export {
     contactEmail, //done
     contactConfirmationEmail, //done
@@ -3663,4 +3773,5 @@ export {
     sendMarketingCampaignEmail,
     websiteReviewAdminEmail,
     websiteReviewUserEmail,
+    auctionReserveNudgeEmail,
 };

@@ -1,9 +1,8 @@
-// src/components/AuthBidModal.jsx
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import {
     Mail, Lock, Eye, EyeOff, User, Phone, ChevronDown,
-    Gavel, Store, Building2, FileText, X,
+    Gavel, Store, Building2, FileText, X, Banknote
 } from 'lucide-react';
 import { darkLogo, otherData } from '../assets';
 import { toast } from 'react-hot-toast';
@@ -28,6 +27,11 @@ const AuthBidModal = ({ isOpen, onClose, onAuthSuccess, pendingAction }) => {
         "Limerick", "Longford", "Louth", "Mayo", "Meath", "Monaghan", "Offaly", "Roscommon",
         "Sligo", "Tipperary", "Tyrone", "Waterford", "Westmeath", "Wexford", "Wicklow"
     ]);
+    const [selectedCurrency, setSelectedCurrency] = useState('EUR');
+    const currencies = [
+        { code: 'GBP', name: 'Pound Sterling' },
+        { code: 'EUR', name: 'Euro' },
+    ];
 
     useEffect(() => {
         useCountries().then(setCountries).catch(() => { });
@@ -380,6 +384,30 @@ const AuthBidModal = ({ isOpen, onClose, onAuthSuccess, pendingAction }) => {
                             <div className="grid grid-cols-1 md:grid-cols-1 gap-3">
                                 <Input label="Address Line 1" placeholder="Address Line 1" {...regRegister('line1')} />
                                 <Input label="Address Line 2" placeholder="Address Line 2" {...regRegister('line2')} />
+                            </div>
+
+                            <div>
+                                <label className="text-xs font-medium flex items-center gap-1">
+                                    <Banknote size={14} /> Currency *
+                                </label>
+                                <div className="relative">
+                                    <select
+                                        {...regRegister('currency', { required: 'Currency is required' })}
+                                        value={selectedCurrency}
+                                        onChange={(e) => {
+                                            setSelectedCurrency(e.target.value);
+                                            regSetValue('currency', e.target.value);
+                                        }}
+                                        className="w-full p-2 border rounded-lg text-sm appearance-none"
+                                    >
+                                        <option value="">Select currency</option>
+                                        {currencies.map((c) => (
+                                            <option key={c.code} value={c.code}>{c.name}</option>
+                                        ))}
+                                    </select>
+                                    <ChevronDown size={16} className="absolute right-2 top-3 text-gray-400 pointer-events-none" />
+                                </div>
+                                {regErrors.currency && <p className="text-red-500 text-xs mt-1">{regErrors.currency.message}</p>}
                             </div>
 
                             <label className="flex items-start gap-2 text-xs text-gray-600">

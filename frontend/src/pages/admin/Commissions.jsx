@@ -512,8 +512,8 @@ const Commissions = () => {
                                     </div>
                                     <p className="mt-2 text-xs text-gray-500">
                                         Applied independently to seller and bidder base
-                                        commission. Featured premium (3%) is added on top,
-                                        uncapped.
+                                        commission. Featured premium (currently 0%) is added
+                                        only to the seller, uncapped.
                                     </p>
                                 </div> */}
 
@@ -590,9 +590,8 @@ const Commissions = () => {
                                                 and bidders. Each party pays their own computed amount.
                                             </p>
                                             <p>
-                                                • If both parties are enabled and a <strong>Featured</strong>{' '}
-                                                listing is sold, each pays a <strong>3% featured premium</strong>{' '}
-                                                on top of their tiered commission (uncapped).
+                                                • <strong>Featured premium</strong> (currently 0%) is added only to the{' '}
+                                                <strong>seller's</strong> commission, never the bidder's.
                                             </p>
                                             <p>
                                                 • Existing auctions keep the commission that was

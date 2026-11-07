@@ -33,8 +33,9 @@ function AllAuctions() {
     const [activeDropdown, setActiveDropdown] = useState(null);
 
     const handleReserveLowered = (updatedAuction) => {
-        // Update your local state with the new auction data
-        return;
+        setAuctions(prev =>
+            prev.map(a => a._id === updatedAuction._id ? { ...a, ...updatedAuction } : a)
+        );
     };
 
     const dropdownRef = useRef();
@@ -399,10 +400,9 @@ function AllAuctions() {
                                     <thead className="bg-gray-50">
                                         <tr>
                                             <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item</th>
-                                            <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Initial Price</th>
+                                            <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
                                             <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Current Bid</th>
                                             <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bids</th>
-                                            <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Watchers</th>
                                             <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ends In</th>
                                             {/* <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th> */}
                                             <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
@@ -436,7 +436,11 @@ function AllAuctions() {
                                                             </div>
                                                         </div>
                                                     </td>
-                                                    <td className="py-4 px-6 text-sm text-gray-900">{userCurrency === 'GBP' ? '£' : '€'}{auction.convertedStartPrice?.toFixed(0)?.toLocaleString('en-IE')}</td>
+                                                    <td className="py-4 px-6 text-sm text-gray-900">    {userCurrency === 'GBP' ? '£' : '€'}
+                                                        Starting: {auction.convertedStartPrice?.toFixed(0)?.toLocaleString('en-IE')}<br />
+                                                        Reserve: {userCurrency === 'GBP' ? '£' : '€'}
+                                                        {auction.convertedReservePrice?.toFixed(0)?.toLocaleString('en-IE')}
+                                                    </td>
                                                     <td className="py-4 px-6 text-sm font-medium text-green-600">
                                                         {/* ${auction.convertedCurrentPrice?.toLocaleString('en-IE')} */}
                                                         {userCurrency === 'GBP' ? '£' : '€'}{auction.bids?.length > 0 ? auction.convertedCurrentPrice?.toFixed(0)?.toLocaleString('en-IE') : 'No Bids'}
@@ -445,12 +449,6 @@ function AllAuctions() {
                                                         <div className="flex items-center">
                                                             <Gavel size={14} className="mr-1 text-gray-500" />
                                                             {auction.bidCount || 0}
-                                                        </div>
-                                                    </td>
-                                                    <td className="py-4 px-6 text-sm text-gray-900">
-                                                        <div className="flex items-center">
-                                                            <Eye size={14} className="mr-1 text-gray-500" />
-                                                            {auction.watchlistCount || 0}
                                                         </div>
                                                     </td>
                                                     <td className="py-4 px-6 text-sm text-gray-900">
@@ -500,7 +498,7 @@ function AllAuctions() {
                                                                         >
                                                                             <Star size={16} className="inline mr-2" /> Make Featured (+3% premium)
                                                                         </button>
-                                                                        {/* <button
+                                                                        {auction?.auctionType === 'reserve' && <button
                                                                             onClick={() => {
                                                                                 handleShowReserveModal(auction);
                                                                                 setActiveDropdown(null);
@@ -508,7 +506,7 @@ function AllAuctions() {
                                                                             className="px-4 py-2 text-orange-600 hover:bg-orange-50 transition-colors text-left"
                                                                         >
                                                                             Lower Reserve Price
-                                                                        </button> */}
+                                                                        </button>}
                                                                         <Link
                                                                             to={`/company/auctions/edit/${auction._id}`}
                                                                             className="px-4 py-2 text-gray-700 hover:bg-gray-50 transition-colors text-left"

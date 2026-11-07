@@ -4,7 +4,7 @@ import axiosInstance from "../utils/axiosInstance";
 import toast from "react-hot-toast";
 import { useAuth } from "../contexts/AuthContext";
 
-const ProxyBidSection = ({ auction, userCurrency, onClose }) => {
+const ProxyBidSection = ({ auction, userCurrency, onClose, onPaymentRequired, initialMaxAmount }) => {
     const { user } = useAuth();
     const [status, setStatus] = useState(null);
     const [maxAmount, setMaxAmount] = useState("");
@@ -33,6 +33,16 @@ const ProxyBidSection = ({ auction, userCurrency, onClose }) => {
         }
     };
 
+    useEffect(() => {
+        if (!initialMaxAmount || !status) return;
+        if (status.hasProxyBid && status.isActive) {
+            setNewMax(initialMaxAmount);   // was an update
+        } else {
+            setMaxAmount(initialMaxAmount); // was a new place
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [initialMaxAmount, status]);
+
     // Minimum for a NEW or UPDATED max — display currency
     const minBid = auction.bidCount === 0
         ? (auction.convertedStartPrice || 0)
@@ -56,7 +66,12 @@ const ProxyBidSection = ({ auction, userCurrency, onClose }) => {
             setMaxAmount("");
             onClose?.();
         } catch (err) {
-            toast.error(err?.response?.data?.message || "Failed to place proxy bid");
+            if (err?.response?.data?.errorCode === 'PAYMENT_METHOD_REQUIRED') {
+                onPaymentRequired?.({ type: 'proxy-bid', amount: String(value) });
+                // don't toast — parent will open the card modal
+            } else {
+                toast.error(err?.response?.data?.message || 'Failed');
+            }
         } finally { setLoading(false); }
     };
 
@@ -76,7 +91,11 @@ const ProxyBidSection = ({ auction, userCurrency, onClose }) => {
             await fetchStatus();
             onClose?.();
         } catch (err) {
-            toast.error(err?.response?.data?.message || "Failed to update proxy bid");
+            if (err?.response?.data?.errorCode === 'PAYMENT_METHOD_REQUIRED') {
+                onPaymentRequired?.({ type: 'proxy-bid', amount: String(value) });
+            } else {
+                toast.error(err?.response?.data?.message || 'Failed to update proxy bid');
+            }
         } finally { setUpdating(false); }
     };
 
@@ -168,6 +187,18 @@ const ProxyBidSection = ({ auction, userCurrency, onClose }) => {
                     </button>
                     <p className="text-xs text-gray-500">
                         💡 The system will automatically bid on your behalf up to your maximum. Amounts are shown in {userCurrency}.
+                    </p>
+
+                    {/* Information Text */}
+                    <p className="text-xs text-gray-500">
+                        Note: Your bid is legally binding and cannot be revoked. Don't bid unless you have the capacity to carry out the transaction. By placing a bid, you are in agreement with our{" "}
+                        <a
+                            href="/buyer-terms"
+                            target="_blank"
+                            className="text-blue-600 hover:text-blue-800 underline"
+                        >
+                            buyer's terms.
+                        </a>
                     </p>
                 </form>
             )}

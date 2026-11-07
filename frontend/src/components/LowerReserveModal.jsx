@@ -1,17 +1,32 @@
 import { useState } from 'react';
-import { X, PoundSterling, AlertCircle, CheckCircle } from 'lucide-react';
+import { X, Coins, AlertCircle, CheckCircle } from 'lucide-react';
 import axiosInstance from '../utils/axiosInstance.js';
+import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
+import useBodyScrollLock from "../hooks/useBodyScrollLock";
 
 function LowerReserveModal({ isOpen, onClose, auction, onReserveLowered }) {
     const [newReservePrice, setNewReservePrice] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    useBodyScrollLock(isOpen);
+
+    const { user } = useAuth();
+    const userCurrency = user?.currency || "EUR";
+    const currencySymbol = userCurrency === "GBP" ? "£" : "€";
+
+    const formatCurrency = (amount) => {
+        if (!amount && amount !== 0) {
+            return `${currencySymbol}0`;
+        }
+        return `${currencySymbol}${Number(amount).toLocaleString("en-IE")}`;
+    };
 
     if (!isOpen || !auction) return null;
 
-    const currentReserve = auction.reservePrice;
-    const currentBid = auction.currentPrice;
+    // ✅ Use the converted values (already in user currency) coming from getUserAuctions
+    const currentReserve = auction.convertedReservePrice ?? auction.reservePrice;
+    const currentBid = auction.convertedCurrentPrice ?? auction.currentPrice;
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -31,12 +46,12 @@ function LowerReserveModal({ isOpen, onClose, auction, onReserveLowered }) {
         }
 
         if (newPrice >= currentReserveNum) {
-            setError('New reserve price must be lower than current reserve price');
+            setError(`New reserve price must be lower than ${formatCurrency(currentReserveNum)}`);
             return;
         }
 
         // if (newPrice <= currentBidNum) {
-        //     setError(`New reserve price must be higher than current bid ($${currentBidNum.toLocaleString()})`);
+        //     setError(`New reserve price must be higher than current bid (${formatCurrency(currentBidNum)})`);
         //     return;
         // }
 
@@ -51,7 +66,10 @@ function LowerReserveModal({ isOpen, onClose, auction, onReserveLowered }) {
 
             const { data } = await axiosInstance.patch(
                 `/api/v1/auctions/${auction._id}/lower-reserve`,
-                { newReservePrice: newPrice }
+                {
+                    newReservePrice: newPrice,
+                    currency: userCurrency, // ✅ send user currency — backend converts to base
+                }
             );
 
             if (data.success) {
@@ -79,10 +97,10 @@ function LowerReserveModal({ isOpen, onClose, auction, onReserveLowered }) {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-lg max-w-md w-full mx-auto">
                 {/* Header */}
-                <div className="flex items-center justify-between p-6 border-b border-gray-200">
+                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
                     <div className="flex items-center gap-3">
-                        <PoundSterling className="w-6 h-6 text-green-600" />
-                        <h2 className="text-xl font-semibold text-gray-900">Lower Reserve Price</h2>
+                        <Coins className="w-6 h-6 text-green-600" />
+                        <h2 className="text-lg font-semibold text-gray-900">Lower Reserve Price</h2>
                     </div>
                     <button
                         onClick={handleClose}
@@ -96,21 +114,23 @@ function LowerReserveModal({ isOpen, onClose, auction, onReserveLowered }) {
                 <div className="p-6">
                     <form onSubmit={handleSubmit} className="space-y-4">
                         {/* Current Reserve Price */}
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                             <div className="flex items-center justify-between">
                                 <span className="text-sm font-medium text-blue-900">Current Reserve Price:</span>
                                 <span className="text-lg font-bold text-blue-900">
-                                    ${currentReserve?.toLocaleString()}
+                                    {formatCurrency(currentReserve)}
                                 </span>
                             </div>
                         </div>
 
                         {/* Current Highest Bid */}
-                        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                        <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
                             <div className="flex items-center justify-between">
-                                <span className="text-sm font-medium text-gray-700">Current Bid Price:</span>
+                                <span className="text-sm font-medium text-gray-700">
+                                    {`${auction?.bidCount > 0 ? 'Current Bid Price' : 'Starting Price'}`}
+                                </span>
                                 <span className="text-lg font-bold text-gray-900">
-                                    ${currentBid.toLocaleString()}
+                                    {formatCurrency(currentBid)}
                                 </span>
                             </div>
                         </div>
@@ -121,7 +141,9 @@ function LowerReserveModal({ isOpen, onClose, auction, onReserveLowered }) {
                                 New Reserve Price *
                             </label>
                             <div className="relative">
-                                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600">$</span>
+                                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600">
+                                    {currencySymbol}
+                                </span>
                                 <input
                                     type="number"
                                     id="newReservePrice"
@@ -132,7 +154,7 @@ function LowerReserveModal({ isOpen, onClose, auction, onReserveLowered }) {
                                     }}
                                     step="0.01"
                                     min="0"
-                                    placeholder={`Enter amount lower than $${currentReserve.toLocaleString()}`}
+                                    placeholder={`Enter amount lower than ${formatCurrency(currentReserve)}`}
                                     className="w-full pl-8 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                                 />
                             </div>
@@ -149,26 +171,13 @@ function LowerReserveModal({ isOpen, onClose, auction, onReserveLowered }) {
                         {/* Info Message */}
                         <div className="flex items-start gap-2 text-sm text-gray-600 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
                             <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                            <div>
-                                <p className="font-medium mb-1">Important:</p>
-                                <ul className="list-disc list-inside space-y-1">
-                                    <li>Reserve price can only be lowered, not increased</li>
-                                    <li>This action cannot be undone</li>
-                                </ul>
-                            </div>
+                            <p>Reserve price can only be lowered, not increased</p>
                         </div>
                     </form>
                 </div>
 
                 {/* Footer */}
                 <div className="flex gap-3 p-6 border-t border-gray-200">
-                    {/* <button
-                        type="button"
-                        onClick={handleClose}
-                        className="flex-1 px-4 py-2 text-gray-700 bg-gray-100 border border-gray-300 rounded-lg hover:bg-gray-200 transition-colors"
-                    >
-                        Cancel
-                    </button> */}
                     <button
                         onClick={handleSubmit}
                         disabled={loading || !newReservePrice}

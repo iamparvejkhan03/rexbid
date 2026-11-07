@@ -118,7 +118,7 @@ const AuctionDates = () => {
                 <AdminHeader />
                 <AdminContainer>
                     <div className="pt-16 md:py-7">
-                        <div className="flex justify-between items-center mb-6">
+                        <div className="flex flex-wrap gap-3 justify-between items-center mb-6">
                             <h1 className="text-3xl font-bold">Auction Dates</h1>
                             <button
                                 onClick={openCreate}
@@ -146,7 +146,7 @@ const AuctionDates = () => {
                         ) : slots.length === 0 ? (
                             <p className="text-gray-500">No auction dates yet.</p>
                         ) : (
-                            <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+                            <div className="bg-white rounded-lg shadow-sm overflow-x-auto">
                                 <table className="w-full text-sm">
                                     <thead className="bg-gray-50">
                                         <tr>

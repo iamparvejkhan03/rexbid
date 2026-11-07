@@ -1,4 +1,5 @@
 import { forwardRef, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import axiosInstance from "../utils/axiosInstance";
 import { useAuth } from "../contexts/AuthContext";
 import useBodyScrollLock from "../hooks/useBodyScrollLock";
@@ -97,11 +98,15 @@ const BidConfirmationModal = forwardRef((props, ref) => {
     const total =
         isCommissionEnabled ? Number(bidAmount) + Number(serviceFee) : Number(bidAmount);
 
-    return (
-        <div className="fixed max-w-full inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-40">
+    return createPortal(
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50">
             <div className="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
-                <div className="flex justify-between items-center py-3 px-6 md:p-6 border-b border-gray-200">
-                    <h2 className="text-xl font-semibold text-gray-900">Confirm your bid</h2>
+
+                {/* Header */}
+                <div className="flex justify-between items-center py-3 px-6 border-b border-gray-200">
+                    <h2 className="text-lg font-semibold text-gray-900">
+                        Confirm your bid
+                    </h2>
                     <button
                         onClick={onClose}
                         className="text-gray-400 hover:text-gray-600 text-2xl font-light"
@@ -110,14 +115,16 @@ const BidConfirmationModal = forwardRef((props, ref) => {
                     </button>
                 </div>
 
-                <div className="py-3 px-6 md:p-6 border-b border-gray-200">
+                {/* Vehicle Info */}
+                <div className="py-3 px-6 border-b border-gray-200">
                     <strong className="text-gray-900">
                         {auction?.auctionType === "standard" ? "No Reserve" : "Reserve"}:{" "}
                         {auction?.title || "2016 Land Rover LR4 HSE"}
                     </strong>
                 </div>
 
-                <div className="py-3 px-6 md:p-6 border-b border-gray-200">
+                {/* Bid Details */}
+                <div className="py-2 px-6 md:px-6 border-b border-gray-200">
                     <table className="w-full">
                         <tbody>
                             <tr>
@@ -128,7 +135,7 @@ const BidConfirmationModal = forwardRef((props, ref) => {
                             </tr>
                             {isCommissionEnabled && (
                                 <tr>
-                                    <td className="text-gray-600">
+                                    <td className="py-2 text-gray-600">
                                         Commission Fee:
                                         {isCapped && capDisplay && (
                                             <span className="ml-2 text-xs text-gray-400">
@@ -136,7 +143,7 @@ const BidConfirmationModal = forwardRef((props, ref) => {
                                             </span>
                                         )}
                                     </td>
-                                    <td className="text-right text-gray-900">
+                                    <td className="py-2 text-right text-gray-900">
                                         {formatCurrency(serviceFee)}
                                     </td>
                                 </tr>
@@ -149,11 +156,17 @@ const BidConfirmationModal = forwardRef((props, ref) => {
                             </tr>
                         </tbody>
                     </table>
+                    {/* {isCommissionEnabled && (
+                        <p className="text-xs text-gray-500 text-center">
+                            Note: A buyer's commission will be applied on the winning bid amount.
+                        </p>
+                    )} */}
                 </div>
 
-                <div className="py-3 px-6 md:p-6 border-b border-gray-200 space-y-4">
+                {/* Information Text */}
+                <div className="py-3 px-6 border-b border-gray-200 space-y-4">
                     <p className="text-sm text-gray-600">
-                        For more info, read our{" "}
+                        Note: Your bid is legally binding and cannot be revoked. Don't bid unless you have the capacity to carry out the transaction. By placing a bid, you are in agreement with our{" "}
                         <a
                             href="/buyer-terms"
                             target="_blank"
@@ -164,10 +177,11 @@ const BidConfirmationModal = forwardRef((props, ref) => {
                     </p>
                 </div>
 
-                <div className="py-3 px-6 md:p-6 flex flex-col sm:flex-row gap-3">
+                {/* Action Buttons */}
+                <div className="py-3 px-6 md:p-6 flex gap-3">
                     <button
                         onClick={onClose}
-                        className="flex-1 order-2 sm:order-1 py-2 px-4 md:py-3 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 font-medium transition-colors"
+                        className="flex-1 py-2 px-4 md:py-3 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 font-medium transition-colors"
                     >
                         Cancel
                     </button>
@@ -176,13 +190,15 @@ const BidConfirmationModal = forwardRef((props, ref) => {
                         ref={ref}
                         onClick={onConfirm}
                         type="submit"
-                        className="flex-1 order-1 sm:order-2 py-2 px-4 md:py-3 bg-black text-white rounded-md hover:bg-gray-900 font-medium transition-colors"
+                        className="flex-1 py-2 px-4 md:py-3 bg-black text-white rounded-md hover:bg-gray-900 font-medium transition-colors"
                     >
                         Place Bid
                     </button>
                 </div>
+
             </div>
-        </div>
+        </div>,
+        document.body
     );
 });
 

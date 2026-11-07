@@ -33,6 +33,8 @@ import toast from 'react-hot-toast';
 import axiosInstance from '../../utils/axiosInstance';
 import { useAuth } from '../../contexts/AuthContext';
 import { compressAuctionImages } from '../../utils/compressImage.js';
+import { TouchBackend } from 'react-dnd-touch-backend';
+import { useMemo } from 'react';
 
 // Drag and Drop item types
 const ItemTypes = {
@@ -40,125 +42,110 @@ const ItemTypes = {
 };
 
 // Fixed Draggable Photo Component
-const DraggablePhoto = ({ photo, index, movePhoto, removePhoto, caption, onCaptionChange }) => {
+const DraggablePhoto = ({
+    photo,
+    index,
+    movePhoto,
+    removePhoto,
+}) => {
     const ref = useRef(null);
 
-    const [{ isDragging }, drag] = useDrag({
+    const imageSrc = photo.isExisting
+        ? photo.url
+        : photo.previewUrl;
+
+    const [{ isDragging }, drag] = useDrag(() => ({
         type: ItemTypes.PHOTO,
-        item: { type: ItemTypes.PHOTO, index },
+        item: {
+            id: photo.id,
+            index,
+        },
         collect: (monitor) => ({
             isDragging: monitor.isDragging(),
         }),
-    });
+    }), [photo.id, index]);
 
-    const [, drop] = useDrop({
+    const [, drop] = useDrop(() => ({
         accept: ItemTypes.PHOTO,
-        hover(item, monitor) {
-            if (!ref.current) {
-                return;
-            }
-            const dragIndex = item.index;
-            const hoverIndex = index;
 
-            // Don't replace items with themselves
-            if (dragIndex === hoverIndex) {
-                return;
-            }
+        hover(item) {
+            if (!ref.current) return;
+            if (item.id === photo.id) return;
+            if (item.index === index) return;
 
-            // Determine rectangle on screen
-            const hoverBoundingRect = ref.current?.getBoundingClientRect();
+            movePhoto(item.index, index);
 
-            // Get vertical middle
-            const hoverMiddleY = (hoverBoundingRect.bottom - hoverBoundingRect.top) / 2;
-
-            // Determine mouse position
-            const clientOffset = monitor.getClientOffset();
-
-            // Get pixels to the top
-            const hoverClientY = clientOffset.y - hoverBoundingRect.top;
-
-            // Only perform the move when the mouse has crossed half of the items height
-            // When dragging downwards, only move when the cursor is below 50%
-            // When dragging upwards, only move when the cursor is above 50%
-            if (dragIndex < hoverIndex && hoverClientY < hoverMiddleY) {
-                return;
-            }
-
-            // When dragging upwards, only move when the cursor is above 50%
-            if (dragIndex > hoverIndex && hoverClientY > hoverMiddleY) {
-                return;
-            }
-
-            // Time to actually perform the action
-            movePhoto(dragIndex, hoverIndex);
-
-            // Note: we're mutating the monitor item here!
-            // Generally it's better to avoid mutations,
-            // but it's good here for the sake of performance
-            // to avoid expensive index searches.
-            item.index = hoverIndex;
+            // Keep the dragged item's index updated.
+            item.index = index;
         },
-    });
+    }), [photo.id, index, movePhoto]);
 
-    // Use the drag and drop refs
     drag(drop(ref));
 
     return (
         <div className="space-y-2">
-            {/* Image with drag/drop */}
             <div
                 ref={ref}
                 style={{
-                    opacity: isDragging ? 0.5 : 1,
+                    opacity: isDragging ? 0.85 : 1,
                     cursor: isDragging ? 'grabbing' : 'grab',
                 }}
-                className="relative group transition-all duration-200"
+                className="relative group select-none"
             >
                 <img
-                    src={photo.isExisting ? photo.url : URL.createObjectURL(photo.file)}
+                    src={imageSrc}
                     alt={`Photo ${index + 1}`}
-                    className="w-full h-32 object-cover rounded-lg border-2 border-transparent hover:border-blue-500"
+                    draggable={false}
+                    className="w-full h-32 object-cover rounded-lg border-2 border-transparent hover:border-blue-500 pointer-events-none"
                 />
-                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200 rounded-lg flex items-center justify-center">
-                    <Move size={20} className="text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+
+                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200 rounded-lg flex items-center justify-center pointer-events-none">
+                    <Move
+                        size={20}
+                        className="text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                    />
                 </div>
-                <div className="absolute top-2 left-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded-full">
+
+                <div className="absolute top-2 left-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded-full pointer-events-none">
                     {index + 1}
                 </div>
-                <div className="absolute top-2 right-2 bg-blue-500 bg-opacity-70 text-white text-xs px-2 py-1 rounded-full">
+
+                <div className="absolute top-2 right-2 bg-blue-500 bg-opacity-70 text-white text-xs px-2 py-1 rounded-full pointer-events-none">
                     {photo.isExisting ? 'Existing' : 'New'}
                 </div>
+
                 <button
                     type="button"
                     onClick={() => removePhoto(index)}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onTouchStart={(e) => e.stopPropagation()}
                     className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors z-10"
                 >
                     <X size={14} />
                 </button>
             </div>
-
-            {/* Add caption input */}
-            {/* <input
-                type="text"
-                placeholder="Add caption..."
-                value={caption || ''}
-                onChange={(e) => onCaptionChange(index, e.target.value)}
-                className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-black"
-            /> */}
         </div>
     );
 };
 
 // Photo Gallery Component
-const PhotoGallery = ({ photos, movePhoto, removePhoto, captions, onCaptionChange }) => {
+const PhotoGallery = ({
+    photos,
+    movePhoto,
+    removePhoto,
+    captions,
+    onCaptionChange,
+}) => {
     return (
         <div className="mt-4">
             <p className="text-sm text-secondary mb-3">
                 Drag and drop to reorder photos. The first image will be the main thumbnail.
+
                 <span className="block text-xs text-gray-500 mt-1">
                     Blue badge indicates existing photos
                 </span>
             </p>
+
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
                 {photos.map((photo, index) => (
                     <DraggablePhoto
@@ -507,6 +494,7 @@ const EditAuction = () => {
     const [uploadedDocumentCaptions, setUploadedDocumentCaptions] = useState([]);
 
     const [isCompressing, setIsCompressing] = useState(false);
+    const allPhotosRef = useRef([]);
 
     const { auctionId } = useParams();
     const navigate = useNavigate();
@@ -560,6 +548,23 @@ const EditAuction = () => {
             }
         };
         fetchDates();
+    }, []);
+
+    useEffect(() => {
+        allPhotosRef.current = allPhotos;
+    }, [allPhotos]);
+
+    useEffect(() => {
+        return () => {
+            allPhotosRef.current.forEach(photo => {
+                if (
+                    !photo.isExisting &&
+                    photo.previewUrl?.startsWith('blob:')
+                ) {
+                    URL.revokeObjectURL(photo.previewUrl);
+                }
+            });
+        };
     }, []);
 
     const selectedAuctionDateId = watch("auctionDateId");
@@ -647,19 +652,39 @@ const EditAuction = () => {
         { name: 'Van', slug: 'van' },
     ];
 
-    const movePhoto = useCallback((dragIndex, hoverIndex) => {
-        setAllPhotos(prevPhotos => {
+    const movePhoto = useCallback((dragIndex, dropIndex) => {
+        if (dragIndex === dropIndex) return;
+
+        setAllPhotos((prevPhotos) => {
+            if (
+                dragIndex < 0 ||
+                dropIndex < 0 ||
+                dragIndex >= prevPhotos.length ||
+                dropIndex >= prevPhotos.length
+            ) {
+                return prevPhotos;
+            }
+
             const updatedPhotos = [...prevPhotos];
+
             const [movedPhoto] = updatedPhotos.splice(dragIndex, 1);
-            updatedPhotos.splice(hoverIndex, 0, movedPhoto);
+
+            updatedPhotos.splice(dropIndex, 0, movedPhoto);
+
             return updatedPhotos;
         });
 
-        // Also move corresponding captions
-        setPhotoCaptions(prevCaptions => {
+        setPhotoCaptions((prevCaptions) => {
             const updatedCaptions = [...prevCaptions];
+
+            if (dragIndex >= updatedCaptions.length) {
+                return prevCaptions;
+            }
+
             const [movedCaption] = updatedCaptions.splice(dragIndex, 1);
-            updatedCaptions.splice(hoverIndex, 0, movedCaption);
+
+            updatedCaptions.splice(dropIndex, 0, movedCaption);
+
             return updatedCaptions;
         });
     }, []);
@@ -955,12 +980,14 @@ const EditAuction = () => {
 
         const newPhotos = compressedFiles.map(file => {
             const fileId = `${file.name}-${file.size}-${file.lastModified}`;
+
             const uniqueId = `new-${Date.now()}-${fileId.replace(/[^a-zA-Z0-9]/g, '-')}`;
+
             return {
                 file,
                 isExisting: false,
                 id: uniqueId,
-                _fileSignature: `${file.name}-${file.size}-${file.lastModified}`
+                _fileSignature: `${file.name}-${file.size}-${file.lastModified}`,
             };
         });
 
@@ -981,21 +1008,25 @@ const EditAuction = () => {
             return;
         }
 
-        setAllPhotos(prev => {
-            const existingSigs = new Set(
-                prev.filter(p => !p.isExisting).map(p => p._fileSignature)
-            );
-            const filtered = uniqueNewPhotos.filter(photo =>
-                !existingSigs.has(photo._fileSignature)
-            );
-            return [...filtered, ...prev];
-        });
+        // Create each preview URL only once.
+        const photosWithPreview = uniqueNewPhotos.map(photo => ({
+            ...photo,
+            previewUrl: URL.createObjectURL(photo.file),
+        }));
 
-        const newCaptions = [...photoCaptions];
-        compressedFiles.forEach(() => newCaptions.unshift(''));
-        setPhotoCaptions(newCaptions);
+        setAllPhotos(prev => [
+            ...photosWithPreview,
+            ...prev,
+        ]);
+
+        // Keep captions aligned with the photos.
+        setPhotoCaptions(prev => [
+            ...photosWithPreview.map(() => ''),
+            ...prev,
+        ]);
 
         clearErrors('photos');
+
         setIsCompressing(false);
         e.target.value = '';
     };
@@ -1072,22 +1103,35 @@ const EditAuction = () => {
     const removePhoto = (index) => {
         const photoToRemove = allPhotos[index];
 
+        if (!photoToRemove) return;
+
         if (photoToRemove.isExisting) {
-            setRemovedPhotos(prev => [...prev, photoToRemove.id]);
+            setRemovedPhotos(prev => [
+                ...prev,
+                photoToRemove.id,
+            ]);
         }
 
-        // Remove from all photos
-        setAllPhotos(prev => prev.filter((_, i) => i !== index));
+        // Release the preview URL when a new photo is removed.
+        if (
+            !photoToRemove.isExisting &&
+            photoToRemove.previewUrl?.startsWith('blob:')
+        ) {
+            URL.revokeObjectURL(photoToRemove.previewUrl);
+        }
 
-        // Remove corresponding caption
-        const newCaptions = [...photoCaptions];
-        newCaptions.splice(index, 1);
-        setPhotoCaptions(newCaptions);
+        setAllPhotos(prev =>
+            prev.filter((_, i) => i !== index)
+        );
+
+        setPhotoCaptions(prev =>
+            prev.filter((_, i) => i !== index)
+        );
 
         if (allPhotos.length === 1) {
             setError('photos', {
                 type: 'manual',
-                message: 'At least one photo is required'
+                message: 'At least one photo is required',
             });
         }
     };
@@ -1341,7 +1385,16 @@ const EditAuction = () => {
     }
 
     return (
-        <DndProvider backend={HTML5Backend}>
+        <DndProvider
+            backend={TouchBackend}
+            options={{
+                enableMouseEvents: true,
+                delayTouchStart: 10,
+                delayMouseStart: 0,
+                touchSlop: 8,
+                ignoreContextMenu: true,
+            }}
+        >
             <section className="flex min-h-screen bg-gray-50">
                 <AdminSidebar />
 
@@ -1406,7 +1459,7 @@ const EditAuction = () => {
                                                     id="title"
                                                     type="text"
                                                     className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
-                                                    placeholder="e.g., 2017 VANS RV-6A"
+                                                    placeholder="e.g., 2006 Massey 6480"
                                                 />
                                                 {errors.title && <p className="text-red-500 text-sm mt-1">{errors.title.message}</p>}
                                             </div>
@@ -2100,90 +2153,36 @@ const EditAuction = () => {
                                         <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 sm:p-6 mb-6 max-h-full overflow-y-auto space-y-6 text-sm text-gray-700 leading-relaxed">
                                             {/* 1 */}
                                             <div>
-                                                <h3 className="font-semibold text-gray-900 mb-2">1. Exclusive listing and binding sale</h3>
-                                                <p className="mb-2">
-                                                    When you list an item on RexBid, you commit to selling it only through RexBid for the full
-                                                    duration of the listing. You must not sell it elsewhere, including privately to anyone who
-                                                    contacted you through RexBid.
-                                                </p>
-                                                <p className="mb-2">
-                                                    Subject to the reserve price and RexBid Website Terms, bids are binding. If the reserve is met
-                                                    and there is a winning bidder, you must complete the sale at the winning price. You must not
-                                                    withdraw the item after a valid bid, cancel a successful sale or arrange payment outside RexBid
-                                                    without written approval.
-                                                </p>
+                                                <h3 className="font-semibold text-gray-900 mb-2">1. Exclusive listing on RexBid</h3>
                                                 <p>
-                                                    If you sell elsewhere, withdraw without approval, refuse to complete or make the item
-                                                    unavailable, RexBid may impose a seller-default charge. The amount will be decided on a
-                                                    case-by-case basis, having regard to the value of the item, the reserve or winning bid, any
-                                                    costs incurred by RexBid and the circumstances of the default.
+                                                    List exclusively on RexBid. Keep the item available for the full listing period. Selling elsewhere,
+                                                    privately, withdrawing without approval or refusing to complete will result in a seller-default charge.
                                                 </p>
                                             </div>
 
                                             {/* 2 */}
                                             <div>
-                                                <h3 className="font-semibold text-gray-900 mb-2">2. Reserve price and bidding integrity</h3>
-                                                <ul className="list-disc pl-5 space-y-1">
-                                                    <li>
-                                                        Set a genuine reserve price before bidding opens. Any later change requires RexBid approval.
-                                                    </li>
-                                                    <li>
-                                                        You, your staff, family, agents or anyone acting for you must not bid on your own item or
-                                                        arrange bids to increase its price.
-                                                    </li>
-                                                    <li>
-                                                        You must not create false accounts, manipulate bidding, interfere with bidders or disclose
-                                                        confidential bidder information.
-                                                    </li>
-                                                </ul>
+                                                <h3 className="font-semibold text-gray-900 mb-2">2. Honour the winning bid</h3>
+                                                <p>
+                                                    If the reserve is met and there is a winning bidder, complete the sale at the winning price.
+                                                </p>
                                             </div>
 
                                             {/* 3 */}
                                             <div>
-                                                <h3 className="font-semibold text-gray-900 mb-2">3. Inspection and access</h3>
-                                                <ul className="list-disc pl-5 space-y-1">
-                                                    <li>
-                                                        Make the item reasonably available for inspection at agreed times before bidding closes where
-                                                        inspection is offered.
-                                                    </li>
-                                                    <li>
-                                                        Allow the buyer to verify the item and relevant documents at collection. Inspection does not
-                                                        permit renegotiation simply because the buyer has changed their mind.
-                                                    </li>
-                                                    <li>
-                                                        The seller is responsible for the location, supervision and safety of inspections and
-                                                        demonstrations. Unsafe machinery must not be operated.
-                                                    </li>
-                                                </ul>
+                                                <h3 className="font-semibold text-gray-900 mb-2">3. Wait for collection clearance</h3>
+                                                <p>
+                                                    The buyer pays through RexBid. Keep the item secure and in the condition described until RexBid
+                                                    confirms cleared funds and authorises handover.
+                                                </p>
                                             </div>
 
                                             {/* 4 */}
                                             <div>
-                                                <h3 className="font-semibold text-gray-900 mb-2">4. Payment and collection process</h3>
-                                                <ul className="list-disc pl-5 space-y-1">
-                                                    <li>
-                                                        The highest bidder must pay RexBid in full within 48 hours after bidding closes, unless RexBid
-                                                        confirms a different deadline.
-                                                    </li>
-                                                    <li>
-                                                        Collection must not take place until RexBid confirms that cleared funds have been received.
-                                                        Collection can normally be arranged three days after RexBid receives the buyer's funds, but
-                                                        banking checks or delays may extend this period.
-                                                    </li>
-                                                    <li>
-                                                        The buyer and seller arrange collection or delivery only after RexBid gives clearance. The
-                                                        seller must keep the item secure, insured and in the condition described until handover.
-                                                    </li>
-                                                    <li>
-                                                        Both parties must confirm that collection or delivery has been completed. RexBid then releases
-                                                        the net proceeds when checks are complete and no dispute or payment issue has been raised.
-                                                    </li>
-                                                    <li>
-                                                        The seller will not be paid before collection or delivery. This anti-fraud control is
-                                                        non-negotiable. The seller must not request direct payment or release the item before RexBid
-                                                        authorises collection.
-                                                    </li>
-                                                </ul>
+                                                <h3 className="font-semibold text-gray-900 mb-2">4. Confirm handover to get paid</h3>
+                                                <p>
+                                                    RexBid releases your net proceeds after both parties confirm collection or delivery.
+                                                </p>
                                             </div>
                                         </div>
 

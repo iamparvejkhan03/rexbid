@@ -1031,6 +1031,7 @@ export const updateAuction = async (req, res) => {
 
     const {
       title,
+      subTitle,
       features,
       description,
       specifications,
@@ -1104,7 +1105,7 @@ export const updateAuction = async (req, res) => {
         resolvedStartDate = slot.startDate;
         resolvedEndDate = slot.endDate;
         auctionDateSlotId = slot._id;
-      } else if (!auction.auctionDate) {
+      } else if (!auction.auctionDate && !auction.startDate) {
         // No slot chosen yet, and none previously stored → require one
         return res.status(400).json({
           success: false,
@@ -1785,6 +1786,7 @@ export const updateAuction = async (req, res) => {
     // ========== PREPARE UPDATE DATA ==========
     const updateData = {
       title,
+      subTitle: subTitle || "",
       categories: categoriesArray,
       features: features || "",
       description,
@@ -2288,6 +2290,15 @@ export const placeProxyBid = async (req, res) => {
     if (!bidder?.isActive) return res.status(400).json({ success: false, message: "Account is inactive." });
     if (!bidder?.isVerified) return res.status(400).json({ success: false, message: "Account not verified." });
 
+    if (!bidder?.stripeCustomerId || !bidder?.paymentMethodId || !bidder?.isPaymentVerified) {
+      return res.status(403).json({
+        success: false,
+        message: "Please add a valid payment method before setting a proxy bid.",
+        redirectTo: `/${bidder?.userType || 'bidder'}/billing`,
+        errorCode: 'PAYMENT_METHOD_REQUIRED',
+      });
+    }
+
     const auction = await Auction.findById(id);
     if (!auction) return res.status(404).json({ success: false, message: "Auction not found" });
     if (auction.status !== "active") return res.status(400).json({ success: false, message: "Auction is not active" });
@@ -2445,9 +2456,19 @@ export const updateProxyBid = async (req, res) => {
     const { id } = req.params;
     const { maxAmount, currency } = req.body;
     const userId = req.user._id;
+    const bidder = req.user;
 
     if (!maxAmount || parseFloat(maxAmount) <= 0)
       return res.status(400).json({ success: false, message: "Valid amount required" });
+
+    if (!bidder?.stripeCustomerId || !bidder?.paymentMethodId || !bidder?.isPaymentVerified) {
+      return res.status(403).json({
+        success: false,
+        message: "Please add a valid payment method before updating your proxy bid.",
+        redirectTo: `/${bidder?.userType || 'bidder'}/billing`,
+        errorCode: 'PAYMENT_METHOD_REQUIRED',
+      });
+    }
 
     const auction = await Auction.findById(id);
     if (!auction) return res.status(404).json({ success: false, message: "Auction not found" });
@@ -3253,7 +3274,7 @@ export const lowerReservePrice = async (req, res) => {
   try {
     const { id } = req.params;
     const seller = req.user;
-    const { newReservePrice } = req.body;
+    const { newReservePrice, currency } = req.body;
 
     // Validate input
     if (!newReservePrice || isNaN(parseFloat(newReservePrice))) {
@@ -3296,49 +3317,93 @@ export const lowerReservePrice = async (req, res) => {
       });
     }
 
-    const newPrice = parseFloat(newReservePrice);
-    const currentReserve = parseFloat(auction.reservePrice);
-    const currentBid = parseFloat(auction.currentPrice);
+    // ========== CURRENCY CONVERSION ==========
+    const base = auction.baseCurrency || "EUR";
+    const userCurrency = currency || base;
 
-    // Validate new reserve price is lower
-    if (newPrice >= currentReserve) {
+    let newPriceInBase;
+    let clientToBase = 1;
+    let baseToClient = 1;
+
+    if (userCurrency !== base) {
+      const rates = getCachedRates();
+      if (!rates) {
+        return res.status(503).json({
+          success: false,
+          message: "Exchange rates unavailable. Please try again.",
+        });
+      }
+
+      clientToBase = rates?.[userCurrency]?.rates?.[base];
+      baseToClient = rates?.[base]?.rates?.[userCurrency];
+
+      if (!clientToBase || !baseToClient) {
+        return res.status(400).json({
+          success: false,
+          message: "Currency conversion unavailable for the selected currency",
+        });
+      }
+
+      newPriceInBase = parseFloat(
+        (parseFloat(newReservePrice) * clientToBase).toFixed(2)
+      );
+    } else {
+      newPriceInBase = parseFloat(newReservePrice);
+    }
+    // ==========================================
+
+    const currentReserve = parseFloat(auction.reservePrice);
+
+    // Validate new reserve price is lower (both in base currency)
+    if (newPriceInBase >= currentReserve) {
+      const maxClient = parseFloat((currentReserve * baseToClient).toFixed(2));
       return res.status(400).json({
         success: false,
-        message: "New reserve price must be lower than current reserve price",
+        message: `New reserve price must be lower than the current reserve (${maxClient} ${userCurrency})`,
       });
     }
 
-    // Validate new reserve price is higher than current bid
-    // if (newPrice <= currentBid) {
-    //     return res.status(400).json({
-    //         success: false,
-    //         message: `New reserve price must be higher than current bid ($${currentBid.toLocaleString()})`
-    //     });
-    // }
-
     // Validate positive price
-    if (newPrice <= 0) {
+    if (newPriceInBase <= 0) {
       return res.status(400).json({
         success: false,
         message: "Reserve price must be greater than 0",
       });
     }
 
-    // Update reserve price
-    auction.reservePrice = newPrice;
+    // Update reserve price in BASE currency
+    auction.reservePrice = newPriceInBase;
 
     // Save the auction
     const updatedAuction = await auction.save();
 
     // Populate seller info for response
-    await updatedAuction.populate("seller", "username companyName firstName lastName");
+    await updatedAuction.populate(
+      "seller",
+      "username companyName firstName lastName"
+    );
 
     broadcastAuctionChange(id);
+
+    // Return converted values so the frontend can update its local state
+    const auctionObj = updatedAuction.toObject();
+    const convert = (value) =>
+      value !== null && value !== undefined
+        ? parseFloat((value * baseToClient).toFixed(2))
+        : null;
 
     res.status(200).json({
       success: true,
       message: "Reserve price lowered successfully",
-      data: { auction: updatedAuction },
+      data: {
+        auction: {
+          ...auctionObj,
+          convertedReservePrice: convert(auctionObj.reservePrice),
+          convertedCurrentPrice: convert(auctionObj.currentPrice),
+          convertedStartPrice: convert(auctionObj.startPrice),
+          displayCurrency: userCurrency,
+        },
+      },
     });
   } catch (error) {
     console.error("Lower reserve price error:", error);
@@ -3648,7 +3713,7 @@ export const markAsFeatured = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: 'Auction marked as featured. 3% premium will apply on final sale.',
+      message: 'Auction marked as featured.',
       data: { auction },
     });
   } catch (error) {

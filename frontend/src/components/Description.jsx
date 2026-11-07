@@ -13,6 +13,28 @@ function Description({ description }) {
                 ) : (
                     <p className="text-gray-500">No description provided.</p>
                 )}
+
+                {/* HOW REXBID WORKS – always shown */}
+                <div className="mt-6">
+                    <h3 className="font-semibold text-gray-900 mb-2">HOW REXBID WORKS:</h3>
+                    <ol className="list-decimal pl-5 space-y-1">
+                        <li>Register for free, click the Login icon and create your account.</li>
+                        <li>
+                            Check the listing details and contact the seller if you have any questions. Viewing can be
+                            arranged at the seller's discretion.
+                        </li>
+                        <li>Place your bid online before bidding closes.</li>
+                        <li>If you're the highest bidder and the reserve is met, you win.</li>
+                        <li>Pay through RexBid, then collect directly from the seller or arrange delivery.</li>
+                    </ol>
+                    <p className="mt-3">
+                        Buyers commission is automatically calculated before you bid, so there are no hidden fees.
+                    </p>
+                    <p className="mt-3 text-sm">
+                        *BIDS ARE LEGALLY BINDING. DO NOT PLACE A BID IF YOU DON'T HAVE THE CAPACITY TO COMPLETE THE
+                        TRANSACTION. READ OUR BUYERS TERMS BEFORE PLACING A BID.*
+                    </p>
+                </div>
             </div>
         </div>
     );

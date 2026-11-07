@@ -76,7 +76,7 @@ const faqs = [
             },
             {
                 question: "What are the seller fees?",
-                answer: "RexBid charges a 3% seller commission, capped at €200.",
+                answer: "No seller fees until January 2027.",
             },
         ],
     },

@@ -63,6 +63,7 @@ function SingleAuction() {
 
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
     const [pendingBidAmount, setPendingBidAmount] = useState('');
+    const [pendingProxyAmount, setPendingProxyAmount] = useState('');
 
     const [showProxyBidModal, setShowProxyBidModal] = useState(false);
     const prevStatusRef = useRef(null);
@@ -123,6 +124,7 @@ function SingleAuction() {
     };
 
     const handleOpenProxyBidModal = () => {
+        setPendingProxyAmount('');
         if (!user) {
             setPendingAction({ type: 'proxy-bid' });
             setIsAuthModalOpen(true);
@@ -133,6 +135,13 @@ function SingleAuction() {
             return;
         }
         setShowProxyBidModal(true);
+    };
+
+    const handleProxyPaymentRequired = ({ amount }) => {
+        setPendingProxyAmount(amount);
+        setShowProxyBidModal(false);
+        setPendingAction({ type: 'proxy-bid' });
+        setIsPaymentModalOpen(true);
     };
 
     const handleConfirmBid = (e) => {
@@ -1611,7 +1620,12 @@ function SingleAuction() {
                             <ProxyBidSection
                                 auction={auction}
                                 userCurrency={userCurrency}
-                                onClose={() => setShowProxyBidModal(false)}
+                                onClose={() => {
+                                    setShowProxyBidModal(false);
+                                    setPendingProxyAmount('');
+                                }}
+                                onPaymentRequired={handleProxyPaymentRequired}
+                                initialMaxAmount={pendingProxyAmount}
                             />
                         </div>
                     </div>

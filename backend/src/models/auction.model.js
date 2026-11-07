@@ -404,8 +404,10 @@ const auctionSchema = new Schema(
       ending30minSentAt: Date,
       ending2hourSentAt: Date,
       ending24hourSentAt: Date,
-      offerReceived: { type: Boolean, default: false }, // NEW: Offer notifications
+      offerReceived: { type: Boolean, default: false },
       offerExpiring: { type: Boolean, default: false },
+      reserveNudge: { type: Boolean, default: false },
+      reserveNudgeSentAt: Date,
     },
     // In your auction.model.js schema
     paymentStatus: {

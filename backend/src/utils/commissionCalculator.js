@@ -6,6 +6,10 @@ let cachedCommission = null;
 let cacheTimestamp = null;
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
+// Featured premium rate — applied only to the SELLER (never the bidder).
+// Set to 0 to disable entirely. Change here to re-enable (e.g. 0.03 = 3%).
+const FEATURED_PREMIUM_RATE = 0;
+
 // utils/commissionCalculator.js
 export async function getCommissionSettings() {
   if (cachedCommission && Date.now() - cacheTimestamp < CACHE_TTL) {
@@ -107,7 +111,7 @@ export const calculateCommission = async (
       : settings?.commissionType || null;
     const commissionValue = 0; // deprecated — no single value any more
 
-    const featuredPremium = isFeatured ? finalPrice * 0.03 : 0;
+    const featuredPremium = isFeatured ? finalPrice * FEATURED_PREMIUM_RATE : 0;
 
     // Party toggles
     const sellerApplies =
@@ -151,12 +155,11 @@ export const calculateCommission = async (
       }
     }
 
-    // Featured premium is added on top of each party's capped base
-    // (unchanged semantics — if both apply, both pay featured premium).
+    // Featured premium is added ONLY to the seller's commission — never the bidder's.
     const sellerCommissionAmount =
       Math.round((sellerBase + featuredPremium) * 100) / 100;
     const bidderCommissionAmount =
-      Math.round((bidderBase + featuredPremium) * 100) / 100;
+      Math.round(bidderBase * 100) / 100;
 
     // Legacy single total (used for display/back-compat)
     const commissionAmount =

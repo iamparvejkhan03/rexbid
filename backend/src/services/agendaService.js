@@ -18,6 +18,7 @@ import {
   sendAuctionEndedSellerEmail,
   sendAuctionWonEmail,
   sendBulkAuctionNotifications,
+  auctionReserveNudgeEmail,
 } from "../utils/nodemailer.js";
 import User from "../models/user.model.js";
 import Watchlist from "../models/watchlist.model.js";
@@ -542,6 +543,72 @@ class AgendaService {
         console.error("Agenda job error (ending soon notifications):", error);
       }
     });
+
+    // Job to nudge sellers when their reserve is within reach in the last hour
+    this.agenda.define("send reserve nudge notifications", async (job) => {
+      try {
+        const now = new Date();
+        const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000);
+
+        // Only reserve auctions that:
+        //   - are still active and end within the next 60 minutes
+        //   - have at least one bid
+        //   - have NOT yet met the reserve
+        //   - current bid is >= 75% of reserve (i.e. within 25% of reserve)
+        //   - haven't already received the nudge
+        const candidates = await Auction.find({
+          status: "active",
+          auctionType: "reserve",
+          endDate: { $gt: now, $lte: oneHourFromNow },
+          bidCount: { $gt: 0 },
+          "notifications.reserveNudge": { $ne: true },
+          $expr: {
+            $and: [
+              { $lt: ["$currentPrice", "$reservePrice"] },
+              {
+                $gte: [
+                  "$currentPrice",
+                  { $multiply: ["$reservePrice", 0.75] },
+                ],
+              },
+            ],
+          },
+        }).populate(
+          "seller",
+          "email username companyName firstName lastName currency preferences"
+        );
+
+        if (candidates.length === 0) return;
+
+        for (const auction of candidates) {
+          if (!auction.seller?.email) continue;
+
+          try {
+            await auctionReserveNudgeEmail(auction.seller, auction);
+
+            // Mark as sent so it never fires twice for the same auction
+            await Auction.findByIdAndUpdate(auction._id, {
+              $set: {
+                "notifications.reserveNudge": true,
+                "notifications.reserveNudgeSentAt": new Date(),
+              },
+            });
+
+            console.log(
+              `📧 Reserve-nudge email sent to seller ${auction.seller.email} for auction ${auction._id} ` +
+              `(bid ${auction.currentPrice} / reserve ${auction.reservePrice} ${auction.baseCurrency})`
+            );
+          } catch (err) {
+            console.error(
+              `Failed reserve-nudge email for auction ${auction._id}:`,
+              err.message
+            );
+          }
+        }
+      } catch (error) {
+        console.error("Agenda job error (reserve nudge):", error);
+      }
+    });
   }
 
   // Schedule auction activation job
@@ -569,6 +636,7 @@ class AgendaService {
     await this.agenda.start();
     console.log("🕒 Agenda service started");
     await this.agenda.every("15 minutes", "send ending soon notifications");
+    await this.agenda.every("15 minutes", "send reserve nudge notifications");
   }
 
   // Graceful shutdown
