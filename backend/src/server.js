@@ -34,6 +34,7 @@ import emailRouter from "./routes/email.route.js";
 import catalogueRouter from "./routes/catalogue.route.js";
 import websiteReviewRouter from "./routes/websiteReview.route.js";
 import sitemapRouter from './routes/sitemap.route.js';
+import shareRouter from './routes/share.route.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -106,6 +107,8 @@ app.get('/api/v1/health', (req, res) => {
 
 // Public XML sitemap for search engines (referenced from rexbid.ie/robots.txt)
 app.use(sitemapRouter);
+// Listing/catalogue HTML with link-preview tags (rexbid.ie rewrites /auction/* and /catalogue/* here)
+app.use(shareRouter);
 
 // Your API routes
 app.use('/api/v1/users', userRouter);
