@@ -30,6 +30,7 @@ import {
   buildClosingSlots,
   dublinDayKey,
   dublinHHMM,
+  isValidHHMM,
   SLOT_HOLDING_STATUSES,
 } from "../utils/closingSlots.js";
 import { calculateCommission } from "../utils/commissionCalculator.js";
@@ -1274,7 +1275,11 @@ export const getClosingSlots = async (req, res) => {
       return res.status(404).json({ success: false, message: "Auction not found" });
     }
     const saleDate = await saleDateFor(auction);
-    const slots = buildClosingSlots(saleDate);
+    // Menu settings come from the approve pop-up (Auctions tab):
+    // ?from=HH:MM (first closing time, Irish time) & every=minutes.
+    const from = isValidHHMM(req.query.from) ? req.query.from : undefined;
+    const every = parseInt(req.query.every, 10) || undefined;
+    const slots = buildClosingSlots({ endDate: saleDate.endDate, firstClosingTime: from, closingInterval: every });
     const taken = await takenSlotMap(slots, auction._id);
 
     res.status(200).json({
@@ -1327,11 +1332,16 @@ export const approveAuction = async (req, res) => {
         return res.status(400).json({ success: false, message: "Invalid closing time" });
       }
       const saleDate = await saleDateFor(auction);
-      const slots = buildClosingSlots(saleDate);
-      if (!slots.some((t) => t.getTime() === chosen.getTime())) {
+      // Must be a whole minute on the sale's closing day (Irish time),
+      // no later than the sale date's end.
+      if (
+        chosen.getTime() % 60000 !== 0 ||
+        dublinDayKey(chosen) !== dublinDayKey(saleDate.endDate) ||
+        chosen > new Date(saleDate.endDate)
+      ) {
         return res.status(400).json({
           success: false,
-          message: "That closing time isn't on this sale date's menu",
+          message: "That closing time isn't on this sale's closing day",
         });
       }
       const taken = await takenSlotMap([chosen], auction._id);

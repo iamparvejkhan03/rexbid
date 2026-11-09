@@ -1,6 +1,8 @@
-// Approve a listing and give it a closing time from the sale day's menu.
-// Times already used by other listings are shown but can't be picked.
-import { useEffect, useState } from "react";
+// Approve a listing and give it a closing time (Auctions tab).
+// The menu runs from "First closing" every N minutes on the sale's closing
+// day. Times already used by other listings are shown but can't be picked.
+// The two settings are remembered per sale day in this browser.
+import { useCallback, useEffect, useState } from "react";
 import { X, Clock, CheckCircle, Loader2 } from "lucide-react";
 import toast from "react-hot-toast";
 import axiosInstance from "../../utils/axiosInstance";
@@ -11,28 +13,78 @@ const dayLabel = (key) => {
     return new Date(y, m - 1, d).toLocaleDateString("en-IE", { weekday: "long", day: "numeric", month: "long" });
 };
 
+const SETTINGS_KEY = "rexbid.closingSettings";
+const loadSettings = () => {
+    try {
+        return JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {};
+    } catch {
+        return {};
+    }
+};
+const saveSettings = (day, value) => {
+    try {
+        const all = loadSettings();
+        all[day] = value;
+        all._last = value;
+        localStorage.setItem(SETTINGS_KEY, JSON.stringify(all));
+    } catch {
+        /* storage unavailable: settings just aren't remembered */
+    }
+};
+
 function ApproveListingModal({ auction, onClose, onApproved }) {
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [choice, setChoice] = useState("");
     const [saving, setSaving] = useState(false);
+    const [from, setFrom] = useState(() => loadSettings()._last?.from || "19:00");
+    const [every, setEvery] = useState(() => loadSettings()._last?.every || 2);
 
+    const loadSlots = useCallback(
+        async (f, e) => {
+            setLoading(true);
+            try {
+                const { data: res } = await axiosInstance.get(
+                    `/api/v1/admin/auctions/${auction._id}/closing-slots`,
+                    { params: { from: f, every: e } }
+                );
+                if (res?.success) {
+                    setData(res.data);
+                    const firstFree = res.data.slots.find((s) => !s.taken);
+                    setChoice(firstFree ? firstFree.time : "");
+                    return res.data;
+                }
+            } catch {
+                toast.error("Couldn't load closing times");
+            } finally {
+                setLoading(false);
+            }
+            return null;
+        },
+        [auction._id]
+    );
+
+    // First load; then switch to the settings remembered for this sale day.
     useEffect(() => {
-        let cancelled = false;
-        axiosInstance
-            .get(`/api/v1/admin/auctions/${auction._id}/closing-slots`)
-            .then(({ data: res }) => {
-                if (cancelled || !res?.success) return;
-                setData(res.data);
-                const firstFree = res.data.slots.find((s) => !s.taken);
-                setChoice(firstFree ? firstFree.time : "");
-            })
-            .catch(() => toast.error("Couldn't load closing times"))
-            .finally(() => !cancelled && setLoading(false));
-        return () => {
-            cancelled = true;
-        };
-    }, [auction._id]);
+        (async () => {
+            const d = await loadSlots(from, every);
+            const saved = d && loadSettings()[d.day];
+            if (saved && (saved.from !== from || Number(saved.every) !== Number(every))) {
+                setFrom(saved.from);
+                setEvery(saved.every);
+                loadSlots(saved.from, saved.every);
+            }
+        })();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [loadSlots]);
+
+    const applySettings = () => {
+        if (!/^([01]\d|2[0-3]):([0-5]\d)$/.test(from)) return toast.error("Enter a time like 19:00");
+        const n = Math.max(1, Math.min(60, parseInt(every, 10) || 2));
+        setEvery(n);
+        if (data?.day) saveSettings(data.day, { from, every: n });
+        loadSlots(from, n);
+    };
 
     const approve = async (closingTime) => {
         setSaving(true);
@@ -42,21 +94,15 @@ function ApproveListingModal({ auction, onClose, onApproved }) {
                 closingTime ? { closingTime } : {}
             );
             if (res.success) {
+                if (data?.day) saveSettings(data.day, { from, every: Number(every) });
                 toast.success(res.message || "Approved");
                 onApproved();
                 onClose();
             }
         } catch (err) {
             toast.error(err?.response?.data?.message || "Failed to approve");
-            // Someone may have taken the slot meanwhile: reload the menu.
-            if (err?.response?.status === 409) {
-                const { data: res } = await axiosInstance.get(`/api/v1/admin/auctions/${auction._id}/closing-slots`);
-                if (res?.success) {
-                    setData(res.data);
-                    const firstFree = res.data.slots.find((s) => !s.taken);
-                    setChoice(firstFree ? firstFree.time : "");
-                }
-            }
+            // Someone may have taken the time meanwhile: reload the menu.
+            if (err?.response?.status === 409) loadSlots(from, every);
         } finally {
             setSaving(false);
         }
@@ -77,20 +123,52 @@ function ApproveListingModal({ auction, onClose, onApproved }) {
                     </button>
                 </div>
 
-                {loading ? (
+                {data && (
+                    <p className="mb-3 text-sm text-gray-700">
+                        Closing day: <strong>{dayLabel(data.day)}</strong>
+                        {data.saleDateLabel ? ` (${data.saleDateLabel})` : ""}
+                    </p>
+                )}
+
+                {/* Menu settings */}
+                <div className="mb-4 grid grid-cols-[1fr_1fr_auto] items-end gap-2 rounded-lg bg-gray-50 p-3">
+                    <div>
+                        <label htmlFor="closingFrom" className="mb-1 block text-xs font-medium text-gray-600">First closing</label>
+                        <input
+                            id="closingFrom"
+                            type="time"
+                            value={from}
+                            onChange={(e) => setFrom(e.target.value)}
+                            className="w-full rounded border border-gray-300 p-2 text-sm"
+                        />
+                    </div>
+                    <div>
+                        <label htmlFor="closingEvery" className="mb-1 block text-xs font-medium text-gray-600">Minutes between</label>
+                        <input
+                            id="closingEvery"
+                            type="number"
+                            min="1"
+                            max="60"
+                            value={every}
+                            onChange={(e) => setEvery(e.target.value)}
+                            className="w-full rounded border border-gray-300 p-2 text-sm"
+                        />
+                    </div>
+                    <button
+                        type="button"
+                        onClick={applySettings}
+                        className="rounded border border-gray-300 bg-white px-3 py-2 text-sm font-medium hover:bg-gray-100"
+                    >
+                        Update
+                    </button>
+                </div>
+
+                {loading && !data ? (
                     <div className="flex items-center gap-2 py-6 text-gray-500">
                         <Loader2 size={18} className="animate-spin" /> Loading closing times...
                     </div>
                 ) : data ? (
                     <>
-                        <p className="mb-1 text-sm text-gray-700">
-                            Sale day: <strong>{dayLabel(data.day)}</strong>
-                            {data.saleDateLabel ? ` (${data.saleDateLabel})` : ""}
-                        </p>
-                        <p className="mb-4 text-xs text-gray-500">
-                            {free} of {data.slots.length} closing times free · currently set to {data.currentLabel}
-                        </p>
-
                         <label htmlFor="closingTime" className="mb-1 block text-sm font-medium text-gray-800">
                             Closing time (Irish time)
                         </label>
@@ -99,9 +177,11 @@ function ApproveListingModal({ auction, onClose, onApproved }) {
                             <select
                                 id="closingTime"
                                 value={choice}
+                                disabled={loading}
                                 onChange={(e) => setChoice(e.target.value)}
                                 className="w-full rounded-lg border border-gray-300 p-3 pl-9"
                             >
+                                {data.slots.length === 0 && <option value="">No times: check the settings above</option>}
                                 {data.slots.map((s) => (
                                     <option key={s.time} value={s.time} disabled={s.taken}>
                                         {s.label}
@@ -110,10 +190,13 @@ function ApproveListingModal({ auction, onClose, onApproved }) {
                                 ))}
                             </select>
                         </div>
+                        <p className="mt-1.5 text-xs text-gray-500">
+                            {free} of {data.slots.length} times free · currently {data.currentLabel}
+                        </p>
 
-                        <div className="mt-6 flex flex-col gap-2">
+                        <div className="mt-5 flex flex-col gap-2">
                             <button
-                                disabled={!choice || saving}
+                                disabled={!choice || saving || loading}
                                 onClick={() => approve(choice)}
                                 className="inline-flex items-center justify-center gap-2 rounded-lg bg-green-600 px-4 py-2.5 font-semibold text-white hover:bg-green-700 disabled:opacity-50"
                             >

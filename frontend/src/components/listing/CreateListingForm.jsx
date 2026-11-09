@@ -389,6 +389,27 @@ const DynamicField = ({ field, register, errors, watch, setValue }) => {
 // wrappers (pages/seller|company/CreateAuction.jsx) pass their own layout.
 const CreateListingForm = ({ Container, Header, Sidebar, basePath, defaultUserType }) => {
     const [step, setStep] = useState(1);
+    const topRef = useRef(null);
+
+    // After each step change, jump to the top of the form (instant, so the
+    // page doesn't end up part-way down or in the footer).
+    const firstRender = useRef(true);
+    useEffect(() => {
+        if (firstRender.current) {
+            firstRender.current = false;
+            return;
+        }
+        window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+        topRef.current?.scrollIntoView({ block: 'start', behavior: 'instant' });
+    }, [step]);
+
+    // When a step has errors, show the first one.
+    const showFirstError = () => {
+        setTimeout(() => {
+            const el = document.querySelector('form .text-red-500');
+            el?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        }, 50);
+    };
     const [uploadedPhotos, setUploadedPhotos] = useState([]);
     const [uploadedDocuments, setUploadedDocuments] = useState([]);
     const [uploadedServiceRecords, setUploadedServiceRecords] = useState([]);
@@ -634,8 +655,6 @@ const CreateListingForm = ({ Container, Header, Sidebar, basePath, defaultUserTy
     const nextStep = async () => {
         let isValid = true;
 
-        scrollTo({ top: 0, behavior: 'smooth' });
-
         if (step === 1) {
             const fieldsToValidate = [
                 'title',
@@ -693,6 +712,7 @@ const CreateListingForm = ({ Container, Header, Sidebar, basePath, defaultUserTy
         }
 
         if (!isValid) {
+            showFirstError();
             return;
         }
 
@@ -701,7 +721,6 @@ const CreateListingForm = ({ Container, Header, Sidebar, basePath, defaultUserTy
 
     const prevStep = () => {
         setStep(step - 1);
-        scrollTo({ top: 0, behavior: 'smooth' });
     };
 
     const handlePhotoUpload = async (e) => {
@@ -873,7 +892,7 @@ const CreateListingForm = ({ Container, Header, Sidebar, basePath, defaultUserTy
             );
 
             if (data && data.success) {
-                toast.success("Thanks, your listing has been sent for review. We'll check it, usually within 12 hours, and email you when it's live.", { duration: 8000 });
+                toast.success("Thanks! We'll check your listing within 12 hours and email you when it's live.", { duration: 8000 });
 
                 gtag('event', 'listing_submit', {
                     listing_id: data.data?._id,
@@ -931,7 +950,7 @@ const CreateListingForm = ({ Container, Header, Sidebar, basePath, defaultUserTy
 
                     <Container>
                         <div className="pt-16 md:py-7">
-                            <h1 className="text-3xl md:text-4xl font-bold mb-5">Create a listing</h1>
+                            <h1 ref={topRef} className="text-3xl md:text-4xl font-bold mb-5 scroll-mt-24">Create a listing</h1>
                             {step === 1 && <HowSellingWorks />}
 
                             {/* Progress Steps */}
@@ -982,7 +1001,7 @@ const CreateListingForm = ({ Container, Header, Sidebar, basePath, defaultUserTy
                                                     placeholder="e.g., 2006 Massey 6480"
                                                 />
                                                 {errors.title && <p className="text-red-500 text-sm mt-1">{errors.title.message}</p>}
-                                                <Hint>Year, make and model works best, e.g. 2006 Massey Ferguson 6480.</Hint>
+                                                <Hint>Year, make and model, e.g. 2006 Massey Ferguson 6480.</Hint>
                                             </div>
 
                                             {/* Category Selection */}
@@ -1063,7 +1082,7 @@ const CreateListingForm = ({ Container, Header, Sidebar, basePath, defaultUserTy
                                                 placeholder="Describe the item's history, condition, and any notable details..."
                                             />
                                             {errors.description && <p className="text-red-500 text-sm mt-1">{errors.description.message}</p>}
-                                            <Hint>Include hours or mileage, condition, known faults, recent work and what's included. Being upfront protects you: buyers can't claim for faults you've disclosed.</Hint>
+                                            <Hint>Hours, condition, faults, recent work and what's included. List any faults: buyers can't claim for faults you've told them about.</Hint>
                                         </div>
 
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
@@ -1111,7 +1130,7 @@ const CreateListingForm = ({ Container, Header, Sidebar, basePath, defaultUserTy
                                                 <Note tone="warn">
                                                     <strong>Ads with videos do better.</strong> WhatsApp your video to{" "}
                                                     <a href="https://wa.me/353872039257" target="_blank" rel="noopener noreferrer" className="font-semibold underline">+353 87 203 9257</a>{" "}
-                                                    and we will upload it for you. Or paste a YouTube link above.
+                                                    and we'll upload it.
                                                 </Note>
                                             </div>
                                         </div>
@@ -1135,14 +1154,14 @@ const CreateListingForm = ({ Container, Header, Sidebar, basePath, defaultUserTy
                                                         {isCompressing ? 'Optimising images…' : 'Browse photo(s) to upload'}
                                                     </p>
                                                     <p className="text-sm text-secondary">
-                                                        Add at least 8: front, back, both sides, cab, engine, tyres, serial plate and any damage
+                                                        Add at least 8: front, back, sides, cab, engine, tyres, serial plate and any damage
                                                     </p>
                                                 </label>
                                             </div>
                                             {errors.photos && <p className="text-red-500 text-sm mt-1">{errors.photos.message}</p>}
                                             {uploadedPhotos.length > 0 && uploadedPhotos.length < 8 && (
                                                 <p className="mt-2 text-sm text-orange-700">
-                                                    {uploadedPhotos.length} photo{uploadedPhotos.length === 1 ? '' : 's'} added. We recommend at least 8: listings with more photos get more bids.
+                                                    {uploadedPhotos.length} photo{uploadedPhotos.length === 1 ? '' : 's'} added. Add at least 8 to get more bids.
                                                 </p>
                                             )}
 
@@ -1237,8 +1256,8 @@ const CreateListingForm = ({ Container, Header, Sidebar, basePath, defaultUserTy
                                             <label className="block text-sm font-medium text-secondary mb-1">Sale type *</label>
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4"> {/* Changed from grid-cols-3 to grid-cols-4 */}
                                                 {[
-                                                    { value: 'reserve', label: 'Reserve', text: "You set a minimum price buyers can't see. If bidding doesn't reach it, there's no sale, and the top 2 bidders can make you an offer. Minimum reserve €500." },
-                                                    { value: 'standard', label: 'No reserve', text: 'Sells to the highest bidder. Attracts the most bidders. Minimum starting bid €400.' },
+                                                    { value: 'reserve', label: 'Reserve', text: "Your lowest price, hidden from buyers. If bids don't reach it, it doesn't sell, and the top 2 bidders can make you an offer. Minimum €500." },
+                                                    { value: 'standard', label: 'No reserve', text: 'Sells to the highest bidder. Brings more bidders. Minimum starting bid €400.' },
                                                     // { value: 'buy_now', label: 'Buy Now Auction' },
                                                     // { value: 'giveaway', label: 'Free Giveaway' },
                                                 ].map((type) => (
@@ -1293,7 +1312,7 @@ const CreateListingForm = ({ Container, Header, Sidebar, basePath, defaultUserTy
                                                                 />
                                                             </div>
                                                             {errors.startPrice && <p className="text-red-500 text-sm mt-1">{errors.startPrice.message}</p>}
-                                                            <Hint>Where bidding opens. A lower start usually attracts more bidders. {minimumsHint(user?.currency)}</Hint>
+                                                            <Hint>Where bidding starts. A lower start brings more bidders.{user?.currency === 'GBP' ? ' ' + minimumsHint('GBP') : ''}</Hint>
                                                         </div>)}
 
                                                     {(watch('auctionType') === 'standard' || watch('auctionType') === 'reserve') && (
@@ -1315,14 +1334,14 @@ const CreateListingForm = ({ Container, Header, Sidebar, basePath, defaultUserTy
                                                                 />
                                                             </div>
                                                             {errors.bidIncrement && <p className="text-red-500 text-sm mt-1">{errors.bidIncrement.message}</p>}
-                                                            <Hint>The minimum each new bid must add. You decide: as a guide, {currencySymbol}100 under {currencySymbol}5,000, {currencySymbol}250 from {currencySymbol}5,000 to {currencySymbol}20,000, and {currencySymbol}500 above.</Hint>
+                                                            <Hint>How much each bid goes up. Guide: {currencySymbol}100 under {currencySymbol}5,000 · {currencySymbol}250 up to {currencySymbol}20,000 · {currencySymbol}500 above.</Hint>
                                                             {suggestedIncrementValue && Number(watch('bidIncrement')) !== suggestedIncrementValue && (
                                                                 <button
                                                                     type="button"
                                                                     onClick={() => { setValue('bidIncrement', suggestedIncrementValue, { shouldValidate: true }); }}
                                                                     className="mt-1.5 text-xs font-semibold text-[#A17B35] underline"
                                                                 >
-                                                                    Use the suggested {currencySymbol}{suggestedIncrementValue}
+                                                                    Use {currencySymbol}{suggestedIncrementValue}
                                                                 </button>
                                                             )}
                                                         </div>
@@ -1354,7 +1373,7 @@ const CreateListingForm = ({ Container, Header, Sidebar, basePath, defaultUserTy
                                                             />
                                                         </div>
                                                         {errors.reservePrice && <p className="text-red-500 text-sm mt-1">{errors.reservePrice.message}</p>}
-                                                        <Hint>Buyers see whether the reserve has been met, never the amount. If bidding doesn't reach it, there's no sale and the top 2 bidders can make you an offer. You can lower the reserve from your dashboard while the listing is live.</Hint>
+                                                        <Hint>Buyers only see if the reserve is met, never the amount. You can lower it later from your dashboard.</Hint>
                                                     </div>
                                                 )}
 
@@ -1459,7 +1478,7 @@ const CreateListingForm = ({ Container, Header, Sidebar, basePath, defaultUserTy
                                                         <div className="ml-3">
                                                             <span className="font-medium text-secondary">VAT Applicable</span>
                                                             <p className="text-sm text-secondary mt-1">
-                                                                Tick only if you're VAT-registered and selling as a business. VAT is added on top of the winning bid.
+                                                                Only tick if you're VAT-registered and selling as a business. VAT is added to the winning bid.
                                                             </p>
                                                         </div>
                                                     </label>
@@ -1492,17 +1511,15 @@ const CreateListingForm = ({ Container, Header, Sidebar, basePath, defaultUserTy
                                                         <p className="text-red-500 text-sm mt-1">{errors.auctionDateId.message}</p>
                                                     )}
                                                     {!loadingDates && auctionDates.length === 0 && (
-                                                        <Hint>No sale dates are open at the moment. Call or WhatsApp 087 203 9257 and we'll let you know the next one.</Hint>
+                                                        <Hint>No sale dates open right now. Call or WhatsApp 087 203 9257.</Hint>
                                                     )}
                                                     {selectedAuctionDate && (
                                                         <div className="mt-2 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">
                                                             <p><strong>Goes live:</strong> {fmtDay(selectedAuctionDate.startDate)}</p>
                                                             <p><strong>Closes:</strong> {fmtDate(selectedAuctionDate.endDate)}</p>
                                                             <p className="mt-2 text-blue-800">
-                                                                Machines close one after another, usually from 7pm (day sales close earlier).
-                                                                We'll set your machine's exact closing time when we approve your listing, and
-                                                                email you when it's live. If a bid comes in during the last 2 minutes, closing
-                                                                is extended by 1 minute, so it always goes to the highest bidder.
+                                                                Machines close one by one, usually from 7pm. We set your exact closing
+                                                                time when we approve your listing. A bid in the last 2 minutes adds 1 minute.
                                                             </p>
                                                         </div>
                                                     )}
@@ -1512,20 +1529,19 @@ const CreateListingForm = ({ Container, Header, Sidebar, basePath, defaultUserTy
                                                 <div className="mb-6 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 space-y-3">
                                                     <p className="font-semibold text-gray-900">Fees and payment</p>
                                                     <p>
-                                                        <strong>No seller fees</strong> on sales completed before {SELLER_FEES_FREE_UNTIL}.
+                                                        <strong>No seller fees</strong> on sales before {SELLER_FEES_FREE_UNTIL}.
                                                     </p>
                                                     <label htmlFor="featuredRequested" className="flex items-start gap-2 rounded-lg border border-[#D19F3E]/50 bg-white p-3 cursor-pointer">
                                                         <input type="checkbox" id="featuredRequested" {...register('featuredRequested')} className="mt-1" />
                                                         <span>
-                                                            <span className="font-semibold text-gray-900">Feature my listing: €{FEATURED_FEE_EUR}, only charged if it sells.</span>
-                                                            <span className="block text-gray-600">Featured listings appear at the top of the homepage and get more views.</span>
+                                                            <span className="font-semibold text-gray-900">Feature my listing: €{FEATURED_FEE_EUR}, only if it sells</span>
+                                                            <span className="block text-gray-600">Shown at the top of the homepage for more views.</span>
                                                         </span>
                                                     </label>
                                                     <p>
-                                                        The buyer pays RexBid within 48 hours. We pay you by bank transfer 0–3 working days after
-                                                        collection. Make sure your{" "}
-                                                        <Link to={`${basePath}/payout-methods`} target="_blank" className="font-medium underline">payout details</Link>{" "}
-                                                        are set up.{" "}
+                                                        The buyer pays us within 48 hours. We pay you by bank transfer 0–3 working days after
+                                                        collection. Set up your{" "}
+                                                        <Link to={`${basePath}/payout-methods`} target="_blank" className="font-medium underline">payout details</Link>.{" "}
                                                         <Link to="/payment-refund-policy" target="_blank" className="font-medium underline">Fees &amp; payment policy</Link>
                                                     </p>
                                                 </div>
@@ -1558,7 +1574,7 @@ const CreateListingForm = ({ Container, Header, Sidebar, basePath, defaultUserTy
                                         </h2>
 
                                         <p className="text-sm text-secondary mb-6">
-                                            Check your details, then read and accept these conditions.
+                                            Check your details, then accept the terms.
                                         </p>
 
                                         <div className="mb-6 rounded-xl border border-gray-200 p-4 sm:p-5">
@@ -1582,7 +1598,7 @@ const CreateListingForm = ({ Container, Header, Sidebar, basePath, defaultUserTy
                                                     </div>
                                                 ))}
                                             </dl>
-                                            <button type="button" onClick={() => { setStep(1); scrollTo({ top: 0, behavior: 'smooth' }); }} className="mt-3 text-sm font-medium text-[#A17B35] underline">
+                                            <button type="button" onClick={() => setStep(1)} className="mt-3 text-sm font-medium text-[#A17B35] underline">
                                                 Edit details
                                             </button>
                                         </div>
@@ -1626,8 +1642,8 @@ const CreateListingForm = ({ Container, Header, Sidebar, basePath, defaultUserTy
                                             <div>
                                                 <h3 className="font-semibold text-gray-900 mb-2">5. Payment and collection times</h3>
                                                 <p>
-                                                    The buyer has 48 hours to pay and 5 working days to collect after payment. Don't hand the
-                                                    machine over until RexBid confirms payment has cleared.
+                                                    The buyer has 48 hours to pay and 5 working days to collect. Don't hand over the machine
+                                                    until we confirm payment.
                                                 </p>
                                             </div>
 

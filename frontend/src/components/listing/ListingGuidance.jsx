@@ -3,16 +3,16 @@ import { Link } from "react-router-dom";
 import { Info } from "lucide-react";
 
 const STEPS = [
-    "Create your listing (about 5 minutes)",
-    "We check it, usually within 12 hours",
-    "It goes live for your sale date and we email you",
+    "List your machine (5 minutes)",
+    "We check it within 12 hours",
+    "It goes live on your sale date. We email you",
     "Buyers bid online",
-    "We collect the money and pay you after collection",
+    "We collect the money. You're paid after collection",
 ];
 
 export const HowSellingWorks = () => (
     <div className="mb-6 rounded-xl border border-[#D19F3E]/40 bg-[#D19F3E]/[0.07] p-4 md:p-5">
-        <p className="mb-3 font-semibold text-gray-900">How selling on RexBid works</p>
+        <p className="mb-3 font-semibold text-gray-900">How selling works</p>
         <ol className="grid gap-2 text-sm text-gray-700 md:grid-cols-5 md:gap-3">
             {STEPS.map((s, i) => (
                 <li key={s} className="flex items-start gap-2">
