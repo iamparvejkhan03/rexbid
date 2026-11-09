@@ -133,7 +133,7 @@ function Dashboard() {
         },
         {
             title: "Average Offer",
-            value: adminStats?.averageOfferAmount?.toFixed(0)?.toLocaleString('en-IE'),
+            value: adminStats?.averageOfferAmount?.toLocaleString('en-IE', { maximumFractionDigits: 0 }),
             change: `Today: ${userCurrency === 'GBP' ? '£' : '€'}${adminStats?.averageOfferAmount?.toLocaleString('en-IE') || 0}`,
             icon: <Hand size={24} />,
             trend: "up",
@@ -203,7 +203,7 @@ function Dashboard() {
         },
         {
             title: "Average Bid Amount",
-            value: adminStats?.averageBidAmount?.toFixed(0)?.toLocaleString('en-IE'),
+            value: adminStats?.averageBidAmount?.toLocaleString('en-IE', { maximumFractionDigits: 0 }),
             change: "Average bid",
             icon: <Banknote size={24} />,
             trend: "up",

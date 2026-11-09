@@ -1091,7 +1091,7 @@ function SingleAuction() {
                                     <p className="font-light text-secondary text-base">{auction.status === 'sold' ? 'Sold At' : auction.bidCount > 0 ? 'Current Bid' : 'Start Bidding At'}</p>
                                     <p className="flex items-center gap-1 text-3xl sm:text-3xl font-medium">
                                         <span>{userCurrency === 'GBP' ? '£' : '€'}</span>
-                                        <span> {auction.convertedCurrentPrice?.toFixed(0).toLocaleString() || auction.convertedFinalPrice?.toFixed(0).toLocaleString()}</span>
+                                        <span> {auction.convertedCurrentPrice?.toLocaleString('en-IE', { maximumFractionDigits: 0 }) || auction.convertedFinalPrice?.toLocaleString('en-IE', { maximumFractionDigits: 0 })}</span>
                                     </p>
                                 </div>
 
@@ -1171,7 +1171,7 @@ function SingleAuction() {
 
                                 <p className="flex w-full justify-between border-b pb-2">
                                     <span className="text-secondary font-light">Starting Bid</span>
-                                    <span className="font-medium">{userCurrency === 'GBP' ? '£' : '€'}{auction.convertedStartPrice?.toFixed(0).toLocaleString()}</span>
+                                    <span className="font-medium">{userCurrency === 'GBP' ? '£' : '€'}{auction.convertedStartPrice?.toLocaleString('en-IE', { maximumFractionDigits: 0 })}</span>
                                 </p>
 
                                 {/* <p className="flex w-full justify-between border-b pb-2">
@@ -1191,7 +1191,7 @@ function SingleAuction() {
                                             <p className="font-light">Sold For</p>
                                             <p className="flex items-center gap-1 text-3xl sm:text-4xl font-medium">
                                                 <span>{userCurrency === 'GBP' ? '£' : '€'}</span>
-                                                <span>{auction.convertedFinalPrice?.toFixed(0).toLocaleString() || auction.convertedCurrentPrice?.toFixed(0).toLocaleString()}</span>
+                                                <span>{auction.convertedFinalPrice?.toLocaleString('en-IE', { maximumFractionDigits: 0 }) || auction.convertedCurrentPrice?.toLocaleString('en-IE', { maximumFractionDigits: 0 })}</span>
                                             </p>
                                         </>
                                     ) : (
@@ -1201,7 +1201,7 @@ function SingleAuction() {
                                                 <p className="font-light">Offer Starting At</p>
                                                 <p className="flex items-center gap-1 text-3xl sm:text-4xl font-medium">
                                                     <span>{userCurrency === 'GBP' ? '£' : '€'}</span>
-                                                    <span>{auction.convertedStartPrice?.toFixed(0).toLocaleString()}</span>
+                                                    <span>{auction.convertedStartPrice?.toLocaleString('en-IE', { maximumFractionDigits: 0 })}</span>
                                                 </p>
                                             </>
                                         ) : (
@@ -1227,7 +1227,7 @@ function SingleAuction() {
                         (auction.auctionType === 'reserve' || auction.auctionType === 'standard') && (
                             <p className="flex w-full justify-between border-b pb-2">
                                 <span className="text-secondary font-light">Min. Bid Increment</span>
-                                <span className="font-medium">{userCurrency === 'GBP' ? '£' : '€'}{auction?.convertedBidIncrement?.toFixed(0).toLocaleString()}</span>
+                                <span className="font-medium">{userCurrency === 'GBP' ? '£' : '€'}{auction?.convertedBidIncrement?.toLocaleString('en-IE', { maximumFractionDigits: 0 })}</span>
                             </p>
                         )
                     }
@@ -1238,7 +1238,7 @@ function SingleAuction() {
                             <div className="flex justify-between items-center">
                                 <div>
                                     <p className="text-secondary text-sm">Buy Now Price</p>
-                                    <p className="text-2xl font-bold text-green-600">{userCurrency === 'GBP' ? '£' : '€'}{auction.convertedBuyNowPrice?.toFixed(0).toLocaleString()}</p>
+                                    <p className="text-2xl font-bold text-green-600">{userCurrency === 'GBP' ? '£' : '€'}{auction.convertedBuyNowPrice?.toLocaleString('en-IE', { maximumFractionDigits: 0 })}</p>
                                 </div>
                                 <Zap className="text-green-500" size={24} />
                             </div>
@@ -1369,7 +1369,7 @@ function SingleAuction() {
                                                 ) : (
                                                     <>
                                                         <Zap />
-                                                        <span>Buy Now {userCurrency === 'GBP' ? '£' : '€'}{auction.convertedBuyNowPrice?.toFixed(0).toLocaleString()}</span>
+                                                        <span>Buy Now {userCurrency === 'GBP' ? '£' : '€'}{auction.convertedBuyNowPrice?.toLocaleString('en-IE', { maximumFractionDigits: 0 })}</span>
                                                     </>
                                                 )}
                                             </button>

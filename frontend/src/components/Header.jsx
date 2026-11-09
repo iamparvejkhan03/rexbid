@@ -43,7 +43,7 @@ const currencies = [
 ];
 
 function Header() {
-    const [isScrolled, setIsScrolled] = useState(false);
+    const [isScrolled, setIsScrolled] = useState(true);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isCategoriesOpen, setIsCategoriesOpen] = useState(false);
     const [isAuctionTypesOpen, setIsAuctionTypesOpen] = useState(false);
@@ -135,16 +135,10 @@ function Header() {
         fetchCategories();
     }, [isCategoriesOpen, mobileCategoriesOpen]);
 
+    // The header is always the white version (navy + gold logo) on every
+    // page, including the homepage.
     useEffect(() => {
-        const handleScroll = () => {
-            setIsScrolled(window.scrollY > 10);
-        }
-
-        setIsScrolled(pathname !== '/');
-
-        pathname === '/' && window.addEventListener('scroll', handleScroll);
-
-        return () => window.removeEventListener('scroll', handleScroll);
+        setIsScrolled(true);
     }, [pathname]);
 
     // Format number with commas

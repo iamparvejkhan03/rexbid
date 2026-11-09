@@ -9,9 +9,9 @@ import { useEffect } from "react";
 
 export const SITE_URL = "https://rexbid.ie";
 export const SITE_NAME = "RexBid";
-export const DEFAULT_TITLE = "Machinery Auctions Ireland | Tractors, Plant & Vans | RexBid";
+export const DEFAULT_TITLE = "Machinery for Sale Ireland | Sell Tractors, Plant & Vans | RexBid";
 export const DEFAULT_DESCRIPTION =
-    "Buy and sell tractors, plant machinery and commercial vehicles at online auction in Ireland. Set your reserve, let buyers compete.";
+    "Sell your tractor, digger or plant machinery to buyers all over Ireland. No seller fees until 2027. You set the reserve, we collect the payment.";
 export const DEFAULT_IMAGE = `${SITE_URL}/og-default.jpg`;
 
 const upsertMeta = (attr, key, content) => {

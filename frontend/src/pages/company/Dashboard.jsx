@@ -28,7 +28,7 @@ function Dashboard() {
     const statsData = [
         {
             title: "Total Revenue",
-            value: stats?.totalRevenue?.toFixed(0).toLocaleString('en-IE'),
+            value: stats?.totalRevenue?.toLocaleString('en-IE', { maximumFractionDigits: 0 }),
             change: "All Time",
             icon: <Banknote size={24} />,
             trend: "up",
@@ -65,7 +65,7 @@ function Dashboard() {
         },
         {
             title: "Avg. Sale Price",
-            value: stats?.avgSalePrice?.toFixed(0).toLocaleString('en-IE'),
+            value: stats?.avgSalePrice?.toLocaleString('en-IE', { maximumFractionDigits: 0 }),
             change: "Per Item Sold",
             icon: <Banknote size={24} />,
             trend: "up",

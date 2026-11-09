@@ -676,6 +676,12 @@ export const getTopLiveAuctions = async (req, res) => {
         // $in: ["sold", "ended", "reserve_not_met"],
         $in: ["sold"],
       };
+      // Optional: only sales that closed at least N days ago (recent ones
+      // may still be awaiting payment/collection). Capped at 365.
+      const minAgeDays = Math.min(parseInt(req.query.minAgeDays, 10) || 0, 365);
+      if (minAgeDays > 0) {
+        filter.endDate = { $lte: new Date(Date.now() - minAgeDays * 24 * 60 * 60 * 1000) };
+      }
     } else if (status === "approved" || status === "upcoming") {
       // Support both frontend and backend naming
       filter.status = "active";
@@ -716,6 +722,10 @@ export const getTopLiveAuctions = async (req, res) => {
       case "lowestBid":
         sortOptions.currentPrice = 1;
         sortOptions.bidCount = -1;
+        break;
+
+      case "recentlyEnded":
+        sortOptions.endDate = -1;
         break;
 
       default:
