@@ -4,7 +4,7 @@ import { Plus, Edit, Trash2, Power, PowerOff } from "lucide-react";
 import axiosInstance from "../../utils/axiosInstance";
 import toast from "react-hot-toast";
 
-const defaultForm = { startDate: "", endDate: "", label: "", notes: "" };
+const defaultForm = { startDate: "", endDate: "", label: "", notes: "", firstClosingTime: "19:00", closingInterval: 2 };
 
 // UTC ISO string  →  browser-local "YYYY-MM-DDTHH:mm" for datetime-local inputs
 const toLocalInputValue = (dateLike) => {
@@ -60,6 +60,8 @@ const AuctionDates = () => {
             endDate: toLocalInputValue(slot.endDate),
             label: slot.label,
             notes: slot.notes || "",
+            firstClosingTime: slot.firstClosingTime || "19:00",
+            closingInterval: slot.closingInterval || 2,
         });
         setShowModal(true);
     };
@@ -227,6 +229,35 @@ const AuctionDates = () => {
                                     onChange={(e) => setForm({ ...form, endDate: e.target.value })}
                                     className="w-full p-2 border rounded"
                                 />
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="block text-sm font-medium mb-1">First closing time</label>
+                                    <input
+                                        type="time"
+                                        required
+                                        value={form.firstClosingTime}
+                                        onChange={(e) => setForm({ ...form, firstClosingTime: e.target.value })}
+                                        className="w-full p-2 border rounded"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium mb-1">Minutes between closings</label>
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        max="60"
+                                        required
+                                        value={form.closingInterval}
+                                        onChange={(e) => setForm({ ...form, closingInterval: e.target.value })}
+                                        className="w-full p-2 border rounded"
+                                    />
+                                </div>
+                                <p className="col-span-2 text-xs text-gray-500">
+                                    When you approve a listing for this sale, you pick its closing time from a menu
+                                    starting at this time on the closing day (Irish time), up to the End time above.
+                                    E.g. 19:00 every 2 minutes, or 12:00 for a Saturday day sale.
+                                </p>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium mb-1">

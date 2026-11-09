@@ -10,6 +10,7 @@ import {
     getAuctionDetails,
     updateAuctionStatus,
     approveAuction,
+    getClosingSlots,
     endAuction,
     deleteAuction,
     updateAuction,
@@ -46,6 +47,7 @@ AdminRouter.post('/dvla', authAdmin, fetchDVLAData);
 AdminRouter.get('/auctions', authAdmin, getAllAuctions);
 AdminRouter.get('/auctions/:auctionId', authAdmin, getAuctionDetails);
 AdminRouter.patch('/auctions/:auctionId/status', authAdmin, updateAuctionStatus);
+AdminRouter.get('/auctions/:auctionId/closing-slots', authAdmin, getClosingSlots);
 AdminRouter.patch('/auctions/:auctionId/approve', authAdmin, approveAuction);
 AdminRouter.patch('/auctions/:auctionId/end', authAdmin, endAuction);
 AdminRouter.delete('/auctions/:auctionId', authAdmin, deleteAuction);

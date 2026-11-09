@@ -4,7 +4,7 @@ import Auction from "../models/auction.model.js";
 // ── Admin: create ─────────────────────────────────────────
 export const createAuctionDate = async (req, res) => {
     try {
-        const { startDate, endDate, label, notes } = req.body;
+        const { startDate, endDate, label, notes, firstClosingTime, closingInterval } = req.body;
 
         if (!startDate || !endDate) {
             return res
@@ -25,6 +25,8 @@ export const createAuctionDate = async (req, res) => {
             endDate: end,
             label: label || "",
             notes: notes || "",
+            ...(firstClosingTime ? { firstClosingTime } : {}),
+            ...(closingInterval ? { closingInterval: Number(closingInterval) } : {}),
             createdBy: req.user._id,
         });
 
@@ -125,7 +127,7 @@ export const getActiveAuctionDates = async (req, res) => {
 export const updateAuctionDate = async (req, res) => {
     try {
         const { id } = req.params;
-        const { startDate, endDate, label, notes, isActive } = req.body;
+        const { startDate, endDate, label, notes, isActive, firstClosingTime, closingInterval } = req.body;
 
         const slot = await AuctionDate.findById(id);
         if (!slot)
@@ -138,6 +140,8 @@ export const updateAuctionDate = async (req, res) => {
         if (label !== undefined) slot.label = label;
         if (notes !== undefined) slot.notes = notes;
         if (isActive !== undefined) slot.isActive = isActive;
+        if (firstClosingTime) slot.firstClosingTime = firstClosingTime;
+        if (closingInterval) slot.closingInterval = Number(closingInterval);
 
         await slot.save();
 

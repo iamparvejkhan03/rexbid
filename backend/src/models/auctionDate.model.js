@@ -12,6 +12,16 @@ const auctionDateSchema = new Schema(
 
         notes: { type: String, trim: true, default: "" },
 
+        // Closing-time menu used when approving listings for this sale:
+        // slots run from firstClosingTime (Irish time, "HH:MM") on the
+        // closing day, every closingInterval minutes, up to endDate.
+        firstClosingTime: {
+            type: String,
+            default: "19:00",
+            match: [/^([01]\d|2[0-3]):([0-5]\d)$/, "Use HH:MM, e.g. 19:00"],
+        },
+        closingInterval: { type: Number, default: 2, min: 1, max: 60 },
+
         createdBy: { type: Schema.Types.ObjectId, ref: "User" },
     },
     { timestamps: true },
