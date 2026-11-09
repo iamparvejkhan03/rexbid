@@ -66,3 +66,12 @@
   max-height: 600px;
   overflow-y: auto;
 }
+
+/* CookieYes "revisit consent" icon: on phones/tablets it sat on top of the
+   bottom navigation bar. Hidden below the lg breakpoint (where MobileNav
+   shows); visitors use "Cookie settings" in the footer instead. */
+@media (max-width: 1023px) {
+    .cky-btn-revisit-wrapper {
+        display: none !important;
+    }
+}
