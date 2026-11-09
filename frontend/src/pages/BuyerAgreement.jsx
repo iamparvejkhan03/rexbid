@@ -5,7 +5,7 @@ import { otherData } from "../assets";
 const { phone, email, address } = otherData;
 
 const BuyerAgreement = () => {
-    const formattedDate = "1 June 2026";
+    const formattedDate = "9 November 2026";
 
     return (
         <section className="pt-28 pb-16 bg-white">
@@ -96,8 +96,11 @@ const BuyerAgreement = () => {
                             </p>
 
                             <ul className="text-gray-700 space-y-2 list-disc pl-5">
-                                <li>Payment may be processed through registered card payment</li>
-                                <li>Payment deadlines are shown on each listing</li>
+                                <li>A buyer fee of 6% on the first €2,000 of the winning price and 3% on any amount above €2,000 (maximum €500 per item) is added to the winning price</li>
+                                <li>Purchases under €1,000 are paid by card; purchases of €1,000 or more are paid by bank transfer to RexBid</li>
+                                <li>Full payment is due within 48 hours of the auction closing or the offer being accepted</li>
+                                <li>Items must be collected within 5 working days of payment confirmation</li>
+                                <li>Full details: <a href="/payment-refund-policy" className="underline">Payment, Fees &amp; Refund Policy</a></li>
                                 <li>Items will not be released until payment is confirmed</li>
                                 <li>Transactions may use GBP or EUR depending on region</li>
                             </ul>

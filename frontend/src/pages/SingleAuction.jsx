@@ -13,6 +13,7 @@ import PaymentMethodModal from "../components/PaymentMethodModal";
 import { socket } from "../utils/socket";
 import { convertAuctionPrices } from "../utils/convertAuctionPrices.js";
 import { useSeo, buildAuctionSeo } from "../utils/seo";
+import { buyerFeeShort } from "../utils/fees";
 
 const YouTubeEmbed = lazy(() => import('../components/YouTubeEmbed'));
 const ImageLightBox = lazy(() => import('../components/ImageLightBox'));
@@ -1340,6 +1341,10 @@ function SingleAuction() {
                                                     </>
                                                 )}
                                             </button>
+                                            <p className="text-xs text-gray-500 text-center">
+                                                + buyer fee: {buyerFeeShort}.{" "}
+                                                <Link to="/payment-refund-policy#buyer-fee" className="underline">Fees &amp; payment</Link>
+                                            </p>
                                         </form>
                                     )}
 

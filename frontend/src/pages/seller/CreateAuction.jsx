@@ -39,6 +39,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext.jsx';
 import { compressAuctionImages } from '../../utils/compressImage.js';
 import { TouchBackend } from 'react-dnd-touch-backend';
+import { validateMinStart, validateMinReserve, minimumsHint } from '../../utils/listingRules';
 
 // Drag and Drop item types
 const ItemTypes = {
@@ -1353,7 +1354,8 @@ const CreateAuction = () => {
                                                                 <input
                                                                     {...register('startPrice', {
                                                                         required: watch('auctionType') !== 'giveaway' ? 'Start price is required' : false,
-                                                                        min: { value: 0, message: 'Price must be positive' }
+                                                                        min: { value: 0, message: 'Price must be positive' },
+                                                                        validate: value => validateMinStart(value, watch('auctionType'), user?.currency)
                                                                     })}
                                                                     id="startPrice"
                                                                     type="number"
@@ -1364,6 +1366,7 @@ const CreateAuction = () => {
                                                                 />
                                                             </div>
                                                             {errors.startPrice && <p className="text-red-500 text-sm mt-1">{errors.startPrice.message}</p>}
+                                                            <p className="text-sm text-secondary mt-1">{minimumsHint(user?.currency)}</p>
                                                         </div>)}
 
                                                     {(watch('auctionType') === 'standard' || watch('auctionType') === 'reserve') && (
@@ -1401,7 +1404,8 @@ const CreateAuction = () => {
                                                                     validate: value => {
                                                                         const startPrice = parseFloat(watch('startPrice') || 0);
                                                                         const reservePrice = parseFloat(value);
-                                                                        return reservePrice >= startPrice || 'Reserve price must be greater than or equal to start price';
+                                                                        if (reservePrice < startPrice) return 'Reserve price must be greater than or equal to start price';
+                                                                            return validateMinReserve(value, user?.currency);
                                                                     }
                                                                 })}
                                                                 id="reservePrice"

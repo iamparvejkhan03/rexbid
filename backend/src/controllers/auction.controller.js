@@ -29,6 +29,7 @@ import { broadcastAuctionChange, broadcastAuctionRemoved } from "../services/rea
 import { getManualPaymentFlags } from "../utils/manualPayment.js";
 import { processProxyBids } from "../services/proxyBidService.js";
 import { sanitizeAuctionForViewer } from "../utils/publicAuction.js";
+import { minimumPriceError } from "../utils/listingRules.js";
 
 // Initialize Stripe with your secret key
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -224,6 +225,17 @@ export const createAuction = async (req, res) => {
             "Reserve price must be provided and greater than or equal to start price",
         });
       }
+    }
+
+    // RexBid minimums: €500 reserve / €400 no-reserve starting bid
+    const minPriceErr = minimumPriceError({
+      auctionType,
+      startPrice,
+      reservePrice,
+      currency: req.body.baseCurrency || "EUR",
+    });
+    if (minPriceErr) {
+      return res.status(400).json({ success: false, message: minPriceErr });
     }
 
     // Validate buy now price for buy_now auctions
@@ -1296,6 +1308,24 @@ export const updateAuction = async (req, res) => {
           message:
             "Reserve price must be provided and greater than or equal to start price",
         });
+      }
+    }
+
+    // RexBid minimums: only checked when the type or prices change, so older
+    // listings can still be edited for other details.
+    const pricesChanged =
+      auctionType !== auction.auctionType ||
+      parseFloat(startPrice) !== Number(auction.startPrice) ||
+      (auctionType === "reserve" && parseFloat(reservePrice) !== Number(auction.reservePrice));
+    if (pricesChanged) {
+      const minPriceErr = minimumPriceError({
+        auctionType,
+        startPrice,
+        reservePrice,
+        currency: auction.baseCurrency || "EUR",
+      });
+      if (minPriceErr) {
+        return res.status(400).json({ success: false, message: minPriceErr });
       }
     }
 
@@ -3370,6 +3400,16 @@ export const lowerReservePrice = async (req, res) => {
         success: false,
         message: "Reserve price must be greater than 0",
       });
+    }
+
+    // RexBid minimum reserve (€500 or sterling equivalent)
+    const minReserveErr = minimumPriceError({
+      auctionType: "reserve",
+      reservePrice: newPriceInBase,
+      currency: auction.baseCurrency || "EUR",
+    });
+    if (minReserveErr) {
+      return res.status(400).json({ success: false, message: minReserveErr });
     }
 
     // Update reserve price in BASE currency

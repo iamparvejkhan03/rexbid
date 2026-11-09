@@ -5,7 +5,7 @@ import { otherData } from "../assets";
 const { phone, email, address } = otherData;
 
 const SellerAgreement = () => {
-    const formattedDate = "1 June 2026";
+    const formattedDate = "9 November 2026";
 
     return (
         <section className="pt-28 pb-16 bg-white">
@@ -70,17 +70,22 @@ const SellerAgreement = () => {
                                 2. Seller Fees
                             </h2>
 
-                            <p className="text-gray-700 mb-3">
-                                RexBid charges seller commission fees on successful sales:
-                            </p>
-
                             <ul className="text-gray-700 space-y-2 list-disc pl-5 mb-3">
                                 <li>
-                                    <strong>No Reserve Listing:</strong> 3% seller commission
+                                    <strong>Seller commission:</strong> no seller commission is charged on sales
+                                    completed before 1 January 2027. RexBid will give registered sellers at least
+                                    30 days' notice by email before any seller commission is introduced.
                                 </li>
 
                                 <li>
-                                    <strong>Featured Listing:</strong> Additional 3% promotional fee
+                                    <strong>Featured Listing:</strong> €30, charged only if the featured item sells,
+                                    and deducted from the seller's payout.
+                                </li>
+
+                                <li>
+                                    <strong>Minimum prices:</strong> reserve auctions require a reserve price of at
+                                    least €500; no-reserve auctions require a starting bid of at least €400 (or the
+                                    sterling equivalent).
                                 </li>
                             </ul>
 
@@ -91,7 +96,9 @@ const SellerAgreement = () => {
                             <ul className="text-gray-700 space-y-2 list-disc pl-5">
                                 <li>No fees apply unless the item sells</li>
                                 <li>Fees are displayed before publishing listings</li>
-                                <li>Sellers are responsible for applicable taxes and VAT</li>
+                                <li>Sellers are responsible for applicable taxes and VAT, and must indicate on each listing whether VAT applies</li>
+                                <li>Sale proceeds are released within 0–3 working days after the buyer collects the item</li>
+                                <li>Full details: <a href="/payment-refund-policy" className="underline">Payment, Fees &amp; Refund Policy</a></li>
                                 <li>Listings may use GBP or EUR depending on region</li>
                             </ul>
                         </div>
