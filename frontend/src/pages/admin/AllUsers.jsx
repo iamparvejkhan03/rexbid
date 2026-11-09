@@ -6,9 +6,11 @@ import toast from "react-hot-toast";
 import axiosInstance from "../../utils/axiosInstance";
 import { useAuth } from "../../contexts/AuthContext";
 import { Link } from "react-router-dom";
+import EditUserIdentityModal from "../../components/admin/EditUserIdentityModal";
 
 function AllUsers() {
     const [users, setUsers] = useState([]);
+    const [editingUser, setEditingUser] = useState(null);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
     const [filter, setFilter] = useState("all");
@@ -333,6 +335,13 @@ function AllUsers() {
 
     return (
         <section className="flex min-h-screen bg-gray-50">
+            {editingUser && (
+                <EditUserIdentityModal
+                    user={editingUser}
+                    onClose={() => setEditingUser(null)}
+                    onSaved={() => fetchUsers()}
+                />
+            )}
             <AdminSidebar />
 
             <div className="w-full relative">
@@ -576,6 +585,17 @@ function AllUsers() {
                                                                             <span>Verify User</span>
                                                                         </button>
                                                                     )} */}
+
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            setEditingUser(user);
+                                                                            setActiveDropdown(null);
+                                                                        }}
+                                                                        className="flex items-center gap-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                                                                    >
+                                                                        <Edit size={16} />
+                                                                        <span>Edit username / email</span>
+                                                                    </button>
 
                                                                     <button
                                                                         onClick={() => {
@@ -1080,6 +1100,15 @@ function AllUsers() {
 
                                     {/* Action Buttons */}
                                     <div className="flex gap-3 pt-6 border-t border-gray-200">
+                                        <button
+                                            onClick={() => {
+                                                setEditingUser(selectedUser);
+                                                closeUserModal();
+                                            }}
+                                            className="flex-1 bg-[#072342] hover:bg-[#0b2d52] text-white py-2 px-4 rounded-lg transition-colors"
+                                        >
+                                            Edit username / email
+                                        </button>
                                         <button
                                             onClick={() => {
                                                 handleDeactivateUser(selectedUser._id, `${selectedUser.firstName} ${selectedUser.lastName}`, selectedUser.isActive);

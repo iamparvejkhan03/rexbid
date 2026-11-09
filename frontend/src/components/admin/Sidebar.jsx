@@ -1,4 +1,5 @@
 import {
+    MailWarning,
     LayoutDashboard,
     LogOut,
     Users,
@@ -50,6 +51,11 @@ const navigation = [
         name: 'Users',
         path: '/admin/users',
         icon: <Users size={20} />
+    },
+    {
+        name: 'Email Problems',
+        path: '/admin/email-health',
+        icon: <MailWarning size={20} />
     },
     // {
     //     name: 'Pilot Users',

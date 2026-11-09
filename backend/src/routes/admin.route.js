@@ -11,6 +11,9 @@ import {
     updateAuctionStatus,
     approveAuction,
     getClosingSlots,
+    updateUserIdentity,
+    getEmailHealth,
+    markEmailsBounced,
     endAuction,
     deleteAuction,
     updateAuction,
@@ -39,6 +42,9 @@ AdminRouter.patch('/users/:userId/identificationDocument/verify', authAdmin, ver
 AdminRouter.patch('/users/:userId/verify', authAdmin, verifyUser);
 AdminRouter.patch('/users/:userId/identificationDocument/reject', authAdmin, rejectUserIdentity);
 AdminRouter.patch('/users/:userId/contact', authAdmin, updateUserContact);
+AdminRouter.patch('/users/:userId/identity', authAdmin, updateUserIdentity);
+AdminRouter.get('/email-health', authAdmin, getEmailHealth);
+AdminRouter.post('/email-health/bounced', authAdmin, markEmailsBounced);
 
 //dvla api route
 AdminRouter.post('/dvla', authAdmin, fetchDVLAData);
