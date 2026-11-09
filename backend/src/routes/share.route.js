@@ -18,7 +18,9 @@ import { buildAuctionMeta, buildCatalogueMeta, injectHead, notFoundMeta } from "
 // Where to fetch the built index.html from. Must NOT be a URL that is itself
 // rewritten to this route ("/" is safe).
 const FRONTEND_ORIGIN = (process.env.FRONTEND_ORIGIN || "https://rexbid.ie").replace(/\/+$/, "");
-const TEMPLATE_TTL_MS = 5 * 60 * 1000;
+// Short, so listing pages pick up a new website deploy within ~30s
+// (the template names the current JS bundle).
+const TEMPLATE_TTL_MS = 30 * 1000;
 
 let template = { html: null, at: 0 };
 
