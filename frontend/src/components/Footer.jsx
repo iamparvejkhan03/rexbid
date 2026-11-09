@@ -140,6 +140,15 @@ function Footer() {
                                     </Link>
                                 </li>
                             ))}
+                            <li>
+                                {/* CookieYes opens its preferences panel for any element with this class. */}
+                                <button
+                                    type="button"
+                                    className="cky-banner-element text-white hover:text-[#D19F3E] transition-colors"
+                                >
+                                    Cookie settings
+                                </button>
+                            </li>
                         </ul>
                     </div>
 
