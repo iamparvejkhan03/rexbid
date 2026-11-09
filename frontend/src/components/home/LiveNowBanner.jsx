@@ -25,13 +25,13 @@ function LiveNowBanner({ items, currency }) {
     const urgent = msLeft < 15 * 60 * 1000;
 
     return (
-        <section className="bg-white pt-[76px] md:pt-[84px]" aria-label="Closing now">
+        <section className="bg-white pt-[72px] md:pt-[84px]" aria-label="Closing now">
             <Container>
                 <Link
                     to={`/auction/${current._id}`}
                     className="group mt-4 flex flex-col overflow-hidden rounded-2xl bg-[#072342] shadow-lg ring-1 ring-[#072342]/10 transition hover:ring-2 hover:ring-[#D19F3E] sm:flex-row"
                 >
-                    <div className="relative aspect-[16/9] w-full shrink-0 overflow-hidden bg-[#0b2d52] sm:aspect-auto sm:min-h-[190px] sm:w-64 md:w-72">
+                    <div className="relative aspect-[2/1] w-full shrink-0 overflow-hidden bg-[#0b2d52] sm:aspect-auto sm:min-h-[190px] sm:w-64 md:w-72">
                         {photo && (
                             <img
                                 src={photo}
@@ -45,9 +45,9 @@ function LiveNowBanner({ items, currency }) {
                         </span>
                     </div>
 
-                    <div className="flex flex-1 flex-col justify-center gap-4 p-4 md:px-7 md:py-5">
+                    <div className="flex flex-1 flex-col justify-center gap-3 p-4 md:gap-4 md:px-7 md:py-5">
                         <div>
-                            <h2 className="text-lg font-bold leading-snug text-white md:text-2xl">{current.title}</h2>
+                            <h2 className="text-base font-bold leading-snug text-white md:text-2xl">{current.title}</h2>
                             {current.location && (
                                 <p className="mt-1 flex items-center gap-1.5 text-sm text-gray-300">
                                     <MapPin size={14} /> {current.location}
@@ -58,20 +58,20 @@ function LiveNowBanner({ items, currency }) {
                         <div className="flex flex-wrap items-end gap-x-8 gap-y-3">
                             <div>
                                 <p className="text-xs text-gray-400">{current.bidCount > 0 ? "Current bid" : "Starting at"}</p>
-                                <p className="text-2xl font-bold text-white md:text-3xl">{money(livePrice(current), currency)}</p>
+                                <p className="text-xl font-bold text-white md:text-3xl">{money(livePrice(current), currency)}</p>
                                 <p className="text-xs text-[#E8B86B]">
                                     {current.bidCount || 0} {current.bidCount === 1 ? "bid" : "bids"}
                                 </p>
                             </div>
                             <div>
                                 <p className="text-xs text-gray-400">Closes in</p>
-                                <p className={`flex items-center gap-1.5 text-2xl font-bold tabular-nums md:text-3xl ${urgent ? "text-red-400" : "text-white"}`}>
+                                <p className={`flex items-center gap-1.5 text-xl font-bold tabular-nums md:text-3xl ${urgent ? "text-red-400" : "text-white"}`}>
                                     <Clock size={20} className="text-[#D19F3E]" />
                                     {timeLeft(current.endDate, now)}
                                 </p>
                                 {more > 0 && <p className="text-xs text-gray-400">then {more} more closing today</p>}
                             </div>
-                            <span className="ml-auto inline-flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-[#D19F3E] to-[#E8B86B] px-6 py-3 font-bold text-[#072342] sm:w-auto">
+                            <span className="ml-auto inline-flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-[#D19F3E] to-[#E8B86B] px-6 py-2.5 text-sm font-bold md:py-3 md:text-base text-[#072342] sm:w-auto">
                                 View listing
                                 <ArrowRight size={18} className="transition-transform group-hover:translate-x-1" />
                             </span>

@@ -34,7 +34,7 @@ function RecentlySold() {
     if (items.length < 4) return null;
 
     return (
-        <section className="bg-[#F6F7F9] py-12 md:py-16">
+        <section className="bg-[#F6F7F9] py-9 md:py-16">
             <Container>
                 <SectionHeading
                     eyebrow="Results"

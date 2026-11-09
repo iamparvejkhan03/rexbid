@@ -36,7 +36,7 @@ function SaleDates() {
     if (dates.length === 0) return null;
 
     return (
-        <section className="bg-white py-12 md:py-16">
+        <section className="bg-white py-9 md:py-16">
             <Container>
                 <SectionHeading
                     eyebrow="Sale dates"
