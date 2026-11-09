@@ -271,7 +271,7 @@ function AuctionCard({ auction }) {
                             <div className="text-center p-2 bg-gray-50 rounded-lg">
                                 <div className="text-xs text-gray-600 mb-1">{auction.status === 'sold' ? 'Final Bid' : auction.bidCount > 0 ? 'Current Bid' : 'Starting Bid'}</div>
                                 <div className="font-bold text-lg text-green-600">
-                                    {userCurrency === 'GBP' ? '£' : '€'}{(auction.status === 'sold' ? auction.convertedFinalPrice : auction.bidCount > 0 ? auction.convertedCurrentPrice : auction.convertedStartPrice)?.toFixed(0)?.toLocaleString()}
+                                    {userCurrency === 'GBP' ? '£' : '€'}{(auction.status === 'sold' ? auction.convertedFinalPrice : auction.bidCount > 0 ? auction.convertedCurrentPrice : auction.convertedStartPrice)?.toLocaleString('en-IE', { maximumFractionDigits: 0 })}
                                 </div>
                             </div>
 
@@ -293,7 +293,7 @@ function AuctionCard({ auction }) {
                                         <div className="text-xs text-gray-600 mb-1">Bid increment</div>
                                         <div className="font-bold text-lg text-primary flex items-center justify-center gap-1">
                                             {/* <Users size={16} /> */}
-                                            {userCurrency === 'GBP' ? '£' : '€'}{auction.convertedBidIncrement?.toFixed(0)?.toLocaleString()}
+                                            {userCurrency === 'GBP' ? '£' : '€'}{auction.convertedBidIncrement?.toLocaleString('en-IE', { maximumFractionDigits: 0 })}
                                         </div>
                                     </div>
                                 )
@@ -304,7 +304,7 @@ function AuctionCard({ auction }) {
                                     <div className="text-center p-2 bg-gray-50 rounded-lg">
                                         <div className="text-xs text-gray-600 mb-1">Buy Now</div>
                                         <div className="font-bold text-lg text-primary flex items-center justify-center gap-1">
-                                            {userCurrency === 'GBP' ? '£' : '€'}{auction?.convertedBuyNowPrice?.toFixed(0)?.toLocaleString()}
+                                            {userCurrency === 'GBP' ? '£' : '€'}{auction?.convertedBuyNowPrice?.toLocaleString('en-IE', { maximumFractionDigits: 0 })}
                                         </div>
                                     </div>
                                 )
@@ -313,20 +313,20 @@ function AuctionCard({ auction }) {
 
                         <div className="text-xs text-gray-500 text-center flex items-center justify-around">
                             {/* <div>
-                                Bid increment: {userCurrency === 'GBP' ? '£' : '€'}{auction.convertedBidIncrement?.toFixed(0)?.toLocaleString()}
+                                Bid increment: {userCurrency === 'GBP' ? '£' : '€'}{auction.convertedBidIncrement?.toLocaleString('en-IE', { maximumFractionDigits: 0 })}
                             </div> */}
                             {/* <div className="text-xs text-gray-500 text-center">
                                 {auction.watchlistCount || 0} user{auction.watchlistCount !== 1 ? 's' : ''} watching
                             </div> */}
 
                             {/* <div className="text-xs text-gray-500 text-center">
-                                Starting @ {userCurrency === 'GBP' ? '£' : '€'}{(auction.convertedCurrentPrice || auction.convertedStartPrice)?.toFixed(0)?.toLocaleString()}
+                                Starting @ {userCurrency === 'GBP' ? '£' : '€'}{(auction.convertedCurrentPrice || auction.convertedStartPrice)?.toLocaleString('en-IE', { maximumFractionDigits: 0 })}
                             </div> */}
 
                             {/* <div className="text-center p-2 bg-gray-50 rounded-lg">
                                 <div className="text-xs text-gray-600 mb-1">{auction.status === 'sold' ? 'Final Bid' : auction.bidCount > 0 ? 'Current Bid' : 'Starting Bid'}</div>
                                 <div className="font-bold text-lg text-green-600">
-                                    {userCurrency === 'GBP' ? '£' : '€'}{(auction.convertedCurrentPrice || auction.convertedStartPrice)?.toFixed(0)?.toLocaleString()}
+                                    {userCurrency === 'GBP' ? '£' : '€'}{(auction.convertedCurrentPrice || auction.convertedStartPrice)?.toLocaleString('en-IE', { maximumFractionDigits: 0 })}
                                 </div>
                             </div> */}
                         </div>

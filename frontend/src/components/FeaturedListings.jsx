@@ -74,8 +74,14 @@ const FeaturedListings = () => {
         const element = sectionRef.current;
         if (!element) return;
 
+        // Fade in once, then stay visible.
         const observer = new IntersectionObserver(
-            ([entry]) => setVisible(entry.isIntersecting),
+            ([entry]) => {
+                if (entry.isIntersecting) {
+                    setVisible(true);
+                    observer.disconnect();
+                }
+            },
             { threshold: 0.1 }
         );
 
@@ -117,25 +123,17 @@ const FeaturedListings = () => {
     if (!loading && liveAuctions.length === 0) {
         return (
             <Container className="pt-14">
-                <h2 className="text-3xl md:text-4xl lg:text-4xl font-bold text-[#072342] leading-tight my-2 flex items-center gap-2">
-                    <Star className="text-[#D19F3E]" size={28} />
-                    Featured{" "}
-                    <span className="relative inline-block">
-                        <span className="relative z-10 text-transparent bg-clip-text bg-gradient-to-r from-[#D19F3E] to-[#E8B86B]">
-                            Listings
-                        </span>
-                        <svg className="absolute -bottom-3 left-0 w-full" height="12" viewBox="0 0 200 12" fill="none">
-                            <path d="M2 9.5C50 4.5 130 2.5 198 9.5" stroke="#D19F3E" strokeWidth="2.5" strokeLinecap="round" strokeDasharray="4 6" />
-                        </svg>
-                    </span>
-                </h2>
+                <div className="mb-8">
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#A17B35]">Featured</p>
+                    <h2 className="text-2xl font-bold leading-tight text-[#072342] md:text-[2rem]">Featured machinery</h2>
+                </div>
                 {/* <p className="text-gray-500 mt-1">
                         Premium machinery and vehicles handpicked by RexBid
                     </p> */}
                 <div className="text-center py-16 text-gray-500">
                     <Star size={48} className="mx-auto mb-4 text-gray-300" />
-                    <p className="text-lg font-medium">No featured listings available</p>
-                    <p className="text-sm">Check back soon for premium items</p>
+                    <p className="text-lg font-medium">No featured machinery right now</p>
+                    <p className="text-sm">Check back soon</p>
                 </div>
             </Container>
         );
@@ -159,18 +157,10 @@ const FeaturedListings = () => {
                                 <Star className="text-[#D19F3E]" size={28} />
                                 Featured Listings
                             </h2> */}
-                            <h2 className="text-3xl md:text-4xl lg:text-4xl font-bold text-[#072342] leading-tight md:my-2 flex items-center gap-2">
-                                <Star className="text-[#D19F3E]" size={28} />
-                                Featured{" "}
-                                <span className="relative inline-block">
-                                    <span className="relative z-10 text-transparent bg-clip-text bg-gradient-to-r from-[#D19F3E] to-[#E8B86B]">
-                                        Listings
-                                    </span>
-                                    <svg className="absolute -bottom-3 left-0 w-full" height="12" viewBox="0 0 200 12" fill="none">
-                                        <path d="M2 9.5C50 4.5 130 2.5 198 9.5" stroke="#D19F3E" strokeWidth="2.5" strokeLinecap="round" strokeDasharray="4 6" />
-                                    </svg>
-                                </span>
-                            </h2>
+                            <div className="mb-8">
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#A17B35]">Featured</p>
+                    <h2 className="text-2xl font-bold leading-tight text-[#072342] md:text-[2rem]">Featured machinery</h2>
+                </div>
                             {/* <p className="text-gray-500 mt-1">
                                 Premium machinery and vehicles handpicked by RexBid
                             </p> */}
@@ -180,11 +170,11 @@ const FeaturedListings = () => {
 
                 {/* Listings grid/list */}
                 {viewMode === "grid" ? (
-                    <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-7 gap-y-10">
+                    <section className="-mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2 sm:mx-0 sm:grid sm:grid-cols-2 sm:gap-x-7 sm:gap-y-10 sm:overflow-visible sm:px-0 lg:grid-cols-3 xl:grid-cols-4">
                         {liveAuctions.map((listing, index) => (
                             <div
                                 key={listing._id}
-                                className={`transition-all duration-1000 ease-out ${visible
+                                className={`w-[85%] shrink-0 snap-start sm:w-auto transition-all duration-1000 ease-out ${visible
                                     ? "translate-y-0 opacity-100"
                                     : "translate-y-10 opacity-0"
                                     }`}
@@ -235,8 +225,7 @@ const FeaturedListings = () => {
                         onClick={handleViewAll}
                         className="group flex items-center gap-2 bg-gradient-to-r from-[#D19F3E] to-[#E8B86B] text-white font-medium rounded-lg hover:bg-gradient-to-r hover:from-[#D19F3E]/90 hover:to-[#E8B86B]/90 px-8 py-3 transition-all duration-300 hover:bg-[#e4a000] hover:shadow-[0_0_35px_rgba(197,157,85,0.25)] focus:outline-none focus:ring-2 focus:ring-[#F5B51B] focus:ring-offset-2"
                     >
-                        <Gavel size={17} />
-                        <span>View More</span>
+                        <span>See all machinery</span>
                         <ArrowRight
                             size={18}
                             className="transition-transform duration-300 group-hover:translate-x-1"

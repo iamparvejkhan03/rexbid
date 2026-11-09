@@ -45,8 +45,8 @@ const STATIC_PAGES = {
         description: "Sell your tractor, digger, trailer or farm machinery at online auction. List it yourself or WhatsApp us the photos and we'll list it for you.",
     },
     "/catalogues": {
-        title: "Weekly Machinery Auctions Ireland – Tuesday Sales | RexBid",
-        description: "RexBid's weekly online machinery auctions close every Tuesday evening. Browse this week's tractors, trailers, diggers and farm equipment, and past results.",
+        title: "Upcoming Sale Dates – Machinery for Sale Ireland | RexBid",
+        description: "Upcoming sale dates on RexBid. Browse tractors, trailers, diggers and farm equipment from sellers across Ireland, and see past results.",
     },
     "/faqs": {
         title: "RexBid FAQs – Bidding, Fees, Payment & Delivery",

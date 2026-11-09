@@ -132,7 +132,7 @@ const BidHistory = ({ bids, auction, userCurrency }) => {
                       isCurrentHighest ? 'text-blue-600' :
                         'text-primary'
                       }`}>
-                      {userCurrency === 'GBP' ? '£' : '€'}{bid?.convertedAmount?.toFixed(0)?.toLocaleString()}
+                      {userCurrency === 'GBP' ? '£' : '€'}{bid?.convertedAmount?.toLocaleString('en-IE', { maximumFractionDigits: 0 })}
                     </span>
                   </td>
                 </tr>
@@ -155,7 +155,7 @@ const BidHistory = ({ bids, auction, userCurrency }) => {
 
           {auction && auction.bidCount > 0 && (
             <div className="flex items-center gap-2">
-              <span>Bid Increment: <strong className="text-primary">{userCurrency === 'GBP' ? '£' : '€'}{auction?.convertedBidIncrement?.toFixed(0)?.toLocaleString()}</strong></span>
+              <span>Bid Increment: <strong className="text-primary">{userCurrency === 'GBP' ? '£' : '€'}{auction?.convertedBidIncrement?.toLocaleString('en-IE', { maximumFractionDigits: 0 })}</strong></span>
             </div>
           )}
         </div>

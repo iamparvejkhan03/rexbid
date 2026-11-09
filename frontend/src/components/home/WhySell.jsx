@@ -1,0 +1,51 @@
+import { BadgePercent, Hand, ShieldCheck, SlidersHorizontal } from "lucide-react";
+import Container from "../Container";
+import { FEATURED_FEE_EUR } from "../../utils/fees";
+
+import SectionHeading from "./SectionHeading";
+
+const TILES = [
+    {
+        icon: <BadgePercent size={22} className="text-[#E8B86B]" />,
+        title: "No seller fees until 2027",
+        text: `List and sell for free. A featured spot is €${FEATURED_FEE_EUR}, only charged if it sells.`,
+    },
+    {
+        icon: <SlidersHorizontal size={22} className="text-[#E8B86B]" />,
+        title: "You stay in control",
+        text: "Set a reserve. If bidding doesn't reach it, you don't have to sell.",
+    },
+    {
+        icon: <ShieldCheck size={22} className="text-[#E8B86B]" />,
+        title: "Paid safely",
+        text: "We collect the money from the buyer, and pay you securely after collection.",
+    },
+    {
+        icon: <Hand size={22} className="text-[#E8B86B]" />,
+        title: "Less time wasters",
+        text: "No haggling. Less phone calls. The machine doesn't leave your yard until it's sold.",
+    },
+];
+
+function WhySell() {
+    return (
+        <section className="bg-white py-12 md:py-16">
+            <Container>
+                <SectionHeading eyebrow="For sellers" title="Why sell on RexBid" />
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    {TILES.map(({ icon, title, text }) => (
+                        <div key={title} className="rounded-2xl border border-gray-200 bg-white p-5 md:p-6">
+                            <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-[#072342]">
+                                {icon}
+                            </div>
+                            <h3 className="text-lg font-bold text-[#072342]">{title}</h3>
+                            <p className="mt-2 leading-relaxed text-gray-600">{text}</p>
+                        </div>
+                    ))}
+                </div>
+            </Container>
+        </section>
+    );
+}
+
+export default WhySell;
