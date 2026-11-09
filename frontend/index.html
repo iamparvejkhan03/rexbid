@@ -89,15 +89,15 @@
         "script",
         "https://connect.facebook.net/en_US/fbevents.js",
       );
-      // Meta Pixel stays off until the visitor accepts "Advertisement" cookies.
-      fbq("consent", "revoke");
-      fbq("init", "1342628734664826");
-      fbq("track", "PageView");
+      // Meta Pixel is not started (no init, no events, no cookies) until the
+      // visitor accepts "Advertisement" cookies. Starting it after consent
+      // means the first PageView is actually sent, so _fbp is set.
 
       // Apply the visitor's CookieYes choice to Google and Meta. CookieYes
       // fires these events when the banner loads (with any saved choice)
       // and whenever the visitor changes their choice.
       (function () {
+        var fbStarted = false;
         function apply(accepted) {
           accepted = accepted || [];
           var analytics = accepted.indexOf("analytics") !== -1;
@@ -111,18 +111,29 @@
             functionality_storage: fn ? "granted" : "denied",
             personalization_storage: fn ? "granted" : "denied",
           });
-          fbq("consent", ads ? "grant" : "revoke");
+          if (ads) {
+            fbq("consent", "grant");
+            if (!fbStarted) {
+              fbStarted = true;
+              fbq("init", "1342628734664826");
+              fbq("track", "PageView");
+            }
+          } else if (fbStarted) {
+            fbq("consent", "revoke");
+          }
+        }
+        function applySaved() {
+          if (typeof window.getCkyConsent !== "function") return;
+          var c = window.getCkyConsent();
+          var cats = (c && c.categories) || {};
+          apply(Object.keys(cats).filter(function (k) { return cats[k]; }));
         }
         document.addEventListener("cookieyes_consent_update", function (e) {
           apply(e.detail && e.detail.accepted);
         });
-        document.addEventListener("cookieyes_banner_load", function () {
-          if (typeof window.getCkyConsent === "function") {
-            var c = window.getCkyConsent();
-            var cats = (c && c.categories) || {};
-            apply(Object.keys(cats).filter(function (k) { return cats[k]; }));
-          }
-        });
+        document.addEventListener("cookieyes_banner_load", applySaved);
+        // In case the banner finished loading before this listener existed.
+        applySaved();
       })();
     </script>
     <!-- (no <noscript> pixel: it would fire without consent) -->
