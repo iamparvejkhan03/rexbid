@@ -19,3 +19,17 @@ export const minimumsHint = (currency) =>
     currency === "GBP"
         ? "Minimums: €500 reserve, or €400 starting bid for no-reserve auctions (sterling equivalent)."
         : "Minimums: €500 reserve, or €400 starting bid for no-reserve auctions.";
+
+/**
+ * Suggested bid increment for a listing, based on the price it's expected
+ * to reach (reserve if set, otherwise the starting bid). The seller decides;
+ * this is only a suggestion.
+ *   under 5,000: 100 · 5,000 to 20,000: 250 · above 20,000: 500
+ */
+export const suggestedIncrement = (expectedPrice) => {
+    const p = Number(expectedPrice) || 0;
+    if (p <= 0) return null;
+    if (p < 5000) return 100;
+    if (p <= 20000) return 250;
+    return 500;
+};

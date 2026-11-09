@@ -75,6 +75,7 @@ export const createAuction = async (req, res) => {
       allowOffers,
       paymentCollectionPreference,
       vatIncluded,
+      featuredRequested,
       startDate,
       endDate,
     } = req.body;
@@ -405,6 +406,7 @@ export const createAuction = async (req, res) => {
       allowOffers: allowOffers === "true" || allowOffers === true,
       paymentCollectionPreference: paymentCollectionPreference || "buyer_decides",
       vatIncluded: vatIncluded === "true" || vatIncluded === true,
+      featuredRequested: featuredRequested === "true" || featuredRequested === true,
       seller: seller._id,
       sellerUsername: seller.username || seller.companyName || "",
       photos: uploadedPhotos,
