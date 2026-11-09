@@ -109,6 +109,7 @@ const Categories = lazy(() => import('./pages/admin/Categories'));
 const AdminPayouts = lazy(() => import('./pages/admin/Payouts'));
 const AdminPayoutMethods = lazy(() => import('./pages/admin/PayoutMethods'));
 const AuctionDates = lazy(() => import('./pages/admin/AuctionDates'));
+const EmailHealth = lazy(() => import('./pages/admin/EmailHealth'));
 const AdminReminders = lazy(() => import('./pages/admin/AdminReminders'));
 const DeliveryQuotes = lazy(() => import('./pages/admin/DeliveryQuotes'));
 const AdminReviews = lazy(() => import('./pages/admin/Reviews'));
@@ -641,6 +642,16 @@ createRoot(document.getElementById('root')).render(
                             element={
                                 <Suspense fallback={<LoadingSpinner height={'750px'} />}>
                                     <AdminAllAuctions />
+                                </Suspense>
+                            }
+                        />
+
+                        {/* Admin Email problems */}
+                        <Route
+                            path='/admin/email-health'
+                            element={
+                                <Suspense fallback={<LoadingSpinner height={'750px'} />}>
+                                    <EmailHealth />
                                 </Suspense>
                             }
                         />

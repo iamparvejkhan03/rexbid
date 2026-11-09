@@ -1,3 +1,4 @@
+import { checkEmail } from "../utils/emailCheck.js";
 import User from "../models/user.model.js";
 import { StripeService } from "../services/stripeService.js";
 import jwt from "jsonwebtoken";
@@ -119,6 +120,18 @@ export const registerUser = async (req, res) => {
       return res.status(409).json({
         success: false,
         message: 'User with this email or username already exists',
+      });
+    }
+
+    // Stop sign-ups with addresses that can't receive email (e.g. gmail.vom).
+    const emailCheck = await checkEmail(normalizedEmail);
+    if (!emailCheck.ok) {
+      return res.status(400).json({
+        success: false,
+        message: emailCheck.suggestion
+          ? `That email address can't receive email. Did you mean ${emailCheck.suggestion}?`
+          : "That email address can't receive email. Please check it and try again.",
+        suggestion: emailCheck.suggestion || null,
       });
     }
 

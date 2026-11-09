@@ -1,4 +1,5 @@
 import nodemailer from "nodemailer";
+import mongoose from "mongoose";
 import Commission from "../models/commission.model.js";
 import { getCachedRates } from "../routes/currency.route.js";
 import User from "../models/user.model.js";
@@ -18,6 +19,32 @@ const transporter = nodemailer.createTransport({
         pass: process.env.EMAIL_PASSWORD,
     },
 });
+
+// Don't email deactivated users or addresses an admin marked as bounced:
+// sending to dead addresses hurts how Gmail treats all rexbid.ie email.
+// The system address and non-users (e.g. contact-form senders) are unaffected.
+const rawSendMail = transporter.sendMail.bind(transporter);
+const firstAddress = (to) => {
+    const v = Array.isArray(to) ? to[0] : to;
+    const str = typeof v === "object" && v ? v.address : String(v || "");
+    const m = str.match(/<([^>]+)>/);
+    return (m ? m[1] : str).trim().toLowerCase();
+};
+transporter.sendMail = async (msg) => {
+    try {
+        const addr = firstAddress(msg?.to);
+        if (addr && addr !== (process.env.EMAIL_USER || "").toLowerCase() && mongoose.connection.readyState === 1) {
+            const u = await User.findOne({ email: addr }).select("isActive emailBounced").lean();
+            if (u && (u.isActive === false || u.emailBounced)) {
+                console.log(`Email skipped (${u.emailBounced ? "bounced address" : "deactivated user"}): ${msg?.subject || ""}`);
+                return null;
+            }
+        }
+    } catch (err) {
+        console.error("Email gate check failed, sending anyway:", err.message);
+    }
+    return rawSendMail(msg);
+};
 
 // Add connection verification
 transporter.verify(function (error, success) {

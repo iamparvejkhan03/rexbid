@@ -260,6 +260,13 @@ const userSchema = new Schema(
       type: Boolean,
       default: true,
     },
+    // Set by an admin when email to this address bounced. The site stops
+    // emailing it until the address is changed.
+    emailBounced: {
+      type: Boolean,
+      default: false,
+    },
+    emailBouncedAt: Date,
 
     // ID Verification Fields
     identificationDocument: {

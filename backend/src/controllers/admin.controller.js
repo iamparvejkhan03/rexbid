@@ -26,6 +26,7 @@ import {
 
 import { getCachedRates } from "../routes/currency.route.js";
 import AuctionDate from "../models/auctionDate.model.js";
+import { checkEmail, EMAIL_FORMAT } from "../utils/emailCheck.js";
 import {
   buildClosingSlots,
   dublinDayKey,
@@ -2854,5 +2855,138 @@ export const updateUserContact = async (req, res) => {
       success: false,
       message: 'Internal server error while updating contact status',
     });
+  }
+};
+
+// ── Edit a user's username / email (admin) ───────────────────────────
+// Body: { username?, email?, force? }. force skips the "can this address
+// receive email" check (for unusual domains the admin knows are real).
+export const updateUserIdentity = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { username, email, force } = req.body || {};
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ success: false, message: "User not found" });
+
+    const changes = {};
+
+    if (email !== undefined) {
+      const newEmail = String(email).toLowerCase().trim();
+      if (!EMAIL_FORMAT.test(newEmail)) {
+        return res.status(400).json({ success: false, message: "That isn't a valid email address" });
+      }
+      if (newEmail !== user.email) {
+        const taken = await User.findOne({ email: newEmail, _id: { $ne: user._id } }).select("_id").lean();
+        if (taken) return res.status(409).json({ success: false, message: "Another account already uses that email" });
+        if (!force) {
+          const check = await checkEmail(newEmail);
+          if (!check.ok) {
+            return res.status(400).json({
+              success: false,
+              message: check.suggestion
+                ? `That address can't receive email. Did you mean ${check.suggestion}?`
+                : "That address can't receive email (its domain has no mail server).",
+              suggestion: check.suggestion || null,
+              canForce: true,
+            });
+          }
+        }
+        changes.email = newEmail;
+        changes.emailBounced = false;
+        changes.emailBouncedAt = null;
+      }
+    }
+
+    if (username !== undefined) {
+      const newUsername = String(username).toLowerCase().trim();
+      if (newUsername.length < 2 || newUsername.length > 40) {
+        return res.status(400).json({ success: false, message: "Username must be 2 to 40 characters" });
+      }
+      if (newUsername !== (user.username || "")) {
+        const taken = await User.findOne({ username: newUsername, _id: { $ne: user._id } }).select("_id").lean();
+        if (taken) return res.status(409).json({ success: false, message: "Another account already uses that username" });
+        changes.username = newUsername;
+      }
+    }
+
+    if (Object.keys(changes).length === 0) {
+      return res.status(200).json({ success: true, message: "No changes", data: { user } });
+    }
+
+    Object.assign(user, changes);
+    await user.save();
+
+    // Listings show the seller's username: keep them in step.
+    if (changes.username) {
+      await Auction.updateMany({ seller: user._id }, { sellerUsername: user.username || user.companyName || "" });
+    }
+
+    const safe = user.toObject();
+    delete safe.password;
+    delete safe.refreshToken;
+    res.status(200).json({ success: true, message: "User updated", data: { user: safe } });
+  } catch (error) {
+    console.error("Update user identity error:", error);
+    res.status(500).json({ success: false, message: "Failed to update user" });
+  }
+};
+
+// ── Email problems: typos, dead domains, bounced addresses ────────────
+export const getEmailHealth = async (req, res) => {
+  try {
+    const users = await User.find({ userType: { $ne: "admin" } })
+      .select("firstName lastName username companyName email userType isActive emailBounced emailBouncedAt createdAt")
+      .lean();
+
+    const issues = [];
+    for (const u of users) {
+      const check = await checkEmail(u.email || ""); // domain lookups are cached
+      let problem = null;
+      if (u.emailBounced) problem = "bounced";
+      else if (check.problem === "format") problem = "invalid";
+      else if (check.problem === "no_mail_server") problem = "no_mail_server";
+      else if (check.problem === "typo") problem = "typo";
+      if (!problem) continue;
+      issues.push({
+        _id: u._id,
+        name: [u.firstName, u.lastName].filter(Boolean).join(" ") || u.companyName || "",
+        username: u.username || "",
+        email: u.email,
+        userType: u.userType,
+        isActive: u.isActive !== false,
+        problem,
+        suggestion: check.suggestion || null,
+        bouncedAt: u.emailBouncedAt || null,
+        createdAt: u.createdAt,
+      });
+    }
+
+    const order = { invalid: 0, no_mail_server: 1, typo: 2, bounced: 3 };
+    issues.sort((a, b) => order[a.problem] - order[b.problem]);
+    res.status(200).json({ success: true, data: { issues, checked: users.length } });
+  } catch (error) {
+    console.error("Email health error:", error);
+    res.status(500).json({ success: false, message: "Failed to check emails" });
+  }
+};
+
+// Body: { emails: ["a@b.com", ...] } — marks matching users as bounced.
+export const markEmailsBounced = async (req, res) => {
+  try {
+    const list = Array.isArray(req.body?.emails) ? req.body.emails : [];
+    const emails = [...new Set(list.map((e) => String(e).toLowerCase().trim()).filter((e) => EMAIL_FORMAT.test(e)))];
+    if (emails.length === 0) return res.status(400).json({ success: false, message: "No email addresses given" });
+    const result = await User.updateMany(
+      { email: { $in: emails }, userType: { $ne: "admin" } },
+      { emailBounced: true, emailBouncedAt: new Date() },
+    );
+    res.status(200).json({
+      success: true,
+      message: `${result.modifiedCount} account(s) marked as bounced`,
+      data: { matched: result.matchedCount, updated: result.modifiedCount, given: emails.length },
+    });
+  } catch (error) {
+    console.error("Mark bounced error:", error);
+    res.status(500).json({ success: false, message: "Failed to mark bounced emails" });
   }
 };
