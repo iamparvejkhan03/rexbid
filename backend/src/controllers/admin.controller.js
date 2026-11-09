@@ -26,6 +26,12 @@ import {
 
 import { getCachedRates } from "../routes/currency.route.js";
 import AuctionDate from "../models/auctionDate.model.js";
+import {
+  buildClosingSlots,
+  dublinDayKey,
+  dublinHHMM,
+  SLOT_HOLDING_STATUSES,
+} from "../utils/closingSlots.js";
 import { calculateCommission } from "../utils/commissionCalculator.js";
 
 const convertPrice = (auction, targetCurrency, priceField) => {
@@ -1236,6 +1242,62 @@ export const updateAuctionStatus = async (req, res) => {
 };
 
 // Approve auction (change from draft to active)
+
+// ── Closing-time slots ───────────────────────────────────────────────
+// The sale date a listing belongs to (falls back to the listing's own
+// end date with default slot settings if it has none).
+const saleDateFor = async (auction) => {
+  if (auction.auctionDate) {
+    const sd = await AuctionDate.findById(auction.auctionDate).lean();
+    if (sd) return sd;
+  }
+  return { endDate: auction.endDate };
+};
+
+// Map of slot time (ms) -> title of the listing holding it.
+const takenSlotMap = async (slots, excludeId) => {
+  if (slots.length === 0) return new Map();
+  const holders = await Auction.find({
+    _id: { $ne: excludeId },
+    status: { $in: SLOT_HOLDING_STATUSES },
+    endDate: { $in: slots },
+  })
+    .select("title endDate")
+    .lean();
+  return new Map(holders.map((h) => [new Date(h.endDate).getTime(), h.title]));
+};
+
+export const getClosingSlots = async (req, res) => {
+  try {
+    const auction = await Auction.findById(req.params.auctionId).select("title endDate auctionDate status");
+    if (!auction) {
+      return res.status(404).json({ success: false, message: "Auction not found" });
+    }
+    const saleDate = await saleDateFor(auction);
+    const slots = buildClosingSlots(saleDate);
+    const taken = await takenSlotMap(slots, auction._id);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        day: dublinDayKey(saleDate.endDate),
+        saleDateLabel: saleDate.label || "",
+        current: auction.endDate,
+        currentLabel: dublinHHMM(auction.endDate),
+        slots: slots.map((t) => ({
+          time: t,
+          label: dublinHHMM(t),
+          taken: taken.has(t.getTime()),
+          takenBy: taken.get(t.getTime()) || null,
+        })),
+      },
+    });
+  } catch (error) {
+    console.error("Get closing slots error:", error);
+    res.status(500).json({ success: false, message: "Failed to load closing times" });
+  }
+};
+
 export const approveAuction = async (req, res) => {
   try {
     const { auctionId } = req.params;
@@ -1254,6 +1316,37 @@ export const approveAuction = async (req, res) => {
         success: false,
         message: "Only draft auctions can be approved",
       });
+    }
+
+    // Optional: closing time picked from the slot menu.
+    const { closingTime } = req.body || {};
+    let closingChanged = false;
+    if (closingTime) {
+      const chosen = new Date(closingTime);
+      if (isNaN(chosen.getTime())) {
+        return res.status(400).json({ success: false, message: "Invalid closing time" });
+      }
+      const saleDate = await saleDateFor(auction);
+      const slots = buildClosingSlots(saleDate);
+      if (!slots.some((t) => t.getTime() === chosen.getTime())) {
+        return res.status(400).json({
+          success: false,
+          message: "That closing time isn't on this sale date's menu",
+        });
+      }
+      const taken = await takenSlotMap([chosen], auction._id);
+      if (taken.size > 0) {
+        return res.status(409).json({
+          success: false,
+          message: `${dublinHHMM(chosen)} is already taken by "${[...taken.values()][0]}". Pick another time.`,
+        });
+      }
+      if (chosen.getTime() !== new Date(auction.endDate).getTime()) {
+        auction.endDate = chosen;
+        closingChanged = true;
+        // Drop jobs scheduled for the old time; rescheduled below.
+        await agendaService.cancelAuctionJobs(auction._id);
+      }
     }
 
     // Check if auction start date is in the future
@@ -1286,11 +1379,17 @@ export const approveAuction = async (req, res) => {
 
     await auction.save();
 
+    if (closingChanged && auction.endDate > new Date()) {
+      await agendaService.scheduleAuctionEnd(auction._id, auction.endDate);
+    }
+
     broadcastAuctionChange(auctionId);
 
     res.status(200).json({
       success: true,
-      message: "Auction approved successfully",
+      message: closingChanged
+        ? `Approved, closing at ${dublinHHMM(auction.endDate)}`
+        : "Auction approved successfully",
       data: { auction },
     });
 

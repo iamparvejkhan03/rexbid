@@ -7,6 +7,7 @@ import axiosInstance from "../../utils/axiosInstance";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import ManualSellModal from "../../components/ManualSellModal";
+import ApproveListingModal from "../../components/admin/ApproveListingModal";
 
 function AllAuctions() {
     const [auctions, setAuctions] = useState([]);
@@ -94,6 +95,8 @@ function AllAuctions() {
             toast.error("Failed to load auction details");
         }
     };
+
+    const [approving, setApproving] = useState(null);
 
     const approveAuction = async (auctionId) => {
         try {
@@ -411,6 +414,13 @@ function AllAuctions() {
 
     return (
         <section className="flex min-h-screen bg-gray-50">
+            {approving && (
+                <ApproveListingModal
+                    auction={approving}
+                    onClose={() => setApproving(null)}
+                    onApproved={() => fetchAuctions()}
+                />
+            )}
             <AdminSidebar />
 
             <div className="w-full relative">
@@ -753,7 +763,12 @@ function AllAuctions() {
                                                                     {auction.status === "draft" && (
                                                                         <button
                                                                             onClick={() => {
-                                                                                approveAuction(auction._id);
+                                                                                // Timed listings: pick a closing time first.
+                                                                                if (auction.auctionType === "standard" || auction.auctionType === "reserve") {
+                                                                                    setApproving(auction);
+                                                                                } else {
+                                                                                    approveAuction(auction._id);
+                                                                                }
                                                                                 setActiveDropdown(null);
                                                                             }}
                                                                             className="flex items-center gap-3 w-full px-4 py-2 text-sm text-green-600 hover:bg-green-50 transition-colors"
