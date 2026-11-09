@@ -33,6 +33,7 @@ import { setIO } from "./utils/socket.js";
 import emailRouter from "./routes/email.route.js";
 import catalogueRouter from "./routes/catalogue.route.js";
 import websiteReviewRouter from "./routes/websiteReview.route.js";
+import sitemapRouter from './routes/sitemap.route.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -102,6 +103,9 @@ app.get('/api/v1/health', (req, res) => {
         agenda: agendaStarted ? 'running' : 'failed'
     });
 });
+
+// Public XML sitemap for search engines (referenced from rexbid.ie/robots.txt)
+app.use(sitemapRouter);
 
 // Your API routes
 app.use('/api/v1/users', userRouter);

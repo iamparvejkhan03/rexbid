@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft, Calendar, BookMarked } from "lucide-react";
 import { Container, LoadingSpinner, AuctionCard } from "../components";
+import { useSeo, buildCatalogueSeo } from "../utils/seo";
 import Pagination from "../components/Pagination";
 import axiosInstance from "../utils/axiosInstance";
 import toast from "react-hot-toast";
@@ -44,6 +45,8 @@ function SingleCatalogue() {
     const [auctions, setAuctions] = useState([]);
     const [pagination, setPagination] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [notFound, setNotFound] = useState(false);
+    useSeo(buildCatalogueSeo(catalogue, pagination?.totalAuctions, { notFound }));
 
     const hasRestoredScroll = useRef(false);
 
@@ -106,6 +109,7 @@ function SingleCatalogue() {
                     setPagination(data.data.pagination);
                 }
             } catch (err) {
+                if (err?.response?.status === 404) setNotFound(true);
                 toast.error(err?.response?.data?.message || "Failed to load catalogue");
             } finally {
                 setLoading(false);
