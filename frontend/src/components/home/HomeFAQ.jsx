@@ -30,7 +30,7 @@ const QA = [
 
 function HomeFAQ() {
     return (
-        <section className="bg-white py-12 md:py-16">
+        <section className="bg-white py-9 md:py-16">
             <Container>
                 <div className="grid gap-8 lg:grid-cols-[1fr_2fr] lg:gap-14">
                     <div>

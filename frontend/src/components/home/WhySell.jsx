@@ -29,17 +29,17 @@ const TILES = [
 
 function WhySell() {
     return (
-        <section className="bg-white py-12 md:py-16">
+        <section className="bg-white py-9 md:py-16">
             <Container>
                 <SectionHeading eyebrow="For sellers" title="Why sell on RexBid" />
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     {TILES.map(({ icon, title, text }) => (
-                        <div key={title} className="rounded-2xl border border-gray-200 bg-white p-5 md:p-6">
+                        <div key={title} className="rounded-2xl border border-gray-200 bg-white p-4 md:p-6">
                             <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-[#072342]">
                                 {icon}
                             </div>
-                            <h3 className="text-lg font-bold text-[#072342]">{title}</h3>
-                            <p className="mt-2 leading-relaxed text-gray-600">{text}</p>
+                            <h3 className="text-base font-bold text-[#072342] md:text-lg">{title}</h3>
+                            <p className="mt-1.5 text-[15px] leading-relaxed text-gray-600 md:mt-2 md:text-base">{text}</p>
                         </div>
                     ))}
                 </div>

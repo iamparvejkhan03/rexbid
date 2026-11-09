@@ -29,12 +29,12 @@ function HowItWorksTabs() {
     const [tab, setTab] = useState("selling");
 
     return (
-        <section className="bg-[#072342] py-12 text-white md:py-16">
+        <section className="bg-[#072342] py-9 text-white md:py-16">
             <Container>
                 <div className="mb-8 flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
                     <div>
                         <p className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#E8B86B]">How it works</p>
-                        <h2 className="text-2xl font-bold leading-tight md:text-[2rem]">Simple from start to finish</h2>
+                        <h2 className="text-xl font-bold leading-tight md:text-[2rem]">Simple from start to finish</h2>
                     </div>
                     <div role="tablist" className="inline-flex self-start rounded-full bg-white/10 p-1">
                         {["selling", "buying"].map((t) => (
@@ -55,12 +55,12 @@ function HowItWorksTabs() {
 
                 <ol className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     {STEPS[tab].map((s, i) => (
-                        <li key={s.title} className="rounded-2xl border border-white/10 bg-white/[0.04] p-5 md:p-6">
+                        <li key={s.title} className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 md:p-6">
                             <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#D19F3E] font-bold text-[#072342]">
                                 {i + 1}
                             </span>
-                            <h3 className="mt-4 text-lg font-bold">{s.title}</h3>
-                            <p className="mt-2 leading-relaxed text-gray-300">{s.text}</p>
+                            <h3 className="mt-3 text-base font-bold md:mt-4 md:text-lg">{s.title}</h3>
+                            <p className="mt-1.5 text-[15px] leading-relaxed text-gray-300 md:mt-2 md:text-base">{s.text}</p>
                         </li>
                     ))}
                 </ol>
