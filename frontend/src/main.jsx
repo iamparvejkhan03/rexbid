@@ -148,6 +148,8 @@ createRoot(document.getElementById('root')).render(
                         {/* <Route path='/terms-of-use' element={<Suspense fallback={<LoadingSpinner height={'725px'} />}><TermsOfUse /></Suspense>} /> */}
                         {/* The register form links to /terms-of-use; send it to the live terms. */}
                         <Route path='/terms-of-use' element={<Navigate to='/terms-conditions' replace />} />
+                        {/* Browsers that cached a temporary 301 to /index.html land here; send them home. */}
+                        <Route path='/index.html' element={<Navigate to='/' replace />} />
 
                         <Route path='/payment-refund-policy' element={<Suspense fallback={<LoadingSpinner height={'725px'} />}><PaymentRefundPolicy /></Suspense>} />
 
