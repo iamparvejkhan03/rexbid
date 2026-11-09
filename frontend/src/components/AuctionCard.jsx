@@ -34,7 +34,7 @@ function AuctionCard({ auction }) {
     };
 
     // Check if reserve is met
-    const isReserveMet = auction.convertedCurrentPrice >= auction.convertedReservePrice;
+    const isReserveMet = !!auction.reserveMet;
     const isAuctionActive = auction.status === 'active' && !auctionTime.completed;
 
     // Calculate status badges
@@ -349,7 +349,7 @@ function AuctionCard({ auction }) {
                                 <div className="text-xs text-gray-600 mb-1">Participants</div>
                                 <div className="font-bold text-lg text-primary flex items-center justify-center gap-1">
                                     <Users size={16} />
-                                    {auction?.participants?.length || 0}
+                                    {auction?.participantCount ?? auction?.participants?.length ?? 0}
                                 </div>
                             </div>
                         </div>

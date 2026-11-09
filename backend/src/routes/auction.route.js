@@ -25,7 +25,7 @@ import {
     getProxyBidStatus
 } from '../controllers/auction.controller.js';
 import upload from '../middlewares/multer.middleware.js';
-import { auth, authAdmin, authBidder, authSeller } from '../middlewares/auth.middleware.js';
+import { auth, authAdmin, authBidder, authSeller, optionalAuth } from '../middlewares/auth.middleware.js';
 
 const auctionRouter = Router();
 
@@ -59,7 +59,7 @@ auctionRouter.post('/:id/featured', authSeller, markAsFeatured);
 auctionRouter.get('/', getAuctions);
 auctionRouter.get('/hot', getHotListing);
 auctionRouter.get('/featured', getFeaturedListings);
-auctionRouter.get('/:id', getAuction);
+auctionRouter.get('/:id', optionalAuth, getAuction);
 auctionRouter.get('/:id/commission', auth, getAuctionCommission);
 
 // Giveaway routes

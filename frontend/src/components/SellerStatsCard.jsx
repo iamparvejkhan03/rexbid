@@ -73,7 +73,7 @@ const SellerStatsCard = ({ sellerId }) => {
                                     <div className="flex items-center flex-wrap gap-3 text-gray-500 text-sm">
                                         <a
                                             className="flex items-center gap-2"
-                                            href={`mailto:${stats?.phone}`}
+                                            href={`tel:${stats?.phone}`}
                                         >
                                             <PhoneCall size={18} />
                                             <span className="underline">{stats?.phone}</span>

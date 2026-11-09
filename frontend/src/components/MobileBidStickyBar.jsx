@@ -117,7 +117,7 @@ const MobileBidStickyBar = ({
   const showGiveawayClaim = isGiveaway && isActive && !auction?.winner && auction?.status === 'active';
   const showProxyBid = showBidForm && auction?.allowProxyBidding;
 
-  const isReserveMet = (auction?.convertedCurrentPrice || auction?.currentPrice || 0) >= (auction?.reservePrice || 0);
+  const isReserveMet = !!auction?.reserveMet;
 
   const formatEndDate = (dateString) => {
     if (!dateString) return '';
@@ -280,23 +280,13 @@ const MobileBidStickyBar = ({
           timeStatus === "counting-down" &&
           timeRemained > 0 && // still active
           timeRemained < 24 * 60 * 60 * 1000 && // last 24 hours
-          auction.reservePrice > auction.startPrice &&
+          auction.hasReserve &&
           auction.bidCount > 0 && // only show if there is at least one bid
           (() => {
-            const currentBid = Number(auction.convertedCurrentPrice) || 0;
-            const reservePrice = Number(auction.convertedReservePrice) || 0;
-            const reserveProgress =
-              reservePrice > 0
-                ? Math.min(
-                  100,
-                  Math.max(
-                    0,
-                    (currentBid / reservePrice) * 100
-                  )
-                )
-                : 0;
-
-            const reserveMet = currentBid >= reservePrice;
+            // Reserve amount is never sent to the browser; the server provides a
+            // rounded progress value and a met/not-met flag instead.
+            const reserveProgress = Number(auction.reserveProgress) || 0;
+            const reserveMet = !!auction.reserveMet;
 
             return (
               <div className="mt-2">

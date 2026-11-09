@@ -28,6 +28,7 @@ import AuctionDate from "../models/auctionDate.model.js";
 import { broadcastAuctionChange, broadcastAuctionRemoved } from "../services/realtimeService.js";
 import { getManualPaymentFlags } from "../utils/manualPayment.js";
 import { processProxyBids } from "../services/proxyBidService.js";
+import { sanitizeAuctionForViewer } from "../utils/publicAuction.js";
 
 // Initialize Stripe with your secret key
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -601,7 +602,7 @@ export const getAuctions = async (req, res) => {
     const auctionsWithConverted = auctions.map(auction => {
       const auctionObj = auction.toObject();
 
-      return {
+      return sanitizeAuctionForViewer({
         ...auctionObj,
         convertedStartPrice: convertPrice(auction, userCurrency, 'startPrice'),
         convertedCurrentPrice: convertPrice(auction, userCurrency, 'currentPrice'),
@@ -610,7 +611,7 @@ export const getAuctions = async (req, res) => {
         convertedReservePrice: convertPrice(auction, userCurrency, 'reservePrice'),
         convertedFinalPrice: convertPrice(auction, userCurrency, 'finalPrice'),
         displayCurrency: userCurrency
-      };
+      }, req.user);
     });
 
     const total = await Auction.countDocuments(filter);
@@ -777,7 +778,7 @@ export const getTopLiveAuctions = async (req, res) => {
         }
       }
 
-      return {
+      return sanitizeAuctionForViewer({
         ...auctionObj,
         convertedStartPrice: parseFloat(convertedStartPrice.toFixed(2)),
         convertedCurrentPrice: parseFloat(convertedCurrentPrice.toFixed(2)),
@@ -786,7 +787,7 @@ export const getTopLiveAuctions = async (req, res) => {
         convertedReservePrice: parseFloat(convertedReservePrice.toFixed(2)),
         convertedFinalPrice: parseFloat(convertedFinalPrice.toFixed(2)),
         displayCurrency: userCurrency,
-      };
+      }, req.user);
     });
 
     res.status(200).json({
@@ -939,7 +940,7 @@ export const getAuction = async (req, res) => {
     const userCurrency = req.query.currency || 'EUR';
 
     const auction = await Auction.findById(id)
-      .populate("seller", "username companyName firstName lastName countryName phone email")
+      .populate("seller", "username companyName firstName lastName countryName")
       .populate("currentBidder", "username companyName firstName")
       .populate("winner", "username companyName firstName lastName")
       .populate("bids.bidder", "username companyName firstName");
@@ -1000,7 +1001,7 @@ export const getAuction = async (req, res) => {
     res.json({
       success: true,
       data: {
-        auction: {
+        auction: sanitizeAuctionForViewer({
           ...auctionObj,
           bids: convertedBids,
           offers: convertedOffers,
@@ -1012,7 +1013,7 @@ export const getAuction = async (req, res) => {
           convertedFinalPrice,
           displayCurrency: userCurrency,
           ...getManualPaymentFlags(auction),
-        }
+        }, req.user)
       }
     });
   } catch (error) {
@@ -3781,13 +3782,13 @@ export const getHotListing = async (req, res) => {
       return res.status(200).json({
         success: true,
         data: {
-          auction: {
+          auction: sanitizeAuctionForViewer({
             ...fallbackAuction,
             convertedCurrentPrice,
             convertedStartPrice,
             convertedFinalPrice,
             displayCurrency: userCurrency,
-          },
+          }, req.user),
           note: "No active listings available – showing recent sold item.",
         },
       });
@@ -3822,7 +3823,7 @@ export const getHotListing = async (req, res) => {
     res.status(200).json({
       success: true,
       data: {
-        auction: hotListing,
+        auction: sanitizeAuctionForViewer(hotListing, req.user),
         score: hotListing.hotScore,
         scoreOriginal: hotListing.hotScoreOriginal,
         displayCurrency: userCurrency,
@@ -3916,7 +3917,7 @@ export const getFeaturedListings = async (req, res) => {
     res.status(200).json({
       success: true,
       data: {
-        listings: paginatedListings,
+        listings: paginatedListings.map((l) => sanitizeAuctionForViewer(l, req.user)),
         pagination: {
           total,
           page: parseInt(page),

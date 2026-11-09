@@ -1,6 +1,7 @@
 import { getCachedRates } from "../routes/currency.route.js";
 import { getIO } from "../utils/socket.js";
 import { getManualPaymentFlags } from "../utils/manualPayment.js";
+import { sanitizeAuctionForViewer } from "../utils/publicAuction.js";
 
 const TICK_FIELDS = [
     "_id",
@@ -14,7 +15,9 @@ const TICK_FIELDS = [
     "startDate",
     "endDate",
     "lastBidTime",
-    "reservePrice",
+    "hasReserve",
+    "reserveMet",
+    "reserveProgress",
     "buyNowPrice",
     "watchlistCount",
     "paymentStatus",
@@ -51,12 +54,19 @@ export const broadcastAuctionChange = async (auctionId) => {
 
         if (!auction) return;
 
+        // Socket rooms are public: broadcast only the anonymous view, and leave
+        // out per-user collections entirely so clients keep their own copy
+        // (fetched via the authenticated REST call) instead of receiving
+        // everyone else's proxy bids and offers.
+        const { proxyBids, offers, participants, ...publicAuction } =
+            sanitizeAuctionForViewer(auction, null);
+
         const serverTime = Date.now();
         const rates = getCachedRates() || null;
         const baseCurrency = auction.baseCurrency;
 
         io.to("global").emit("auction:tick", {
-            ...pick(auction, TICK_FIELDS),
+            ...pick(publicAuction, TICK_FIELDS),
             baseCurrency,
             rates,
             serverTime,
@@ -68,7 +78,7 @@ export const broadcastAuctionChange = async (auctionId) => {
             baseCurrency,
             rates,
             auction: {
-                ...auction,
+                ...publicAuction,
                 ...getManualPaymentFlags(auction),   // ← add
             },
         });

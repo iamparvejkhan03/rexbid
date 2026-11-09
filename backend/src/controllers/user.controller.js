@@ -828,7 +828,7 @@ export const getSellerStats = async (req, res) => {
     const { userId } = req.params;
     const userCurrency = req.query.currency || 'EUR';
 
-    const user = await User.findById(userId).select("username companyName firstName lastName countryName isVerified identificationStatus image email phone currency");
+    const user = await User.findById(userId).select("username companyName firstName lastName countryName isVerified identificationStatus image phone currency");
     if (!user) {
       return res.status(404).json({ success: false, message: "User not found" });
     }
@@ -881,8 +881,9 @@ export const getSellerStats = async (req, res) => {
       data: {
         username: user.username,
         companyName: user.companyName,
-        email: user?.email,
-        phone: user?.phone,
+        // Contact number is only shown to signed-in users (see SellerStatsCard "Contact").
+        // Email is never exposed publicly.
+        phone: req.user ? user?.phone : undefined,
         fullName: `${user.firstName || ""} ${user.lastName || ""}`.trim(),
         country: user.countryName || "Not specified",
         currency: user?.currency || userCurrency,
