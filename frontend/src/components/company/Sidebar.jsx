@@ -22,7 +22,7 @@ import { useAuth } from "../../contexts/AuthContext";
 const navigation = [
     { name: 'Dashboard', path: '/company/dashboard', icon: <LayoutDashboard size={20} /> },
     { name: 'All Auctions', path: '/company/auctions/all', icon: <Gavel size={20} /> },
-    { name: 'Create Auction', path: '/company/auctions/create', icon: <Plus size={20} /> },
+    { name: 'Create Listing', path: '/company/auctions/create', icon: <Plus size={20} /> },
     { name: 'Sold Auctions', path: '/company/auctions/sold', icon: <Award size={20} /> },
     { name: 'Bid History', path: '/company/bids/history', icon: <TrendingUp size={20} /> },
     { name: 'All Offers', path: '/company/offers/all', icon: <Hand size={20} /> },

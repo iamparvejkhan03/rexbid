@@ -17,6 +17,7 @@ const OWNER_ONLY_FIELDS = [
   "reservePrice",
   "convertedReservePrice",
   "featuredPremiumAmount",
+  "featuredRequested",
   "notifications",
   "purchaseEventSent",
 ];

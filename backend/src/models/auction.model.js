@@ -300,6 +300,12 @@ const auctionSchema = new Schema(
       type: Boolean,
       default: false,
     },
+    // Seller ticked "Feature my listing" (EUR 30, only charged if it sells).
+    // An admin still decides and switches isFeatured on.
+    featuredRequested: {
+      type: Boolean,
+      default: false,
+    },
     featuredPremiumAmount: {
       type: Number,
       default: 0,

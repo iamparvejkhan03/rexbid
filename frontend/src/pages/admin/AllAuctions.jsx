@@ -552,6 +552,12 @@ function AllAuctions() {
                                                                         Featured
                                                                     </span>
                                                                 )}
+                                                                {auction.featuredRequested && !auction.isFeatured && (
+                                                                    <span className="inline-flex items-center gap-1 px-2 py-1 border border-amber-400 text-amber-700 bg-amber-50 text-xs rounded-full" title="Seller asked for a featured spot (EUR 30, only if it sells)">
+                                                                        <Star size={10} />
+                                                                        Featured requested
+                                                                    </span>
+                                                                )}
                                                             </div>
                                                         </div>
                                                     </div>
