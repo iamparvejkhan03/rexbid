@@ -56,10 +56,11 @@ export const dublinHHMM = (date) =>
     });
 
 /**
- * All closing slots for a sale date.
- * @param {object} saleDate  { endDate, firstClosingTime?, closingInterval? }
- *   The slots run on the Irish day of saleDate.endDate, from firstClosingTime
- *   up to and including saleDate.endDate.
+ * All closing slots for a sale day.
+ * @param {object} opts  { endDate, firstClosingTime?, closingInterval? }
+ *   endDate is the sale date's end. Slots run on its Irish day, from
+ *   firstClosingTime (set in the admin approve pop-up, default 19:00) every
+ *   closingInterval minutes (default 2), up to and including endDate.
  * @returns {Date[]}
  */
 export const buildClosingSlots = (saleDate) => {
