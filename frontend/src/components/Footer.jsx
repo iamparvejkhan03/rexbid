@@ -20,6 +20,7 @@ function Footer() {
         { name: 'Terms & Conditions', href: '/terms-conditions' },
         { name: 'Buyer Agreement', href: '/buyer-agreement' },
         { name: 'Seller Agreement', href: '/seller-agreement' },
+        { name: 'Payment, Fees & Refunds', href: '/payment-refund-policy' },
     ];
 
     const categoryImg = [

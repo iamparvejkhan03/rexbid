@@ -1,6 +1,6 @@
 import { UserPlus, Phone, MessageCircle, ArrowRight } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { heroImg } from "../assets";
 import { Container } from "../components";
 
@@ -80,7 +80,7 @@ function Sell() {
                         </h2>
 
                         {/* <p className="text-sm md:text-base text-[#ff9d00]">Free to list until 1st October. Buyers commission 3% on final sale price.</p> */}
-                        <p className="text-sm md:text-base text-[#ff9d00]">Free to list and sell with RexBid until January.</p>
+                        <p className="text-sm md:text-base text-[#ff9d00]">Free to list and sell with RexBid until 1 January 2027.</p>
 
                         <p className="text-gray-600 leading-relaxed text-base md:text-lg">
                             Choose the method that suits you best – take full control with your own account, or let us handle the listing for you.
@@ -97,6 +97,10 @@ function Sell() {
                                     <h4 className="font-bold text-[#072342] text-lg">Option 1 – Self‑manage</h4>
                                     <p className="text-gray-500 text-sm mt-1 leading-relaxed">
                                         Register an account in minutes and create your own ads. Set your reserve, manage your auction, and connect directly with buyers.
+                                    </p>
+                                    <p className="text-gray-500 text-xs mt-1 leading-relaxed">
+                                        Minimum reserve €500, or €400 starting bid for no-reserve auctions. Featured listings: €30, only if the item sells.{" "}
+                                        <Link to="/payment-refund-policy#seller-fees" className="underline text-[#D19F3E]">Fees &amp; payment</Link>
                                     </p>
                                     <button
                                         onClick={() => navigate('/register')}

@@ -5,7 +5,7 @@ import { otherData } from "../assets";
 const { email, address } = otherData;
 
 const BuyerTerms = () => {
-    const formattedDate = "1 June 2026";
+    const formattedDate = "9 November 2026";
 
     return (
         <section className="pt-28 pb-16 bg-white">
@@ -81,8 +81,10 @@ const BuyerTerms = () => {
 
                             <ul className="text-gray-700 space-y-2 list-disc pl-5">
                                 <li>
-                                    You must pay RexBid the full amount due, including the buyer fee,
-                                    within 48 hours of the bidding closing.
+                                    You must pay RexBid the full amount due, including the buyer fee (6% on the
+                                    first €2,000 and 3% above that, maximum €500), within 48 hours of the bidding
+                                    closing. See the{" "}
+                                    <a href="/payment-refund-policy" className="underline">Payment, Fees &amp; Refund Policy</a>.
                                 </li>
                                 <li>
                                     Collection must not be arranged until RexBid confirms that cleared funds

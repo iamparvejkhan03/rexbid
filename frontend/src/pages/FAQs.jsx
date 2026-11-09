@@ -44,11 +44,23 @@ const faqs = [
         questions: [
             {
                 question: "What payment methods are accepted?",
-                answer: "Payments can be made either through saved card, or by bank transfer to RexBid, depending on the value of the transaction.",
+                answer: "Purchases under €1,000 are paid by card through our secure checkout. Purchases of €1,000 or more are paid by bank transfer to RexBid; we email you a payment request with our bank details. See our Payment, Fees & Refund Policy for full details.",
             },
             {
                 question: "Does RexBid handle payments?",
                 answer: "RexBid handles all payments between buyers and sellers. Under no circumstances should buyers arrange payment directly with sellers.",
+            },
+            {
+                question: "Is there a buyer fee?",
+                answer: "Yes. A buyer fee of 6% applies to the first €2,000 of the winning price and 3% to any amount above €2,000, up to a maximum of €500 per item. For example: €1,000 → €60 fee; €5,000 → €210; €10,000 → €360; €20,000 → €500 (the maximum). The fee is shown before you bid.",
+            },
+            {
+                question: "When do I need to pay?",
+                answer: "Full payment, including the buyer fee, is due within 48 hours of the auction closing or your offer being accepted.",
+            },
+            {
+                question: "Is VAT added?",
+                answer: "VAT on an item is set by the seller. Each listing shows whether VAT is applicable; where it is, VAT is added to the winning price.",
             },
         ],
     },
@@ -58,11 +70,11 @@ const faqs = [
         questions: [
             {
                 question: "Do you offer delivery services?",
-                answer: "We may be able to arrange delivery for you, please contact us on +353872039257 and we can get you a quote from our delivery partners.",
+                answer: "Yes. Use the “Request Delivery Quote” button on any listing, or our transport quote page, and our transport partner will quote you. Transport is paid directly to the transport provider.",
             },
             {
                 question: "Can I collect the item myself?",
-                answer: "Yes. Collection can usually be arranged directly with the seller after payment.",
+                answer: "Yes. Once RexBid confirms your payment has cleared, we share the seller's collection details. Items must be collected within 5 working days of payment confirmation, unless agreed otherwise with the seller.",
             },
         ],
     },
@@ -76,7 +88,15 @@ const faqs = [
             },
             {
                 question: "What are the seller fees?",
-                answer: "No seller fees until January 2027.",
+                answer: "There are no seller fees on sales completed before 1 January 2027. If you choose to feature a listing, a €30 fee applies only if the item sells.",
+            },
+            {
+                question: "Is there a minimum price?",
+                answer: "Yes. Reserve auctions need a reserve price of at least €500. No-reserve auctions need a starting bid of at least €400. Sterling listings use the equivalent amount.",
+            },
+            {
+                question: "When do I get paid?",
+                answer: "We release the sale price to you within 0–3 working days after the buyer collects the item.",
             },
         ],
     },

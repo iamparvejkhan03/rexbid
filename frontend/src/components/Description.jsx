@@ -28,7 +28,9 @@ function Description({ description }) {
                         <li>Pay through RexBid, then collect directly from the seller or arrange delivery.</li>
                     </ol>
                     <p className="mt-3">
-                        Buyers commission is automatically calculated before you bid, so there are no hidden fees.
+                        A buyer fee of 6% on the first €2,000 and 3% above that (maximum €500) is added to the winning
+                        price. It is shown before you bid, so there are no hidden fees.{" "}
+                        <a href="/payment-refund-policy#buyer-fee" className="underline">See fees &amp; payment</a>.
                     </p>
                     <p className="mt-3 text-sm">
                         *BIDS ARE LEGALLY BINDING. DO NOT PLACE A BID IF YOU DON'T HAVE THE CAPACITY TO COMPLETE THE
