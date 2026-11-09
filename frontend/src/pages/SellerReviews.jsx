@@ -5,6 +5,7 @@ import axiosInstance from "../utils/axiosInstance";
 import Container from "../components/Container";
 import LoadingSpinner from "../components/LoadingSpinner";
 import RatingStars from "../components/RatingStars";
+import { useSeo, buildSellerSeo } from "../utils/seo";
 import { dummyUserImg } from "../assets";
 
 const SellerReviewsPage = () => {
@@ -14,6 +15,8 @@ const SellerReviewsPage = () => {
     const [ratingDistribution, setRatingDistribution] = useState({ 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 });
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [notFound, setNotFound] = useState(false);
+    useSeo(buildSellerSeo(sellerStats, userId, { notFound }));
 
     useEffect(() => {
         const fetchData = async () => {
@@ -42,6 +45,7 @@ const SellerReviewsPage = () => {
 
             } catch (err) {
                 console.error("Error fetching seller data:", err);
+                if (err?.response?.status === 404) setNotFound(true);
                 setError("Could not load seller information or reviews. Please try again later.");
             } finally {
                 setLoading(false);

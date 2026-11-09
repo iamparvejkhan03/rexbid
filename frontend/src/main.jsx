@@ -2,7 +2,7 @@ import { lazy, StrictMode, Suspense } from 'react';
 import { createRoot } from 'react-dom/client';
 import './index.css';
 import App from './App.jsx';
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { PopUpContextProvider } from './contexts/PopUpContextProvider';
 import { Protected, LoadingSpinner, AdminRoute } from './components';
 import { AuthProvider } from './contexts/AuthContext.jsx';
@@ -32,6 +32,7 @@ const SingleCatalogue = lazy(() => import('./pages/SingleCatalogue'));
 const Catalogues = lazy(() => import('./pages/Catalogues'));
 const RateUs = lazy(() => import('./pages/RateUs'));
 const Reviews = lazy(() => import('./pages/WhatOurClientsSay'));
+const NotFound = lazy(() => import('./pages/NotFound'));
 
 {/* Seller Pages */ }
 const SellerLayout = lazy(() => import('./pages/seller/Layout'));
@@ -145,6 +146,8 @@ createRoot(document.getElementById('root')).render(
                         <Route path='/terms-conditions' element={<Suspense fallback={<LoadingSpinner height={'725px'} />}><TermsConditions /></Suspense>} />
 
                         {/* <Route path='/terms-of-use' element={<Suspense fallback={<LoadingSpinner height={'725px'} />}><TermsOfUse /></Suspense>} /> */}
+                        {/* The register form links to /terms-of-use; send it to the live terms. */}
+                        <Route path='/terms-of-use' element={<Navigate to='/terms-conditions' replace />} />
 
                         <Route path='/payment-refund-policy' element={<Suspense fallback={<LoadingSpinner height={'725px'} />}><PaymentRefundPolicy /></Suspense>} />
 
@@ -171,6 +174,9 @@ createRoot(document.getElementById('root')).render(
                         <Route path='/rate-us' element={<Suspense fallback={<LoadingSpinner height={'725px'} />}><RateUs /></Suspense>} />
 
                         <Route path='/reviews' element={<Suspense fallback={<LoadingSpinner height={'725px'} />}><Reviews /></Suspense>} />
+
+                        {/* Unknown URLs: show a real "not found" page marked noindex. */}
+                        <Route path='*' element={<Suspense fallback={<LoadingSpinner height={'725px'} />}><NotFound /></Suspense>} />
                     </Route>
 
                     {/* Seller Layout */}

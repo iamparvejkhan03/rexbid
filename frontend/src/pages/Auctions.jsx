@@ -4,6 +4,7 @@ import { AuctionListItem, Container } from "../components";
 import AuctionCard from "../components/AuctionCard";
 import { useAuctions } from "../hooks/useAuctions";
 import { useLocation } from "react-router-dom";
+import { useSeo, buildAuctionsListSeo } from "../utils/seo";
 import axiosInstance from "../utils/axiosInstance";
 import { useLiveAuctionTicks } from "../hooks/useLiveAuctionTicks";
 import Pagination from "../components/Pagination";
@@ -405,6 +406,7 @@ function Auctions() {
 
     const [categories, setCategories] = useState([]);
     const location = useLocation();
+    useSeo(buildAuctionsListSeo(location.search));
     const [showMobileFilters, setShowMobileFilters] = useState(false);
     const [activeFilterSections, setActiveFilterSections] = useState({});
     const [debounceTimer, setDebounceTimer] = useState(null);

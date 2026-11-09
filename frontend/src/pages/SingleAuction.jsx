@@ -12,6 +12,7 @@ import PilotPhaseModal from "../components/PilotPhaseModal";
 import PaymentMethodModal from "../components/PaymentMethodModal";
 import { socket } from "../utils/socket";
 import { convertAuctionPrices } from "../utils/convertAuctionPrices.js";
+import { useSeo, buildAuctionSeo } from "../utils/seo";
 
 const YouTubeEmbed = lazy(() => import('../components/YouTubeEmbed'));
 const ImageLightBox = lazy(() => import('../components/ImageLightBox'));
@@ -40,6 +41,9 @@ function SingleAuction() {
     const [isBidModalOpen, setIsBidModalOpen] = useState(false);
     const formRef = useRef();
     const { user } = useAuth();
+    // Only a genuine 404 marks the page noindex; a temporary API error must not.
+    const [notFound, setNotFound] = useState(false);
+    useSeo(buildAuctionSeo(auction, { notFound }));
     const navigate = useNavigate();
     const [showBuyNowModal, setShowBuyNowModal] = useState(false);
     const [showGiveawayModal, setShowGiveawayModal] = useState(false);
@@ -274,6 +278,7 @@ function SingleAuction() {
                     setAuction(data.data.auction);
                 }
             } catch (error) {
+                if (error?.response?.status === 404) setNotFound(true);
                 toast.error(error?.response?.data?.message || 'Failed to fetch auction');
                 console.error('Fetch auction error:', error);
             } finally {

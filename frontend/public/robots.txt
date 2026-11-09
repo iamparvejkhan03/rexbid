@@ -1,0 +1,23 @@
+# robots.txt for https://rexbid.ie
+User-agent: *
+Allow: /
+
+# Account dashboards and transactional pages
+Disallow: /admin
+Disallow: /bidder
+Disallow: /broker
+Disallow: /company
+Disallow: /seller/
+Disallow: /seller$
+Disallow: /checkout/
+Disallow: /unsubscribe/
+Disallow: /reset-password
+
+# Search results and sorted/filtered duplicates of the listings page
+Disallow: /auctions?*search=
+Disallow: /auctions?*sortBy=
+
+# /login, /register and /rate-us are NOT blocked here on purpose: they carry a
+# "noindex" tag, which Google can only see if it is allowed to fetch the page.
+
+Sitemap: https://rexbid-backend.onrender.com/sitemap.xml
