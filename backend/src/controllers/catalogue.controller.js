@@ -5,6 +5,7 @@ import {
     deleteFromCloudinary,
 } from "../utils/cloudinary.js";
 import { getCachedRates } from "../routes/currency.route.js";
+import { sanitizeAuctionForViewer } from "../utils/publicAuction.js";
 
 // -------------------- helpers --------------------
 
@@ -192,7 +193,7 @@ export const getCatalogueAuctions = async (req, res) => {
 
         const auctionsWithConverted = auctions.map((auction) => {
             const auctionObj = auction.toObject();
-            return {
+            return sanitizeAuctionForViewer({
                 ...auctionObj,
                 convertedStartPrice: convertPrice(auction, currency, "startPrice"),
                 convertedCurrentPrice: convertPrice(auction, currency, "currentPrice"),
@@ -201,7 +202,7 @@ export const getCatalogueAuctions = async (req, res) => {
                 convertedReservePrice: convertPrice(auction, currency, "reservePrice"),
                 convertedFinalPrice: convertPrice(auction, currency, "finalPrice"),
                 displayCurrency: currency,
-            };
+            }, req.user);
         });
 
         res.status(200).json({

@@ -25,7 +25,7 @@ import {
     getUserStats,
 } from "../controllers/profile.controller.js";
 
-import { auth } from "../middlewares/auth.middleware.js";
+import { auth, optionalAuth } from "../middlewares/auth.middleware.js";
 
 const userRouter = Router();
 
@@ -36,7 +36,7 @@ userRouter.post('/refresh-token', refreshAccessToken);
 userRouter.post('/forgot-password', forgotPassword);
 userRouter.post('/reset-password/:token', resetPassword);
 userRouter.get('/unsubscribe/:token', unsubscribeUser);
-userRouter.get("/:userId/seller-stats", getSellerStats);
+userRouter.get("/:userId/seller-stats", optionalAuth, getSellerStats);
 
 // Protected routes
 userRouter.get('/profile', auth, getProfile);

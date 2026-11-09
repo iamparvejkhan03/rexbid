@@ -19,7 +19,7 @@ function AuctionListItem({ auction }) {
     };
 
     // Check if reserve is met
-    const isReserveMet = auction.currentPrice >= auction.reservePrice;
+    const isReserveMet = auction.reserveMet ?? (auction.currentPrice >= auction.reservePrice);
     const isAuctionActive = auction.status === 'active' && auctionTime?.status === 'counting-down';
 
     // Calculate status badges
@@ -135,7 +135,7 @@ function AuctionListItem({ auction }) {
     };
 
     // Calculate pending offers
-    const pendingOffers = auction?.offers?.filter(o => o.status === 'pending').length || 0;
+    const pendingOffers = auction?.pendingOfferCount ?? auction?.offers?.filter(o => o.status === 'pending').length ?? 0;
 
     if (!auctionTime) return null;
 

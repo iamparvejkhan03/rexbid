@@ -10,7 +10,8 @@
   "type": "module",
   "main": "src/server.js",
   "scripts": {
-    "server": "nodemon src/server.js"
+    "server": "nodemon src/server.js",
+    "test": "node --test test/*.test.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1127.0",

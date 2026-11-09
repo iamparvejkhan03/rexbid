@@ -317,12 +317,20 @@ function SingleAuction() {
 
         // ⬇️ THIS IS THE CHANGE ⬇️
         const onUpdate = ({ auction, rates, baseCurrency }) => {
-            const merged = {
-                ...auction,
-                rates: rates || auction.rates,
-                baseCurrency: baseCurrency || auction.baseCurrency,
-            };
-            setAuction(convertAuctionPrices(merged, userCurrency));
+            // The broadcast is the public view: it omits per-user data
+            // (your own proxy bid, offers, giveaway entry). Keep the copy we
+            // already have from the authenticated fetch.
+            setAuction((prev) => {
+                const merged = {
+                    proxyBids: prev?.proxyBids,
+                    offers: prev?.offers,
+                    participants: prev?.participants,
+                    ...auction,
+                    rates: rates || auction.rates,
+                    baseCurrency: baseCurrency || auction.baseCurrency,
+                };
+                return convertAuctionPrices(merged, userCurrency);
+            });
         };
 
         const onRemoved = () => setAuction(null);
@@ -870,7 +878,7 @@ function SingleAuction() {
 
                 {/* Image section */}
                 {/* <Suspense fallback={<LoadingSpinner />}> */}
-                <ImageLightBox isFeatured={auction.isFeatured} images={auction.photos} auctionType={auction?.auctionType} isReserveMet={auction.convertedCurrentPrice >= auction.reservePrice} />
+                <ImageLightBox isFeatured={auction.isFeatured} images={auction.photos} auctionType={auction?.auctionType} isReserveMet={auction.reserveMet} />
                 {/* </Suspense> */}
 
                 <MobileBidStickyBar
@@ -1093,8 +1101,8 @@ function SingleAuction() {
                                 )}
 
                                 {auction.auctionType === 'reserve' && timeRemaining > 0 && timeRemaining > 24 * 60 * 60 * 1000 && (
-                                    <p className={`${auction.convertedCurrentPrice >= auction.reservePrice ? 'text-green-600 bg-green-100' : 'text-blue-600 bg-blue-100'} flex items-start self-start text-xs font-medium px-4 py-2 rounded-md`}>
-                                        {auction.convertedCurrentPrice >= auction.reservePrice ? 'Reserve Met' : 'Reserve Applies'}
+                                    <p className={`${auction.reserveMet ? 'text-green-600 bg-green-100' : 'text-blue-600 bg-blue-100'} flex items-start self-start text-xs font-medium px-4 py-2 rounded-md`}>
+                                        {auction.reserveMet ? 'Reserve Met' : 'Reserve Applies'}
                                     </p>
                                 )}
 
@@ -1102,10 +1110,10 @@ function SingleAuction() {
                                     countdown.status === "counting-down" &&
                                     timeRemaining > 0 &&
                                     timeRemaining < 24 * 60 * 60 * 1000 &&
-                                    auction.reservePrice > auction.startPrice &&
+                                    auction.hasReserve &&
                                     auction.bidCount === 0 && (
-                                        <p className={`${auction.convertedCurrentPrice >= auction.reservePrice ? 'text-green-600 bg-green-100' : 'text-blue-600 bg-blue-100'} flex items-start self-start text-xs font-medium px-4 py-2 rounded-md`}>
-                                            {auction.convertedCurrentPrice >= auction.reservePrice ? 'Reserve Met' : 'Reserve Applies'}
+                                        <p className={`${auction.reserveMet ? 'text-green-600 bg-green-100' : 'text-blue-600 bg-blue-100'} flex items-start self-start text-xs font-medium px-4 py-2 rounded-md`}>
+                                            {auction.reserveMet ? 'Reserve Met' : 'Reserve Applies'}
                                         </p>
                                     )}
 
@@ -1115,23 +1123,13 @@ function SingleAuction() {
                                     countdown.status === "counting-down" &&
                                     timeRemaining > 0 && // still active
                                     timeRemaining < 24 * 60 * 60 * 1000 && // last 24 hours
-                                    auction.reservePrice > auction.startPrice &&
+                                    auction.hasReserve &&
                                     auction.bidCount > 0 && // only show if there is at least one bid
                                     (() => {
-                                        const currentBid = Number(auction.convertedCurrentPrice) || 0;
-                                        const reservePrice = Number(auction.convertedReservePrice) || 0;
-                                        const reserveProgress =
-                                            reservePrice > 0
-                                                ? Math.min(
-                                                    100,
-                                                    Math.max(
-                                                        0,
-                                                        (currentBid / reservePrice) * 100
-                                                    )
-                                                )
-                                                : 0;
-
-                                        const reserveMet = currentBid >= reservePrice;
+                                        // Reserve amount is never sent to the browser; the server provides a
+                                        // rounded progress value and a met/not-met flag instead.
+                                        const reserveProgress = Number(auction.reserveProgress) || 0;
+                                        const reserveMet = !!auction.reserveMet;
 
                                         return (
                                             <div className="mt-2 border-t pt-3">
@@ -1214,7 +1212,7 @@ function SingleAuction() {
                         auction.allowOffers && (
                             <p className="flex w-full justify-between border-b pb-2">
                                 <span className="text-secondary">No. of Offers</span>
-                                <span className="font-medium">{auction.status === 'approved' ? '--' : auction?.offers?.length}</span>
+                                <span className="font-medium">{auction.status === 'approved' ? '--' : (auction.offerCount ?? auction?.offers?.length)}</span>
                             </p>
                         )
                     } */}
@@ -1561,10 +1559,10 @@ function SingleAuction() {
                     </p> */}
 
                     {/* Pending Offers Count */}
-                    {auction.offers && auction.offers.filter(o => o.status === 'pending').length > 0 && (
+                    {(auction.pendingOfferCount ?? 0) > 0 && (
                         <p className="text-center bg-white p-3 text-secondary text-sm flex items-center justify-center gap-2 border border-gray-200 rounded-lg">
                             <Banknote className="w-4 h-4" />
-                            <span>{auction.offers.filter(o => o.status === 'pending').length} pending offer{auction.offers.filter(o => o.status === 'pending').length !== 1 ? 's' : ''}</span>
+                            <span>{auction.pendingOfferCount} pending offer{auction.pendingOfferCount !== 1 ? 's' : ''}</span>
                         </p>
                     )}
                 </div>
