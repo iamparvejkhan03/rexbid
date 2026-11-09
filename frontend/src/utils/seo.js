@@ -44,6 +44,9 @@ const upsertCanonical = (href) => {
 
 const JSON_LD_ID = "page-jsonld";
 const upsertJsonLd = (data) => {
+    // The server may have pre-filled structured data for shared links; the
+    // client copy replaces it so the page never carries two versions.
+    document.getElementById("share-jsonld")?.remove();
     let el = document.getElementById(JSON_LD_ID);
     if (!data) {
         if (el) el.remove();
@@ -110,6 +113,9 @@ export const applySeo = ({
     upsertMeta("property", "og:url", canonical || absoluteUrl(window.location.pathname));
     upsertMeta("property", "og:image", image);
     upsertMeta("name", "twitter:card", "summary_large_image");
+    if (type !== "product") {
+        document.head.querySelectorAll('meta[property^="product:"]').forEach((el) => el.remove());
+    }
 
     upsertJsonLd(jsonLd);
 };
@@ -178,8 +184,8 @@ export const buildAuctionSeo = (auction, { notFound = false } = {}) => {
         description: toPlainText(auction.description, 500) || name,
         url: absoluteUrl(path),
         ...(photos.length ? { image: photos.slice(0, 5) } : {}),
-        ...(brand ? { brand: { "@type": "Brand", name: String(brand) } } : {}),
-        ...(model ? { model: String(model) } : {}),
+        ...(brand ? { brand: { "@type": "Brand", name: String(brand).trim() } } : {}),
+        ...(model ? { model: String(model).trim() } : {}),
         itemCondition: condition === "new" ? "https://schema.org/NewCondition" : "https://schema.org/UsedCondition",
         offers: {
             "@type": "Offer",
