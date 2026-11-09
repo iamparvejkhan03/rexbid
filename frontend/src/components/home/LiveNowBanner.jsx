@@ -31,12 +31,12 @@ function LiveNowBanner({ items, currency }) {
                     to={`/auction/${current._id}`}
                     className="group mt-4 flex flex-col overflow-hidden rounded-2xl bg-[#072342] shadow-lg ring-1 ring-[#072342]/10 transition hover:ring-2 hover:ring-[#D19F3E] sm:flex-row"
                 >
-                    <div className="relative aspect-[16/9] w-full shrink-0 overflow-hidden bg-[#0b2d52] sm:aspect-auto sm:w-64 md:w-80">
+                    <div className="relative aspect-[16/9] w-full shrink-0 overflow-hidden bg-[#0b2d52] sm:aspect-auto sm:min-h-[190px] sm:w-64 md:w-72">
                         {photo && (
                             <img
                                 src={photo}
                                 alt={current.title}
-                                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03] sm:absolute sm:inset-0"
                             />
                         )}
                         <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-red-600 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-white shadow">
@@ -45,7 +45,7 @@ function LiveNowBanner({ items, currency }) {
                         </span>
                     </div>
 
-                    <div className="flex flex-1 flex-col justify-between gap-4 p-4 md:p-6">
+                    <div className="flex flex-1 flex-col justify-center gap-4 p-4 md:px-7 md:py-5">
                         <div>
                             <h2 className="text-lg font-bold leading-snug text-white md:text-2xl">{current.title}</h2>
                             {current.location && (
