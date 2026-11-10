@@ -11,6 +11,18 @@ export const BUYER_FEE = {
 
 export const SELLER_FEES_FREE_UNTIL = "1 January 2027";
 export const FEATURED_FEE_EUR = 30;
+
+// Paid Facebook & Instagram advert for a listing. Seller picks a budget;
+// the ad runs from approval until the sale closes. Prices include VAT.
+// Reach figures are estimates based on RexBid's own Meta ad results.
+export const META_BOOST_PACKAGES = [
+    { id: 'boost', name: 'Meta Boost', priceEur: 10, reach: '2,000–4,000' },
+    { id: 'plus', name: 'Meta Boost Plus', priceEur: 20, reach: '5,000–8,000' },
+    { id: 'max', name: 'Meta Boost Max', priceEur: 40, reach: '8,000–12,000' },
+];
+// Hide the Meta option when the sale closes sooner than this
+// (Meta's ad review can take up to 24 hours).
+export const META_BOOST_MIN_HOURS_BEFORE_CLOSE = 48;
 export const MIN_RESERVE_EUR = 500;
 export const MIN_NO_RESERVE_START_EUR = 400;
 
