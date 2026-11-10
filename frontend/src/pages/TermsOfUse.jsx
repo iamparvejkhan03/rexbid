@@ -130,7 +130,7 @@ const TermsOfUse = () => {
 
                             <p className="text-gray-700">
                                 RexBid charges a 3% seller commission on successful sales.
-                                Featured listings may incur an additional 3% promotional fee.
+                                Optional paid extras (a featured listing or a Facebook &amp; Instagram advert) are charged at the price shown when the listing is created.
                                 Fees are communicated before listings are published.
                             </p>
                         </div>

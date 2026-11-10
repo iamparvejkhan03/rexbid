@@ -23,6 +23,8 @@ export const META_BOOST_PACKAGES = [
 // Hide the Meta option when the sale closes sooner than this
 // (Meta's ad review can take up to 24 hours).
 export const META_BOOST_MIN_HOURS_BEFORE_CLOSE = 48;
+const metaPrices = META_BOOST_PACKAGES.map((p) => p.priceEur);
+export const META_BOOST_PRICE_RANGE = `€${Math.min(...metaPrices)}–€${Math.max(...metaPrices)}`;
 export const MIN_RESERVE_EUR = 500;
 export const MIN_NO_RESERVE_START_EUR = 400;
 

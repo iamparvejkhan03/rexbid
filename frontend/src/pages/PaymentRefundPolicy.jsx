@@ -5,11 +5,13 @@ import {
     buyerFeeSentence,
     SELLER_FEES_FREE_UNTIL,
     FEATURED_FEE_EUR,
+    META_BOOST_PACKAGES,
+    META_BOOST_MIN_HOURS_BEFORE_CLOSE,
     MIN_RESERVE_EUR,
     MIN_NO_RESERVE_START_EUR,
 } from "../utils/fees";
 
-const LAST_UPDATED = "9 November 2026";
+const LAST_UPDATED = "10 November 2026";
 const EXAMPLES = [1000, 2000, 5000, 10000, 20000];
 const euro = (n) => `€${Number(n).toLocaleString("en-IE", { maximumFractionDigits: 2 })}`;
 
@@ -112,9 +114,22 @@ const PaymentRefundPolicy = () => {
                                     fee is introduced, and new fees will only apply to listings created after that notice.
                                 </>,
                                 <>
-                                    <strong>Featured listings:</strong> a fee of €{FEATURED_FEE_EUR} applies only if the
-                                    featured item sells. Nothing is charged if it does not sell. The fee is deducted from
-                                    the seller's payout.
+                                    <strong>Featured listings (optional):</strong> €{FEATURED_FEE_EUR}, paid by card
+                                    when you submit the listing. Your listing is shown at the top of the homepage.
+                                </>,
+                                <>
+                                    <strong>Facebook &amp; Instagram adverts (optional):</strong>{" "}
+                                    {META_BOOST_PACKAGES.map((pkg) => `${pkg.name} €${pkg.priceEur}`).join(", ")}, paid by
+                                    card when you submit the listing. We run a paid advert for your listing from approval
+                                    until the sale closes. Reach figures are estimates, not guarantees. Adverts are only
+                                    available when the sale closes at least {META_BOOST_MIN_HOURS_BEFORE_CLOSE} hours
+                                    after you list.
+                                </>,
+                                <>
+                                    <strong>Refunds on paid extras:</strong> we refund a paid extra in full if we don't
+                                    approve your listing, if we can't feature it, or if Meta rejects the advert. Once a
+                                    featured spot or advert has started, it is not refundable, even if the item sells
+                                    early or is withdrawn.
                                 </>,
                             ]}
                         />
