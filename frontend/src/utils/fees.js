@@ -13,7 +13,8 @@ export const SELLER_FEES_FREE_UNTIL = "1 January 2027";
 export const FEATURED_FEE_EUR = 30;
 
 // Paid Facebook & Instagram advert for a listing. Seller picks a budget;
-// the ad runs from approval until the sale closes. Prices include VAT.
+// the ad runs from approval until the sale closes. No VAT is charged
+// (RexBid is not VAT registered).
 // Reach figures are estimates based on RexBid's own Meta ad results.
 export const META_BOOST_PACKAGES = [
     { id: 'boost', name: 'Meta Boost', priceEur: 10, reach: '2,000–4,000' },
@@ -25,6 +26,16 @@ export const META_BOOST_PACKAGES = [
 export const META_BOOST_MIN_HOURS_BEFORE_CLOSE = 48;
 const metaPrices = META_BOOST_PACKAGES.map((p) => p.priceEur);
 export const META_BOOST_PRICE_RANGE = `€${Math.min(...metaPrices)}–€${Math.max(...metaPrices)}`;
+
+// Sterling sellers pay fixed prices for paid extras at £8 = €10
+// (not a live exchange rate): £24 Featured, £8 / £16 / £32 Meta.
+export const GBP_PER_EUR_EXTRAS = 0.8;
+export const FEATURED_FEE_GBP = FEATURED_FEE_EUR * GBP_PER_EUR_EXTRAS;
+export const META_BOOST_PRICE_RANGE_GBP = `£${Math.min(...metaPrices) * GBP_PER_EUR_EXTRAS}–£${Math.max(...metaPrices) * GBP_PER_EUR_EXTRAS}`;
+
+/** Price label for a paid extra in the seller's currency, e.g. "€30" or "£24". */
+export const extraPriceLabel = (priceEur, currency) =>
+    currency === 'GBP' ? `£${priceEur * GBP_PER_EUR_EXTRAS}` : `€${priceEur}`;
 export const MIN_RESERVE_EUR = 500;
 export const MIN_NO_RESERVE_START_EUR = 400;
 

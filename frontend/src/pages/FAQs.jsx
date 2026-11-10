@@ -88,7 +88,7 @@ const faqs = [
             },
             {
                 question: "What are the seller fees?",
-                answer: "A standard listing has no seller fees on sales completed before 1 January 2027. For extra reach you can add optional paid extras: a featured spot on the homepage (€30) or a Facebook & Instagram ad (€10, €20 or €40). Extras are paid by card when you list.",
+                answer: "A standard listing has no seller fees on sales completed before 1 January 2027. For extra reach you can add optional paid extras: a featured spot on the homepage (€30 / £24) or a Facebook & Instagram ad (€10, €20 or €40 / £8, £16 or £32). Extras are paid by card when you list.",
             },
             {
                 question: "Is there a minimum price?",

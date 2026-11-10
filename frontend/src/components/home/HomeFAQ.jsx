@@ -1,14 +1,14 @@
 import { Link } from "react-router-dom";
 import { ChevronDown } from "lucide-react";
 import Container from "../Container";
-import { FEATURED_FEE_EUR, SELLER_FEES_FREE_UNTIL, META_BOOST_PRICE_RANGE } from "../../utils/fees";
+import { FEATURED_FEE_EUR, FEATURED_FEE_GBP, SELLER_FEES_FREE_UNTIL, META_BOOST_PRICE_RANGE, META_BOOST_PRICE_RANGE_GBP } from "../../utils/fees";
 
 import SectionHeading from "./SectionHeading";
 
 const QA = [
     {
         q: "What does it cost to sell?",
-        a: `A standard listing costs nothing on sales completed before ${SELLER_FEES_FREE_UNTIL}. For extra reach you can add a featured spot on the homepage for €${FEATURED_FEE_EUR}, or a Facebook & Instagram ad from ${META_BOOST_PRICE_RANGE}. Both are optional and paid by card when you list.`,
+        a: `A standard listing costs nothing on sales completed before ${SELLER_FEES_FREE_UNTIL}. For extra reach you can add a featured spot on the homepage for €${FEATURED_FEE_EUR} (£${FEATURED_FEE_GBP}), or a Facebook & Instagram ad from ${META_BOOST_PRICE_RANGE} (${META_BOOST_PRICE_RANGE_GBP}). Both are optional and paid by card when you list.`,
     },
     {
         q: "What if my machine doesn't reach the reserve?",
