@@ -300,11 +300,20 @@ const auctionSchema = new Schema(
       type: Boolean,
       default: false,
     },
-    // Seller ticked "Feature my listing" (EUR 30, only charged if it sells).
+    // Seller ticked "Feature my listing" (EUR 30).
     // An admin still decides and switches isFeatured on.
     featuredRequested: {
       type: Boolean,
       default: false,
+    },
+    // Paid Facebook & Instagram advert package the seller chose
+    // ("boost" | "plus" | "max"), or "" for none. Prices live in
+    // frontend/src/utils/fees.js (META_BOOST_PACKAGES). Card payment
+    // at checkout is still to be wired up.
+    metaBoostPackage: {
+      type: String,
+      enum: ["", "boost", "plus", "max"],
+      default: "",
     },
     featuredPremiumAmount: {
       type: Number,

@@ -100,13 +100,15 @@ export const getAuctionDates = async (req, res) => {
     }
 };
 
-// ── Public: active, future-start slots only ───────────────
+// ── Public: active slots that haven't closed yet ──────────
+// A sale date stays open for new listings until its end date, so
+// sellers can still join a sale that has already gone live.
 export const getActiveAuctionDates = async (req, res) => {
     try {
         const now = new Date();
         const slots = await AuctionDate.find({
             isActive: true,
-            startDate: { $gt: now },
+            endDate: { $gt: now },
         }).sort({ startDate: 1 });
 
         res.status(200).json({

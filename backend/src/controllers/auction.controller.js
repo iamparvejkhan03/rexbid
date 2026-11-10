@@ -76,6 +76,7 @@ export const createAuction = async (req, res) => {
       paymentCollectionPreference,
       vatIncluded,
       featuredRequested,
+      metaBoostPackage,
       startDate,
       endDate,
     } = req.body;
@@ -182,10 +183,10 @@ export const createAuction = async (req, res) => {
         });
       }
 
-      if (new Date(slot.startDate) <= new Date()) {
+      if (new Date(slot.endDate) <= new Date()) {
         return res.status(400).json({
           success: false,
-          message: "Selected auction date slot has already started",
+          message: "Selected auction date has already closed",
         });
       }
 
@@ -407,6 +408,7 @@ export const createAuction = async (req, res) => {
       paymentCollectionPreference: paymentCollectionPreference || "buyer_decides",
       vatIncluded: vatIncluded === "true" || vatIncluded === true,
       featuredRequested: featuredRequested === "true" || featuredRequested === true,
+      metaBoostPackage: ["boost", "plus", "max"].includes(metaBoostPackage) ? metaBoostPackage : "",
       seller: seller._id,
       sellerUsername: seller.username || seller.companyName || "",
       photos: uploadedPhotos,
@@ -1120,10 +1122,10 @@ export const updateAuction = async (req, res) => {
             message: "Selected auction date slot is no longer available",
           });
         }
-        if (new Date(slot.startDate) <= new Date() && canChangeSlot) {
+        if (new Date(slot.endDate) <= new Date() && canChangeSlot) {
           return res.status(400).json({
             success: false,
-            message: "Selected auction date slot has already started",
+            message: "Selected auction date has already closed",
           });
         }
 

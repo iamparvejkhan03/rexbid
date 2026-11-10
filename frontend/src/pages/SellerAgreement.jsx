@@ -78,8 +78,15 @@ const SellerAgreement = () => {
                                 </li>
 
                                 <li>
-                                    <strong>Featured Listing:</strong> €30, charged only if the featured item sells,
-                                    and deducted from the seller's payout.
+                                    <strong>Featured Listing (optional):</strong> €30, paid by card when the listing
+                                    is submitted.
+                                </li>
+
+                                <li>
+                                    <strong>Facebook &amp; Instagram advert (optional):</strong> €10, €20 or €40
+                                    depending on the package chosen, paid by card when the listing is submitted. The
+                                    advert runs from approval until the sale closes. Reach figures are estimates,
+                                    not guarantees.
                                 </li>
 
                                 <li>

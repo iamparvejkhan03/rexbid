@@ -563,9 +563,14 @@ function AllAuctions() {
                                                                     </span>
                                                                 )}
                                                                 {auction.featuredRequested && !auction.isFeatured && (
-                                                                    <span className="inline-flex items-center gap-1 px-2 py-1 border border-amber-400 text-amber-700 bg-amber-50 text-xs rounded-full" title="Seller asked for a featured spot (EUR 30, only if it sells)">
+                                                                    <span className="inline-flex items-center gap-1 px-2 py-1 border border-amber-400 text-amber-700 bg-amber-50 text-xs rounded-full" title="Seller asked for a featured spot (EUR 30)">
                                                                         <Star size={10} />
                                                                         Featured requested
+                                                                    </span>
+                                                                )}
+                                                                {auction.metaBoostPackage && (
+                                                                    <span className="inline-flex items-center gap-1 px-2 py-1 border border-blue-400 text-blue-700 bg-blue-50 text-xs rounded-full" title="Seller ordered a Facebook & Instagram advert">
+                                                                        Meta ad: {{ boost: "€10", plus: "€20", max: "€40" }[auction.metaBoostPackage]}
                                                                     </span>
                                                                 )}
                                                             </div>

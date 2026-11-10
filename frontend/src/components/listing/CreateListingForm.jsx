@@ -40,7 +40,7 @@ import { useAuth } from '../../contexts/AuthContext.jsx';
 import { compressAuctionImages } from '../../utils/compressImage.js';
 import { TouchBackend } from 'react-dnd-touch-backend';
 import { validateMinStart, validateMinReserve, minimumsHint, suggestedIncrement } from '../../utils/listingRules';
-import { FEATURED_FEE_EUR, SELLER_FEES_FREE_UNTIL } from '../../utils/fees';
+import { FEATURED_FEE_EUR, SELLER_FEES_FREE_UNTIL, META_BOOST_PACKAGES, META_BOOST_MIN_HOURS_BEFORE_CLOSE } from '../../utils/fees';
 import { HowSellingWorks, Hint, Note } from './ListingGuidance';
 
 // Drag and Drop item types
@@ -497,6 +497,25 @@ const CreateListingForm = ({ Container, Header, Sidebar, basePath, defaultUserTy
         (s) => s._id === selectedAuctionDateId,
     );
 
+    // Meta advert: only offered when the sale closes far enough away
+    // for the ad to be approved and run.
+    const metaBoostRequested = watch('metaBoostRequested');
+    const metaBoostPackage = watch('metaBoostPackage');
+    const metaBoostAvailable =
+        !selectedAuctionDate ||
+        new Date(selectedAuctionDate.endDate).getTime() - Date.now() >=
+            META_BOOST_MIN_HOURS_BEFORE_CLOSE * 60 * 60 * 1000;
+    const selectedMetaPackage =
+        metaBoostRequested && metaBoostAvailable
+            ? META_BOOST_PACKAGES.find((pkg) => pkg.id === metaBoostPackage)
+            : null;
+
+    useEffect(() => {
+        if (!metaBoostAvailable && metaBoostRequested) {
+            setValue('metaBoostRequested', false);
+        }
+    }, [metaBoostAvailable, metaBoostRequested, setValue]);
+
     useEffect(() => {
         if (auctionType !== 'standard' && auctionType !== 'reserve') {
             setValue('auctionDateId', '');
@@ -693,7 +712,7 @@ const CreateListingForm = ({ Container, Header, Sidebar, basePath, defaultUserTy
             const fieldsToValidate = ['auctionType'];
 
             if (auctionType === 'standard' || auctionType === 'reserve') {
-                fieldsToValidate.push('startPrice', 'bidIncrement', 'auctionDateId');
+                fieldsToValidate.push('startPrice', 'bidIncrement', 'auctionDateId', 'metaBoostPackage');
             }
 
             if (auctionType === 'reserve') {
@@ -812,6 +831,9 @@ const CreateListingForm = ({ Container, Header, Sidebar, basePath, defaultUserTy
             formData.append('paymentCollectionPreference', auctionData.paymentCollectionPreference || 'credit_card');
             formData.append('vatIncluded', Boolean(auctionData.vatIncluded));
             formData.append('featuredRequested', Boolean(auctionData.featuredRequested));
+            if (selectedMetaPackage) {
+                formData.append('metaBoostPackage', selectedMetaPackage.id);
+            }
             formData.append('features', auctionData.features || '');
             const isTimed =
                 auctionData.auctionType === 'standard' ||
@@ -1529,15 +1551,57 @@ const CreateListingForm = ({ Container, Header, Sidebar, basePath, defaultUserTy
                                                 <div className="mb-6 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 space-y-3">
                                                     <p className="font-semibold text-gray-900">Fees and payment</p>
                                                     <p>
-                                                        <strong>No seller fees</strong> on sales before {SELLER_FEES_FREE_UNTIL}.
+                                                        <strong>No seller fees</strong> for a standard listing on sales before {SELLER_FEES_FREE_UNTIL}.
+                                                        Want more bidders? Add one of these paid options for extra reach.
                                                     </p>
                                                     <label htmlFor="featuredRequested" className="flex items-start gap-2 rounded-lg border border-[#D19F3E]/50 bg-white p-3 cursor-pointer">
                                                         <input type="checkbox" id="featuredRequested" {...register('featuredRequested')} className="mt-1" />
                                                         <span>
-                                                            <span className="font-semibold text-gray-900">Feature my listing: €{FEATURED_FEE_EUR}, only if it sells</span>
+                                                            <span className="font-semibold text-gray-900">Feature my listing: €{FEATURED_FEE_EUR}</span>
                                                             <span className="block text-gray-600">Shown at the top of the homepage for more views.</span>
                                                         </span>
                                                     </label>
+                                                    {metaBoostAvailable ? (
+                                                        <div className="rounded-lg border border-[#D19F3E]/50 bg-white p-3">
+                                                            <label htmlFor="metaBoostRequested" className="flex items-start gap-2 cursor-pointer">
+                                                                <input type="checkbox" id="metaBoostRequested" {...register('metaBoostRequested')} className="mt-1" />
+                                                                <span>
+                                                                    <span className="font-semibold text-gray-900">Advertise on Facebook &amp; Instagram: from €{META_BOOST_PACKAGES[0].priceEur}</span>
+                                                                    <span className="block text-gray-600">We run a paid ad for your listing until the sale closes.</span>
+                                                                </span>
+                                                            </label>
+                                                            {metaBoostRequested && (
+                                                                <div className="mt-3 space-y-2 pl-6">
+                                                                    {META_BOOST_PACKAGES.map((pkg) => (
+                                                                        <label key={pkg.id} className={`flex items-start gap-2 rounded-lg border p-2.5 cursor-pointer ${metaBoostPackage === pkg.id ? 'border-[#D19F3E] bg-[#D19F3E]/[0.06]' : 'border-gray-200'}`}>
+                                                                            <input
+                                                                                type="radio"
+                                                                                value={pkg.id}
+                                                                                {...register('metaBoostPackage', {
+                                                                                    validate: (v) => !getValues('metaBoostRequested') || !!v || 'Choose an advert package',
+                                                                                })}
+                                                                                className="mt-1"
+                                                                            />
+                                                                            <span>
+                                                                                <span className="font-medium text-gray-900">{pkg.name}: €{pkg.priceEur}</span>
+                                                                                <span className="block text-gray-600">Estimated reach {pkg.reach} people</span>
+                                                                            </span>
+                                                                        </label>
+                                                                    ))}
+                                                                    {errors.metaBoostPackage && (
+                                                                        <p className="text-red-500 text-sm">{errors.metaBoostPackage.message}</p>
+                                                                    )}
+                                                                    <p className="text-xs text-gray-500">
+                                                                        Prices include VAT. Reach is an estimate, not a guarantee. Paid by card at checkout.
+                                                                    </p>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    ) : (
+                                                        <p className="rounded-lg border border-gray-200 bg-white p-3 text-gray-600">
+                                                            Facebook &amp; Instagram adverts need at least {META_BOOST_MIN_HOURS_BEFORE_CLOSE} hours before the sale closes, so they aren't available for this sale date.
+                                                        </p>
+                                                    )}
                                                     <p>
                                                         The buyer pays us within 48 hours. We pay you by bank transfer 0–3 working days after
                                                         collection. Set up your{" "}
@@ -1590,7 +1654,8 @@ const CreateListingForm = ({ Container, Header, Sidebar, basePath, defaultUserTy
                                                     ...(auctionType === 'reserve' ? [['Reserve', watch('reservePrice') ? `${currencySymbol}${Number(watch('reservePrice')).toLocaleString('en-IE')}` : '-']] : []),
                                                     ['Bid increment', watch('bidIncrement') ? `${currencySymbol}${Number(watch('bidIncrement')).toLocaleString('en-IE')}` : '-'],
                                                     ['VAT', watch('vatIncluded') ? 'Added on top of the winning bid' : 'Not applicable'],
-                                                    ['Featured', watch('featuredRequested') ? `Yes (€${FEATURED_FEE_EUR} if it sells)` : 'No'],
+                                                    ['Featured', watch('featuredRequested') ? `Yes (€${FEATURED_FEE_EUR})` : 'No'],
+                                                    ['Facebook & Instagram ad', selectedMetaPackage ? `${selectedMetaPackage.name} (€${selectedMetaPackage.priceEur})` : 'No'],
                                                 ].map(([k, v]) => (
                                                     <div key={k} className="flex justify-between gap-4 border-b border-gray-100 pb-1.5">
                                                         <dt className="text-gray-500">{k}</dt>
