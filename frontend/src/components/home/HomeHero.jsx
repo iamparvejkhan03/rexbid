@@ -69,7 +69,10 @@ function HomeHero({ items, currency, excludeId, belowBanner }) {
             <div className="pointer-events-none absolute -right-40 -top-40 h-[520px] w-[520px] rounded-full bg-[#D19F3E]/10 blur-3xl" />
 
             <Container>
-                <div className="relative grid items-center gap-7 lg:grid-cols-[1.1fr_1fr] lg:gap-14">
+                {/* minmax(0,1fr) + min-w-0 stop long machine titles in the
+                    Closing next panel from stretching this column past the
+                    phone screen (which cut words off on iPhone). */}
+                <div className="relative grid grid-cols-[minmax(0,1fr)] items-center gap-7 lg:grid-cols-[1.1fr_1fr] lg:gap-14 [&>*]:min-w-0">
                     <div>
                         <p className="mb-3 inline-flex items-center gap-2 rounded-full bg-[#072342]/5 px-3 py-1 text-[10px] md:mb-4 md:text-xs font-semibold uppercase tracking-[0.12em] text-[#072342]">
                             Ireland's machinery marketplace
