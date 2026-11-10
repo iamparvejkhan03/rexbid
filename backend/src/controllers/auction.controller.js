@@ -2111,10 +2111,10 @@ export const placeBid = async (req, res) => {
 
     const oldEndDate = auction.endDate;
 
+     const priceBeforeBid = auction.currentPrice;
+
     // Place bid using the model method
     await auction.placeBid(bidder._id, bidder.username || bidder.companyName, amountInBase);
-
-    const priceBeforeBid = auction.currentPrice;
 
     const extended = auction.endDate > oldEndDate;
 
