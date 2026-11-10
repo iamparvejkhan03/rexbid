@@ -78,13 +78,13 @@ const SellerAgreement = () => {
                                 </li>
 
                                 <li>
-                                    <strong>Featured Listing (optional):</strong> €30, paid by card when the listing
+                                    <strong>Featured Listing (optional):</strong> €30 (£24 for sterling sellers), paid by card when the listing
                                     is submitted.
                                 </li>
 
                                 <li>
                                     <strong>Facebook &amp; Instagram advert (optional):</strong> €10, €20 or €40
-                                    depending on the package chosen, paid by card when the listing is submitted. The
+                                    (£8, £16 or £32 for sterling sellers) depending on the package chosen, paid by card when the listing is submitted. The
                                     advert runs from approval until the sale closes. Reach figures are estimates,
                                     not guarantees.
                                 </li>

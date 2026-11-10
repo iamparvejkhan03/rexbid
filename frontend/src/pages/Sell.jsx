@@ -99,7 +99,7 @@ function Sell() {
                                         Register an account in minutes and create your own ads. Set your reserve, manage your auction, and connect directly with buyers.
                                     </p>
                                     <p className="text-gray-500 text-xs mt-1 leading-relaxed">
-                                        Minimum reserve €500, or €400 starting bid for no-reserve auctions. Optional extras: featured listing €30, Facebook &amp; Instagram ad €10–€40.{" "}
+                                        Minimum reserve €500, or €400 starting bid for no-reserve auctions. Optional extras: featured listing €30 (£24), Facebook &amp; Instagram ad €10–€40 (£8–£32).{" "}
                                         <Link to="/payment-refund-policy#seller-fees" className="underline text-[#D19F3E]">Fees &amp; payment</Link>
                                     </p>
                                     <button

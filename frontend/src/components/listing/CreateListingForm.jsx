@@ -40,7 +40,7 @@ import { useAuth } from '../../contexts/AuthContext.jsx';
 import { compressAuctionImages } from '../../utils/compressImage.js';
 import { TouchBackend } from 'react-dnd-touch-backend';
 import { validateMinStart, validateMinReserve, minimumsHint, suggestedIncrement } from '../../utils/listingRules';
-import { FEATURED_FEE_EUR, SELLER_FEES_FREE_UNTIL, META_BOOST_PACKAGES, META_BOOST_MIN_HOURS_BEFORE_CLOSE } from '../../utils/fees';
+import { FEATURED_FEE_EUR, SELLER_FEES_FREE_UNTIL, META_BOOST_PACKAGES, META_BOOST_MIN_HOURS_BEFORE_CLOSE, extraPriceLabel } from '../../utils/fees';
 import { HowSellingWorks, Hint, Note } from './ListingGuidance';
 
 // Drag and Drop item types
@@ -1556,7 +1556,7 @@ const CreateListingForm = ({ Container, Header, Sidebar, basePath, defaultUserTy
                                                     <label htmlFor="featuredRequested" className="flex items-start gap-2 rounded-lg border border-[#D19F3E]/50 bg-white p-3 cursor-pointer">
                                                         <input type="checkbox" id="featuredRequested" {...register('featuredRequested')} className="mt-1" />
                                                         <span>
-                                                            <span className="font-semibold text-gray-900">Feature my listing: €{FEATURED_FEE_EUR}</span>
+                                                            <span className="font-semibold text-gray-900">Feature my listing: {extraPriceLabel(FEATURED_FEE_EUR, user?.currency)}</span>
                                                             <span className="block text-gray-600">Shown at the top of the homepage for more views.</span>
                                                         </span>
                                                     </label>
@@ -1577,7 +1577,7 @@ const CreateListingForm = ({ Container, Header, Sidebar, basePath, defaultUserTy
                                                                                 checked={metaBoostPackage === pkg.id}
                                                                                 onChange={() => setValue('metaBoostPackage', pkg.id, { shouldDirty: true })}
                                                                             />
-                                                                            <span className="font-medium text-gray-900">{pkg.priceEur ? `€${pkg.priceEur}` : pkg.name}</span>
+                                                                            <span className="font-medium text-gray-900">{pkg.priceEur ? extraPriceLabel(pkg.priceEur, user?.currency) : pkg.name}</span>
                                                                         </span>
                                                                         <span className="mt-1 text-xs text-gray-600">
                                                                             {pkg.reach ? <>{pkg.name}<br />Reach {pkg.reach}</> : 'Standard listing only'}
@@ -1586,7 +1586,7 @@ const CreateListingForm = ({ Container, Header, Sidebar, basePath, defaultUserTy
                                                                 ))}
                                                             </div>
                                                             <p className="mt-2 text-xs text-gray-500">
-                                                                Prices include VAT. Reach is an estimated number of people, not a guarantee. Paid by card at checkout.
+                                                                Reach is an estimated number of people, not a guarantee. Paid by card at checkout.
                                                             </p>
                                                         </div>
                                                     ) : (
@@ -1646,8 +1646,8 @@ const CreateListingForm = ({ Container, Header, Sidebar, basePath, defaultUserTy
                                                     ...(auctionType === 'reserve' ? [['Reserve', watch('reservePrice') ? `${currencySymbol}${Number(watch('reservePrice')).toLocaleString('en-IE')}` : '-']] : []),
                                                     ['Bid increment', watch('bidIncrement') ? `${currencySymbol}${Number(watch('bidIncrement')).toLocaleString('en-IE')}` : '-'],
                                                     ['VAT', watch('vatIncluded') ? 'Added on top of the winning bid' : 'Not applicable'],
-                                                    ['Featured', watch('featuredRequested') ? `Yes (€${FEATURED_FEE_EUR})` : 'No'],
-                                                    ['Facebook & Instagram ad', selectedMetaPackage ? `${selectedMetaPackage.name} (€${selectedMetaPackage.priceEur})` : 'No'],
+                                                    ['Featured', watch('featuredRequested') ? `Yes (${extraPriceLabel(FEATURED_FEE_EUR, user?.currency)})` : 'No'],
+                                                    ['Facebook & Instagram ad', selectedMetaPackage ? `${selectedMetaPackage.name} (${extraPriceLabel(selectedMetaPackage.priceEur, user?.currency)})` : 'No'],
                                                 ].map(([k, v]) => (
                                                     <div key={k} className="flex justify-between gap-4 border-b border-gray-100 pb-1.5">
                                                         <dt className="text-gray-500">{k}</dt>

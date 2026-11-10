@@ -1,6 +1,6 @@
 import { BadgePercent, Hand, ShieldCheck, SlidersHorizontal } from "lucide-react";
 import Container from "../Container";
-import { FEATURED_FEE_EUR, META_BOOST_PRICE_RANGE } from "../../utils/fees";
+import { FEATURED_FEE_EUR, FEATURED_FEE_GBP, META_BOOST_PRICE_RANGE, META_BOOST_PRICE_RANGE_GBP } from "../../utils/fees";
 
 import SectionHeading from "./SectionHeading";
 
@@ -8,7 +8,7 @@ const TILES = [
     {
         icon: <BadgePercent size={22} className="text-[#E8B86B]" />,
         title: "No seller fees until 2027",
-        text: `A standard listing is free. For extra reach, add a featured spot (€${FEATURED_FEE_EUR}) or a Facebook & Instagram ad (${META_BOOST_PRICE_RANGE}).`,
+        text: `A standard listing is free. For extra reach, add a featured spot (€${FEATURED_FEE_EUR} / £${FEATURED_FEE_GBP}) or a Facebook & Instagram ad (${META_BOOST_PRICE_RANGE} / ${META_BOOST_PRICE_RANGE_GBP}).`,
     },
     {
         icon: <SlidersHorizontal size={22} className="text-[#E8B86B]" />,

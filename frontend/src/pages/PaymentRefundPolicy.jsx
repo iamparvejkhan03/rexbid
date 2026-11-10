@@ -7,6 +7,8 @@ import {
     FEATURED_FEE_EUR,
     META_BOOST_PACKAGES,
     META_BOOST_MIN_HOURS_BEFORE_CLOSE,
+    FEATURED_FEE_GBP,
+    GBP_PER_EUR_EXTRAS,
     MIN_RESERVE_EUR,
     MIN_NO_RESERVE_START_EUR,
 } from "../utils/fees";
@@ -114,12 +116,12 @@ const PaymentRefundPolicy = () => {
                                     fee is introduced, and new fees will only apply to listings created after that notice.
                                 </>,
                                 <>
-                                    <strong>Featured listings (optional):</strong> €{FEATURED_FEE_EUR}, paid by card
+                                    <strong>Featured listings (optional):</strong> €{FEATURED_FEE_EUR} (£{FEATURED_FEE_GBP} for sterling sellers), paid by card
                                     when you submit the listing. Your listing is shown at the top of the homepage.
                                 </>,
                                 <>
                                     <strong>Facebook &amp; Instagram adverts (optional):</strong>{" "}
-                                    {META_BOOST_PACKAGES.map((pkg) => `${pkg.name} €${pkg.priceEur}`).join(", ")}, paid by
+                                    {META_BOOST_PACKAGES.map((pkg) => `${pkg.name} €${pkg.priceEur} (£${pkg.priceEur * GBP_PER_EUR_EXTRAS})`).join(", ")}, paid by
                                     card when you submit the listing. We run a paid advert for your listing from approval
                                     until the sale closes. Reach figures are estimates, not guarantees. Adverts are only
                                     available when the sale closes at least {META_BOOST_MIN_HOURS_BEFORE_CLOSE} hours
