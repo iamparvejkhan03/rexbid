@@ -306,9 +306,15 @@ export const sendPayoutSetupEmail = async (req, res) => {
         if (!sale) return res.status(404).json({ success: false, message: "Sale not found" });
         const seller = await User.findById(sale.seller.user);
         if (!seller?.email) return res.status(400).json({ success: false, message: "Seller has no email address" });
-        const { refreshSellerConnect, payoutSetupUrl } = await import("../services/connectService.js");
+        const { refreshSellerConnect, payoutSetupUrl, ensureConnectAccount } = await import("../services/connectService.js");
         const state = payoutState(await refreshSellerConnect(seller));
         if (state === "ready") return res.status(400).json({ success: false, message: "This seller is already set up for payouts" });
+        // Create the Stripe account now so it shows in Connected accounts straight away.
+        if (state === "none") {
+            await ensureConnectAccount(seller);
+            // Keep "set up" wording in the email: the seller hasn't started yet.
+            sale.notes.push({ text: `Stripe payout account ${seller.stripeConnect?.accountId} created for the seller`, by: req.user._id });
+        }
         const { sellerPayoutSetupEmail } = await import("../utils/nodemailer.js");
         const ok = await sellerPayoutSetupEmail(seller, { state, url: payoutSetupUrl(seller), saleTitle: sale.title });
         if (!ok) return res.status(502).json({ success: false, message: "Email failed to send" });

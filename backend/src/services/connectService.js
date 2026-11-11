@@ -90,18 +90,48 @@ export const ensureFreshConnect = async (user, maxAgeMs = 60 * 60 * 1000) => {
     return refreshSellerConnect(user);
 };
 
+/**
+ * Pre-fills the seller's name so the account is recognisable in the Stripe
+ * Dashboard straight away. The seller confirms or corrects it during setup.
+ */
+export const prefillFor = (user) => {
+    const company = user.companyName?.trim();
+    if (company) {
+        return { business_type: "company", company: { name: company }, business_profile: { name: company } };
+    }
+    const first = user.firstName?.trim();
+    const last = user.lastName?.trim();
+    if (first || last) {
+        return {
+            business_type: "individual",
+            individual: { ...(first ? { first_name: first } : {}), ...(last ? { last_name: last } : {}), email: user.email },
+            business_profile: { name: [first, last].filter(Boolean).join(" ") },
+        };
+    }
+    return {};
+};
+
 /** Creates an Express account for the seller if they have none. */
 export const ensureConnectAccount = async (user) => {
     await refreshSellerConnect(user);
     if (user.stripeConnect?.accountId) return user.stripeConnect.accountId;
     const region = regionForUser(user);
-    const acct = await stripe.accounts.create({
+    const base = {
         country: region === "NI" || region === "GB" ? "GB" : "IE",
         email: user.email,
         controller: EXPRESS_CONTROLLER,
         capabilities: { transfers: { requested: true } },
-        metadata: { userId: String(user._id) },
-    });
+        metadata: { userId: String(user._id), rexbidUsername: user.username || "" },
+    };
+    let acct;
+    try {
+        acct = await stripe.accounts.create({ ...base, ...prefillFor(user) }, { idempotencyKey: `connect-${user._id}-prefill` });
+    } catch (err) {
+        // Never block setup over the pre-filled name; the seller enters it anyway.
+        if (err?.type !== "StripeInvalidRequestError") throw err;
+        console.warn(`Stripe rejected pre-filled details for ${user._id} (${err.message}); creating without them`);
+        acct = await stripe.accounts.create(base, { idempotencyKey: `connect-${user._id}-plain` });
+    }
     user.set("stripeConnect", statusFromAccount(acct));
     await user.save({ validateBeforeSave: false });
     accountCache.at = 0;
