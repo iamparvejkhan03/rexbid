@@ -191,6 +191,7 @@ class AgendaService {
 
             // Send auction won email to buyer
             await sendAuctionWonEmail(auction);
+            await sendAuctionEndedSellerEmail(auction);
 
             // Send admin email for sold auction
             const adminUsers = await User.find({ userType: "admin" });
