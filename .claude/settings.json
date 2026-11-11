@@ -1,0 +1,5 @@
+{
+  "permissions": {
+    "allow": ["mcp__Windsor_ai__execute_action"]
+  }
+}
