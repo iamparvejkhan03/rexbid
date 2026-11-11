@@ -73,6 +73,11 @@ const navigation = [
         icon: <Gavel size={20} />
     },
     {
+        name: 'Sales',
+        path: '/admin/sales',
+        icon: <FileText size={20} />
+    },
+    {
         name: "Auction Dates",
         path: "/admin/auction-dates",
         icon: <Calendar size={20} />,

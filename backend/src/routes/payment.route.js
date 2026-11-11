@@ -1,12 +1,10 @@
 import { Router } from "express";
-import express from "express";
 import {
     confirmCheckoutPayment,
     createBankTransferPayment,
     createCheckoutPayment,
     createWonAuctionPayment,
     getAuctionPaymentStatus,
-    handleStripeWebhook,
     paySellerCommission,
 } from "../controllers/payment.controller.js";
 import { auth } from "../middlewares/auth.middleware.js";
@@ -24,11 +22,7 @@ paymentRouter.post("/confirm-checkout-payment", confirmCheckoutPayment);
 paymentRouter.post("/create-bank-transfer-payment", createBankTransferPayment);
 paymentRouter.post("/pay-commission", paySellerCommission);
 
-// Webhook route (no auth)
-paymentRouter.post(
-    "/webhook",
-    express.raw({ type: "application/json" }),
-    handleStripeWebhook,
-);
+// The Stripe webhook is registered in server.js, ahead of the JSON body
+// parser and without login, so Stripe's signature check can work.
 
 export default paymentRouter;

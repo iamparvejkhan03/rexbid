@@ -3748,7 +3748,67 @@ const auctionReserveNudgeEmail = async (seller, listing) => {
     }
 };
 
+
+// Payment request for a sold lot, with the PDF attached.
+const paymentRequestEmail = async (sale, snapshot, pdfBuffer, filename) => {
+    try {
+        const cur = snapshot.currency;
+        const fmt = (n) => `${cur === 'GBP' ? '£' : '€'}${Number(n || 0).toLocaleString('en-IE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        const b = snapshot.bank || {};
+        const due = new Date(snapshot.dueDate).toLocaleString('en-IE', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Dublin' });
+        const vatRow = snapshot.vat.treatment === 'standard'
+            ? createSummaryRow(`VAT (${snapshot.vat.rate}%):`, fmt(snapshot.vat.amount))
+            : snapshot.vat.treatment === 'zero_rated' ? createSummaryRow('VAT (zero-rated):', fmt(0)) : '';
+
+        const content = `
+            <h2 style="text-align: center;">Payment Request</h2>
+            <p>Hi ${snapshot.buyer.name || 'there'},</p>
+            <p>Congratulations on winning <strong>${snapshot.title}</strong>. Your payment request is attached and is also saved under <strong>Documents</strong> in your RexBid dashboard.</p>
+
+            ${createInfoCard(`
+                ${createSummaryRow('Item:', fmt(snapshot.itemPrice))}
+                ${vatRow}
+                ${createSummaryRow(`${snapshot.buyerFeeDescription || 'Buyer commission'}:`, fmt(snapshot.buyerFee))}
+                <div style="display: flex; justify-content: space-between; padding: 12px 0 0 0; margin-top: 8px; border-top: 2px solid ${BRAND_COLORS.secondary};">
+                    <span style="font-weight: 700; color: ${BRAND_COLORS.secondary}; font-size: 16px;">Total payable</span>
+                    <span style="font-weight: 700; color: ${BRAND_COLORS.primary}; font-size: 16px;">${fmt(snapshot.total)}</span>
+                </div>
+            `)}
+
+            <p style="margin-bottom: 4px;"><strong>Pay by bank transfer to your own RexBid account:</strong></p>
+            ${createInfoCard(`
+                ${createSummaryRow('Account holder:', b.accountHolderName || 'RexBid')}
+                ${b.iban ? createSummaryRow('IBAN:', `<strong>${b.iban}</strong>`) : ''}
+                ${b.bic ? createSummaryRow('BIC:', b.bic) : ''}
+                ${b.sortCode ? createSummaryRow('Sort code:', b.sortCode) : ''}
+                ${b.accountNumber ? createSummaryRow('Account number:', `<strong>${b.accountNumber}</strong>`) : ''}
+                ${createSummaryRow('Reference:', b.reference || snapshot.reference)}
+            `)}
+
+            <p>Please pay within 48 hours, by <strong>${due}</strong>. These bank details are unique to you, so your payment is matched to this purchase automatically and we'll confirm as soon as it arrives.</p>
+            <p>Once payment is confirmed we'll put you in touch with the seller to arrange collection.</p>
+
+            <div style="text-align: center; margin: 25px 0;">
+                ${createButton('View My Documents', `${FRONTEND_URL}/bidder/documents`, 'primary')}
+            </div>
+        `;
+
+        const info = await transporter.sendMail({
+            from: `"${BRAND_NAME}" <${process.env.EMAIL_USER}>`,
+            to: sale.buyer.email,
+            subject: `Payment Request ${snapshot.reference} - ${snapshot.title}`,
+            html: baseTemplate(content, 'Payment Request'),
+            attachments: [{ filename, content: pdfBuffer, contentType: 'application/pdf' }],
+        });
+        return !!info;
+    } catch (error) {
+        console.error('Failed to send payment request email:', error);
+        return false;
+    }
+};
+
 export {
+    paymentRequestEmail,
     contactEmail, //done
     contactConfirmationEmail, //done
     welcomeEmail, //done

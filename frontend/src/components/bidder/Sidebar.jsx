@@ -10,7 +10,8 @@ import {
     Menu,
     Bookmark,
     CreditCard,
-    Hand
+    Hand,
+    FileText,
 } from "lucide-react";
 import { Link, NavLink } from "react-router-dom";
 import { logo } from "../../assets";
@@ -24,6 +25,7 @@ const navigation = [
     { name: 'My Offers', path: '/bidder/offers', icon: <Hand size={20} /> },
     { name: 'My Bids', path: '/bidder/bids', icon: <TrendingUp size={20} /> },
     { name: 'Won Auctions', path: '/bidder/auctions/won', icon: <Award size={20} /> },
+    { name: 'Documents', path: '/bidder/documents', icon: <FileText size={20} /> },
     { name: 'Billing', path: '/bidder/billing', icon: <CreditCard size={20} /> },
     // { name: 'Notifications', path: '/bidder/notifications', icon: <Bell size={20} /> },
     { name: 'Profile', path: '/bidder/profile', icon: <User size={20} /> },

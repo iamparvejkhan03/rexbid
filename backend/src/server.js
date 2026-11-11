@@ -35,6 +35,8 @@ import catalogueRouter from "./routes/catalogue.route.js";
 import websiteReviewRouter from "./routes/websiteReview.route.js";
 import sitemapRouter from './routes/sitemap.route.js';
 import shareRouter from './routes/share.route.js';
+import { adminSaleRouter, saleRouter } from "./routes/sale.route.js";
+import { handleStripeWebhook } from "./controllers/payment.controller.js";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -56,6 +58,11 @@ try {
 }
 
 app.use(compression());
+
+// Stripe webhook: needs the raw body for signature checks and no login,
+// so it is registered before the JSON parser and the auth-protected routes.
+app.post('/api/v1/payments/webhook', express.raw({ type: 'application/json', limit: '1mb' }), handleStripeWebhook);
+
 app.use(express.json({ limit: '16kb' }));
 app.use(express.urlencoded({ limit: '16kb' }));
 
@@ -116,7 +123,9 @@ app.use('/api/v1/auctions', auctionRouter);
 app.use('/api/v1/watchlist', watchlistRouter);
 app.use('/api/v1/comments', commentRouter);
 app.use('/api/v1/bids', bidRouter);
+app.use('/api/v1/admin/sales', adminSaleRouter);
 app.use('/api/v1/admin', AdminRouter);
+app.use('/api/v1/sales', saleRouter);
 app.use('/api/v1/commissions', commissionRouter);
 app.use('/api/v1/bid-payments', bidPaymentRouter);
 app.use('/api/v1/contact', contactQueryRouter);
