@@ -5,6 +5,7 @@ import User from "../models/user.model.js";
 import { regionForItem, regionForUser } from "../utils/region.js";
 import { calculateVat } from "../utils/vat.js";
 import { renderPaymentRequestPdf } from "../utils/documents/pdf.js";
+import { isManualPaymentRequired } from "../utils/manualPayment.js";
 import {
     paymentRequestEmail,
     paymentCompletedEmail,
@@ -18,6 +19,8 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 export const SALES_TRACKING_START = new Date(process.env.SALES_TRACKING_START || "2026-11-10T00:00:00Z");
 
 export const PAYMENT_DUE_HOURS = 48;
+
+const FRONTEND_URL = process.env.FRONTEND_URL || "https://rexbid.ie";
 
 const round2 = (n) => Math.round((Number(n) + Number.EPSILON) * 100) / 100;
 
@@ -76,14 +79,28 @@ export const applyVat = (sale) => {
     return sale;
 };
 
+/**
+ * Lots under the manual-payment threshold (€1,000) can also be paid by card
+ * through the existing checkout page; larger ones are bank transfer only.
+ */
+export const isCardCheckoutAvailable = (itemPrice, currency) =>
+    !isManualPaymentRequired({ finalPrice: itemPrice, baseCurrency: currency });
+
+export const cardCheckoutUrl = (auctionId) => `${FRONTEND_URL}/checkout/${auctionId}`;
+
+const methodLabel = (m) =>
+    ({ credit_card: "card", bank_transfer: "bank transfer", paypal: "PayPal" })[m] || m || "other";
+
 export const buildSale = (auction, buyer, seller) => {
     const itemPrice = Number(auction.finalPrice ?? auction.currentPrice ?? 0);
+    const currency = auction.baseCurrency === "GBP" ? "GBP" : "EUR";
+    const paid = auction.paymentStatus === "completed";
     const sale = {
         auction: auction._id,
         reference: makeReference(auction.title, auction._id),
         title: auction.title,
         saleDate: auction.endDate || auction.updatedAt || new Date(),
-        currency: auction.baseCurrency === "GBP" ? "GBP" : "EUR",
+        currency,
         buyer: partyFromUser(buyer),
         seller: partyFromUser(seller),
         itemPrice,
@@ -94,21 +111,89 @@ export const buildSale = (auction, buyer, seller) => {
             applicable: !!auction.vatIncluded,
             itemRegion: regionForItem(auction, seller),
         },
-        status: auction.paymentStatus === "completed" ? "paid" : "sold",
-        payment:
-            auction.paymentStatus === "completed"
-                ? { paidAt: auction.paymentDate, method: auction.paymentMethod, amount: undefined }
-                : {},
+        status: paid ? "paid" : "sold",
+        payment: {
+            cardCheckoutAvailable: isCardCheckoutAvailable(itemPrice, currency),
+            ...(paid
+                ? { paidAt: auction.paymentDate || new Date(), method: auction.paymentMethod || "other", transactionId: auction.transactionId }
+                : {}),
+        },
     };
-    return applyVat(sale);
+    applyVat(sale);
+    if (paid) sale.payment.amount = sale.total;
+    return sale;
+};
+
+const createSaleFromAuction = async (auction) => {
+    const data = buildSale(auction, auction.winner, auction.seller);
+    // Two lots can share a title prefix and id tail; keep references unique.
+    if (await Sale.exists({ reference: data.reference })) {
+        data.reference = `${data.reference}-${String(auction._id).slice(-9, -6).toUpperCase()}`;
+    }
+    return Sale.create(data);
+};
+
+/** Creates the sale record for one auction straight after it sells. */
+export const syncSaleForAuction = async (auctionId) => {
+    if (await Sale.exists({ auction: auctionId })) return null;
+    const auction = await Auction.findById(auctionId).populate("winner", USER_FIELDS).populate("seller", USER_FIELDS);
+    if (!auction?.winner || !auction?.seller) return null;
+    if (!["sold", "sold_buy_now"].includes(auction.status)) return null;
+    if (auction.endDate && auction.endDate < SALES_TRACKING_START) return null;
+    try {
+        const sale = await createSaleFromAuction(auction);
+        // Get the buyer's IBAN now so it is ready on the Sales page.
+        if (sale.status === "sold") await ensureBuyerIban(sale);
+        return sale;
+    } catch (err) {
+        if (err?.code !== 11000) console.error(`Could not create sale for auction ${auctionId}:`, err.message);
+        return null;
+    }
 };
 
 /**
- * Creates sale records for sold lots that do not have one yet.
+ * Marks the sale paid when its auction is paid some other way: card checkout,
+ * or an admin marking it paid. If a bank-transfer request was already sent and
+ * nothing has arrived on it, that request is cancelled in Stripe so the buyer
+ * cannot pay twice.
+ */
+export const markSalePaidFromAuction = async (auction) => {
+    const sale = await Sale.findOne({ auction: auction._id });
+    if (!sale || !["sold", "request_sent"].includes(sale.status)) return sale;
+
+    const method = auction.paymentMethod || "other";
+    sale.status = "paid";
+    sale.set("payment.paidAt", auction.paymentDate || new Date());
+    sale.set("payment.method", method);
+    sale.set("payment.amount", sale.total);
+    if (auction.transactionId) sale.set("payment.transactionId", auction.transactionId);
+    sale.notes.push({ text: `Paid by ${methodLabel(method)}${auction.transactionId ? ` (${auction.transactionId})` : ""}` });
+
+    const piId = sale.stripe?.paymentIntentId;
+    if (piId && piId !== auction.transactionId) {
+        try {
+            const pi = await stripe.paymentIntents.retrieve(piId);
+            if (["requires_action", "requires_payment_method"].includes(pi.status) && !(pi.amount_received > 0)) {
+                await stripe.paymentIntents.cancel(piId);
+                sale.notes.push({ text: `Bank-transfer request ${piId} cancelled in Stripe because the buyer paid by ${methodLabel(method)}` });
+            } else if (pi.amount_received > 0 && pi.status !== "succeeded") {
+                sale.notes.push({ text: `Check Stripe: ${pi.amount_received / 100} ${sale.currency} also arrived by bank transfer on ${piId}` });
+            }
+        } catch (err) {
+            sale.notes.push({ text: `Could not cancel bank-transfer request ${piId}: ${err.message}` });
+        }
+    }
+    await sale.save();
+    return sale;
+};
+
+/**
+ * Creates sale records for sold lots that do not have one yet, marks paid
+ * any whose auction has been paid, and fills in missing IBANs.
  * Safe to run repeatedly; it is called on a schedule and from the admin page.
  */
 export const syncSales = async ({ since = SALES_TRACKING_START, ibanLimit = 25 } = {}) => {
-    const existing = await Sale.find({}, "auction").lean();
+    const existing = await Sale.find({}, "auction status").lean();
     const have = new Set(existing.map((s) => String(s.auction)));
 
     const auctions = await Auction.find({
@@ -124,35 +209,32 @@ export const syncSales = async ({ since = SALES_TRACKING_START, ibanLimit = 25 }
         if (have.has(String(auction._id))) continue;
         if (!auction.winner || !auction.seller) continue;
         try {
-            const data = buildSale(auction, auction.winner, auction.seller);
-            // Two lots can share a title prefix and id tail; keep references unique.
-            if (await Sale.exists({ reference: data.reference })) {
-                data.reference = `${data.reference}-${String(auction._id).slice(-9, -6).toUpperCase()}`;
-            }
-            await Sale.create(data);
+            await createSaleFromAuction(auction);
             created += 1;
         } catch (err) {
             if (err?.code !== 11000) console.error(`Could not create sale for auction ${auction._id}:`, err.message);
         }
     }
 
-    // Card payments, and payments an admin marks complete on the auction,
-    // move the matching sale to "paid".
+    // Safety net for payments the auction hook missed.
+    const unpaid = existing.filter((e) => ["sold", "request_sent"].includes(e.status)).map((e) => e.auction);
     const paidAuctions = await Auction.find(
-        { _id: { $in: existing.map((e) => e.auction) }, paymentStatus: "completed" },
-        "_id paymentDate paymentMethod",
+        { _id: { $in: unpaid }, paymentStatus: "completed" },
+        "_id paymentDate paymentMethod transactionId",
     ).lean();
     let markedPaid = 0;
     for (const a of paidAuctions) {
-        const r = await Sale.updateOne(
-            { auction: a._id, status: { $in: ["sold", "request_sent"] } },
-            {
-                $set: { status: "paid", "payment.paidAt": a.paymentDate || new Date(), "payment.method": a.paymentMethod || "other" },
-                $push: { notes: { text: "Marked paid from the auction's payment status", at: new Date() } },
-            },
-        );
-        markedPaid += r.modifiedCount;
+        const sale = await markSalePaidFromAuction(a);
+        if (sale?.status === "paid") markedPaid += 1;
     }
+
+    // Records made before card eligibility was tracked.
+    const untagged = await Sale.find({ "payment.cardCheckoutAvailable": { $exists: false } }, "itemPrice currency");
+    for (const s of untagged) {
+        s.set("payment.cardCheckoutAvailable", isCardCheckoutAvailable(s.itemPrice, s.currency));
+        await s.save();
+    }
+
     const { ibansAdded } = await fillMissingIbans({ limit: ibanLimit });
     return { created, markedPaid, ibansAdded };
 };
@@ -373,6 +455,7 @@ export const paymentRequestSnapshot = (sale, issueDate = new Date()) => ({
     buyerFee: sale.buyerFee,
     buyerFeeDescription: sale.buyerFeeDescription,
     total: sale.total,
+    cardPayUrl: sale.payment?.cardCheckoutAvailable ? cardCheckoutUrl(sale.auction) : undefined,
     bank: sale.stripe?.bankTransfer
         ? {
             accountHolderName: sale.stripe.bankTransfer.accountHolderName,

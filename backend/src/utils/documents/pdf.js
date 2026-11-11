@@ -175,9 +175,16 @@ export const renderPaymentRequestPdf = (s) =>
         }
         y += 22;
 
+        if (s.cardPayUrl) {
+            doc.font("Helvetica-Bold").fontSize(10).fillColor(NAVY).text("Or pay by card online:", LEFT + 14, y, { continued: true });
+            doc.font("Helvetica").fillColor("#1d4ed8").text(` ${s.cardPayUrl}`, { link: s.cardPayUrl });
+            y = doc.y + 18;
+        }
+
         doc.font("Helvetica").fontSize(9).fillColor(MUTED);
         doc.text(
-            "Payments are handled by Stripe. The account above is unique to you. Use it to do a bank transfer for the total payable amount and quote the payment reference.",
+            "Payments are handled by Stripe. The account above is unique to you. Use it to do a bank transfer for the total payable amount and quote the payment reference." +
+                (s.cardPayUrl ? " Please pay once only, either by bank transfer or by card." : ""),
             LEFT, y, { width: WIDTH * 0.75 },
         );
         y = doc.y + 10;

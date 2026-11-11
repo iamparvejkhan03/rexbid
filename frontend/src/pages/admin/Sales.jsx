@@ -31,6 +31,8 @@ const STATUS_STYLES = {
 
 const REGIONS = ["ROI", "NI", "GB", "EU", "OTHER"];
 
+const PAYMENT_METHODS = { credit_card: "Card", bank_transfer: "Bank transfer", paypal: "PayPal", other: "Other" };
+
 const shortDate = (d) =>
     d ? new Date(d).toLocaleDateString("en-IE", { day: "numeric", month: "short", year: "numeric" }) : "—";
 
@@ -240,8 +242,9 @@ function Sales() {
                             </div>
                         </div>
                         <p className="text-gray-600 text-sm">
-                            Every sold lot appears here within 15 minutes of the sale. Tick the sales to send and press the button: each buyer
-                            gets their own Stripe bank details, a PDF by email, and a copy in their Documents.
+                            Every sold lot appears here as soon as it sells, including sales paid by card. Tick the sales to send and press the
+                            button: each buyer gets their own Stripe bank details, a PDF by email, and a copy in their Documents. Sales marked
+                            &ldquo;Card OK&rdquo; (under €1,000) also include a pay-by-card link; once paid by card they move to Paid on their own.
                         </p>
                     </div>
 
@@ -321,6 +324,14 @@ function Sales() {
                                                     <div className="font-semibold">{s.reference}</div>
                                                     <div className="text-gray-700">{s.title}</div>
                                                     <div className="text-xs text-gray-500">Sold {shortDate(s.saleDate)}</div>
+                                                    {s.payment?.cardCheckoutAvailable && ["sold", "request_sent"].includes(s.status) && (
+                                                        <span
+                                                            className="inline-block mt-1 text-[11px] px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700"
+                                                            title="Under €1,000: the buyer can pay by card at checkout, or by bank transfer"
+                                                        >
+                                                            Card OK
+                                                        </span>
+                                                    )}
                                                 </td>
                                                 <td className="p-3 align-top min-w-[160px]">
                                                     <div>{s.buyer?.name || s.buyer?.username}</div>
@@ -359,6 +370,11 @@ function Sales() {
                                                     <span className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${STATUS_STYLES[s.status] || "bg-gray-100"}`}>
                                                         {STATUS_LABELS[s.status] || s.status}
                                                     </span>
+                                                    {s.payment?.paidAt && !["sold", "request_sent"].includes(s.status) && (
+                                                        <div className="text-xs mt-1 text-gray-500">
+                                                            {PAYMENT_METHODS[s.payment.method] || "Paid"} · {shortDate(s.payment.paidAt)}
+                                                        </div>
+                                                    )}
                                                     {s.status === "request_sent" && s.payment?.dueAt && (
                                                         <div className={`text-xs mt-1 ${new Date(s.payment.dueAt) < new Date() ? "text-red-600 font-medium" : "text-gray-500"}`}>
                                                             Due {shortDate(s.payment.dueAt)}

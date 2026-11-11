@@ -123,6 +123,9 @@ const saleSchema = new Schema(
             paidAt: Date,
             method: String,
             amount: Number,
+            transactionId: String,
+            // Under €1,000 the buyer may also pay by card at /checkout/:auctionId.
+            cardCheckoutAvailable: Boolean,
         },
 
         documents: [documentSchema],
