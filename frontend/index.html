@@ -111,6 +111,9 @@
             functionality_storage: fn ? "granted" : "denied",
             personalization_storage: fn ? "granted" : "denied",
           });
+          // Read by frontend/src/utils/metaPixel.js before it sends any
+          // event to Meta (browser Pixel or the server copy).
+          window.__rexbidMetaConsent = ads;
           if (ads) {
             fbq("consent", "grant");
             if (!fbStarted) {

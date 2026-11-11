@@ -10,6 +10,7 @@ import axiosInstance from '../utils/axiosInstance';
 import { useAuth } from '../contexts/AuthContext';
 import useCountryStates from '../hooks/useCountryStates';
 import { getGaClientId } from '../utils/ga.js';
+import { trackMetaRegistration } from '../utils/metaPixel.js';
 
 const AuthBidModal = ({ isOpen, onClose, onAuthSuccess, pendingAction }) => {
     const [activeTab, setActiveTab] = useState('login');
@@ -147,10 +148,8 @@ const AuthBidModal = ({ isOpen, onClose, onAuthSuccess, pendingAction }) => {
             localStorage.setItem('user', JSON.stringify(user));
             setUser(user);
 
-            // GA + Meta pixel (mirror Register.jsx)
-            if (typeof window.fbq === 'function') {
-                window.fbq('track', 'CompleteRegistration');
-            }
+            // GA + Meta (mirror Register.jsx)
+            trackMetaRegistration(user.userType);
             if (typeof window.gtag === 'function') {
                 window.gtag('event', 'sign_up', {
                     user_type: user.userType,

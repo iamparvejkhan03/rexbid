@@ -14,6 +14,7 @@ import { socket } from "../utils/socket";
 import { convertAuctionPrices } from "../utils/convertAuctionPrices.js";
 import { useSeo, buildAuctionSeo } from "../utils/seo";
 import { buyerFeeShort } from "../utils/fees";
+import { trackMeta } from "../utils/metaPixel";
 import PostAuctionBinPanel from "../components/buyItNow/PostAuctionBinPanel";
 
 const YouTubeEmbed = lazy(() => import('../components/YouTubeEmbed'));
@@ -371,6 +372,14 @@ function SingleAuction() {
             itemPrice = Number(auction.convertedStartPrice || 0);
         }
 
+        trackMeta('ViewContent', {
+            content_ids: [auction._id],
+            content_name: auction.title,
+            content_category: auction.categories?.[1] || auction.categories?.[0] || '',
+            value: itemPrice,
+            currency: userCurrency,
+        });
+
         gtag('event', 'view_item', {
             currency: userCurrency,
             value: itemPrice,
@@ -526,6 +535,13 @@ function SingleAuction() {
                     currency: userCurrency,
                     auction_type: data.data.auction.auctionType,
                     bid_number: data.data.auction.bidCount || 1
+                });
+                trackMeta('PlaceBid', {
+                    content_ids: [data.data.auction._id],
+                    content_name: data.data.auction.title,
+                    content_category: data.data.auction.categories?.[1] || data.data.auction.categories?.[0] || '',
+                    value: bidValue,
+                    currency: userCurrency,
                 });
 
                 // Show anti-sniping message if the auction time was extended

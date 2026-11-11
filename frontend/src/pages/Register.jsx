@@ -13,6 +13,7 @@ import useCountryStates from '../hooks/useCountryStates';
 import PilotPhaseModal from '../components/PilotPhaseModal';
 import { useRef } from 'react';
 import { getGaClientId } from '../utils/ga.js';
+import { trackMetaRegistration } from '../utils/metaPixel.js';
 
 // Initialize Stripe
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
@@ -418,10 +419,8 @@ const Register = () => {
                     ? '/company/dashboard'
                     : '/bidder/dashboard';
 
-            // Track successful registration in Meta Pixel
-            if (typeof window.fbq === 'function') {
-                window.fbq('track', 'CompleteRegistration');
-            }
+            // Track successful registration in Meta (Pixel + Conversions API)
+            trackMetaRegistration(data.data.user.userType);
 
             gtag('event', 'sign_up', {
                 user_type: data.data.user.userType,

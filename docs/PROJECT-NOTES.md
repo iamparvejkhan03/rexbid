@@ -162,6 +162,32 @@ Note: a Buy It Now price shows bidders roughly where the reserve was (it is at m
 
 ---
 
+## 3d. Meta (Facebook & Instagram) tracking and ads (Nov 2026)
+
+**Events sent to Meta** (`frontend/src/utils/metaPixel.js`), only after the visitor accepts "Advertisement" cookies (`window.__rexbidMetaConsent`, set in `index.html` from CookieYes):
+
+| Event | When | Type |
+|---|---|---|
+| `CompleteRegistration` | any new account (`content_category` = user type) | standard |
+| `SellerSignUp` | new seller or company account | custom |
+| `ListingStart` | seller starts the listing form | custom |
+| `Lead` | listing submitted | standard |
+| `ViewContent` | listing page viewed | standard |
+| `PlaceBid` | bid accepted by the server | custom |
+
+Admin-created listings (`pages/admin/CreateAuction.jsx`) are deliberately not sent.
+
+**Conversions API (server copy).** The browser also posts each event to `POST /api/v1/meta-events` (`backend/src/routes/metaEvent.route.js`), which forwards it to Meta with the signed-in user's hashed email/phone (`backend/src/utils/metaCapi.js`). Meta de-duplicates by the shared event ID. Off until these are set on Render: `META_PIXEL_ID` (`1342628734664826`), `META_CAPI_TOKEN` (Events Manager → the pixel → Settings → Conversions API → Generate access token). Optional `META_TEST_EVENT_CODE` sends events to Events Manager → Test events while checking.
+
+After deploying, in Events Manager create Custom Conversions for `PlaceBid` and `SellerSignUp` so campaigns can optimise for them.
+
+**Ad link tags.** Use the same tags on every ad (Meta ad → Tracking → URL parameters):
+`utm_source=meta&utm_medium=paid_social&utm_campaign={{campaign.name}}&utm_content={{ad.name}}&utm_term={{adset.name}}`
+
+**Seller-paid Meta ads** (`metaBoostPackage`): the seller's €10 / €20 / €40 includes Meta's 23% Irish VAT, so the ad's lifetime budget is the price ÷ 1.23 (€8.13 / €16.26 / €32.52), running until the lot closes.
+
+---
+
 ## 4. Open to-do list (most important first)
 
 0. **Seller contact / Q&A go-live:** set `PHONE_CONTACT_MIN_RESERVE_EUR` on Render (without it no lot shows a phone number); set up Twilio for seller texts if wanted. Owner review of phone numbers on higher-reserve lots due 25 Nov 2026.
@@ -169,7 +195,7 @@ Note: a Buy It Now price shows bidders roughly where the reserve was (it is at m
 2. **Terms & Conditions clause 15** still says buyer fee 3% capped at €200 and seller fee 3%. Needs updating (solicitor) to match section 2.
 3. **€30 featured fee** is stated but not charged. Decide and implement in payout calculation.
 4. **DMARC showed FAIL** on a test on 9 Nov while SPF and DKIM passed. Re-test now the record is fixed.
-5. **Conversion tracking:** sign-up, bid, listing submitted, contact/WhatsApp leads, delivery quote, purchase (GA4 + Meta).
+5. **Conversion tracking:** sign-up, bid, listing started/submitted and listing views now go to Meta (section 3d; needs the Render settings). Still to do: contact/WhatsApp leads, delivery quote, purchase to Meta.
 6. **Account-type check:** `requireSeller` is disabled in `auth.middleware.js`, so any logged-in account can create listings (ownership checks on edit/delete are fine).
 7. **Forms:** labels/`required`/`autocomplete`, and `method="post"` on login/register/contact/delivery/rate-us forms.
 8. **Two-step registration** (currently 15 fields before a first bid).
