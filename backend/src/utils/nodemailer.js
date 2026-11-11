@@ -3805,8 +3805,8 @@ const paymentRequestEmail = async (sale, snapshot, pdfBuffer, filename) => {
         const info = await transporter.sendMail({
             from: `"${BRAND_NAME}" <${process.env.EMAIL_USER}>`,
             to: sale.buyer.email,
-            // Office copy of every payment request. Set PAYMENT_REQUEST_BCC on
-            // Render to change the address, or to "none" to turn it off.
+            // Office copy of every payment request, receipt and statement. Set
+            // PAYMENT_REQUEST_BCC on Render to change the address, or "none" to turn it off.
             ...(paymentRequestBcc() ? { bcc: paymentRequestBcc() } : {}),
             subject: `Payment Request ${snapshot.reference} - ${snapshot.title}`,
             html: baseTemplate(content, 'Payment Request'),
@@ -3819,8 +3819,109 @@ const paymentRequestEmail = async (sale, snapshot, pdfBuffer, filename) => {
     }
 };
 
+
+const docMoney = (cur, n) => `${cur === 'GBP' ? '£' : '€'}${Number(n || 0).toLocaleString('en-IE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const docDate = (d, withTime = false) => new Date(d).toLocaleString('en-IE', {
+    weekday: 'long', day: 'numeric', month: 'long', ...(withTime ? { hour: '2-digit', minute: '2-digit' } : {}), timeZone: 'Europe/Dublin',
+});
+
+// Buyer receipt, with the PDF attached. Sets out collection and the seller's contact.
+const buyerReceiptEmail = async (sale, snapshot, pdfBuffer, filename) => {
+    try {
+        const cur = snapshot.currency;
+        const vatRow = snapshot.vat.treatment === 'standard'
+            ? createSummaryRow(`VAT (${snapshot.vat.rate}%):`, docMoney(cur, snapshot.vat.amount))
+            : snapshot.vat.treatment === 'zero_rated' ? createSummaryRow('VAT (zero-rated):', docMoney(cur, 0)) : '';
+
+        const content = `
+            <h2 style="text-align: center;">Payment Received</h2>
+            <p>Hi ${snapshot.buyer.name || 'there'},</p>
+            <p>Thank you, we've received your payment for <strong>${snapshot.title}</strong>. Your receipt is attached and is also saved under <strong>Documents</strong> in your RexBid dashboard.</p>
+
+            ${createInfoCard(`
+                ${createSummaryRow('Item:', docMoney(cur, snapshot.itemPrice))}
+                ${vatRow}
+                ${createSummaryRow(`${snapshot.buyerFeeDescription || 'Buyer commission'}:`, docMoney(cur, snapshot.buyerFee))}
+                <div style="display: flex; justify-content: space-between; padding: 12px 0 0 0; margin-top: 8px; border-top: 2px solid ${BRAND_COLORS.secondary};">
+                    <span style="font-weight: 700; color: ${BRAND_COLORS.secondary}; font-size: 16px;">Total paid</span>
+                    <span style="font-weight: 700; color: ${BRAND_COLORS.primary}; font-size: 16px;">${docMoney(cur, snapshot.amountPaid)}</span>
+                </div>
+            `)}
+
+            ${createInfoCard(`
+                <p style="margin: 0 0 8px 0; font-weight: 700; color: ${BRAND_COLORS.secondary};">Collection</p>
+                <p style="margin: 0 0 8px 0;">Your item must be collected within <strong>${snapshot.collectionDays} working days</strong> of payment, by <strong>${docDate(snapshot.collectBy)}</strong>. Items not collected by then are subject to storage fines.</p>
+                ${createSummaryRow('Seller:', snapshot.seller.displayName)}
+                ${createSummaryRow('Seller phone:', snapshot.seller.phone ? `<a href="tel:${String(snapshot.seller.phone).replace(/\s+/g, '')}">${snapshot.seller.phone}</a>` : 'Contact RexBid')}
+                ${snapshot.itemLocation ? createSummaryRow('Item location:', snapshot.itemLocation) : ''}
+            `, 'warning')}
+
+            <p>Please contact the seller to arrange a collection time. Once you have the item, reply to this email to let us know so the seller can be paid.</p>
+
+            <div style="text-align: center; margin: 25px 0;">
+                ${createButton('View My Documents', `${FRONTEND_URL}/bidder/documents`, 'primary')}
+            </div>
+        `;
+        const info = await transporter.sendMail({
+            from: `"${BRAND_NAME}" <${process.env.EMAIL_USER}>`,
+            to: sale.buyer.email,
+            ...(paymentRequestBcc() ? { bcc: paymentRequestBcc() } : {}),
+            subject: `Payment Received ${snapshot.reference} - ${snapshot.title} - collect by ${docDate(snapshot.collectBy)}`,
+            html: baseTemplate(content, 'Payment Received'),
+            attachments: [{ filename, content: pdfBuffer, contentType: 'application/pdf' }],
+        });
+        return !!info;
+    } catch (error) {
+        console.error('Failed to send buyer receipt email:', error);
+        return false;
+    }
+};
+
+// Seller statement, with the PDF attached.
+const sellerStatementEmail = async (sale, snapshot, pdfBuffer, filename, dashboard = 'seller') => {
+    try {
+        const cur = snapshot.currency;
+        const content = `
+            <h2 style="text-align: center;">Seller Statement</h2>
+            <p>Hi ${snapshot.seller.name || snapshot.seller.companyName || 'there'},</p>
+            <p>Your statement for <strong>${snapshot.title}</strong> is attached and is also saved under <strong>Documents</strong> in your RexBid dashboard.</p>
+
+            ${createInfoCard(`
+                ${createSummaryRow('Sale price:', docMoney(cur, snapshot.itemPrice))}
+                ${snapshot.vat.treatment === 'standard' ? createSummaryRow(`VAT collected for you (${snapshot.vat.rate}%):`, docMoney(cur, snapshot.vat.amount)) : ''}
+                ${createSummaryRow(`${snapshot.sellerFeeDescription}:`, `-${docMoney(cur, snapshot.sellerFee)}`)}
+                <div style="display: flex; justify-content: space-between; padding: 12px 0 0 0; margin-top: 8px; border-top: 2px solid ${BRAND_COLORS.secondary};">
+                    <span style="font-weight: 700; color: ${BRAND_COLORS.secondary}; font-size: 16px;">Amount due to you</span>
+                    <span style="font-weight: 700; color: ${BRAND_COLORS.primary}; font-size: 16px;">${docMoney(cur, snapshot.netPayout)}</span>
+                </div>
+            `)}
+
+            <p>${snapshot.buyerPaidDate ? `The buyer paid on ${docDate(snapshot.buyerPaidDate)}.` : ''} Your payout is released once collection is confirmed${snapshot.payoutAccount ? `, to ${snapshot.payoutAccount}` : ''}.</p>
+            ${snapshot.payoutAccount ? '' : `<p><strong>We don't have your bank details yet.</strong> Please add them under Payout Methods so we can pay you.</p>`}
+
+            <div style="text-align: center; margin: 25px 0;">
+                ${createButton('View My Documents', `${FRONTEND_URL}/${dashboard}/documents`, 'primary')}
+            </div>
+        `;
+        const info = await transporter.sendMail({
+            from: `"${BRAND_NAME}" <${process.env.EMAIL_USER}>`,
+            to: sale.seller.email,
+            ...(paymentRequestBcc() ? { bcc: paymentRequestBcc() } : {}),
+            subject: `Seller Statement ${snapshot.reference} - ${snapshot.title}`,
+            html: baseTemplate(content, 'Seller Statement'),
+            attachments: [{ filename, content: pdfBuffer, contentType: 'application/pdf' }],
+        });
+        return !!info;
+    } catch (error) {
+        console.error('Failed to send seller statement email:', error);
+        return false;
+    }
+};
+
 export {
     paymentRequestEmail,
+    buyerReceiptEmail,
+    sellerStatementEmail,
     contactEmail, //done
     contactConfirmationEmail, //done
     welcomeEmail, //done

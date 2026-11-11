@@ -6,6 +6,7 @@ import { regionForItem, regionForUser } from "../utils/region.js";
 import { calculateVat } from "../utils/vat.js";
 import { renderPaymentRequestPdf } from "../utils/documents/pdf.js";
 import { isManualPaymentRequired } from "../utils/manualPayment.js";
+import { addWorkingDays, COLLECTION_WORKING_DAYS } from "../utils/workingDays.js";
 import {
     paymentRequestEmail,
     paymentCompletedEmail,
@@ -23,6 +24,8 @@ export const PAYMENT_DUE_HOURS = 48;
 const FRONTEND_URL = process.env.FRONTEND_URL || "https://rexbid.ie";
 
 const round2 = (n) => Math.round((Number(n) + Number.EPSILON) * 100) / 100;
+
+
 
 const USER_FIELDS =
     "firstName lastName username companyName companyVATNumber email phone address countryName countryCode currency stripeCustomerId region";
@@ -100,6 +103,7 @@ export const buildSale = (auction, buyer, seller) => {
         reference: makeReference(auction.title, auction._id),
         title: auction.title,
         saleDate: auction.endDate || auction.updatedAt || new Date(),
+        itemLocation: auction.location || undefined,
         currency,
         buyer: partyFromUser(buyer),
         seller: partyFromUser(seller),
@@ -159,13 +163,15 @@ export const syncSaleForAuction = async (auctionId) => {
  */
 export const markSalePaidFromAuction = async (auction) => {
     const sale = await Sale.findOne({ auction: auction._id });
-    if (!sale || !["sold", "request_sent"].includes(sale.status)) return sale;
+    if (!sale || !["sold", "request_sent", "failed"].includes(sale.status)) return sale;
+    if (sale.status === "failed") sale.notes.push({ text: "Payment arrived after the sale was marked failed" });
 
     const method = auction.paymentMethod || "other";
     sale.status = "paid";
     sale.set("payment.paidAt", auction.paymentDate || new Date());
     sale.set("payment.method", method);
     sale.set("payment.amount", sale.total);
+    sale.set("collection.dueBy", addWorkingDays(auction.paymentDate || new Date(), COLLECTION_WORKING_DAYS));
     if (auction.transactionId) sale.set("payment.transactionId", auction.transactionId);
     sale.notes.push({ text: `Paid by ${methodLabel(method)}${auction.transactionId ? ` (${auction.transactionId})` : ""}` });
 
@@ -217,7 +223,7 @@ export const syncSales = async ({ since = SALES_TRACKING_START, ibanLimit = 25 }
     }
 
     // Safety net for payments the auction hook missed.
-    const unpaid = existing.filter((e) => ["sold", "request_sent"].includes(e.status)).map((e) => e.auction);
+    const unpaid = existing.filter((e) => ["sold", "request_sent", "failed"].includes(e.status)).map((e) => e.auction);
     const paidAuctions = await Auction.find(
         { _id: { $in: unpaid }, paymentStatus: "completed" },
         "_id paymentDate paymentMethod transactionId",
@@ -338,6 +344,7 @@ export const ensureBuyerIban = async (sale) => {
 export const fillMissingIbans = async ({ limit = 25 } = {}) => {
     const sales = await Sale.find({
         status: { $in: ["sold", "request_sent"] },
+        historical: { $ne: true },
         "stripe.bankTransfer.iban": { $in: [null, ""] },
         "stripe.bankTransfer.accountNumber": { $in: [null, ""] },
     })
@@ -551,7 +558,8 @@ export const recordPayment = async (pi) => {
         (await Sale.findOne({ "stripe.paymentIntentId": pi.id })) ||
         (pi.metadata?.saleId ? await Sale.findById(pi.metadata.saleId) : null);
     if (!sale) return null;
-    if (!["sold", "request_sent"].includes(sale.status)) return sale;
+    if (!["sold", "request_sent", "failed"].includes(sale.status)) return sale;
+    if (sale.status === "failed") sale.notes.push({ text: "Payment arrived after the sale was marked failed" });
 
     sale.status = "paid";
     const received = (pi.amount_received || pi.amount) / 100;
@@ -559,6 +567,8 @@ export const recordPayment = async (pi) => {
     sale.set("payment.paidAt", new Date());
     sale.set("payment.method", "bank_transfer");
     sale.set("payment.amount", received);
+    sale.set("payment.transactionId", pi.id);
+    sale.set("collection.dueBy", addWorkingDays(new Date(), COLLECTION_WORKING_DAYS));
     sale.notes.push({ text: `Payment of ${sale.payment.amount} ${sale.currency} received via Stripe (${pi.id})` });
     await sale.save();
 

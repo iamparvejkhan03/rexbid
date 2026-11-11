@@ -6,6 +6,16 @@ import {
     paymentRequestSnapshot,
     ensureBuyerIban,
 } from "../services/saleService.js";
+import {
+    issueBuyerReceipt,
+    issueSellerStatement,
+    markSaleFailed,
+    reopenSale,
+    importHistoricalSales,
+    receiptSnapshot,
+    statementSnapshot,
+} from "../services/saleLifecycleService.js";
+import { renderBuyerReceiptPdf, renderSellerStatementPdf } from "../utils/documents/pdf.js";
 import { renderDocumentPdf, renderPaymentRequestPdf } from "../utils/documents/pdf.js";
 import { REGIONS } from "../utils/region.js";
 
@@ -23,22 +33,30 @@ export const listSales = async (req, res) => {
     try {
         // Pick up any lots sold since the last scheduled sync, and their IBANs.
         await syncSales({ ibanLimit: 15 });
-        const { status, search, review } = req.query;
+        const { status, search, review, historical } = req.query;
         const q = {};
         if (status && status !== "all") q.status = status;
+        // Earlier (imported) sales have their own tab and stay out of the working tabs.
+        if (historical === "true") q.historical = true;
+        else if (status && status !== "all") q.historical = { $ne: true };
         if (review === "true") q["vat.reviewRequired"] = true;
         if (search?.trim()) {
             const rx = new RegExp(search.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
             q.$or = [{ reference: rx }, { title: rx }, { "buyer.name": rx }, { "buyer.email": rx }, { "seller.name": rx }, { "seller.companyName": rx }];
         }
         const sales = await Sale.find(q, LIST_FIELDS).sort({ saleDate: -1 }).limit(500).lean();
-        const counts = await Sale.aggregate([{ $group: { _id: "$status", n: { $sum: 1 } } }]);
+        const counts = await Sale.aggregate([
+            { $match: { historical: { $ne: true } } },
+            { $group: { _id: "$status", n: { $sum: 1 } } },
+        ]);
+        const historicalCount = await Sale.countDocuments({ historical: true });
         const needsReview = await Sale.countDocuments({ "vat.reviewRequired": true, status: { $in: ["sold", "request_sent"] } });
         res.json({
             success: true,
             data: {
                 sales,
                 counts: Object.fromEntries(counts.map((c) => [c._id, c.n])),
+                historicalCount,
                 needsReview,
             },
         });
@@ -194,6 +212,77 @@ export const downloadDocument = async (req, res) => {
         res.setHeader("Content-Disposition", `inline; filename="${doc.number}.pdf"`);
         res.setHeader("Cache-Control", "private, no-store");
         res.send(pdf);
+    } catch (err) {
+        fail(res, err);
+    }
+};
+
+// ─── Receipts, statements, failed sales, earlier sales ─────
+
+const ISSUERS = { buyer_receipt: issueBuyerReceipt, seller_statement: issueSellerStatement };
+
+export const issueDocuments = async (req, res) => {
+    const { saleIds, type } = req.body || {};
+    const issue = ISSUERS[type];
+    if (!issue) return res.status(400).json({ success: false, message: "Unknown document type" });
+    if (!Array.isArray(saleIds) || saleIds.length === 0) {
+        return res.status(400).json({ success: false, message: "Select at least one sale" });
+    }
+    if (saleIds.length > 50) return res.status(400).json({ success: false, message: "Send at most 50 at a time" });
+    const results = [];
+    for (const id of saleIds) {
+        try {
+            const { sale, emailed } = await issue(id, req.user);
+            results.push({ saleId: id, reference: sale.reference, ok: true, emailed });
+        } catch (err) {
+            if (!err.status || err.status >= 500) console.error(`${type} for sale ${id} failed:`, err);
+            results.push({ saleId: id, ok: false, message: err.message });
+        }
+    }
+    const sent = results.filter((r) => r.ok).length;
+    res.json({ success: true, data: { sent, failed: results.length - sent, results } });
+};
+
+export const previewDocument = async (req, res) => {
+    try {
+        const sale = await Sale.findById(req.params.saleId);
+        if (!sale) return res.status(404).json({ success: false, message: "Sale not found" });
+        const pdf =
+            req.params.type === "receipt"
+                ? await renderBuyerReceiptPdf(receiptSnapshot(sale))
+                : req.params.type === "statement"
+                    ? await renderSellerStatementPdf(statementSnapshot(sale))
+                    : null;
+        if (!pdf) return res.status(404).json({ success: false, message: "Unknown document" });
+        res.setHeader("Content-Type", "application/pdf");
+        res.setHeader("Content-Disposition", `inline; filename="${sale.reference}-${req.params.type}-draft.pdf"`);
+        res.send(pdf);
+    } catch (err) {
+        fail(res, err);
+    }
+};
+
+export const failSale = async (req, res) => {
+    try {
+        const sale = await markSaleFailed(req.params.saleId, req.body?.reason, req.user);
+        res.json({ success: true, data: { _id: sale._id, status: sale.status } });
+    } catch (err) {
+        fail(res, err);
+    }
+};
+
+export const reopen = async (req, res) => {
+    try {
+        const sale = await reopenSale(req.params.saleId, req.user);
+        res.json({ success: true, data: { _id: sale._id, status: sale.status } });
+    } catch (err) {
+        fail(res, err);
+    }
+};
+
+export const importHistory = async (req, res) => {
+    try {
+        res.json({ success: true, data: await importHistoricalSales() });
     } catch (err) {
         fail(res, err);
     }

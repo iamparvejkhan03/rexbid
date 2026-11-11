@@ -177,3 +177,38 @@ test("card: a sale already paid by card is recorded with method and amount", () 
     assert.equal(s.payment.method, "credit_card");
     assert.equal(s.payment.amount, 636);
 });
+
+// ─── Receipts and statements ───────────────────────────────
+
+import { addWorkingDays } from "../src/utils/workingDays.js";
+import { statementSnapshot, receiptSnapshot } from "../src/services/saleLifecycleService.js";
+import { renderBuyerReceiptPdf, renderSellerStatementPdf } from "../src/utils/documents/pdf.js";
+
+test("collection: 3 working days skips weekends", () => {
+    // Wednesday 11 Nov 2026 -> Monday 16 Nov
+    assert.equal(addWorkingDays(new Date("2026-11-11T10:00:00Z"), 3).toISOString().slice(0, 10), "2026-11-16");
+    // Friday 13 Nov -> Wednesday 18 Nov
+    assert.equal(addWorkingDays(new Date("2026-11-13T10:00:00Z"), 3).toISOString().slice(0, 10), "2026-11-18");
+});
+
+test("statement: VAT goes to the seller, seller fee comes off, buyer fee is not involved", () => {
+    const s = buildSale({ ...AUCTION, vatIncluded: true, sellerCommissionAmount: 450 }, BUYER, SELLER);
+    const st = statementSnapshot(s, { payoutAccount: "Example, IBAN IE64 •••• 5678" });
+    assert.equal(st.grossForSeller, 18450);
+    assert.equal(st.sellerFee, 450);
+    assert.equal(st.netPayout, 18000);
+});
+
+test("statement: no seller fee while seller commission is off", () => {
+    const st = statementSnapshot(buildSale(AUCTION, BUYER, SELLER));
+    assert.equal(st.netPayout, 15000);
+    assert.match(st.sellerFeeDescription, /none charged/);
+});
+
+test("pdf: receipt and statement render on one page each", async () => {
+    const s = buildSale({ ...AUCTION, vatIncluded: true, paymentStatus: "completed", paymentMethod: "bank_transfer", paymentDate: new Date() }, BUYER, { ...SELLER, phone: "087 000 0000" });
+    for (const pdf of [await renderBuyerReceiptPdf(receiptSnapshot(s)), await renderSellerStatementPdf(statementSnapshot(s))]) {
+        assert.equal(pdf.subarray(0, 5).toString(), "%PDF-");
+        assert.equal((pdf.toString("latin1").match(/\/Type \/Page\b/g) || []).length, 1);
+    }
+});

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { AlertTriangle, FileText, Eye, Send, RefreshCw, Search, X } from "lucide-react";
+import { AlertTriangle, FileText, Eye, Send, RefreshCw, Search, X, Receipt, History, XCircle, RotateCcw } from "lucide-react";
 import { toast } from "react-hot-toast";
 import axiosInstance from "../../utils/axiosInstance";
 import { AdminContainer, AdminHeader, AdminSidebar, LoadingSpinner } from "../../components";
@@ -9,7 +9,9 @@ const TABS = [
     { key: "sold", label: "Ready to send" },
     { key: "request_sent", label: "Awaiting payment" },
     { key: "paid", label: "Paid" },
+    { key: "failed", label: "Failed" },
     { key: "all", label: "All" },
+    { key: "historical", label: "Earlier sales" },
 ];
 
 const STATUS_LABELS = {
@@ -19,6 +21,7 @@ const STATUS_LABELS = {
     collected: "Collected",
     payout_due: "Payout due",
     paid_out: "Paid out",
+    failed: "Failed",
     cancelled: "Cancelled",
 };
 
@@ -26,6 +29,8 @@ const STATUS_STYLES = {
     sold: "bg-amber-100 text-amber-800",
     request_sent: "bg-blue-100 text-blue-800",
     paid: "bg-green-100 text-green-800",
+    paid_out: "bg-emerald-100 text-emerald-800",
+    failed: "bg-red-100 text-red-700",
     cancelled: "bg-gray-100 text-gray-600",
 };
 
@@ -138,12 +143,24 @@ function VatModal({ sale, onClose, onSaved }) {
     );
 }
 
+const PAID_STATES = ["paid", "collected", "payout_due", "paid_out"];
+const canDocs = (s) => PAID_STATES.includes(s.status);
+const canFail = (s) => ["sold", "request_sent"].includes(s.status);
+const hasDoc = (s, type) => (s.documents || []).some((d) => d.type === type && !d.supersededAt);
+
+const DOC_ACTIONS = {
+    payment_request: { label: "payment request", plural: "payment requests", who: "buyer", eligible: canSend },
+    buyer_receipt: { label: "receipt", plural: "receipts", who: "buyer", eligible: canDocs },
+    seller_statement: { label: "seller statement", plural: "seller statements", who: "seller", eligible: canDocs },
+};
+
 function Sales() {
     const [tab, setTab] = useState("sold");
     const [reviewOnly, setReviewOnly] = useState(false);
     const [search, setSearch] = useState("");
     const [sales, setSales] = useState([]);
     const [counts, setCounts] = useState({});
+    const [historicalCount, setHistoricalCount] = useState(null);
     const [needsReview, setNeedsReview] = useState(0);
     const [loading, setLoading] = useState(true);
     const [selected, setSelected] = useState(new Set());
@@ -154,12 +171,13 @@ function Sales() {
     const load = useCallback(async () => {
         setLoading(true);
         try {
-            const params = new URLSearchParams({ status: tab });
+            const params = new URLSearchParams(tab === "historical" ? { status: "all", historical: "true" } : { status: tab });
             if (reviewOnly) params.set("review", "true");
             if (search.trim()) params.set("search", search.trim());
             const { data } = await axiosInstance.get(`/api/v1/admin/sales?${params}`);
             setSales(data.data.sales);
             setCounts(data.data.counts || {});
+            setHistoricalCount(data.data.historicalCount ?? 0);
             setNeedsReview(data.data.needsReview || 0);
             setSelected(new Set());
         } catch (err) {
@@ -174,8 +192,10 @@ function Sales() {
         return () => clearTimeout(t);
     }, [load, search]);
 
-    const selectable = useMemo(() => sales.filter(canSend), [sales]);
+    const selectable = useMemo(() => sales.filter((s) => canSend(s) || canDocs(s)), [sales]);
     const allSelected = selectable.length > 0 && selectable.every((s) => selected.has(s._id));
+    const chosen = useMemo(() => sales.filter((s) => selected.has(s._id)), [sales, selected]);
+    const eligible = (type) => chosen.filter(DOC_ACTIONS[type].eligible);
 
     const toggle = (id) =>
         setSelected((prev) => {
@@ -186,36 +206,96 @@ function Sales() {
 
     const toggleAll = () => setSelected(allSelected ? new Set() : new Set(selectable.map((s) => s._id)));
 
-    const issue = async () => {
-        const chosen = sales.filter((s) => selected.has(s._id));
-        const resends = chosen.filter((s) => s.status === "request_sent").length;
+    const issue = async (type) => {
+        const a = DOC_ACTIONS[type];
+        const list = eligible(type);
+        if (!list.length) return;
+        const again = list.filter((s) => hasDoc(s, type)).length;
         const msg =
-            `Send payment requests to ${chosen.length} buyer${chosen.length === 1 ? "" : "s"}?` +
-            (resends ? `\n\n${resends} already had a request; they will get a replacement.` : "") +
-            "\n\nEach buyer is emailed a PDF and it is saved in their Documents.";
+            `Send ${list.length} ${list.length === 1 ? a.label : a.plural}?` +
+            (again ? `\n\n${again} already had one; they will get a replacement.` : "") +
+            `\n\nEach ${a.who} is emailed a PDF and it is saved in their Documents. You get a copy.`;
         if (!window.confirm(msg)) return;
         setSending(true);
         try {
-            const { data } = await axiosInstance.post("/api/v1/admin/sales/issue-payment-requests", {
-                saleIds: chosen.map((s) => s._id),
-            });
+            const { data } =
+                type === "payment_request"
+                    ? await axiosInstance.post("/api/v1/admin/sales/issue-payment-requests", { saleIds: list.map((s) => s._id) })
+                    : await axiosInstance.post("/api/v1/admin/sales/issue-documents", { type, saleIds: list.map((s) => s._id) });
             const { sent, failed, results } = data.data;
-            if (sent) toast.success(`${sent} payment request${sent === 1 ? "" : "s"} sent`);
+            if (sent) toast.success(`${sent} ${sent === 1 ? a.label : a.plural} sent`);
             const notEmailed = results.filter((r) => r.ok && !r.emailed).length;
-            if (notEmailed) toast.error(`${notEmailed} created but the email failed; open Documents to resend`);
+            if (notEmailed) toast.error(`${notEmailed} created but the email failed; open Documents to check`);
             results
                 .filter((r) => !r.ok)
                 .forEach((r) => {
-                    const s = chosen.find((c) => c._id === r.saleId);
+                    const s = list.find((c) => c._id === r.saleId);
                     toast.error(`${s?.reference || r.saleId}: ${r.message}`, { duration: 8000 });
                 });
-            if (failed && !sent) toast.error("No requests were sent");
+            if (failed && !sent) toast.error(`No ${a.plural} were sent`);
             await load();
         } catch (err) {
             toast.error(err.response?.data?.message || "Sending failed");
         } finally {
             setSending(false);
         }
+    };
+
+    const markFailed = async (s) => {
+        const reason = window.prompt(
+            `Mark ${s.reference} (${s.title}) as failed?\n\nAny open Stripe bank-transfer request is cancelled. You can reopen it later.\n\nReason:`,
+            "Buyer did not pay",
+        );
+        if (!reason?.trim()) return;
+        try {
+            await axiosInstance.post(`/api/v1/admin/sales/${s._id}/fail`, { reason });
+            toast.success(`${s.reference} marked failed`);
+            load();
+        } catch (err) {
+            toast.error(err.response?.data?.message || "Could not mark failed");
+        }
+    };
+
+    const reopen = async (s) => {
+        if (!window.confirm(`Reopen ${s.reference}? It goes back to Ready to send.`)) return;
+        try {
+            await axiosInstance.post(`/api/v1/admin/sales/${s._id}/reopen`);
+            toast.success(`${s.reference} reopened`);
+            load();
+        } catch (err) {
+            toast.error(err.response?.data?.message || "Could not reopen");
+        }
+    };
+
+    const importHistory = async () => {
+        if (!window.confirm("Import every lot sold before sale records began?\n\nNo emails are sent and nothing is created in Stripe. Paid, paid-out and failed statuses are taken from the auction records.")) return;
+        setSending(true);
+        try {
+            const { data } = await axiosInstance.post("/api/v1/admin/sales/import-history");
+            const r = data.data;
+            toast.success(`Imported ${r.imported} earlier sales: ${r.paid} paid, ${r.paidOut} paid out, ${r.unpaid} unpaid, ${r.failed} failed`, { duration: 8000 });
+            setTab("historical");
+        } catch (err) {
+            toast.error(err.response?.data?.message || "Import failed");
+        } finally {
+            setSending(false);
+        }
+    };
+
+    const button = (type, icon) => {
+        const n = eligible(type).length;
+        if (!n && !(type === "payment_request" && ["sold", "request_sent"].includes(tab))) return null;
+        return (
+            <button
+                key={type}
+                onClick={() => issue(type)}
+                disabled={!n || sending}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white text-sm font-medium disabled:opacity-40"
+            >
+                {icon}
+                {sending ? "Sending…" : `Send ${DOC_ACTIONS[type].plural} (${n})`}
+            </button>
+        );
     };
 
     return (
@@ -231,20 +311,21 @@ function Sales() {
                                 <button onClick={load} className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border bg-white text-sm">
                                     <RefreshCw size={16} /> Refresh
                                 </button>
-                                <button
-                                    onClick={issue}
-                                    disabled={selected.size === 0 || sending}
-                                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white text-sm font-medium disabled:opacity-40"
-                                >
-                                    <Send size={16} />
-                                    {sending ? "Sending…" : `Send payment requests (${selected.size})`}
-                                </button>
+                                {historicalCount === 0 && (
+                                    <button onClick={importHistory} disabled={sending} className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border bg-white text-sm">
+                                        <History size={16} /> Import earlier sales
+                                    </button>
+                                )}
+                                {button("payment_request", <Send size={16} />)}
+                                {button("buyer_receipt", <Receipt size={16} />)}
+                                {button("seller_statement", <FileText size={16} />)}
                             </div>
                         </div>
                         <p className="text-gray-600 text-sm">
-                            Every sold lot appears here as soon as it sells, including sales paid by card. Tick the sales to send and press the
-                            button: each buyer gets their own Stripe bank details, a PDF by email, and a copy in their Documents. Sales marked
-                            &ldquo;Card OK&rdquo; (under €1,000) also include a pay-by-card link; once paid by card they move to Paid on their own.
+                            Every sold lot appears here as soon as it sells, including sales paid by card. Tick sales and press a Send button:
+                            payment requests go to buyers in Ready to send; receipts (buyer) and seller statements go out for paid sales. Each
+                            document is emailed as a PDF, saved in the recipient&rsquo;s Documents, and copied to you. Use the red cross to mark a
+                            sale as failed.
                         </p>
                     </div>
 
@@ -268,7 +349,7 @@ function Sales() {
                                     className={`px-3 py-1.5 rounded-md text-sm ${tab === t.key && !reviewOnly ? "bg-secondary text-white" : "text-gray-700"}`}
                                 >
                                     {t.label}
-                                    {t.key !== "all" && counts[t.key] ? ` (${counts[t.key]})` : ""}
+                                    {t.key === "historical" ? (historicalCount ? ` (${historicalCount})` : "") : t.key !== "all" && counts[t.key] ? ` (${counts[t.key]})` : ""}
                                 </button>
                             ))}
                             {reviewOnly && <span className="px-3 py-1.5 rounded-md text-sm bg-amber-500 text-white">VAT review</span>}
@@ -316,7 +397,7 @@ function Sales() {
                                                         type="checkbox"
                                                         aria-label={`Select ${s.reference}`}
                                                         checked={selected.has(s._id)}
-                                                        disabled={!canSend(s)}
+                                                        disabled={!canSend(s) && !canDocs(s)}
                                                         onChange={() => toggle(s._id)}
                                                     />
                                                 </td>
@@ -375,6 +456,20 @@ function Sales() {
                                                             {PAYMENT_METHODS[s.payment.method] || "Paid"} · {shortDate(s.payment.paidAt)}
                                                         </div>
                                                     )}
+                                                    {s.status === "failed" && s.failure?.reason && (
+                                                        <div className="text-xs mt-1 text-red-700 max-w-[180px]">{s.failure.reason}</div>
+                                                    )}
+                                                    {canDocs(s) && (
+                                                        <div className="flex flex-wrap gap-1 mt-1">
+                                                            <span className={`text-[11px] px-1.5 py-0.5 rounded ${hasDoc(s, "buyer_receipt") ? "bg-green-50 text-green-700" : "bg-gray-100 text-gray-500"}`}>
+                                                                {hasDoc(s, "buyer_receipt") ? "✓" : "○"} Receipt
+                                                            </span>
+                                                            <span className={`text-[11px] px-1.5 py-0.5 rounded ${hasDoc(s, "seller_statement") ? "bg-green-50 text-green-700" : "bg-gray-100 text-gray-500"}`}>
+                                                                {hasDoc(s, "seller_statement") ? "✓" : "○"} Statement
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                    {s.historical && <div className="text-[11px] mt-1 text-gray-400">Earlier sale</div>}
                                                     {s.status === "request_sent" && s.payment?.dueAt && (
                                                         <div className={`text-xs mt-1 ${new Date(s.payment.dueAt) < new Date() ? "text-red-600 font-medium" : "text-gray-500"}`}>
                                                             Due {shortDate(s.payment.dueAt)}
@@ -395,6 +490,34 @@ function Sales() {
                                                         {["sold", "request_sent"].includes(s.status) && !s.vat?.reviewRequired && s.vat?.applicable && (
                                                             <button title="Change VAT" onClick={() => setVatSale(s)} className="p-2 rounded-lg hover:bg-gray-100 text-xs">
                                                                 VAT
+                                                            </button>
+                                                        )}
+                                                        {canDocs(s) && (
+                                                            <>
+                                                                <button
+                                                                    title="Preview receipt"
+                                                                    onClick={() => openPdf(`/api/v1/admin/sales/${s._id}/receipt/preview`, `${s.reference}-receipt-draft.pdf`)}
+                                                                    className="p-2 rounded-lg hover:bg-gray-100"
+                                                                >
+                                                                    <Receipt size={16} />
+                                                                </button>
+                                                                <button
+                                                                    title="Preview seller statement"
+                                                                    onClick={() => openPdf(`/api/v1/admin/sales/${s._id}/statement/preview`, `${s.reference}-statement-draft.pdf`)}
+                                                                    className="p-2 rounded-lg hover:bg-gray-100"
+                                                                >
+                                                                    <Eye size={16} />
+                                                                </button>
+                                                            </>
+                                                        )}
+                                                        {canFail(s) && (
+                                                            <button title="Mark as failed" onClick={() => markFailed(s)} className="p-2 rounded-lg hover:bg-red-50 text-red-600">
+                                                                <XCircle size={16} />
+                                                            </button>
+                                                        )}
+                                                        {s.status === "failed" && (
+                                                            <button title="Reopen" onClick={() => reopen(s)} className="p-2 rounded-lg hover:bg-gray-100">
+                                                                <RotateCcw size={16} />
                                                             </button>
                                                         )}
                                                         <button

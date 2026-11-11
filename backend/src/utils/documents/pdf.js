@@ -196,7 +196,144 @@ export const renderPaymentRequestPdf = (s) =>
         footer(doc);
     });
 
+const pairsTable = (doc, y, pairs, { boldKeys = [] } = {}) => {
+    for (const [k, v] of pairs) {
+        doc.font("Helvetica").fontSize(10).fillColor(NAVY).text(k, LEFT + 14, y, { width: 150 });
+        doc.font(boldKeys.includes(k) ? "Helvetica-Bold" : "Helvetica").text(String(v ?? ""), LEFT + 180, y, { width: WIDTH - 180 });
+        y = Math.max(doc.y, y + 12) + 7;
+    }
+    return y;
+};
+
+const METHOD_LABELS = { credit_card: "Card", bank_transfer: "Bank transfer", paypal: "PayPal", other: "Other" };
+
+/** Buyer receipt: confirms payment and sets out collection. */
+export const renderBuyerReceiptPdf = (s) =>
+    toBuffer((doc) => {
+        let y = header(doc, {
+            heading: "PAYMENT RECEIPT",
+            reference: s.reference,
+            dates: [`Receipt date: ${longDate(s.issueDate)}`, `Payment date: ${longDate(s.paidDate)}`, `Sale date: ${longDate(s.saleDate)}`],
+        });
+
+        y = partyBlock(
+            doc,
+            y,
+            "RECEIVED FROM",
+            [s.buyer.name, s.buyer.companyName !== s.buyer.name ? s.buyer.companyName : null, ...(s.buyer.addressLines || []), s.buyer.email],
+            "SELLER / ITEM SUPPLIER",
+            [s.seller.displayName, s.seller.phone ? `Phone: ${s.seller.phone}` : null],
+        );
+
+        y = sectionTitle(doc, y, `Collected on behalf of ${s.seller.displayName}`);
+        y = row(doc, y, s.title, money(s.itemPrice, s.currency));
+        const [vatLabel, vatValue] = vatLine(s);
+        y = row(doc, y, vatLabel, vatValue, { size: 10, color: MUTED });
+        y += 10;
+        y = sectionTitle(doc, y, "RexBid charges");
+        y = row(doc, y, s.buyerFeeDescription || "Buyer commission", money(s.buyerFee, s.currency));
+        y += 4;
+        rule(doc, y);
+        y += 18;
+        y = row(doc, y, "TOTAL PAID", money(s.amountPaid ?? s.total, s.currency), { bold: true, size: 14 });
+        y += 22;
+
+        y = sectionTitle(doc, y, "Payment");
+        y = pairsTable(doc, y, [
+            ["Method", METHOD_LABELS[s.method] || s.method || "—"],
+            ["Date received", longDate(s.paidDate)],
+            s.transactionId ? ["Transaction", s.transactionId] : null,
+        ].filter(Boolean));
+        y += 16;
+
+        y = sectionTitle(doc, y, "Collection");
+        y = pairsTable(
+            doc,
+            y,
+            [
+                ["Collect by", longDate(s.collectBy)],
+                s.itemLocation ? ["Item location", s.itemLocation] : null,
+                ["Seller", s.seller.displayName],
+                ["Seller phone", s.seller.phone || "Contact RexBid"],
+            ].filter(Boolean),
+            { boldKeys: ["Collect by", "Seller phone"] },
+        );
+        y += 10;
+        doc.font("Helvetica-Bold").fontSize(10).fillColor("#b45309").text(
+            `Please collect within ${s.collectionDays} working days of payment. Items not collected by then are subject to storage fines.`,
+            LEFT, y, { width: WIDTH },
+        );
+        y = doc.y + 14;
+
+        doc.font("Helvetica").fontSize(9).fillColor(MUTED).text(
+            `This receipt confirms that RexBid has received your payment, which includes the item price collected on behalf of ${s.seller.displayName}. It does not replace any sale invoice required from the seller.`,
+            LEFT, y, { width: WIDTH },
+        );
+        footer(doc);
+    });
+
+/** Seller statement: what was collected for the seller and what they are owed. */
+export const renderSellerStatementPdf = (s) =>
+    toBuffer((doc) => {
+        let y = header(doc, {
+            heading: "SELLER STATEMENT",
+            reference: s.reference,
+            dates: [`Statement date: ${longDate(s.issueDate)}`, `Sale date: ${longDate(s.saleDate)}`],
+        });
+
+        y = partyBlock(
+            doc,
+            y,
+            "SELLER",
+            [s.seller.name, s.seller.companyName && s.seller.companyName !== s.seller.name ? s.seller.companyName : null, ...(s.seller.addressLines || []), s.seller.email, s.seller.vatNumber ? `VAT no. ${s.seller.vatNumber}` : null],
+            "BUYER",
+            [s.buyer.name, s.buyer.companyName && s.buyer.companyName !== s.buyer.name ? s.buyer.companyName : null, ...(s.buyer.addressLines || []), s.buyer.vatNumber ? `VAT no. ${s.buyer.vatNumber}` : null],
+        );
+
+        y = sectionTitle(doc, y, "Sale");
+        y = row(doc, y, s.title, money(s.itemPrice, s.currency));
+        if (s.vat.treatment === "standard") {
+            y = row(doc, y, `VAT collected on your behalf (${s.vat.rate}%)`, money(s.vat.amount, s.currency), { size: 10, color: MUTED });
+        } else if (s.vat.treatment === "zero_rated") {
+            y = row(doc, y, "VAT (zero-rated cross-border supply)", money(0, s.currency), { size: 10, color: MUTED });
+        }
+        y = row(doc, y, "Total collected for you", money(s.grossForSeller, s.currency), { bold: true });
+        y += 10;
+
+        y = sectionTitle(doc, y, "RexBid charges");
+        y = row(doc, y, s.sellerFeeDescription || "Seller commission", `-${money(s.sellerFee, s.currency)}`);
+        y += 4;
+        rule(doc, y);
+        y += 18;
+        y = row(doc, y, "AMOUNT DUE TO YOU", money(s.netPayout, s.currency), { bold: true, size: 14 });
+        y += 22;
+
+        y = sectionTitle(doc, y, "Payout");
+        y = pairsTable(doc, y, [
+            ["Buyer payment", s.buyerPaidDate ? `Received ${longDate(s.buyerPaidDate)}` : "Awaiting payment"],
+            ["Payout to", s.payoutAccount || "No payout bank account on file. Please add one under Payout Methods."],
+            ["Payout timing", s.payoutPaidDate ? `Paid ${longDate(s.payoutPaidDate)}` : "Released once collection is confirmed"],
+        ]);
+        y += 14;
+
+        doc.font("Helvetica").fontSize(9).fillColor(MUTED);
+        if (s.vat.treatment === "standard") {
+            doc.text(
+                "VAT shown above was collected from the buyer on your behalf and is included in your payout. You remain responsible for issuing your VAT invoice to the buyer and accounting for this VAT.",
+                LEFT, y, { width: WIDTH },
+            );
+            y = doc.y + 8;
+        }
+        doc.text(
+            "The buyer's commission is a separate RexBid charge to the buyer and does not affect the amount due to you.",
+            LEFT, y, { width: WIDTH },
+        );
+        footer(doc);
+    });
+
 export const renderDocumentPdf = (type, snapshot) => {
     if (type === "payment_request") return renderPaymentRequestPdf(snapshot);
+    if (type === "buyer_receipt") return renderBuyerReceiptPdf(snapshot);
+    if (type === "seller_statement") return renderSellerStatementPdf(snapshot);
     throw new Error(`No PDF template for document type ${type}`);
 };

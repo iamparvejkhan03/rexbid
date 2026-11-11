@@ -84,7 +84,15 @@ Stages: `sold` → `request_sent` → `paid` → `collected` → `payout_due` �
 - When Stripe reports the payment (`payment_intent.succeeded` webhook), the sale and the auction are marked paid.
 - Stripe webhook: `POST /api/v1/payments/webhook`, registered in `server.js` before the JSON parser. Needs `STRIPE_WEBHOOK_SECRET` on Render.
 
-Still to build: buyer receipts, payment and collection reminders, buyer/seller "collected" ticks, payout queue with early-release option, seller statements, sales ledger export matching the finance tracker, import of earlier sales.
+- **Receipts and seller statements** (Paid tab, tick and send): the buyer receipt shows the seller's name and phone, the collect-by date (3 working days after payment, weekends skipped, public holidays not; `COLLECTION_WORKING_DAYS`) and the storage-fines warning. The seller statement shows price + VAT collected − seller commission = amount due, and the seller's payout account (masked). The seller fee is read from the auction (`sellerCommissionAmount`, set from Admin → Commissions when the lot sold), so seller fees appear automatically once they are switched on.
+- Every payment request, receipt and statement is BCC'd to `EMAIL_USER` (change with `PAYMENT_REQUEST_BCC`, or `none`).
+- **Failed sales**: the red cross on an unpaid sale asks for a reason, cancels any open Stripe request and sets the auction's payment status to failed. *Reopen* puts it back in Ready to send.
+- **Earlier sales**: *Import earlier sales* records lots sold before `SALES_TRACKING_START` with `historical: true`; status from the auction's payment status and any completed Payout. No emails, no Stripe calls. They live in the *Earlier sales* tab.
+- Documents pages: `/bidder/documents`, `/seller/documents`, `/company/documents`.
+
+Still to build: payment and collection reminders, buyer/seller "collected" ticks, payout queue with early-release option, sales ledger export matching the finance tracker.
+
+Note: the receipt says collect within **3** working days; the Payment, Fees & Refund Policy page and section 2 above still say 5.
 
 ---
 
