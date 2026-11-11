@@ -74,7 +74,7 @@ const faqs = [
             },
             {
                 question: "Can I collect the item myself?",
-                answer: "Yes. Once RexBid confirms your payment has cleared, we share the seller's collection details. Items must be collected within 5 working days of payment confirmation, unless agreed otherwise with the seller.",
+                answer: "Yes. Once RexBid confirms your payment has cleared, we share the seller's collection details. Items must be collected within 3 working days of payment confirmation, unless agreed otherwise with the seller. Items not collected by then may be subject to storage fines.",
             },
         ],
     },

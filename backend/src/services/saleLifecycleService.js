@@ -25,6 +25,10 @@ const maskIban = (iban) => {
 };
 
 const describePayoutAccount = (user) => {
+    const sc = user?.stripeConnect;
+    if (sc?.payoutsEnabled) {
+        return `Stripe payout account${sc.bankLast4 ? ` (${[sc.bankName, `ending ${sc.bankLast4}`].filter(Boolean).join(", ")})` : ""}`;
+    }
     const pm = user?.payoutMethods || {};
     const bank = pm.bankTransfer;
     if (bank?.iban || bank?.accountNumber) {
@@ -37,7 +41,7 @@ const describePayoutAccount = (user) => {
 
 /** Refreshes the seller's contact details from their account. */
 const refreshSeller = async (sale) => {
-    const seller = await User.findById(sale.seller.user).select("phone email companyName payoutMethods userType");
+    const seller = await User.findById(sale.seller.user).select("phone email companyName payoutMethods userType stripeConnect");
     if (seller) {
         if (seller.phone) sale.set("seller.phone", seller.phone);
         if (seller.email) sale.set("seller.email", seller.email);

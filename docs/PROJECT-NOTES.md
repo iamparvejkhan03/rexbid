@@ -46,7 +46,7 @@ MX → `smtp.google.com` · SPF includes `_spf.google.com` (and `spf.reg365.net`
 | Minimum no-reserve starting bid | **€400** (sterling equivalent) | same |
 | Payment | Card under €1,000; bank transfer from €1,000; within 48 hours | `backend/src/utils/manualPayment.js` (threshold) |
 | VAT on items | Only when the listing is "VAT Applicable". ROI 23%, NI 20%, on the item price only (never on the buyer fee: RexBid is not VAT registered). Cross-border or unclear-location sales are held for admin review; admin can zero-rate with a note. | `backend/src/utils/vat.js`, `backend/src/utils/region.js` |
-| Collection | Within 5 working days of payment confirmation | Policy |
+| Collection | Within 3 working days of payment confirmation; storage fines after that | Policy, Buyer Agreement, FAQs, receipt |
 | Seller payout | 0–3 working days after collection | Policy |
 | Not as described | Report within 24 hours of collection/delivery | Policy |
 | VAT on items | Set per listing by the seller | Listing field `vatIncluded` |
@@ -90,9 +90,11 @@ Stages: `sold` → `request_sent` → `paid` → `collected` → `payout_due` �
 - **Earlier sales**: *Import earlier sales* records lots sold before `SALES_TRACKING_START` with `historical: true`; status from the auction's payment status and any completed Payout. No emails, no Stripe calls. They live in the *Earlier sales* tab.
 - Documents pages: `/bidder/documents`, `/seller/documents`, `/company/documents`.
 
+- **Receipts are sent automatically** when a sale is paid (Stripe bank transfer, card checkout, or admin marking it paid). For any auction with a sale record, the old generic "Payment Confirmed" buyer email is skipped so the buyer gets one email.
+- **Seller payouts use Stripe Connect Express accounts** (`user.stripeConnect`). Existing accounts made in the Stripe Dashboard are matched to sellers by email. Sellers set up or finish their account from Payout Methods (`/api/v1/stripe-connect/onboarding-link`); the "Item sold" email includes a setup button when the seller isn't ready, and admins can send a setup link from the Sales page. Status is refreshed at most hourly for sellers with open sales.
+
 Still to build: payment and collection reminders, buyer/seller "collected" ticks, payout queue with early-release option, sales ledger export matching the finance tracker.
 
-Note: the receipt says collect within **3** working days; the Payment, Fees & Refund Policy page and section 2 above still say 5.
 
 ---
 

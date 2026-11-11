@@ -9,7 +9,6 @@ import { isManualPaymentRequired } from "../utils/manualPayment.js";
 import { addWorkingDays, COLLECTION_WORKING_DAYS } from "../utils/workingDays.js";
 import {
     paymentRequestEmail,
-    paymentCompletedEmail,
     paymentCompletedSellerEmail,
 } from "../utils/nodemailer.js";
 
@@ -190,6 +189,7 @@ export const markSalePaidFromAuction = async (auction) => {
         }
     }
     await sale.save();
+    await autoIssueReceipt(sale);
     return sale;
 };
 
@@ -242,7 +242,8 @@ export const syncSales = async ({ since = SALES_TRACKING_START, ibanLimit = 25 }
     }
 
     const { ibansAdded } = await fillMissingIbans({ limit: ibanLimit });
-    return { created, markedPaid, ibansAdded };
+    const sellersChecked = await refreshOpenSellerAccounts({ limit: 10 });
+    return { created, markedPaid, ibansAdded, sellersChecked };
 };
 
 // ─── VAT decisions ─────────────────────────────────────────
@@ -540,6 +541,40 @@ export const issuePaymentRequest = async (saleId, admin, { sendEmail = true } = 
     return { sale, emailed: !!doc.emailedAt };
 };
 
+/**
+ * Keeps sellers' Stripe payout-account status fresh (at most hourly) for sales
+ * that still need paying out, linking existing connected accounts by email.
+ */
+export const refreshOpenSellerAccounts = async ({ limit = 10 } = {}) => {
+    const sellerIds = await Sale.distinct("seller.user", {
+        historical: { $ne: true },
+        status: { $in: ["sold", "request_sent", "paid", "collected", "payout_due"] },
+    });
+    const stale = await User.find({
+        _id: { $in: sellerIds },
+        "stripeConnect.payoutsEnabled": { $ne: true },
+        $or: [{ "stripeConnect.checkedAt": null }, { "stripeConnect.checkedAt": { $lt: new Date(Date.now() - 3600 * 1000) } }],
+    }).limit(limit);
+    const { refreshSellerConnect } = await import("./connectService.js");
+    for (const u of stale) await refreshSellerConnect(u);
+    return stale.length;
+};
+
+/**
+ * Sends the buyer their receipt as soon as a sale is paid. Earlier (imported)
+ * sales are left alone. Never throws: a failed receipt must not undo a payment.
+ */
+export const autoIssueReceipt = async (sale) => {
+    if (!sale || sale.historical || sale.status !== "paid") return;
+    if (sale.documents?.some((d) => d.type === "buyer_receipt")) return;
+    try {
+        const { issueBuyerReceipt } = await import("./saleLifecycleService.js");
+        await issueBuyerReceipt(sale._id, null);
+    } catch (err) {
+        console.error(`Automatic receipt for ${sale.reference} failed:`, err.message);
+    }
+};
+
 // ─── Payments received (Stripe webhook) ────────────────────
 
 export const recordPartialFunding = async (pi) => {
@@ -571,6 +606,7 @@ export const recordPayment = async (pi) => {
     sale.set("collection.dueBy", addWorkingDays(new Date(), COLLECTION_WORKING_DAYS));
     sale.notes.push({ text: `Payment of ${sale.payment.amount} ${sale.currency} received via Stripe (${pi.id})` });
     await sale.save();
+    await autoIssueReceipt(sale);
 
     // Keep the auction's own payment fields in step (save() fires the GA4 hook).
     const auction = await Auction.findById(sale.auction).populate("seller").populate("winner");
@@ -585,7 +621,7 @@ export const recordPayment = async (pi) => {
             await Auction.updateOne({ _id: auction._id }, { $set: paid });
         }
         try {
-            if (auction.winner) await paymentCompletedEmail(auction.winner, auction);
+            // The buyer gets their receipt instead of the generic confirmation.
             if (auction.seller) await paymentCompletedSellerEmail(auction.seller, auction, auction.winner);
         } catch (e) {
             console.error("Payment confirmation emails failed:", e.message);

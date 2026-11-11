@@ -267,6 +267,18 @@ function Sales() {
         }
     };
 
+    const sendPayoutSetup = async (s) => {
+        const who = s.seller?.companyName || s.seller?.name || "the seller";
+        if (!window.confirm(`Email ${who} a link to set up their Stripe payout account?`)) return;
+        try {
+            await axiosInstance.post(`/api/v1/admin/sales/${s._id}/payout-setup-email`);
+            toast.success(`Payout setup link sent to ${who}`);
+            load();
+        } catch (err) {
+            toast.error(err.response?.data?.message || "Could not send the link");
+        }
+    };
+
     const importHistory = async () => {
         if (!window.confirm("Import every lot sold before sale records began?\n\nNo emails are sent and nothing is created in Stripe. Paid, paid-out and failed statuses are taken from the auction records.")) return;
         setSending(true);
@@ -417,6 +429,11 @@ function Sales() {
                                                 <td className="p-3 align-top min-w-[160px]">
                                                     <div>{s.buyer?.name || s.buyer?.username}</div>
                                                     <div className="text-xs text-gray-500">{s.buyer?.email}</div>
+                                                    {s.buyer?.phone && (
+                                                        <a href={`tel:${s.buyer.phone.replace(/\s+/g, "")}`} className="text-xs text-gray-700 block">
+                                                            {s.buyer.phone}
+                                                        </a>
+                                                    )}
                                                     <div className="text-xs text-gray-500">{s.buyer?.region || "Location unknown"}</div>
                                                     {s.stripe?.bankTransfer?.iban || s.stripe?.bankTransfer?.accountNumber ? (
                                                         <div className="text-xs font-mono text-gray-700 mt-1" title="Buyer's own Stripe bank-transfer account">
@@ -434,7 +451,37 @@ function Sales() {
                                                 </td>
                                                 <td className="p-3 align-top min-w-[140px]">
                                                     <div>{s.seller?.companyName || s.seller?.name || s.seller?.username}</div>
+                                                    {s.seller?.phone && (
+                                                        <a href={`tel:${s.seller.phone.replace(/\s+/g, "")}`} className="text-xs text-gray-700 block">
+                                                            {s.seller.phone}
+                                                        </a>
+                                                    )}
                                                     <div className="text-xs text-gray-500">Item in {s.vat?.itemRegion || "unknown"}</div>
+                                                    {s.sellerPayout && (
+                                                        <div className="mt-1 flex flex-wrap items-center gap-1">
+                                                            <span
+                                                                className={`text-[11px] px-1.5 py-0.5 rounded ${
+                                                                    s.sellerPayout.state === "ready"
+                                                                        ? "bg-green-50 text-green-700"
+                                                                        : s.sellerPayout.state === "incomplete"
+                                                                          ? "bg-amber-50 text-amber-700"
+                                                                          : "bg-gray-100 text-gray-600"
+                                                                }`}
+                                                                title="Seller's Stripe payout account"
+                                                            >
+                                                                {s.sellerPayout.state === "ready"
+                                                                    ? `Payouts ready${s.sellerPayout.bankLast4 ? ` ·${s.sellerPayout.bankLast4}` : ""}`
+                                                                    : s.sellerPayout.state === "incomplete"
+                                                                      ? "Payout setup incomplete"
+                                                                      : "No payout account"}
+                                                            </span>
+                                                            {s.sellerPayout.state !== "ready" && !s.historical && (
+                                                                <button onClick={() => sendPayoutSetup(s)} className="text-[11px] underline text-primary">
+                                                                    Send setup link
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    )}
                                                 </td>
                                                 <td className="p-3 align-top text-right whitespace-nowrap">{formatMoney(s.itemPrice, s.currency)}</td>
                                                 <td className="p-3 align-top text-right whitespace-nowrap">

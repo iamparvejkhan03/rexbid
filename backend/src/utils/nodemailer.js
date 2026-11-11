@@ -1594,6 +1594,29 @@ const sendAuctionEndedSellerEmail = async (listing) => {
             ? `Sold for ${formatCurrency(listing?.finalPrice || 0)}`
             : "Listing ended without sale";
 
+        // If the seller can't receive Stripe payouts yet, ask them to set up
+        // their payout account here rather than in a separate email.
+        let payoutSetup = '';
+        if (isSold && listing?.winner) {
+            try {
+                const { refreshSellerConnect, payoutState, payoutSetupUrl } = await import('../services/connectService.js');
+                const sellerUser = await User.findById(listing.seller._id || listing.seller);
+                const sc = sellerUser ? await refreshSellerConnect(sellerUser) : null;
+                const state = payoutState(sc);
+                if (sellerUser && state !== 'ready') {
+                    payoutSetup = `
+                        <div style="background: #fffbeb; padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 4px solid ${BRAND_COLORS.warning};">
+                            <p style="margin: 0 0 8px 0;"><strong>${state === 'incomplete' ? 'Finish setting up your payout account' : 'Set up your payout account'}</strong></p>
+                            <p style="margin: 0;">We pay sellers through Stripe. ${state === 'incomplete' ? 'Your Stripe payout account still needs a few details' : 'Add your details and bank account'} so we can pay you as soon as the buyer has paid and collected. It takes about 5 minutes.</p>
+                            ${createButton(state === 'incomplete' ? 'Finish Payout Setup' : 'Set Up Payouts', payoutSetupUrl(sellerUser), 'primary')}
+                        </div>
+                    `;
+                }
+            } catch (err) {
+                console.error('Payout setup check failed:', err.message);
+            }
+        }
+
         const content = `
             <h2 style="text-align: center;">${isSold ? 'Item Sold' : 'Listing Ended'}</h2>
             <p style="text-align: center;">${statusMessage}</p>
@@ -1623,6 +1646,7 @@ const sendAuctionEndedSellerEmail = async (listing) => {
                     <p style="margin: 0 0 8px 0;"><strong>Congratulations! Your item has been sold.</strong></p>
                     <p style="margin: 0;">Buyer details will be shared after payment confirmation.</p>
                 </div>
+                ${payoutSetup}
             ` : `
                 <div style="background: ${BRAND_COLORS.grayBg}; padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 4px solid ${BRAND_COLORS.warning};">
                     <p style="margin: 0;"><strong>No Sale This Time</strong></p>
@@ -2405,6 +2429,15 @@ const counterOfferRejectedEmail = async (
 // 25. Payment completed notification for bidder
 const paymentCompletedEmail = async (user, listing) => {
     try {
+        // Sales with a sale record get a full receipt instead (sent by the
+        // sale service when the payment is recorded), so skip this one.
+        if (listing?._id) {
+            const Sale = mongoose.models.Sale;
+            if (Sale && (await Sale.exists({ auction: listing._id, historical: { $ne: true } }))) {
+                console.log(`Payment confirmation for ${listing._id} replaced by the sale receipt`);
+                return true;
+            }
+        }
         const currency = user?.currency || listing?.winner?.currency || listing?.baseCurrency || 'EUR';
         const finalPrice = listing?.finalPrice || listing?.currentPrice || 0;
         const bidderCommission = listing?.bidderCommissionAmount || 0;
@@ -3918,8 +3951,36 @@ const sellerStatementEmail = async (sale, snapshot, pdfBuffer, filename, dashboa
     }
 };
 
+
+// Asks a seller to set up (or finish) their Stripe payout account.
+const sellerPayoutSetupEmail = async (seller, { state, url, saleTitle }) => {
+    try {
+        const name = seller?.firstName || seller?.companyName || seller?.username || 'there';
+        const content = `
+            <h2 style="text-align: center;">${state === 'incomplete' ? 'Finish Your Payout Setup' : 'Set Up Your Payout Account'}</h2>
+            <p>Hi ${name},</p>
+            <p>${saleTitle ? `Thanks for selling <strong>${saleTitle}</strong> on RexBid. ` : ''}We pay sellers through Stripe, straight to your bank account.
+            ${state === 'incomplete' ? 'Your Stripe payout account still needs a few details before we can pay you.' : 'Please add your details and bank account so we can pay you as soon as the buyer has paid and collected.'}</p>
+            <p>It takes about 5 minutes. Stripe may ask for photo ID to verify you.</p>
+            ${createButton(state === 'incomplete' ? 'Finish Payout Setup' : 'Set Up Payouts', url, 'primary')}
+            <p style="color: ${BRAND_COLORS.textLight}; font-size: 13px;">You'll be asked to sign in to RexBid first, then taken to Stripe's secure page.</p>
+        `;
+        const info = await transporter.sendMail({
+            from: `"${BRAND_NAME}" <${process.env.EMAIL_USER}>`,
+            to: seller.email,
+            subject: state === 'incomplete' ? 'Finish your RexBid payout setup' : 'Set up your RexBid payout account',
+            html: baseTemplate(content, 'Payout Setup'),
+        });
+        return !!info;
+    } catch (error) {
+        console.error('Failed to send payout setup email:', error);
+        return false;
+    }
+};
+
 export {
     paymentRequestEmail,
+    sellerPayoutSetupEmail,
     buyerReceiptEmail,
     sellerStatementEmail,
     contactEmail, //done

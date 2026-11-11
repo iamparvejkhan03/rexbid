@@ -1699,7 +1699,7 @@ const CreateListingForm = ({ Container, Header, Sidebar, basePath, defaultUserTy
                                             <div>
                                                 <h3 className="font-semibold text-gray-900 mb-2">5. Payment and collection times</h3>
                                                 <p>
-                                                    The buyer has 48 hours to pay and 5 working days to collect. Don't hand over the machine
+                                                    The buyer has 48 hours to pay and 3 working days to collect. Don't hand over the machine
                                                     until we confirm payment.
                                                 </p>
                                             </div>

@@ -14,6 +14,7 @@ import {
     failSale,
     reopen,
     importHistory,
+    sendPayoutSetupEmail,
 } from "../controllers/sale.controller.js";
 
 // Mounted at /api/v1/admin/sales
@@ -29,6 +30,7 @@ adminSaleRouter.get("/:saleId/payment-request/preview", authAdmin, previewPaymen
 adminSaleRouter.get("/:saleId/:type/preview", authAdmin, previewDocument);
 adminSaleRouter.post("/:saleId/fail", authAdmin, failSale);
 adminSaleRouter.post("/:saleId/reopen", authAdmin, reopen);
+adminSaleRouter.post("/:saleId/payout-setup-email", authAdmin, sendPayoutSetupEmail);
 adminSaleRouter.get("/:saleId/documents/:documentId", authAdmin, downloadDocument);
 
 // Mounted at /api/v1/sales (buyers and sellers)

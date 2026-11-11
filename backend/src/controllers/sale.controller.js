@@ -18,6 +18,8 @@ import {
 import { renderBuyerReceiptPdf, renderSellerStatementPdf } from "../utils/documents/pdf.js";
 import { renderDocumentPdf, renderPaymentRequestPdf } from "../utils/documents/pdf.js";
 import { REGIONS } from "../utils/region.js";
+import User from "../models/user.model.js";
+import { payoutState } from "../services/connectService.js";
 
 const LIST_FIELDS = "-documents.snapshot -notes";
 
@@ -45,6 +47,15 @@ export const listSales = async (req, res) => {
             q.$or = [{ reference: rx }, { title: rx }, { "buyer.name": rx }, { "buyer.email": rx }, { "seller.name": rx }, { "seller.companyName": rx }];
         }
         const sales = await Sale.find(q, LIST_FIELDS).sort({ saleDate: -1 }).limit(500).lean();
+        // Seller payout readiness (Stripe connected account), from the cached status.
+        const sellerIds = [...new Set(sales.map((x) => String(x.seller?.user)).filter(Boolean))];
+        const sellers = await User.find({ _id: { $in: sellerIds } }, "stripeConnect phone").lean();
+        const byId = new Map(sellers.map((u) => [String(u._id), u]));
+        for (const x of sales) {
+            const u = byId.get(String(x.seller?.user));
+            x.sellerPayout = { state: payoutState(u?.stripeConnect), bankLast4: u?.stripeConnect?.bankLast4 };
+            if (!x.seller?.phone && u?.phone) x.seller.phone = u.phone;
+        }
         const counts = await Sale.aggregate([
             { $match: { historical: { $ne: true } } },
             { $group: { _id: "$status", n: { $sum: 1 } } },
@@ -283,6 +294,27 @@ export const reopen = async (req, res) => {
 export const importHistory = async (req, res) => {
     try {
         res.json({ success: true, data: await importHistoricalSales() });
+    } catch (err) {
+        fail(res, err);
+    }
+};
+
+/** Emails the seller a link to set up or finish their Stripe payout account. */
+export const sendPayoutSetupEmail = async (req, res) => {
+    try {
+        const sale = await Sale.findById(req.params.saleId, "seller title reference notes");
+        if (!sale) return res.status(404).json({ success: false, message: "Sale not found" });
+        const seller = await User.findById(sale.seller.user);
+        if (!seller?.email) return res.status(400).json({ success: false, message: "Seller has no email address" });
+        const { refreshSellerConnect, payoutSetupUrl } = await import("../services/connectService.js");
+        const state = payoutState(await refreshSellerConnect(seller));
+        if (state === "ready") return res.status(400).json({ success: false, message: "This seller is already set up for payouts" });
+        const { sellerPayoutSetupEmail } = await import("../utils/nodemailer.js");
+        const ok = await sellerPayoutSetupEmail(seller, { state, url: payoutSetupUrl(seller), saleTitle: sale.title });
+        if (!ok) return res.status(502).json({ success: false, message: "Email failed to send" });
+        sale.notes.push({ text: `Payout setup link emailed to ${seller.email}`, by: req.user._id });
+        await sale.save();
+        res.json({ success: true, data: { state } });
     } catch (err) {
         fail(res, err);
     }

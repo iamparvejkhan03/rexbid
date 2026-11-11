@@ -16,7 +16,7 @@ const STEPS = {
         { title: "Register free", text: "Create an account and browse machines from sellers across Ireland." },
         { title: "Bid online", text: "The buyer fee is shown before you bid." },
         { title: "Pay RexBid", text: "Within 48 hours. Card under €1,000, bank transfer above." },
-        { title: "Collect", text: "Within 5 working days of payment, or get a transport quote from EVOLVE." },
+        { title: "Collect", text: "Within 3 working days of payment, or get a transport quote from EVOLVE." },
     ],
 };
 
