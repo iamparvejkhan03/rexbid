@@ -69,7 +69,9 @@ If a fee or rule changes, update `fees.js` / `listingRules.js` **and** the admin
 
 Email (9 Nov, outside the code): sending moved from Register365 to Google; DKIM enabled; DMARC added. Outlook/Hotmail had been rejecting RexBid email ("lacks SPF/DKIM/DMARC").
 
-Backend tests: `cd backend && npm test` (node:test; 14 tests).
+Backend tests: `cd backend && npm test` (node:test).
+
+The backend needs **Node 20.9 or newer** (`engines` in `backend/package.json`; required by nodemailer 10). Security audit 11 Nov 2026: backend 0 known vulnerabilities; frontend 4 low/moderate left (build-time `@tailwindcss/typography`, and `quill` in the listing editor) where npm's only suggested fix is a downgrade.
 
 ---
 
