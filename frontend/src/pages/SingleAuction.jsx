@@ -1,6 +1,6 @@
 import { CalendarDays, CheckSquare, Clock, Download, File, Fuel, Gauge, Gavel, Heart, Loader, MapPin, MessageCircle, PaintBucket, Plane, ShieldCheck, Tag, User, Users, Weight, Zap, Banknote, MessageSquare, Mail, Phone, Star, CreditCard, Info, Bell, Truck, Stars } from "lucide-react";
 import { AuthBidModal, BidConfirmationModal, BuyNowModal, Container, GiveawayClaimModal, LoadingSpinner, MobileBidBottomBar, MobileBidStickyBar, ProxyBidSection, RatingStars, ReminderModal, ReviewModal, SellerStatsCard, SpecificationsSection, TabSection, TimerDisplay, WatchlistButton } from "../components";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { lazy, Suspense, useRef, useState, useEffect } from "react";
 import useAuctionCountdown from "../hooks/useAuctionCountDown";
 import axiosInstance from "../utils/axiosInstance";
@@ -443,6 +443,19 @@ function SingleAuction() {
         });
     };
 
+    // Links from question emails/texts: /auction/:id?tab=questions#q-<id>
+    const location = useLocation();
+    useEffect(() => {
+        const tab = new URLSearchParams(location.search).get("tab");
+        if ((tab === "questions" || tab === "comments") && auction?._id) {
+            setActiveTab("comments");
+            if (!location.hash) setTimeout(scrollToCommentSection, 300);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [location.search, auction?._id]);
+
+    const handleAskSeller = () => handleTabClick("comments");
+
     const handleTabClick = (tabId) => {
         setActiveTab(tabId);
         if (tabId === 'comments' || tabId === 'bids' || tabId === 'offers') {
@@ -846,9 +859,10 @@ function SingleAuction() {
                         </p> */}
 
                         <p onClick={() => handleTabClick('comments')}
+                            title="Questions & Answers"
                             className="flex items-center gap-2 border border-gray-200 py-1 px-3 rounded-full cursor-pointer hover:bg-gray-100">
                             <MessageSquare size={16} />
-                            <span>{pagination?.totalComments || 0}</span>
+                            <span>{pagination?.totalComments || 0} {pagination?.totalComments === 1 ? 'question' : 'questions'}</span>
                         </p>
 
                         {
@@ -1070,7 +1084,12 @@ function SingleAuction() {
                 {/* NEW: Seller Stats Card */}
                 {auction?.seller && (
                     <div className="my-8">
-                        <SellerStatsCard sellerId={auction.seller._id} />
+                        <SellerStatsCard
+                            sellerId={auction.seller._id}
+                            auctionId={auction._id}
+                            contactMode={auction.contactMode}
+                            onAskQuestion={handleAskSeller}
+                        />
                     </div>
                 )}
             </section>

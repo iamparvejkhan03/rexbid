@@ -55,7 +55,38 @@ const commentSchema = new Schema({
         default: null
     },
 
-    // Likes system
+    // Questions & Answers (Nov 2026). Top-level comments are questions and
+    // replies are answers. Only the seller (or RexBid) can answer.
+    authorRole: {
+        type: String,
+        enum: ['buyer', 'seller', 'admin'],
+        default: 'buyer'
+    },
+    // Public name shown on the listing (first name, or company name in full).
+    displayName: {
+        type: String,
+        default: ''
+    },
+    // Where an answer came from: the website or a text-message reply.
+    answerSource: {
+        type: String,
+        enum: ['web', 'sms', null],
+        default: null
+    },
+    // Set on a question once the seller has been texted about it, so a text
+    // reply from that number can be matched back to this question.
+    sms: {
+        notifiedTo: { type: String },
+        notifiedAt: { type: Date },
+        messageSid: { type: String }
+    },
+    // Set on a question once it has at least one answer.
+    answeredAt: {
+        type: Date,
+        default: null
+    },
+
+    // Likes system (shown as "Helpful" on questions)
     likes: [{
         user: {
             type: Schema.Types.ObjectId,
@@ -94,6 +125,7 @@ const commentSchema = new Schema({
 commentSchema.index({ auction: 1, createdAt: -1 });
 commentSchema.index({ parentComment: 1 });
 commentSchema.index({ 'likes.user': 1 });
+commentSchema.index({ 'sms.notifiedTo': 1, 'sms.notifiedAt': -1 });
 
 // Virtual for like count
 commentSchema.virtual('likeCount').get(function () {

@@ -626,7 +626,7 @@ const CheckoutContent = () => {
                                     {/* Auction Details */}
                                     <div className="border-b border-gray-200 pb-4">
                                         <p className="font-medium text-gray-900">{auction.title}</p>
-                                        <p className="text-sm text-gray-600 mt-1">Sold by: {seller?.username || seller?.firstName}</p>
+                                        <p className="text-sm text-gray-600 mt-1">Sold by: {seller?.displayName || seller?.companyName || seller?.firstName}</p>
                                     </div>
 
                                     {/* Price Breakdown */}

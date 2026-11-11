@@ -107,8 +107,33 @@ Still to build: sales ledger export matching the finance tracker.
 
 ---
 
+## 3b. Seller contact, Questions & Answers, public names (Nov 2026)
+
+**Seller contact.** Each listing has a contact mode (`backend/src/utils/contactPolicy.js`), sent to the browser as `auction.contactMode`:
+- `phone`: reserve lots whose reserve is at or above the Render setting `PHONE_CONTACT_MIN_RESERVE_EUR` (sterling lots use the equivalent). Signed-in users can reveal the seller's phone in the *Sold By* card, as before.
+- `questions`: every other lot. No phone number is sent; the *Sold By* card says questions are answered on the listing and links to the Q&A tab.
+- The threshold is a private business setting: it is **not** in this repository and never shown on the site. If the setting is missing, no lot shows a phone number. `SELLER_PHONE_CONTACT=off` turns phone numbers off everywhere.
+- The phone is returned by `GET /api/v1/users/:id/seller-stats?auctionId=…` only for a `phone` lot and a signed-in viewer.
+- Note: because the phone only appears on higher-reserve lots, its presence hints that the reserve is high.
+
+**Questions & Answers** (listing tab "Questions", `frontend/src/components/QuestionsSection.jsx`, API `/api/v1/questions`, `backend/src/controllers/question.controller.js`):
+- Buyers ask (signed in, lot upcoming or live, max 600 characters, 5 per lot per day). Only the seller or RexBid staff can answer. Everything is public on the listing.
+- Phone numbers, emails, messaging apps and "deal privately" wording are blocked in questions, answers and old-style comments (`backend/src/utils/contactFilter.js`).
+- Stored in the existing `Comment` collection (question = top-level, answer = reply), so Admin → Comments moderation and reporting still work.
+- Emails: seller on each new question (always sent); the asker when it's answered (always sent); others who asked on the lot (respects their comment-email preference).
+- Fixed at the same time: any signed-in user could delete any comment, and comment HTML was rendered unsanitised. Comments are now plain text.
+
+**Text messages to sellers (Twilio)** – `backend/src/utils/sms.js`. Off until these are set on Render: `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER` (an SMS-capable number that can receive replies), `SMS_INBOUND_URL` (`https://rexbid-backend.onrender.com/api/v1/sms/inbound`, also entered in Twilio as the number's "A message comes in" webhook, HTTP POST). `SMS_ENABLED=false` pauses texts.
+- New question → the seller gets a text with the question and a link. Replying to the text posts the answer to the most recent question texted to them (contact-details rule applies; they get a confirmation text).
+- Twilio's own STOP/START handling manages opt-outs.
+
+**Public names** (`backend/src/utils/displayName.js`): individuals are shown by first name only; company names in full. Applied to listings, the *Sold By* card, seller reviews page, buyer "My offers", Q&A and SEO data. Receipts, statements and the winner's *Won auctions* page still show full names.
+
+---
+
 ## 4. Open to-do list (most important first)
 
+0. **Seller contact / Q&A go-live:** set `PHONE_CONTACT_MIN_RESERVE_EUR` on Render (without it no lot shows a phone number); set up Twilio for seller texts if wanted. Owner review of phone numbers on higher-reserve lots due 25 Nov 2026.
 1. **Cookie consent.** GA4 and the Meta Pixel load before consent (GDPR/ePrivacy). Needs a consent banner + Google Consent Mode v2. _In progress._
 2. **Terms & Conditions clause 15** still says buyer fee 3% capped at €200 and seller fee 3%. Needs updating (solicitor) to match section 2.
 3. **€30 featured fee** is stated but not charged. Decide and implement in payout calculation.

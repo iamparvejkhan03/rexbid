@@ -1,5 +1,6 @@
 import Auction from "../models/auction.model.js";
 import User from "../models/user.model.js";
+import { publicName } from "../utils/displayName.js";
 import { getCachedRates } from "../routes/currency.route.js";
 import {
   auctionWonAdminEmail,
@@ -1018,8 +1019,9 @@ export const getAllMyOffers = async (req, res) => {
               currentPriceOriginal: auction.currentPrice,
               buyNowPriceOriginal: auction.buyNowPrice,
               finalPriceOriginal: auction.finalPrice,
-              sellerUsername: auction.sellerUsername || auction.seller?.companyName || '',
-              seller: auction.seller,
+              // Buyers see the seller by first name (company name in full), never their email.
+              sellerUsername: publicName(auction.seller),
+              seller: auction.seller ? { _id: auction.seller._id, displayName: publicName(auction.seller) } : auction.seller,
               endDate: auction.endDate,
               photos: auction.photos,
               baseCurrency: base,

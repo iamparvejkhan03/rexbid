@@ -199,7 +199,7 @@ export const buildAuctionSeo = (auction, { notFound = false } = {}) => {
                     : "https://schema.org/InStock",
             ...(auction.endDate && !isSold && !isEnded ? { priceValidUntil: new Date(auction.endDate).toISOString().slice(0, 10) } : {}),
             ...(county ? { availableAtOrFrom: { "@type": "Place", address: { "@type": "PostalAddress", addressRegion: county, addressCountry: "IE" } } } : {}),
-            seller: { "@type": "Organization", name: auction.seller?.companyName || auction.seller?.username || "RexBid seller" },
+            seller: { "@type": "Organization", name: auction.sellerDisplayName || auction.seller?.displayName || auction.seller?.companyName || "RexBid seller" },
         },
     };
 
@@ -286,7 +286,7 @@ export const buildCatalogueSeo = (catalogue, total, { notFound = false } = {}) =
 export const buildSellerSeo = (stats, userId, { notFound = false } = {}) => {
     if (notFound) return { title: "Seller not found | RexBid", noindex: true };
     if (!stats) return { skip: true };
-    const name = stats.companyName || stats.username || "RexBid seller";
+    const name = stats.displayName || stats.companyName || "RexBid seller";
     const thin = (stats.itemsAdded || 0) < 3 && (stats.totalReviews || 0) === 0;
     return {
         title: `${cap(name, 40)} – Machinery for Sale & Reviews | RexBid`,

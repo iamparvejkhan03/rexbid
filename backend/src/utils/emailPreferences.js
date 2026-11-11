@@ -36,6 +36,10 @@ export const TRANSACTIONAL_EMAILS = new Set([
     "auctionApproved",
     "auctionListed",
     "sendAuctionEndedSeller",
+    "newQuestionSeller",       // a buyer asked a question on the seller's listing
+
+    // Questions & Answers: the buyer asked, so they always hear the answer
+    "questionAnswered",
 
     // Admin / system
     "auctionWonAdmin",
