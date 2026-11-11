@@ -93,7 +93,13 @@ Stages: `sold` → `request_sent` → `paid` → `collected` → `payout_due` �
 - **Receipts are sent automatically** when a sale is paid (Stripe bank transfer, card checkout, or admin marking it paid). For any auction with a sale record, the old generic "Payment Confirmed" buyer email is skipped so the buyer gets one email.
 - **Seller payouts use Stripe Connect Express accounts** (`user.stripeConnect`). Existing accounts made in the Stripe Dashboard are matched to sellers by email. Sellers set up or finish their account from Payout Methods (`/api/v1/stripe-connect/onboarding-link`); the "Item sold" email includes a setup button when the seller isn't ready, and admins can send a setup link from the Sales page. Status is refreshed at most hourly for sellers with open sales.
 
-Still to build: payment and collection reminders, buyer/seller "collected" ticks, payout queue with early-release option, sales ledger export matching the finance tracker.
+- **Emails per sale.** Buyer: auction won → payment request → receipt (automatic on payment) → reminders only if needed. Seller: item sold (+ payout setup if needed) → "buyer has paid" with statement and buyer contact (automatic on payment) → "you've been paid" with updated statement. The old generic "Payment Received"/"Payment Confirmed" emails are skipped for sales with a sale record.
+- **Collection.** Buyer and seller each confirm on their Documents page; both → *Payout due*. Admin can *Release payout early* with a note.
+- **Payouts.** *Payout due* tab → tick → *Pay sellers*: Stripe transfer of price + VAT − seller fee to the seller's Connect account (linked to the buyer's charge when possible, otherwise checked against available balance), recorded on the sale and as a `Payout` (method `stripeConnect`), then the "you've been paid" email. The old admin Payouts page is not used for these.
+- **Matching past payouts.** *Match past Stripe payouts* marks paid sales as paid out where a Dashboard transfer to that seller's account has exactly the seller's amount on or after the sale date. No emails.
+- **Reminders** (`send sale reminders`, every 30 min, 08:00–20:00 Irish time, each once): payment due in 24h, payment overdue (+ office alert), collection due in 24h, collection overdue (+ office alert). Office alerts go to `ADMIN_ALERT_EMAIL` or `EMAIL_USER`.
+
+Still to build: sales ledger export matching the finance tracker.
 
 
 ---

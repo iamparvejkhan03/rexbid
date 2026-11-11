@@ -33,7 +33,7 @@ const payoutSchema = new Schema(
         // Payout details
         payoutMethod: {
             type: String,
-            enum: ["paypal", "payoneer", "bankTransfer"],
+            enum: ["paypal", "payoneer", "bankTransfer", "stripeConnect"],
             required: true,
         },
         payoutDetails: {

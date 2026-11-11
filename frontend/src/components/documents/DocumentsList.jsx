@@ -3,6 +3,7 @@ import { FileText, Download } from "lucide-react";
 import { LoadingSpinner } from "..";
 import axiosInstance from "../../utils/axiosInstance";
 import { openPdf, DOCUMENT_LABELS, formatMoney } from "../../utils/openPdf";
+import CollectionsPanel from "./CollectionsPanel";
 
 /** The signed-in user's sale documents (payment requests, receipts, statements). */
 function DocumentsList({ emptyText }) {
@@ -19,6 +20,7 @@ function DocumentsList({ emptyText }) {
 
     return (
         <>
+            <CollectionsPanel />
                     {loading ? (
                         <LoadingSpinner height="300px" />
                     ) : docs.length === 0 ? (

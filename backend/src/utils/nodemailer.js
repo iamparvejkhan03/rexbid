@@ -2543,6 +2543,15 @@ const paymentSuccessEmail = async (user, listing) => {
 // 27. Payment completed notification for seller
 const paymentCompletedSellerEmail = async (seller, listing, buyer) => {
     try {
+        // Sales with a sale record send the seller their statement with the
+        // buyer's contact details instead (see saleService), so skip this one.
+        if (listing?._id) {
+            const Sale = mongoose.models.Sale;
+            if (Sale && (await Sale.exists({ auction: listing._id, historical: { $ne: true } }))) {
+                console.log(`Seller payment email for ${listing._id} replaced by the seller statement`);
+                return true;
+            }
+        }
         const currency = seller?.currency || listing?.baseCurrency || 'EUR';
         const finalPrice = listing?.finalPrice || listing?.currentPrice || 0;
         const sellerCommission = listing?.sellerCommissionAmount || 0;
@@ -3889,10 +3898,10 @@ const buyerReceiptEmail = async (sale, snapshot, pdfBuffer, filename) => {
                 ${snapshot.itemLocation ? createSummaryRow('Item location:', snapshot.itemLocation) : ''}
             `, 'warning')}
 
-            <p>Please contact the seller to arrange a collection time. Once you have the item, reply to this email to let us know so the seller can be paid.</p>
+            <p>Please contact the seller to arrange a collection time. Once you have the item, confirm collection in your dashboard so the seller can be paid.</p>
 
             <div style="text-align: center; margin: 25px 0;">
-                ${createButton('View My Documents', `${FRONTEND_URL}/bidder/documents`, 'primary')}
+                ${createButton('Confirm Collection', `${FRONTEND_URL}/bidder/documents`, 'primary')}
             </div>
         `;
         const info = await transporter.sendMail({
@@ -3910,38 +3919,69 @@ const buyerReceiptEmail = async (sale, snapshot, pdfBuffer, filename) => {
     }
 };
 
-// Seller statement, with the PDF attached.
-const sellerStatementEmail = async (sale, snapshot, pdfBuffer, filename, dashboard = 'seller') => {
+// Seller statement, with the PDF attached. One of three versions:
+//   paid      – the buyer has paid: buyer contact for collection
+//   paid_out  – the seller has been paid
+//   statement – sent by an admin
+const sellerStatementEmail = async (sale, snapshot, pdfBuffer, filename, dashboard = 'seller', context = 'statement') => {
     try {
         const cur = snapshot.currency;
-        const content = `
-            <h2 style="text-align: center;">Seller Statement</h2>
-            <p>Hi ${snapshot.seller.name || snapshot.seller.companyName || 'there'},</p>
-            <p>Your statement for <strong>${snapshot.title}</strong> is attached and is also saved under <strong>Documents</strong> in your RexBid dashboard.</p>
-
-            ${createInfoCard(`
-                ${createSummaryRow('Sale price:', docMoney(cur, snapshot.itemPrice))}
-                ${snapshot.vat.treatment === 'standard' ? createSummaryRow(`VAT collected for you (${snapshot.vat.rate}%):`, docMoney(cur, snapshot.vat.amount)) : ''}
-                ${createSummaryRow(`${snapshot.sellerFeeDescription}:`, `-${docMoney(cur, snapshot.sellerFee)}`)}
-                <div style="display: flex; justify-content: space-between; padding: 12px 0 0 0; margin-top: 8px; border-top: 2px solid ${BRAND_COLORS.secondary};">
-                    <span style="font-weight: 700; color: ${BRAND_COLORS.secondary}; font-size: 16px;">Amount due to you</span>
-                    <span style="font-weight: 700; color: ${BRAND_COLORS.primary}; font-size: 16px;">${docMoney(cur, snapshot.netPayout)}</span>
-                </div>
-            `)}
-
-            <p>${snapshot.buyerPaidDate ? `The buyer paid on ${docDate(snapshot.buyerPaidDate)}.` : ''} Your payout is released once collection is confirmed${snapshot.payoutAccount ? `, to ${snapshot.payoutAccount}` : ''}.</p>
-            ${snapshot.payoutAccount ? '' : `<p><strong>We don't have your bank details yet.</strong> Please add them under Payout Methods so we can pay you.</p>`}
-
-            <div style="text-align: center; margin: 25px 0;">
-                ${createButton('View My Documents', `${FRONTEND_URL}/${dashboard}/documents`, 'primary')}
+        const name = snapshot.seller.name || snapshot.seller.companyName || 'there';
+        const docsUrl = `${FRONTEND_URL}/${dashboard}/documents`;
+        const figures = createInfoCard(`
+            ${createSummaryRow('Sale price:', docMoney(cur, snapshot.itemPrice))}
+            ${snapshot.vat.treatment === 'standard' ? createSummaryRow(`VAT collected for you (${snapshot.vat.rate}%):`, docMoney(cur, snapshot.vat.amount)) : ''}
+            ${createSummaryRow(`${snapshot.sellerFeeDescription}:`, `-${docMoney(cur, snapshot.sellerFee)}`)}
+            <div style="display: flex; justify-content: space-between; padding: 12px 0 0 0; margin-top: 8px; border-top: 2px solid ${BRAND_COLORS.secondary};">
+                <span style="font-weight: 700; color: ${BRAND_COLORS.secondary}; font-size: 16px;">${context === 'paid_out' ? 'Paid to you' : 'Amount due to you'}</span>
+                <span style="font-weight: 700; color: ${BRAND_COLORS.primary}; font-size: 16px;">${docMoney(cur, snapshot.netPayout)}</span>
             </div>
+        `);
+        const noBank = snapshot.payoutAccount ? '' : `<p><strong>We don't have your payout account yet.</strong> Please set it up under Payout Methods so we can pay you.</p>${createButton('Set Up Payouts', `${FRONTEND_URL}/${dashboard}/payout-methods?stripe=setup`, 'secondary')}`;
+
+        let heading, intro, body, subject, button;
+        if (context === 'paid') {
+            heading = 'Buyer Has Paid';
+            subject = `Buyer has paid - ${snapshot.title} - arrange collection`;
+            intro = `<p>Good news: the buyer has paid for <strong>${snapshot.title}</strong>. Your statement is attached.</p>`;
+            body = `
+                ${createInfoCard(`
+                    <p style="margin: 0 0 8px 0; font-weight: 700; color: ${BRAND_COLORS.secondary};">Collection</p>
+                    ${createSummaryRow('Buyer:', snapshot.buyer.companyName || snapshot.buyer.name || '')}
+                    ${createSummaryRow('Buyer phone:', snapshot.buyer.phone ? `<a href="tel:${String(snapshot.buyer.phone).replace(/\s+/g, '')}">${snapshot.buyer.phone}</a>` : 'Contact RexBid')}
+                    ${snapshot.collectBy ? createSummaryRow('Collect by:', docDate(snapshot.collectBy)) : ''}
+                `, 'success')}
+                <p>The buyer will contact you to arrange collection. Once the item has been collected, please confirm it in your dashboard. We pay you as soon as you and the buyer have both confirmed.</p>
+                ${figures}
+                ${noBank}`;
+            button = createButton('Confirm Collection', docsUrl, 'primary');
+        } else if (context === 'paid_out') {
+            heading = "You've Been Paid";
+            subject = `You've been paid - ${snapshot.title}`;
+            intro = `<p>We've sent your payout for <strong>${snapshot.title}</strong>${snapshot.payoutAccount ? ` to your ${snapshot.payoutAccount}` : ''}. Your updated statement is attached.</p>`;
+            body = `${figures}<p>Stripe usually takes 1 to 3 working days to reach your bank.${snapshot.payoutReference ? ` Reference: ${snapshot.payoutReference}.` : ''}</p>`;
+            button = createButton('View My Documents', docsUrl, 'primary');
+        } else {
+            heading = 'Seller Statement';
+            subject = `Seller Statement ${snapshot.reference} - ${snapshot.title}`;
+            intro = `<p>Your statement for <strong>${snapshot.title}</strong> is attached and is also saved under <strong>Documents</strong> in your RexBid dashboard.</p>`;
+            body = `${figures}<p>${snapshot.buyerPaidDate ? `The buyer paid on ${docDate(snapshot.buyerPaidDate)}.` : ''} Your payout is released once collection is confirmed${snapshot.payoutAccount ? `, to your ${snapshot.payoutAccount}` : ''}.</p>${noBank}`;
+            button = createButton('View My Documents', docsUrl, 'primary');
+        }
+
+        const content = `
+            <h2 style="text-align: center;">${heading}</h2>
+            <p>Hi ${name},</p>
+            ${intro}
+            ${body}
+            <div style="text-align: center; margin: 25px 0;">${button}</div>
         `;
         const info = await transporter.sendMail({
             from: `"${BRAND_NAME}" <${process.env.EMAIL_USER}>`,
             to: sale.seller.email,
             ...(paymentRequestBcc() ? { bcc: paymentRequestBcc() } : {}),
-            subject: `Seller Statement ${snapshot.reference} - ${snapshot.title}`,
-            html: baseTemplate(content, 'Seller Statement'),
+            subject,
+            html: baseTemplate(content, heading),
             attachments: [{ filename, content: pdfBuffer, contentType: 'application/pdf' }],
         });
         return !!info;
@@ -3978,8 +4018,104 @@ const sellerPayoutSetupEmail = async (seller, { state, url, saleTitle }) => {
     }
 };
 
+
+// Automatic payment and collection reminders to the buyer.
+const saleReminderEmail = async (sale, kind) => {
+    try {
+        const cur = sale.currency;
+        const b = sale.stripe?.bankTransfer || {};
+        const sellerName = sale.seller?.companyName || sale.seller?.name || 'the seller';
+        const docsUrl = `${FRONTEND_URL}/bidder/documents`;
+        let heading, subject, body;
+        if (kind === 'payment_due_soon' || kind === 'payment_overdue') {
+            const overdue = kind === 'payment_overdue';
+            heading = overdue ? 'Payment Overdue' : 'Payment Reminder';
+            subject = overdue
+                ? `Payment overdue - ${sale.title} (${sale.reference})`
+                : `Reminder: payment due ${docDate(sale.payment.dueAt, true)} - ${sale.title}`;
+            body = `
+                <p>${overdue
+                    ? `Payment for <strong>${sale.title}</strong> was due on ${docDate(sale.payment.dueAt, true)} and we haven't received it yet. Please pay today, or contact us if there's a problem.`
+                    : `A reminder that payment for <strong>${sale.title}</strong> is due by <strong>${docDate(sale.payment.dueAt, true)}</strong>.`}</p>
+                ${createInfoCard(`
+                    ${createSummaryRow('Total payable:', `<strong>${docMoney(cur, sale.total)}</strong>`)}
+                    ${b.iban ? createSummaryRow('IBAN:', `<strong>${b.iban}</strong>`) : ''}
+                    ${b.bic ? createSummaryRow('BIC:', b.bic) : ''}
+                    ${b.sortCode ? createSummaryRow('Sort code:', b.sortCode) : ''}
+                    ${b.accountNumber ? createSummaryRow('Account number:', `<strong>${b.accountNumber}</strong>`) : ''}
+                    ${createSummaryRow('Reference:', b.reference || sale.reference)}
+                `, overdue ? 'warning' : 'default')}
+                ${sale.payment?.cardCheckoutAvailable ? `<p>You can also pay by card. Please pay once only.</p>${createButton('Pay by Card', `${FRONTEND_URL}/checkout/${sale.auction}`, 'secondary')}` : ''}
+                <p>If you've already paid, thank you: bank transfers can take a day to arrive and we'll confirm as soon as it does.</p>`;
+        } else {
+            const overdue = kind === 'collection_overdue';
+            heading = overdue ? 'Collection Overdue' : 'Collection Reminder';
+            subject = overdue
+                ? `Collection overdue - ${sale.title} - storage fines may apply`
+                : `Reminder: collect ${sale.title} by ${docDate(sale.collection.dueBy)}`;
+            body = `
+                <p>${overdue
+                    ? `<strong>${sale.title}</strong> should have been collected by ${docDate(sale.collection.dueBy)}. Items not collected within ${COLLECTION_DAYS_TEXT} of payment are subject to storage fines. Please arrange collection with the seller now.`
+                    : `A reminder that <strong>${sale.title}</strong> must be collected by <strong>${docDate(sale.collection.dueBy)}</strong>. Items not collected by then are subject to storage fines.`}</p>
+                ${createInfoCard(`
+                    ${createSummaryRow('Seller:', sellerName)}
+                    ${createSummaryRow('Seller phone:', sale.seller?.phone ? `<a href="tel:${String(sale.seller.phone).replace(/\s+/g, '')}">${sale.seller.phone}</a>` : 'Contact RexBid')}
+                    ${sale.itemLocation ? createSummaryRow('Item location:', sale.itemLocation) : ''}
+                `, overdue ? 'warning' : 'default')}
+                <p>Already collected? Please confirm it in your dashboard so the seller can be paid.</p>
+                ${createButton('Confirm Collection', docsUrl, 'primary')}`;
+        }
+        const content = `<h2 style="text-align: center;">${heading}</h2><p>Hi ${sale.buyer?.name || 'there'},</p>${body}`;
+        const info = await transporter.sendMail({
+            from: `"${BRAND_NAME}" <${process.env.EMAIL_USER}>`,
+            to: sale.buyer.email,
+            subject,
+            html: baseTemplate(content, heading),
+        });
+        return !!info;
+    } catch (error) {
+        console.error('Failed to send sale reminder:', error);
+        return false;
+    }
+};
+
+const COLLECTION_DAYS_TEXT = `${process.env.COLLECTION_WORKING_DAYS || 3} working days`;
+
+// Short alert to the office when a payment or collection is overdue.
+const adminSaleAlertEmail = async (sale, kind) => {
+    try {
+        const to = process.env.ADMIN_ALERT_EMAIL || process.env.EMAIL_USER;
+        if (!to) return false;
+        const what = kind === 'payment_overdue' ? 'Payment overdue' : 'Collection overdue';
+        const content = `
+            <h2 style="text-align: center;">${what}</h2>
+            ${createInfoCard(`
+                ${createSummaryRow('Sale:', `${sale.reference} · ${sale.title}`)}
+                ${createSummaryRow('Buyer:', `${sale.buyer?.name || ''} · ${sale.buyer?.phone || sale.buyer?.email || ''}`)}
+                ${createSummaryRow('Seller:', `${sale.seller?.companyName || sale.seller?.name || ''} · ${sale.seller?.phone || ''}`)}
+                ${createSummaryRow('Total:', docMoney(sale.currency, sale.total))}
+                ${createSummaryRow(kind === 'payment_overdue' ? 'Was due:' : 'Collect by:', docDate(kind === 'payment_overdue' ? sale.payment?.dueAt : sale.collection?.dueBy, true))}
+            `, 'warning')}
+            <p>The buyer has been sent an overdue reminder. ${kind === 'payment_overdue' ? 'If the sale has fallen through, mark it failed on the Sales page.' : 'Storage fines may now apply.'}</p>
+            ${createButton('Open Sales', `${ADMIN_URL}/sales`, 'primary')}
+        `;
+        const info = await transporter.sendMail({
+            from: `"${BRAND_NAME}" <${process.env.EMAIL_USER}>`,
+            to,
+            subject: `${what}: ${sale.reference} ${sale.title}`,
+            html: baseTemplate(content, what),
+        });
+        return !!info;
+    } catch (error) {
+        console.error('Failed to send admin sale alert:', error);
+        return false;
+    }
+};
+
 export {
     paymentRequestEmail,
+    saleReminderEmail,
+    adminSaleAlertEmail,
     sellerPayoutSetupEmail,
     buyerReceiptEmail,
     sellerStatementEmail,

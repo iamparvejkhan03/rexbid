@@ -143,12 +143,34 @@ const saleSchema = new Schema(
         collection: {
             // Collect within 3 working days of payment.
             dueBy: Date,
+            // Each side ticks "collected" in their dashboard; both → payout due.
+            buyerConfirmedAt: Date,
+            sellerConfirmedAt: Date,
+            // Admin released the payout before both ticks (e.g. both parties agreed).
+            releasedEarly: {
+                note: String,
+                by: { type: Schema.Types.ObjectId, ref: "User" },
+                at: Date,
+            },
         },
 
         payout: {
             paidAt: Date,
             amount: Number,
+            // Stripe transfer id (tr_...) or other payout reference.
             reference: String,
+            method: String,
+            accountId: String,
+            // Matched to a transfer made earlier in the Stripe Dashboard.
+            matched: Boolean,
+        },
+
+        // When each automatic reminder went out, so each is sent once only.
+        reminders: {
+            paymentDueSoonAt: Date,
+            paymentOverdueAt: Date,
+            collectionDueSoonAt: Date,
+            collectionOverdueAt: Date,
         },
 
         documents: [documentSchema],

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { AlertTriangle, FileText, Eye, Send, RefreshCw, Search, X, Receipt, History, XCircle, RotateCcw } from "lucide-react";
+import { AlertTriangle, FileText, Eye, Send, RefreshCw, Search, X, Receipt, History, XCircle, RotateCcw, Banknote, Link2, Unlock } from "lucide-react";
 import { toast } from "react-hot-toast";
 import axiosInstance from "../../utils/axiosInstance";
 import { AdminContainer, AdminHeader, AdminSidebar, LoadingSpinner } from "../../components";
@@ -8,7 +8,9 @@ import { openPdf, DOCUMENT_LABELS, formatMoney } from "../../utils/openPdf";
 const TABS = [
     { key: "sold", label: "Ready to send" },
     { key: "request_sent", label: "Awaiting payment" },
-    { key: "paid", label: "Paid" },
+    { key: "paid", label: "Awaiting collection" },
+    { key: "payout_due", label: "Payout due" },
+    { key: "paid_out", label: "Paid out" },
     { key: "failed", label: "Failed" },
     { key: "all", label: "All" },
     { key: "historical", label: "Earlier sales" },
@@ -18,7 +20,7 @@ const STATUS_LABELS = {
     sold: "Ready to send",
     request_sent: "Request sent",
     paid: "Paid",
-    collected: "Collected",
+    collected: "Partly confirmed",
     payout_due: "Payout due",
     paid_out: "Paid out",
     failed: "Failed",
@@ -30,6 +32,8 @@ const STATUS_STYLES = {
     request_sent: "bg-blue-100 text-blue-800",
     paid: "bg-green-100 text-green-800",
     paid_out: "bg-emerald-100 text-emerald-800",
+    collected: "bg-green-100 text-green-800",
+    payout_due: "bg-purple-100 text-purple-800",
     failed: "bg-red-100 text-red-700",
     cancelled: "bg-gray-100 text-gray-600",
 };
@@ -148,6 +152,9 @@ const canDocs = (s) => PAID_STATES.includes(s.status);
 const canFail = (s) => ["sold", "request_sent"].includes(s.status);
 const hasDoc = (s, type) => (s.documents || []).some((d) => d.type === type && !d.supersededAt);
 
+const canPay = (s) => s.status === "payout_due" && !s.payout?.reference;
+const netPayout = (s) => Math.round(((s.itemPrice || 0) + (s.vat?.amount || 0) - (s.sellerFee || 0)) * 100) / 100;
+
 const DOC_ACTIONS = {
     payment_request: { label: "payment request", plural: "payment requests", who: "buyer", eligible: canSend },
     buyer_receipt: { label: "receipt", plural: "receipts", who: "buyer", eligible: canDocs },
@@ -192,7 +199,8 @@ function Sales() {
         return () => clearTimeout(t);
     }, [load, search]);
 
-    const selectable = useMemo(() => sales.filter((s) => canSend(s) || canDocs(s)), [sales]);
+    const selectable = useMemo(() => sales.filter((s) => canSend(s) || canDocs(s) || canPay(s)), [sales]);
+    const [matchResult, setMatchResult] = useState(null);
     const allSelected = selectable.length > 0 && selectable.every((s) => selected.has(s._id));
     const chosen = useMemo(() => sales.filter((s) => selected.has(s._id)), [sales, selected]);
     const eligible = (type) => chosen.filter(DOC_ACTIONS[type].eligible);
@@ -279,6 +287,67 @@ function Sales() {
         }
     };
 
+    const payable = chosen.filter(canPay);
+
+    const paySellers = async () => {
+        if (!payable.length) return;
+        const total = payable.reduce((n, s) => n + netPayout(s), 0);
+        const notReady = payable.filter((s) => s.sellerPayout?.state !== "ready").length;
+        if (
+            !window.confirm(
+                `Pay ${payable.length} seller${payable.length === 1 ? "" : "s"} a total of ${formatMoney(total, payable[0].currency)} by Stripe transfer?` +
+                    (notReady ? `\n\n${notReady} ${notReady === 1 ? "has" : "have"} no ready payout account and will be skipped.` : "") +
+                    "\n\nEach seller is emailed their updated statement. This cannot be undone from here.",
+            )
+        )
+            return;
+        setSending(true);
+        try {
+            const { data } = await axiosInstance.post("/api/v1/admin/sales/pay-sellers", { saleIds: payable.map((s) => s._id) });
+            const { paid, results } = data.data;
+            if (paid) toast.success(`${paid} seller${paid === 1 ? "" : "s"} paid`);
+            results
+                .filter((r) => !r.ok)
+                .forEach((r) => {
+                    const s = payable.find((c) => c._id === r.saleId);
+                    toast.error(`${s?.reference || r.saleId}: ${r.message}`, { duration: 10000 });
+                });
+            await load();
+        } catch (err) {
+            toast.error(err.response?.data?.message || "Payout failed");
+        } finally {
+            setSending(false);
+        }
+    };
+
+    const releaseEarly = async (s) => {
+        const note = window.prompt(
+            `Release the payout for ${s.reference} before both sides confirm collection?\n\nNote who agreed and when (kept on the sale):`,
+        );
+        if (!note?.trim()) return;
+        try {
+            await axiosInstance.post(`/api/v1/admin/sales/${s._id}/release-payout`, { note });
+            toast.success(`${s.reference} moved to Payout due`);
+            load();
+        } catch (err) {
+            toast.error(err.response?.data?.message || "Could not release the payout");
+        }
+    };
+
+    const matchTransfers = async () => {
+        if (!window.confirm("Look through payouts already made in the Stripe Dashboard and mark matching sales as paid out?\n\nA sale matches when a transfer of exactly the seller's amount went to that seller's Stripe account on or after the sale date. No emails are sent.")) return;
+        setSending(true);
+        try {
+            const { data } = await axiosInstance.post("/api/v1/admin/sales/match-transfers");
+            setMatchResult(data.data);
+            await load();
+        } catch (err) {
+            toast.error(err.response?.data?.message || "Matching failed");
+        } finally {
+            setSending(false);
+        }
+    };
+
     const importHistory = async () => {
         if (!window.confirm("Import every lot sold before sale records began?\n\nNo emails are sent and nothing is created in Stripe. Paid, paid-out and failed statuses are taken from the auction records.")) return;
         setSending(true);
@@ -331,6 +400,21 @@ function Sales() {
                                 {button("payment_request", <Send size={16} />)}
                                 {button("buyer_receipt", <Receipt size={16} />)}
                                 {button("seller_statement", <FileText size={16} />)}
+                                {(payable.length > 0 || tab === "payout_due") && (
+                                    <button
+                                        onClick={paySellers}
+                                        disabled={!payable.length || sending}
+                                        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-secondary text-white text-sm font-medium disabled:opacity-40"
+                                    >
+                                        <Banknote size={16} />
+                                        {sending ? "Working…" : `Pay sellers (${payable.length})`}
+                                    </button>
+                                )}
+                                {["paid", "payout_due", "paid_out", "historical"].includes(tab) && (
+                                    <button onClick={matchTransfers} disabled={sending} className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border bg-white text-sm">
+                                        <Link2 size={16} /> Match past Stripe payouts
+                                    </button>
+                                )}
                             </div>
                         </div>
                         <p className="text-gray-600 text-sm">
@@ -409,7 +493,7 @@ function Sales() {
                                                         type="checkbox"
                                                         aria-label={`Select ${s.reference}`}
                                                         checked={selected.has(s._id)}
-                                                        disabled={!canSend(s) && !canDocs(s)}
+                                                        disabled={!canSend(s) && !canDocs(s) && !canPay(s)}
                                                         onChange={() => toggle(s._id)}
                                                     />
                                                 </td>
@@ -516,6 +600,28 @@ function Sales() {
                                                             </span>
                                                         </div>
                                                     )}
+                                                    {["paid", "collected"].includes(s.status) && (
+                                                        <div className="text-[11px] mt-1 text-gray-600">
+                                                            Collected: buyer {s.collection?.buyerConfirmedAt ? "✓" : "○"} · seller {s.collection?.sellerConfirmedAt ? "✓" : "○"}
+                                                            {s.collection?.dueBy && (
+                                                                <div className={new Date(s.collection.dueBy) < new Date() ? "text-red-600 font-medium" : "text-gray-500"}>
+                                                                    Collect by {shortDate(s.collection.dueBy)}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                    {s.status === "payout_due" && (
+                                                        <div className="text-[11px] mt-1 text-purple-800 font-medium">
+                                                            Pay {formatMoney(netPayout(s), s.currency)}
+                                                            {s.collection?.releasedEarly?.note && <div className="font-normal text-gray-500">Released early: {s.collection.releasedEarly.note}</div>}
+                                                        </div>
+                                                    )}
+                                                    {s.status === "paid_out" && s.payout?.paidAt && (
+                                                        <div className="text-[11px] mt-1 text-gray-500">
+                                                            {formatMoney(s.payout.amount, s.currency)} · {shortDate(s.payout.paidAt)}
+                                                            {s.payout.reference && <div className="font-mono">{s.payout.reference}{s.payout.matched ? " (matched)" : ""}</div>}
+                                                        </div>
+                                                    )}
                                                     {s.historical && <div className="text-[11px] mt-1 text-gray-400">Earlier sale</div>}
                                                     {s.status === "request_sent" && s.payment?.dueAt && (
                                                         <div className={`text-xs mt-1 ${new Date(s.payment.dueAt) < new Date() ? "text-red-600 font-medium" : "text-gray-500"}`}>
@@ -557,6 +663,11 @@ function Sales() {
                                                                 </button>
                                                             </>
                                                         )}
+                                                        {["paid", "collected"].includes(s.status) && (
+                                                            <button title="Release payout early (both parties agreed)" onClick={() => releaseEarly(s)} className="p-2 rounded-lg hover:bg-gray-100">
+                                                                <Unlock size={16} />
+                                                            </button>
+                                                        )}
                                                         {canFail(s) && (
                                                             <button title="Mark as failed" onClick={() => markFailed(s)} className="p-2 rounded-lg hover:bg-red-50 text-red-600">
                                                                 <XCircle size={16} />
@@ -594,6 +705,39 @@ function Sales() {
                     onClose={() => setVatSale(null)}
                     onSaved={() => { setVatSale(null); load(); }}
                 />
+            )}
+
+            {matchResult && (
+                <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setMatchResult(null)}>
+                    <div className="bg-white rounded-xl w-full max-w-2xl max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center justify-between p-5 border-b">
+                            <h3 className="text-lg font-semibold">Past Stripe payouts</h3>
+                            <button onClick={() => setMatchResult(null)} aria-label="Close"><X size={20} /></button>
+                        </div>
+                        <div className="p-5 space-y-5 text-sm">
+                            <section>
+                                <h4 className="font-semibold mb-2">Matched and marked paid out ({matchResult.matched.length})</h4>
+                                {matchResult.matched.length ? (
+                                    <ul className="space-y-1">{matchResult.matched.map((m) => <li key={m.transferId}>{m.reference} · {m.title} · {formatMoney(m.amount)} · <span className="font-mono">{m.transferId}</span></li>)}</ul>
+                                ) : <p className="text-gray-500">None.</p>}
+                            </section>
+                            <section>
+                                <h4 className="font-semibold mb-2">Paid sales not yet paid out ({matchResult.unmatchedSales.length})</h4>
+                                {matchResult.unmatchedSales.length ? (
+                                    <ul className="space-y-1">{matchResult.unmatchedSales.map((m) => <li key={m.reference}>{m.reference} · {m.title} · {m.seller} · {formatMoney(m.amount)} <span className="text-gray-500">({m.reason})</span></li>)}</ul>
+                                ) : <p className="text-gray-500">None.</p>}
+                                <p className="text-gray-500 mt-2">Recent sales here are simply still awaiting collection or payout. Older ones may have been paid a different amount.</p>
+                            </section>
+                            <section>
+                                <h4 className="font-semibold mb-2">Stripe transfers not matched to a sale ({matchResult.unmatchedTransfers.length})</h4>
+                                {matchResult.unmatchedTransfers.length ? (
+                                    <ul className="space-y-1">{matchResult.unmatchedTransfers.map((t) => <li key={t.transferId}><span className="font-mono">{t.transferId}</span> · {formatMoney(t.amount, t.currency)} · {shortDate(t.date)} · {t.seller || t.destination}</li>)}</ul>
+                                ) : <p className="text-gray-500">None.</p>}
+                                <p className="text-gray-500 mt-2">These usually differ in amount (e.g. a fee was taken off by hand). Check them in Stripe.</p>
+                            </section>
+                        </div>
+                    </div>
+                </div>
             )}
 
             {docsSale && (

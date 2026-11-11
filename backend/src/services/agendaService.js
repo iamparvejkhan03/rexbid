@@ -1,5 +1,6 @@
 import Agenda from "agenda";
 import { syncSales } from "./saleService.js";
+import { runReminders } from "./reminderService.js";
 import Auction from "../models/auction.model.js";
 import backendAxios from "../utils/backendAxios.js";
 import {
@@ -431,6 +432,16 @@ class AgendaService {
       }
     });
 
+    // Payment and collection reminders for sales (each sent once, 08:00-20:00).
+    this.agenda.define("send sale reminders", async () => {
+      try {
+        const { sent } = await runReminders();
+        if (sent) console.log(`Sale reminders: ${sent} sent`);
+      } catch (error) {
+        console.error("Agenda job error (sale reminders):", error);
+      }
+    });
+
     // Job to notify users 2 hours before an auction ends
     this.agenda.define("send ending soon notifications", async (job) => {
       try {
@@ -652,6 +663,7 @@ class AgendaService {
     await this.agenda.every("15 minutes", "send ending soon notifications");
     await this.agenda.every("15 minutes", "send reserve nudge notifications");
     await this.agenda.every("15 minutes", "sync sales");
+    await this.agenda.every("30 minutes", "send sale reminders");
   }
 
   // Graceful shutdown

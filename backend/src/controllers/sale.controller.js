@@ -37,7 +37,7 @@ export const listSales = async (req, res) => {
         await syncSales({ ibanLimit: 15 });
         const { status, search, review, historical } = req.query;
         const q = {};
-        if (status && status !== "all") q.status = status;
+        if (status && status !== "all") q.status = status === "paid" ? { $in: ["paid", "collected"] } : status;
         // Earlier (imported) sales have their own tab and stay out of the working tabs.
         if (historical === "true") q.historical = true;
         else if (status && status !== "all") q.historical = { $ne: true };
@@ -315,6 +315,100 @@ export const sendPayoutSetupEmail = async (req, res) => {
         sale.notes.push({ text: `Payout setup link emailed to ${seller.email}`, by: req.user._id });
         await sale.save();
         res.json({ success: true, data: { state } });
+    } catch (err) {
+        fail(res, err);
+    }
+};
+
+// ─── Collection and payouts ────────────────────────────────
+
+import {
+    confirmCollection,
+    releasePayoutEarly,
+    paySeller,
+    matchPastTransfers,
+    netPayout,
+} from "../services/payoutService.js";
+
+export const releaseEarly = async (req, res) => {
+    try {
+        const sale = await releasePayoutEarly(req.params.saleId, req.body?.note, req.user);
+        res.json({ success: true, data: { _id: sale._id, status: sale.status } });
+    } catch (err) {
+        fail(res, err);
+    }
+};
+
+export const paySellers = async (req, res) => {
+    const { saleIds } = req.body || {};
+    if (!Array.isArray(saleIds) || saleIds.length === 0) {
+        return res.status(400).json({ success: false, message: "Select at least one sale" });
+    }
+    if (saleIds.length > 25) return res.status(400).json({ success: false, message: "Pay at most 25 at a time" });
+    const balanceCache = {};
+    const results = [];
+    for (const id of saleIds) {
+        try {
+            const r = await paySeller(id, req.user, { balanceCache });
+            results.push({ saleId: id, reference: r.sale.reference, ok: true, amount: r.amount, transferId: r.transferId, emailed: r.emailed });
+        } catch (err) {
+            if (!err.status) console.error(`Payout for sale ${id} failed:`, err);
+            results.push({ saleId: id, ok: false, message: err.raw?.message || err.message });
+        }
+    }
+    const paid = results.filter((r) => r.ok).length;
+    res.json({ success: true, data: { paid, failed: results.length - paid, results } });
+};
+
+export const matchTransfers = async (req, res) => {
+    try {
+        res.json({ success: true, data: await matchPastTransfers(req.user) });
+    } catch (err) {
+        fail(res, err);
+    }
+};
+
+/** Buyer's and seller's sales that are waiting for collection to be confirmed. */
+export const myCollections = async (req, res) => {
+    try {
+        const uid = req.user._id;
+        const sales = await Sale.find(
+            {
+                historical: { $ne: true },
+                status: { $in: ["paid", "collected", "payout_due"] },
+                $or: [{ "buyer.user": uid }, { "seller.user": uid }],
+            },
+            "title reference status collection buyer seller itemLocation currency itemPrice vat sellerFee",
+        ).lean();
+        const items = sales.map((s) => {
+            const role = String(s.buyer?.user) === String(uid) ? "buyer" : "seller";
+            const other = role === "buyer" ? s.seller : s.buyer;
+            return {
+                saleId: s._id,
+                title: s.title,
+                reference: s.reference,
+                role,
+                status: s.status,
+                collectBy: s.collection?.dueBy,
+                itemLocation: s.itemLocation,
+                youConfirmed: !!(role === "buyer" ? s.collection?.buyerConfirmedAt : s.collection?.sellerConfirmedAt),
+                otherConfirmed: !!(role === "buyer" ? s.collection?.sellerConfirmedAt : s.collection?.buyerConfirmedAt),
+                otherName: other?.companyName || other?.name,
+                otherPhone: other?.phone,
+                payoutAmount: role === "seller" ? netPayout(s) : undefined,
+                currency: s.currency,
+            };
+        });
+        res.json({ success: true, data: items });
+    } catch (err) {
+        fail(res, err);
+    }
+};
+
+export const confirmMyCollection = async (req, res) => {
+    try {
+        const { sale, role } = await confirmCollection(req.params.saleId, req.user);
+        res.json({ success: true, data: { status: sale.status, role } });
     } catch (err) {
         fail(res, err);
     }

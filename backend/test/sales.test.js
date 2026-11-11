@@ -212,3 +212,52 @@ test("pdf: receipt and statement render on one page each", async () => {
         assert.equal((pdf.toString("latin1").match(/\/Type \/Page\b/g) || []).length, 1);
     }
 });
+
+// ─── Reminders and payouts ─────────────────────────────────
+
+import { dueReminder, withinSendingHours } from "../src/services/reminderService.js";
+import { netPayout } from "../src/services/payoutService.js";
+
+const H = 3600e3;
+const reqSale = (dueAt, extra = {}) => ({
+    status: "request_sent",
+    payment: { dueAt },
+    documents: [{ type: "payment_request" }],
+    reminders: {},
+    collection: {},
+    ...extra,
+});
+
+test("reminders: payment due soon, then overdue, each once", () => {
+    const due = new Date("2026-11-13T10:00:00Z");
+    assert.equal(dueReminder(reqSale(due), new Date(due - 30 * H)), null);
+    assert.equal(dueReminder(reqSale(due), new Date(due - 12 * H)), "payment_due_soon");
+    assert.equal(dueReminder(reqSale(due, { reminders: { paymentDueSoonAt: new Date() } }), new Date(due - 6 * H)), null);
+    assert.equal(dueReminder(reqSale(due), new Date(+due + H)), "payment_overdue");
+    assert.equal(dueReminder(reqSale(due, { reminders: { paymentOverdueAt: new Date() } }), new Date(+due + 5 * H)), null);
+});
+
+test("reminders: none without a payment request, none for earlier sales", () => {
+    const due = new Date("2026-11-13T10:00:00Z");
+    assert.equal(dueReminder(reqSale(due, { documents: [] }), new Date(+due + H)), null);
+    assert.equal(dueReminder(reqSale(due, { historical: true }), new Date(+due + H)), null);
+});
+
+test("reminders: collection stops once either side confirms", () => {
+    const dueBy = new Date("2026-11-16T17:00:00Z");
+    const paid = (c = {}) => ({ status: "paid", documents: [{ type: "buyer_receipt" }], reminders: {}, collection: { dueBy, ...c } });
+    assert.equal(dueReminder(paid(), new Date(dueBy - 10 * H)), "collection_due_soon");
+    assert.equal(dueReminder(paid(), new Date(+dueBy + H)), "collection_overdue");
+    assert.equal(dueReminder(paid({ buyerConfirmedAt: new Date() }), new Date(+dueBy + H)), null);
+});
+
+test("reminders: only sent 08:00-20:00 Irish time", () => {
+    assert.equal(withinSendingHours(new Date("2026-11-12T12:00:00Z")), true);
+    assert.equal(withinSendingHours(new Date("2026-11-12T22:00:00Z")), false);
+    assert.equal(withinSendingHours(new Date("2026-07-12T19:30:00Z")), false); // 20:30 IST in summer
+});
+
+test("payout: seller gets price + VAT - seller fee", () => {
+    assert.equal(netPayout({ itemPrice: 15000, vat: { amount: 3450 }, sellerFee: 450 }), 18000);
+    assert.equal(netPayout({ itemPrice: 700, vat: { amount: 0 }, sellerFee: 0 }), 700);
+});

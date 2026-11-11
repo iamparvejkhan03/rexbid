@@ -125,7 +125,7 @@ export const issueBuyerReceipt = async (saleId, admin, { sendEmail = true } = {}
 
 // ─── Seller statement ──────────────────────────────────────
 
-export const statementSnapshot = (sale, { issueDate = new Date(), payoutAccount = null } = {}) => {
+export const statementSnapshot = (sale, { issueDate = new Date(), payoutAccount = null, context = "statement" } = {}) => {
     const grossForSeller = round2(sale.itemPrice + (sale.vat?.amount || 0));
     const sellerFee = round2(sale.sellerFee || 0);
     return {
@@ -146,7 +146,10 @@ export const statementSnapshot = (sale, { issueDate = new Date(), payoutAccount 
             companyName: sale.buyer.companyName,
             addressLines: sale.buyer.addressLines,
             vatNumber: sale.buyer.vatNumber,
+            phone: sale.buyer.phone,
         },
+        context,
+        collectBy: sale.collection?.dueBy,
         itemPrice: sale.itemPrice,
         vat: { rate: sale.vat.rate, amount: sale.vat.amount, treatment: sale.vat.treatment },
         grossForSeller,
@@ -155,6 +158,7 @@ export const statementSnapshot = (sale, { issueDate = new Date(), payoutAccount 
         netPayout: round2(grossForSeller - sellerFee),
         buyerPaidDate: sale.payment?.paidAt,
         payoutPaidDate: sale.payout?.paidAt,
+        payoutReference: sale.payout?.reference,
         payoutAccount,
     };
 };
@@ -164,7 +168,12 @@ export const statementSnapshot = (sale, { issueDate = new Date(), payoutAccount 
  * calculated from Admin → Commissions when the lot sold, so seller fees are
  * picked up automatically once they are switched on there.
  */
-export const issueSellerStatement = async (saleId, admin, { sendEmail = true } = {}) => {
+/**
+ * context: "paid" (automatic, buyer has paid: includes buyer contact for
+ * collection), "paid_out" (automatic, after the payout), or "statement"
+ * (sent by an admin).
+ */
+export const issueSellerStatement = async (saleId, admin, { sendEmail = true, context = "statement" } = {}) => {
     const sale = await Sale.findById(saleId);
     if (!sale) throw fail("Sale not found", 404);
     if (!PAID_STATES.includes(sale.status)) throw fail("A seller statement can only be issued once the buyer has paid");
@@ -178,7 +187,7 @@ export const issueSellerStatement = async (saleId, admin, { sendEmail = true } =
     if (sendEmail && !sale.seller?.email) throw fail("Seller has no email address");
 
     const issueDate = new Date();
-    const snapshot = statementSnapshot(sale, { issueDate, payoutAccount: describePayoutAccount(seller) });
+    const snapshot = statementSnapshot(sale, { issueDate, payoutAccount: describePayoutAccount(seller), context });
     const pdf = await renderSellerStatementPdf(snapshot);
     const version = supersede(sale, "seller_statement", issueDate);
     const doc = {
@@ -192,7 +201,7 @@ export const issueSellerStatement = async (saleId, admin, { sendEmail = true } =
     };
     if (sendEmail) {
         const dashboard = seller?.userType === "company" ? "company" : "seller";
-        const ok = await sellerStatementEmail(sale, snapshot, pdf, `${doc.number}.pdf`, dashboard);
+        const ok = await sellerStatementEmail(sale, snapshot, pdf, `${doc.number}.pdf`, dashboard, context);
         if (ok) Object.assign(doc, { emailedTo: sale.seller.email, emailedAt: new Date() });
         else doc.emailError = "Email failed to send";
     }

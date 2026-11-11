@@ -9,7 +9,6 @@ import { isManualPaymentRequired } from "../utils/manualPayment.js";
 import { addWorkingDays, COLLECTION_WORKING_DAYS } from "../utils/workingDays.js";
 import {
     paymentRequestEmail,
-    paymentCompletedSellerEmail,
 } from "../utils/nodemailer.js";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -566,12 +565,21 @@ export const refreshOpenSellerAccounts = async ({ limit = 10 } = {}) => {
  */
 export const autoIssueReceipt = async (sale) => {
     if (!sale || sale.historical || sale.status !== "paid") return;
-    if (sale.documents?.some((d) => d.type === "buyer_receipt")) return;
-    try {
-        const { issueBuyerReceipt } = await import("./saleLifecycleService.js");
-        await issueBuyerReceipt(sale._id, null);
-    } catch (err) {
-        console.error(`Automatic receipt for ${sale.reference} failed:`, err.message);
+    const { issueBuyerReceipt, issueSellerStatement } = await import("./saleLifecycleService.js");
+    if (!sale.documents?.some((d) => d.type === "buyer_receipt")) {
+        try {
+            await issueBuyerReceipt(sale._id, null);
+        } catch (err) {
+            console.error(`Automatic receipt for ${sale.reference} failed:`, err.message);
+        }
+    }
+    // The seller's "buyer has paid" email: statement plus buyer contact.
+    if (!sale.documents?.some((d) => d.type === "seller_statement")) {
+        try {
+            await issueSellerStatement(sale._id, null, { context: "paid" });
+        } catch (err) {
+            console.error(`Automatic seller statement for ${sale.reference} failed:`, err.message);
+        }
     }
 };
 
@@ -620,12 +628,8 @@ export const recordPayment = async (pi) => {
             console.error(`Auction ${auction._id} save failed after payment, updating directly:`, e.message);
             await Auction.updateOne({ _id: auction._id }, { $set: paid });
         }
-        try {
-            // The buyer gets their receipt instead of the generic confirmation.
-            if (auction.seller) await paymentCompletedSellerEmail(auction.seller, auction, auction.winner);
-        } catch (e) {
-            console.error("Payment confirmation emails failed:", e.message);
-        }
+        // Buyer receipt and seller statement are sent by autoIssueReceipt above,
+        // in place of the generic payment emails.
     }
     return sale;
 };

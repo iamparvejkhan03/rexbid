@@ -287,7 +287,7 @@ export const renderSellerStatementPdf = (s) =>
             "SELLER",
             [s.seller.name, s.seller.companyName && s.seller.companyName !== s.seller.name ? s.seller.companyName : null, ...(s.seller.addressLines || []), s.seller.email, s.seller.vatNumber ? `VAT no. ${s.seller.vatNumber}` : null],
             "BUYER",
-            [s.buyer.name, s.buyer.companyName && s.buyer.companyName !== s.buyer.name ? s.buyer.companyName : null, ...(s.buyer.addressLines || []), s.buyer.vatNumber ? `VAT no. ${s.buyer.vatNumber}` : null],
+            [s.buyer.name, s.buyer.companyName && s.buyer.companyName !== s.buyer.name ? s.buyer.companyName : null, ...(s.buyer.addressLines || []), s.buyer.phone ? `Phone: ${s.buyer.phone}` : null, s.buyer.vatNumber ? `VAT no. ${s.buyer.vatNumber}` : null],
         );
 
         y = sectionTitle(doc, y, "Sale");
@@ -312,8 +312,10 @@ export const renderSellerStatementPdf = (s) =>
         y = pairsTable(doc, y, [
             ["Buyer payment", s.buyerPaidDate ? `Received ${longDate(s.buyerPaidDate)}` : "Awaiting payment"],
             ["Payout to", s.payoutAccount || "No payout bank account on file. Please add one under Payout Methods."],
-            ["Payout timing", s.payoutPaidDate ? `Paid ${longDate(s.payoutPaidDate)}` : "Released once collection is confirmed"],
-        ]);
+            s.collectBy && !s.payoutPaidDate ? ["Buyer to collect by", longDate(s.collectBy)] : null,
+            ["Payout", s.payoutPaidDate ? `Paid ${longDate(s.payoutPaidDate)}` : "Released once collection is confirmed"],
+            s.payoutReference ? ["Payout reference", s.payoutReference] : null,
+        ].filter(Boolean));
         y += 14;
 
         doc.font("Helvetica").fontSize(9).fillColor(MUTED);
