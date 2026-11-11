@@ -3875,6 +3875,16 @@ const docDate = (d, withTime = false) => new Date(d).toLocaleString('en-IE', {
     weekday: 'long', day: 'numeric', month: 'long', ...(withTime ? { hour: '2-digit', minute: '2-digit' } : {}), timeZone: 'Europe/Dublin',
 });
 
+
+// "Leave us a review" block, linking to the What Our Clients Say page.
+const REVIEWS_URL = process.env.REVIEWS_URL || `${FRONTEND_URL}/reviews`;
+const reviewBlock = (text) => `
+    <div style="text-align: center; margin: 30px 0 10px 0; padding-top: 20px; border-top: 1px solid ${BRAND_COLORS.grayBorder};">
+        <p style="margin: 0 0 4px 0; color: ${BRAND_COLORS.textLight};">${text}</p>
+        ${createButton('Leave Us a Review', REVIEWS_URL, 'outline')}
+    </div>
+`;
+
 // Buyer receipt, with the PDF attached. Sets out collection and the seller's contact.
 const buyerReceiptEmail = async (sale, snapshot, pdfBuffer, filename) => {
     try {
@@ -3911,6 +3921,7 @@ const buyerReceiptEmail = async (sale, snapshot, pdfBuffer, filename) => {
             <div style="text-align: center; margin: 25px 0;">
                 ${createButton('Confirm Collection', `${FRONTEND_URL}/bidder/documents`, 'primary')}
             </div>
+            ${reviewBlock('Happy with how your purchase went? We&rsquo;d really appreciate a review.')}
         `;
         const info = await transporter.sendMail({
             from: `"${BRAND_NAME}" <${process.env.EMAIL_USER}>`,
@@ -3939,7 +3950,7 @@ const sellerStatementEmail = async (sale, snapshot, pdfBuffer, filename, dashboa
         const figures = createInfoCard(`
             ${createSummaryRow('Sale price:', docMoney(cur, snapshot.itemPrice))}
             ${snapshot.vat.treatment === 'standard' ? createSummaryRow(`VAT collected for you (${snapshot.vat.rate}%):`, docMoney(cur, snapshot.vat.amount)) : ''}
-            ${createSummaryRow(`${snapshot.sellerFeeDescription}:`, `-${docMoney(cur, snapshot.sellerFee)}`)}
+            ${createSummaryRow(`${snapshot.sellerFeeDescription}:`, snapshot.sellerFee ? `-${docMoney(cur, snapshot.sellerFee)}` : docMoney(cur, 0))}
             <div style="display: flex; justify-content: space-between; padding: 12px 0 0 0; margin-top: 8px; border-top: 2px solid ${BRAND_COLORS.secondary};">
                 <span style="font-weight: 700; color: ${BRAND_COLORS.secondary}; font-size: 16px;">${context === 'paid_out' ? 'Paid to you' : 'Amount due to you'}</span>
                 <span style="font-weight: 700; color: ${BRAND_COLORS.primary}; font-size: 16px;">${docMoney(cur, snapshot.netPayout)}</span>
@@ -3985,6 +3996,7 @@ const sellerStatementEmail = async (sale, snapshot, pdfBuffer, filename, dashboa
             ${intro}
             ${body}
             <div style="text-align: center; margin: 25px 0;">${button}</div>
+            ${reviewBlock('Happy with how your sale went? We&rsquo;d really appreciate a review.')}
         `;
         const info = await transporter.sendMail({
             from: `"${BRAND_NAME}" <${process.env.EMAIL_USER}>`,
