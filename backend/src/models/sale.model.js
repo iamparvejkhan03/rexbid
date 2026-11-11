@@ -113,6 +113,9 @@ const saleSchema = new Schema(
                 reference: String,
             },
             amountReceived: { type: Number, default: 0 },
+            // Set when bank transfer is switched on for the buyer in Stripe.
+            ibanAddedAt: Date,
+            ibanError: String,
         },
 
         payment: {
@@ -120,6 +123,9 @@ const saleSchema = new Schema(
             paidAt: Date,
             method: String,
             amount: Number,
+            transactionId: String,
+            // Under €1,000 the buyer may also pay by card at /checkout/:auctionId.
+            cardCheckoutAvailable: Boolean,
         },
 
         documents: [documentSchema],

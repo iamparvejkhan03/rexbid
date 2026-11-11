@@ -1348,6 +1348,35 @@ auctionSchema.post("save", async function (doc) {
   }
 });
 
+// ── Sale records: keep the admin Sales page in step with the auction ──
+// Covers every payment path (card checkout, webhook, admin "mark paid") and
+// creates the sale record the moment a lot sells instead of waiting for the
+// 15-minute sync.
+// Runs after the GA4 "sold" check above, which sets justBecameSold; the GA4
+// post-save hook clears that flag, so it is copied here first.
+auctionSchema.pre("save", function (next) {
+  if (this.$locals.justBecameSold) this.$locals.saleNeedsCreate = true;
+  if (!this.isNew && this.isModified("paymentStatus") && this.paymentStatus === "completed") {
+    this.$locals.saleNeedsPaid = true;
+  }
+  next();
+});
+
+auctionSchema.post("save", async function (doc) {
+  const becameSold = doc.$locals?.saleNeedsCreate;
+  const paid = doc.$locals?.saleNeedsPaid;
+  if (!becameSold && !paid) return;
+  doc.$locals.saleNeedsCreate = false;
+  doc.$locals.saleNeedsPaid = false;
+  try {
+    const { syncSaleForAuction, markSalePaidFromAuction } = await import("../services/saleService.js");
+    if (becameSold) await syncSaleForAuction(doc._id);
+    if (paid) await markSalePaidFromAuction(doc);
+  } catch (err) {
+    console.error("Sale record update failed:", err);
+  }
+});
+
 // NEW: Middleware to clean up expired offers
 auctionSchema.methods.cleanupExpiredOffers = function () {
   const now = new Date();

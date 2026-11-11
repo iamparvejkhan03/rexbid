@@ -9,6 +9,9 @@ import {
     applyVat,
     paymentRequestSnapshot,
     instructionsFromPaymentIntent,
+    instructionsFromFunding,
+    isCardCheckoutAvailable,
+    cardCheckoutUrl,
 } from "../src/services/saleService.js";
 
 // ─── Regions ───────────────────────────────────────────────
@@ -145,4 +148,32 @@ test("pdf: payment request renders", async () => {
     const pdf = await renderPaymentRequestPdf(paymentRequestSnapshot(s, new Date("2026-11-09T10:00:00Z")));
     assert.equal(pdf.subarray(0, 5).toString(), "%PDF-");
     assert.ok(pdf.length > 2000);
+});
+
+test("stripe: IBAN is read from customer funding instructions", () => {
+    const b = instructionsFromFunding({
+        bank_transfer: {
+            type: "eu_bank_transfer",
+            financial_addresses: [{ type: "iban", iban: { iban: "IE11CITI0001", bic: "CITIIE2X", country: "IE", account_holder_name: "RexBid" } }],
+        },
+    });
+    assert.equal(b.iban, "IE11CITI0001");
+    assert.equal(b.reference, undefined);
+    assert.equal(instructionsFromFunding({ bank_transfer: { financial_addresses: [] } }), null);
+});
+
+test("card: sales under €1,000 can also be paid by card; €1,000 and over cannot", () => {
+    assert.equal(isCardCheckoutAvailable(999, "EUR"), true);
+    assert.equal(isCardCheckoutAvailable(1000, "EUR"), false);
+    const small = buildSale({ ...AUCTION, finalPrice: 700, bidderCommissionAmount: 42 }, BUYER, SELLER);
+    assert.equal(small.payment.cardCheckoutAvailable, true);
+    assert.equal(buildSale(AUCTION, BUYER, SELLER).payment.cardCheckoutAvailable, false);
+    assert.equal(cardCheckoutUrl("abc"), "https://rexbid.ie/checkout/abc");
+});
+
+test("card: a sale already paid by card is recorded with method and amount", () => {
+    const s = buildSale({ ...AUCTION, finalPrice: 600, bidderCommissionAmount: 36, paymentStatus: "completed", paymentMethod: "credit_card", transactionId: "pi_x" }, BUYER, SELLER);
+    assert.equal(s.status, "paid");
+    assert.equal(s.payment.method, "credit_card");
+    assert.equal(s.payment.amount, 636);
 });

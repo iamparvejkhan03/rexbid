@@ -3786,6 +3786,10 @@ const paymentRequestEmail = async (sale, snapshot, pdfBuffer, filename) => {
             `)}
 
             <p>Please pay within 48 hours, by <strong>${due}</strong>. These bank details are unique to you, so your payment is matched to this purchase automatically and we'll confirm as soon as it arrives.</p>
+            ${snapshot.cardPayUrl ? `
+            <p>Prefer to pay by card? You can pay the same total online instead. Please pay once only, either by bank transfer or by card.</p>
+            ${createButton('Pay by Card', snapshot.cardPayUrl, 'secondary')}
+            ` : ''}
             <p>Once payment is confirmed we'll put you in touch with the seller to arrange collection.</p>
 
             <div style="text-align: center; margin: 25px 0;">

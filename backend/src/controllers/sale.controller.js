@@ -4,6 +4,7 @@ import {
     setVatDecision,
     issuePaymentRequest,
     paymentRequestSnapshot,
+    ensureBuyerIban,
 } from "../services/saleService.js";
 import { renderDocumentPdf, renderPaymentRequestPdf } from "../utils/documents/pdf.js";
 import { REGIONS } from "../utils/region.js";
@@ -20,8 +21,8 @@ const fail = (res, err) => {
 
 export const listSales = async (req, res) => {
     try {
-        // Pick up any lots sold since the last scheduled sync.
-        await syncSales();
+        // Pick up any lots sold since the last scheduled sync, and their IBANs.
+        await syncSales({ ibanLimit: 15 });
         const { status, search, review } = req.query;
         const q = {};
         if (status && status !== "all") q.status = status;
@@ -118,7 +119,11 @@ export const previewPaymentRequest = async (req, res) => {
         const sale = await Sale.findById(req.params.saleId);
         if (!sale) return res.status(404).json({ success: false, message: "Sale not found" });
         const snapshot = paymentRequestSnapshot(sale);
-        if (!snapshot.bank) snapshot.bank = { iban: "Assigned by Stripe when sent", reference: sale.reference };
+        if (!snapshot.bank) {
+            await ensureBuyerIban(sale);
+            Object.assign(snapshot, paymentRequestSnapshot(sale));
+        }
+        if (!snapshot.bank) snapshot.bank = { iban: "Not available yet - see the Sales page", reference: sale.reference };
         const pdf = await renderPaymentRequestPdf(snapshot);
         res.setHeader("Content-Type", "application/pdf");
         res.setHeader("Content-Disposition", `inline; filename="${sale.reference}-PR-draft.pdf"`);
