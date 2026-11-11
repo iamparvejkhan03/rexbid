@@ -3959,7 +3959,9 @@ const sellerStatementEmail = async (sale, snapshot, pdfBuffer, filename, dashboa
             heading = "You've Been Paid";
             subject = `You've been paid - ${snapshot.title}`;
             intro = `<p>We've sent your payout for <strong>${snapshot.title}</strong>${snapshot.payoutAccount ? ` to your ${snapshot.payoutAccount}` : ''}. Your updated statement is attached.</p>`;
-            body = `${figures}<p>Stripe usually takes 1 to 3 working days to reach your bank.${snapshot.payoutReference ? ` Reference: ${snapshot.payoutReference}.` : ''}</p>`;
+            body = `${figures}<p>${snapshot.payoutMethod === 'bank_transfer'
+                ? 'This was sent by bank transfer from RexBid\'s bank account and usually arrives within 1 working day.'
+                : 'Stripe usually takes 1 to 3 working days to reach your bank.'}${snapshot.payoutReference ? ` Reference: ${snapshot.payoutReference}.` : ''}</p>`;
             button = createButton('View My Documents', docsUrl, 'primary');
         } else {
             heading = 'Seller Statement';

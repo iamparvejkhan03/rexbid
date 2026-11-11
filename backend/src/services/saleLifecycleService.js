@@ -19,7 +19,7 @@ const fail = (message, status = 400) => Object.assign(new Error(message), { stat
 
 const sellerDisplayName = (sale) => sale.seller.companyName || sale.seller.name || sale.seller.username;
 
-const maskIban = (iban) => {
+export const maskIban = (iban) => {
     const clean = String(iban || "").replace(/\s+/g, "");
     return clean.length > 8 ? `${clean.slice(0, 4)} •••• ${clean.slice(-4)}` : clean;
 };
@@ -159,6 +159,7 @@ export const statementSnapshot = (sale, { issueDate = new Date(), payoutAccount 
         buyerPaidDate: sale.payment?.paidAt,
         payoutPaidDate: sale.payout?.paidAt,
         payoutReference: sale.payout?.reference,
+        payoutMethod: sale.payout?.method,
         payoutAccount,
     };
 };
@@ -173,7 +174,7 @@ export const statementSnapshot = (sale, { issueDate = new Date(), payoutAccount 
  * collection), "paid_out" (automatic, after the payout), or "statement"
  * (sent by an admin).
  */
-export const issueSellerStatement = async (saleId, admin, { sendEmail = true, context = "statement" } = {}) => {
+export const issueSellerStatement = async (saleId, admin, { sendEmail = true, context = "statement", payoutAccount } = {}) => {
     const sale = await Sale.findById(saleId);
     if (!sale) throw fail("Sale not found", 404);
     if (!PAID_STATES.includes(sale.status)) throw fail("A seller statement can only be issued once the buyer has paid");
@@ -187,7 +188,7 @@ export const issueSellerStatement = async (saleId, admin, { sendEmail = true, co
     if (sendEmail && !sale.seller?.email) throw fail("Seller has no email address");
 
     const issueDate = new Date();
-    const snapshot = statementSnapshot(sale, { issueDate, payoutAccount: describePayoutAccount(seller), context });
+    const snapshot = statementSnapshot(sale, { issueDate, payoutAccount: payoutAccount || describePayoutAccount(seller), context });
     const pdf = await renderSellerStatementPdf(snapshot);
     const version = supersede(sale, "seller_statement", issueDate);
     const doc = {

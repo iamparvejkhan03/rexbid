@@ -85,9 +85,34 @@ const availableBalance = async (currency) => {
     return (bal.available || []).filter((b) => b.currency === currency).reduce((n, b) => n + b.amount, 0);
 };
 
-const recordPayout = async (sale, { transferId, accountId, amount, paidAt, admin, matched = false, seller }) => {
+const recordPayout = async (sale, { transferId, accountId, amount, paidAt, admin, matched = false, seller, manual = null }) => {
     sale.status = "paid_out";
-    sale.set("payout", { paidAt, amount, reference: transferId, method: "stripe_connect", accountId, matched });
+    sale.set("payout", {
+        paidAt,
+        amount,
+        reference: manual ? manual.reference : transferId,
+        method: manual ? "bank_transfer" : "stripe_connect",
+        accountId,
+        matched,
+    });
+    if (manual) {
+        await Payout.create({
+            seller: sale.seller.user,
+            auction: sale.auction,
+            totalAmount: round2(sale.itemPrice + (sale.vat?.amount || 0)),
+            commissionAmount: sale.sellerFee || 0,
+            sellerAmount: amount,
+            payoutMethod: "bankTransfer",
+            payoutDetails: manual.details,
+            status: "completed",
+            transactionId: `manual-${sale._id}`,
+            initiatedBy: admin._id,
+            processedAt: paidAt,
+            completedAt: paidAt,
+            adminNotes: [`Manual bank payout (${sale.reference}), ref ${manual.reference}`, manual.note].filter(Boolean).join(". "),
+        });
+        return;
+    }
     if (!(await Payout.exists({ transactionId: transferId }))) {
         await Payout.create({
             seller: sale.seller.user,
@@ -234,4 +259,98 @@ export const matchPastTransfers = async (admin) => {
         seller: emailByAcct.get(t.destination) || null,
     }));
     return { matched, unmatchedSales, unmatchedTransfers };
+};
+
+// ─── Manual payouts (paid from RexBid's own bank) ──────────
+
+const bankFromUser = (user) => {
+    const b = user?.payoutMethods?.bankTransfer || {};
+    if (!b.iban && !b.accountNumber) return null;
+    return {
+        accountHolderName: b.accountHolderName,
+        bankName: b.bankName,
+        iban: b.iban,
+        bic: b.swiftCode,
+        accountNumber: b.accountNumber,
+        sortCode: b.routingNumber,
+        currency: b.currency,
+    };
+};
+
+/** What an admin needs to pay a seller by bank transfer (full details, admin only). */
+export const getPayoutDetails = async (saleId) => {
+    const sale = await Sale.findById(saleId, "reference title status currency itemPrice vat sellerFee seller payout");
+    if (!sale) throw fail("Sale not found", 404);
+    const seller = await User.findById(sale.seller.user).select("email phone payoutMethods stripeConnect firstName lastName companyName");
+    return {
+        reference: sale.reference,
+        title: sale.title,
+        status: sale.status,
+        currency: sale.currency,
+        amount: netPayout(sale),
+        seller: {
+            name: sale.seller.companyName || sale.seller.name,
+            email: seller?.email,
+            phone: seller?.phone || sale.seller.phone,
+        },
+        bank: bankFromUser(seller),
+        stripe: { state: payoutState(seller?.stripeConnect), bankLast4: seller?.stripeConnect?.bankLast4, bankName: seller?.stripeConnect?.bankName },
+        paymentReference: sale.reference,
+    };
+};
+
+/**
+ * Records a payout made outside Stripe (e.g. from BOI for a high-value sale)
+ * and sends the seller their "you've been paid" statement.
+ */
+export const recordManualPayout = async (saleId, { amount, paidAt, reference, note, sendEmail = true }, admin) => {
+    const sale = await Sale.findById(saleId);
+    if (!sale) throw fail("Sale not found", 404);
+    if (sale.status !== "payout_due") throw fail("Only sales marked payout due can be paid. Use Release payout early first if both parties agree.");
+    if (sale.payout?.reference) throw fail(`Already paid (${sale.payout.reference})`);
+    if (!reference?.trim()) throw fail("Add the bank payment reference");
+
+    const expected = netPayout(sale);
+    const paid = amount === undefined || amount === "" ? expected : round2(Number(amount));
+    if (!(paid > 0)) throw fail("Enter the amount paid");
+    if (paid !== expected && !note?.trim()) {
+        throw fail(`The amount differs from the ${expected.toFixed(2)} ${sale.currency} due; add a note explaining why`);
+    }
+    const when = paidAt ? new Date(paidAt) : new Date();
+    if (Number.isNaN(when.getTime()) || when > new Date(Date.now() + 86400e3)) throw fail("Enter a valid payment date");
+
+    const seller = await User.findById(sale.seller.user).select("payoutMethods");
+    const bank = bankFromUser(seller);
+    const { maskIban } = await import("./saleLifecycleService.js");
+    const accountText = bank?.iban
+        ? `bank account (IBAN ${maskIban(bank.iban)})`
+        : bank?.accountNumber
+            ? `bank account ending ${String(bank.accountNumber).slice(-4)}`
+            : "bank account";
+
+    await recordPayout(sale, {
+        amount: paid,
+        paidAt: when,
+        admin,
+        manual: {
+            reference: reference.trim(),
+            note: note?.trim(),
+            details: { method: "manual_bank_transfer", reference: reference.trim(), iban: bank?.iban ? maskIban(bank.iban) : undefined },
+        },
+    });
+    sale.notes.push({
+        text: `Paid ${paid} ${sale.currency} by manual bank transfer, ref ${reference.trim()}${paid !== expected ? ` (due ${expected})` : ""}${note?.trim() ? `: ${note.trim()}` : ""}`,
+        by: admin._id,
+    });
+    await sale.save();
+
+    let emailed = false;
+    if (sendEmail) {
+        try {
+            ({ emailed } = await issueSellerStatement(sale._id, admin, { context: "paid_out", payoutAccount: accountText }));
+        } catch (err) {
+            console.error(`Payout statement for ${sale.reference} failed:`, err.message);
+        }
+    }
+    return { sale, amount: paid, emailed };
 };

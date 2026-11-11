@@ -20,6 +20,8 @@ import {
     matchTransfers,
     myCollections,
     confirmMyCollection,
+    payoutDetails,
+    manualPayout,
 } from "../controllers/sale.controller.js";
 
 // Mounted at /api/v1/admin/sales
@@ -39,6 +41,8 @@ adminSaleRouter.post("/:saleId/fail", authAdmin, failSale);
 adminSaleRouter.post("/:saleId/reopen", authAdmin, reopen);
 adminSaleRouter.post("/:saleId/payout-setup-email", authAdmin, sendPayoutSetupEmail);
 adminSaleRouter.post("/:saleId/release-payout", authAdmin, releaseEarly);
+adminSaleRouter.get("/:saleId/payout-details", authAdmin, payoutDetails);
+adminSaleRouter.post("/:saleId/manual-payout", authAdmin, manualPayout);
 adminSaleRouter.get("/:saleId/documents/:documentId", authAdmin, downloadDocument);
 
 // Mounted at /api/v1/sales (buyers and sellers)

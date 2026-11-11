@@ -328,6 +328,8 @@ import {
     paySeller,
     matchPastTransfers,
     netPayout,
+    getPayoutDetails,
+    recordManualPayout,
 } from "../services/payoutService.js";
 
 export const releaseEarly = async (req, res) => {
@@ -409,6 +411,24 @@ export const confirmMyCollection = async (req, res) => {
     try {
         const { sale, role } = await confirmCollection(req.params.saleId, req.user);
         res.json({ success: true, data: { status: sale.status, role } });
+    } catch (err) {
+        fail(res, err);
+    }
+};
+
+export const payoutDetails = async (req, res) => {
+    try {
+        res.json({ success: true, data: await getPayoutDetails(req.params.saleId) });
+    } catch (err) {
+        fail(res, err);
+    }
+};
+
+export const manualPayout = async (req, res) => {
+    try {
+        const { amount, paidAt, reference, note, sendEmail } = req.body || {};
+        const r = await recordManualPayout(req.params.saleId, { amount, paidAt, reference, note, sendEmail: sendEmail !== false }, req.user);
+        res.json({ success: true, data: { reference: r.sale.reference, amount: r.amount, emailed: r.emailed } });
     } catch (err) {
         fail(res, err);
     }
