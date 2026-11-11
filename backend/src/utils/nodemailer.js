@@ -3749,6 +3749,11 @@ const auctionReserveNudgeEmail = async (seller, listing) => {
 };
 
 
+const paymentRequestBcc = () => {
+    const v = (process.env.PAYMENT_REQUEST_BCC ?? process.env.EMAIL_USER ?? '').trim();
+    return v && v.toLowerCase() !== 'none' ? v : null;
+};
+
 // Payment request for a sold lot, with the PDF attached.
 const paymentRequestEmail = async (sale, snapshot, pdfBuffer, filename) => {
     try {
@@ -3800,6 +3805,9 @@ const paymentRequestEmail = async (sale, snapshot, pdfBuffer, filename) => {
         const info = await transporter.sendMail({
             from: `"${BRAND_NAME}" <${process.env.EMAIL_USER}>`,
             to: sale.buyer.email,
+            // Office copy of every payment request. Set PAYMENT_REQUEST_BCC on
+            // Render to change the address, or to "none" to turn it off.
+            ...(paymentRequestBcc() ? { bcc: paymentRequestBcc() } : {}),
             subject: `Payment Request ${snapshot.reference} - ${snapshot.title}`,
             html: baseTemplate(content, 'Payment Request'),
             attachments: [{ filename, content: pdfBuffer, contentType: 'application/pdf' }],
