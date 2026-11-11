@@ -177,3 +177,87 @@ test("card: a sale already paid by card is recorded with method and amount", () 
     assert.equal(s.payment.method, "credit_card");
     assert.equal(s.payment.amount, 636);
 });
+
+// ─── Receipts and statements ───────────────────────────────
+
+import { addWorkingDays } from "../src/utils/workingDays.js";
+import { statementSnapshot, receiptSnapshot } from "../src/services/saleLifecycleService.js";
+import { renderBuyerReceiptPdf, renderSellerStatementPdf } from "../src/utils/documents/pdf.js";
+
+test("collection: 3 working days skips weekends", () => {
+    // Wednesday 11 Nov 2026 -> Monday 16 Nov
+    assert.equal(addWorkingDays(new Date("2026-11-11T10:00:00Z"), 3).toISOString().slice(0, 10), "2026-11-16");
+    // Friday 13 Nov -> Wednesday 18 Nov
+    assert.equal(addWorkingDays(new Date("2026-11-13T10:00:00Z"), 3).toISOString().slice(0, 10), "2026-11-18");
+});
+
+test("statement: VAT goes to the seller, seller fee comes off, buyer fee is not involved", () => {
+    const s = buildSale({ ...AUCTION, vatIncluded: true, sellerCommissionAmount: 450 }, BUYER, SELLER);
+    const st = statementSnapshot(s, { payoutAccount: "Example, IBAN IE64 •••• 5678" });
+    assert.equal(st.grossForSeller, 18450);
+    assert.equal(st.sellerFee, 450);
+    assert.equal(st.netPayout, 18000);
+});
+
+test("statement: no seller fee while seller commission is off", () => {
+    const st = statementSnapshot(buildSale(AUCTION, BUYER, SELLER));
+    assert.equal(st.netPayout, 15000);
+    assert.match(st.sellerFeeDescription, /none charged/);
+});
+
+test("pdf: receipt and statement render on one page each", async () => {
+    const s = buildSale({ ...AUCTION, vatIncluded: true, paymentStatus: "completed", paymentMethod: "bank_transfer", paymentDate: new Date() }, BUYER, { ...SELLER, phone: "087 000 0000" });
+    for (const pdf of [await renderBuyerReceiptPdf(receiptSnapshot(s)), await renderSellerStatementPdf(statementSnapshot(s))]) {
+        assert.equal(pdf.subarray(0, 5).toString(), "%PDF-");
+        assert.equal((pdf.toString("latin1").match(/\/Type \/Page\b/g) || []).length, 1);
+    }
+});
+
+// ─── Reminders and payouts ─────────────────────────────────
+
+import { dueReminder, withinSendingHours } from "../src/services/reminderService.js";
+import { netPayout } from "../src/services/payoutService.js";
+
+const H = 3600e3;
+const reqSale = (dueAt, extra = {}) => ({
+    status: "request_sent",
+    payment: { dueAt },
+    documents: [{ type: "payment_request" }],
+    reminders: {},
+    collection: {},
+    ...extra,
+});
+
+test("reminders: payment due soon, then overdue, each once", () => {
+    const due = new Date("2026-11-13T10:00:00Z");
+    assert.equal(dueReminder(reqSale(due), new Date(due - 30 * H)), null);
+    assert.equal(dueReminder(reqSale(due), new Date(due - 12 * H)), "payment_due_soon");
+    assert.equal(dueReminder(reqSale(due, { reminders: { paymentDueSoonAt: new Date() } }), new Date(due - 6 * H)), null);
+    assert.equal(dueReminder(reqSale(due), new Date(+due + H)), "payment_overdue");
+    assert.equal(dueReminder(reqSale(due, { reminders: { paymentOverdueAt: new Date() } }), new Date(+due + 5 * H)), null);
+});
+
+test("reminders: none without a payment request, none for earlier sales", () => {
+    const due = new Date("2026-11-13T10:00:00Z");
+    assert.equal(dueReminder(reqSale(due, { documents: [] }), new Date(+due + H)), null);
+    assert.equal(dueReminder(reqSale(due, { historical: true }), new Date(+due + H)), null);
+});
+
+test("reminders: collection stops once either side confirms", () => {
+    const dueBy = new Date("2026-11-16T17:00:00Z");
+    const paid = (c = {}) => ({ status: "paid", documents: [{ type: "buyer_receipt" }], reminders: {}, collection: { dueBy, ...c } });
+    assert.equal(dueReminder(paid(), new Date(dueBy - 10 * H)), "collection_due_soon");
+    assert.equal(dueReminder(paid(), new Date(+dueBy + H)), "collection_overdue");
+    assert.equal(dueReminder(paid({ buyerConfirmedAt: new Date() }), new Date(+dueBy + H)), null);
+});
+
+test("reminders: only sent 08:00-20:00 Irish time", () => {
+    assert.equal(withinSendingHours(new Date("2026-11-12T12:00:00Z")), true);
+    assert.equal(withinSendingHours(new Date("2026-11-12T22:00:00Z")), false);
+    assert.equal(withinSendingHours(new Date("2026-07-12T19:30:00Z")), false); // 20:30 IST in summer
+});
+
+test("payout: seller gets price + VAT - seller fee", () => {
+    assert.equal(netPayout({ itemPrice: 15000, vat: { amount: 3450 }, sellerFee: 450 }), 18000);
+    assert.equal(netPayout({ itemPrice: 700, vat: { amount: 0 }, sellerFee: 0 }), 700);
+});

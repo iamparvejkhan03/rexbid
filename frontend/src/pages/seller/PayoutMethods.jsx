@@ -16,6 +16,7 @@ import {
     Icon,
 } from "lucide-react";
 import axiosInstance from "../../utils/axiosInstance";
+import StripePayoutCard from "../../components/payouts/StripePayoutCard";
 import toast from "react-hot-toast";
 
 function PayoutMethods() {
@@ -273,6 +274,8 @@ function PayoutMethods() {
                             </div>
                         </div>
                     </div>
+
+                    <StripePayoutCard />
 
                     {/* Info Banner */}
                     {/* <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6 flex items-start gap-3">

@@ -48,6 +48,7 @@ const SellerNotifications = lazy(() => import('./pages/seller/Notifications'));
 const SellerBilling = lazy(() => import('./pages/seller/Billing'));
 const SellerPayoutMethods = lazy(() => import('./pages/seller/PayoutMethods'));
 const SellerPayouts = lazy(() => import('./pages/seller/Payouts'));
+const SellerDocuments = lazy(() => import('./pages/seller/Documents'));
 
 {/* Company Pages */ }
 const CompanyLayout = lazy(() => import('./pages/company/Layout'));
@@ -63,6 +64,7 @@ const CompanyNotifications = lazy(() => import('./pages/company/Notifications'))
 const CompanyBilling = lazy(() => import('./pages/company/Billing'));
 const CompanyPayoutMethods = lazy(() => import('./pages/company/PayoutMethods'));
 const CompanyPayouts = lazy(() => import('./pages/company/Payouts'));
+const CompanyDocuments = lazy(() => import('./pages/company/Documents'));
 
 {/* Broker Pages */ }
 const BrokerLayout = lazy(() => import('./pages/broker/Layout'));
@@ -262,6 +264,14 @@ createRoot(document.getElementById('root')).render(
 
                         {/* Seller Payouts */}
                         <Route
+                            path='/seller/documents'
+                            element={
+                                <Suspense fallback={<LoadingSpinner height={'750px'} />}>
+                                    <SellerDocuments />
+                                </Suspense>
+                            }
+                        />
+                        <Route
                             path='/seller/payouts'
                             element={
                                 <Suspense fallback={<LoadingSpinner height={'750px'} />}>
@@ -377,6 +387,14 @@ createRoot(document.getElementById('root')).render(
                         />
 
                         {/* Company Payouts */}
+                        <Route
+                            path='/company/documents'
+                            element={
+                                <Suspense fallback={<LoadingSpinner height={'750px'} />}>
+                                    <CompanyDocuments />
+                                </Suspense>
+                            }
+                        />
                         <Route
                             path='/company/payouts'
                             element={

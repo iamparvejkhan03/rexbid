@@ -155,6 +155,18 @@ const userSchema = new Schema(
       default: false,
     },
 
+    // Stripe Connect (Express) account that seller payouts are transferred to.
+    // Status is cached from Stripe and refreshed when it matters.
+    stripeConnect: {
+      accountId: { type: String, sparse: true },
+      payoutsEnabled: { type: Boolean, default: false },
+      detailsSubmitted: { type: Boolean, default: false },
+      requirementsDue: { type: Number, default: 0 },
+      bankLast4: String,
+      bankName: String,
+      checkedAt: Date,
+    },
+
     // Payout Methods for Sellers
     payoutMethods: {
       paypal: {

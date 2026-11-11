@@ -6,10 +6,9 @@ import { regionForItem, regionForUser } from "../utils/region.js";
 import { calculateVat } from "../utils/vat.js";
 import { renderPaymentRequestPdf } from "../utils/documents/pdf.js";
 import { isManualPaymentRequired } from "../utils/manualPayment.js";
+import { addWorkingDays, COLLECTION_WORKING_DAYS } from "../utils/workingDays.js";
 import {
     paymentRequestEmail,
-    paymentCompletedEmail,
-    paymentCompletedSellerEmail,
 } from "../utils/nodemailer.js";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -23,6 +22,8 @@ export const PAYMENT_DUE_HOURS = 48;
 const FRONTEND_URL = process.env.FRONTEND_URL || "https://rexbid.ie";
 
 const round2 = (n) => Math.round((Number(n) + Number.EPSILON) * 100) / 100;
+
+
 
 const USER_FIELDS =
     "firstName lastName username companyName companyVATNumber email phone address countryName countryCode currency stripeCustomerId region";
@@ -100,6 +101,7 @@ export const buildSale = (auction, buyer, seller) => {
         reference: makeReference(auction.title, auction._id),
         title: auction.title,
         saleDate: auction.endDate || auction.updatedAt || new Date(),
+        itemLocation: auction.location || undefined,
         currency,
         buyer: partyFromUser(buyer),
         seller: partyFromUser(seller),
@@ -159,13 +161,15 @@ export const syncSaleForAuction = async (auctionId) => {
  */
 export const markSalePaidFromAuction = async (auction) => {
     const sale = await Sale.findOne({ auction: auction._id });
-    if (!sale || !["sold", "request_sent"].includes(sale.status)) return sale;
+    if (!sale || !["sold", "request_sent", "failed"].includes(sale.status)) return sale;
+    if (sale.status === "failed") sale.notes.push({ text: "Payment arrived after the sale was marked failed" });
 
     const method = auction.paymentMethod || "other";
     sale.status = "paid";
     sale.set("payment.paidAt", auction.paymentDate || new Date());
     sale.set("payment.method", method);
     sale.set("payment.amount", sale.total);
+    sale.set("collection.dueBy", addWorkingDays(auction.paymentDate || new Date(), COLLECTION_WORKING_DAYS));
     if (auction.transactionId) sale.set("payment.transactionId", auction.transactionId);
     sale.notes.push({ text: `Paid by ${methodLabel(method)}${auction.transactionId ? ` (${auction.transactionId})` : ""}` });
 
@@ -184,6 +188,7 @@ export const markSalePaidFromAuction = async (auction) => {
         }
     }
     await sale.save();
+    await autoIssueReceipt(sale);
     return sale;
 };
 
@@ -217,7 +222,7 @@ export const syncSales = async ({ since = SALES_TRACKING_START, ibanLimit = 25 }
     }
 
     // Safety net for payments the auction hook missed.
-    const unpaid = existing.filter((e) => ["sold", "request_sent"].includes(e.status)).map((e) => e.auction);
+    const unpaid = existing.filter((e) => ["sold", "request_sent", "failed"].includes(e.status)).map((e) => e.auction);
     const paidAuctions = await Auction.find(
         { _id: { $in: unpaid }, paymentStatus: "completed" },
         "_id paymentDate paymentMethod transactionId",
@@ -236,7 +241,8 @@ export const syncSales = async ({ since = SALES_TRACKING_START, ibanLimit = 25 }
     }
 
     const { ibansAdded } = await fillMissingIbans({ limit: ibanLimit });
-    return { created, markedPaid, ibansAdded };
+    const sellersChecked = await refreshOpenSellerAccounts({ limit: 10 });
+    return { created, markedPaid, ibansAdded, sellersChecked };
 };
 
 // ─── VAT decisions ─────────────────────────────────────────
@@ -338,6 +344,7 @@ export const ensureBuyerIban = async (sale) => {
 export const fillMissingIbans = async ({ limit = 25 } = {}) => {
     const sales = await Sale.find({
         status: { $in: ["sold", "request_sent"] },
+        historical: { $ne: true },
         "stripe.bankTransfer.iban": { $in: [null, ""] },
         "stripe.bankTransfer.accountNumber": { $in: [null, ""] },
     })
@@ -533,6 +540,49 @@ export const issuePaymentRequest = async (saleId, admin, { sendEmail = true } = 
     return { sale, emailed: !!doc.emailedAt };
 };
 
+/**
+ * Keeps sellers' Stripe payout-account status fresh (at most hourly) for sales
+ * that still need paying out, linking existing connected accounts by email.
+ */
+export const refreshOpenSellerAccounts = async ({ limit = 10 } = {}) => {
+    const sellerIds = await Sale.distinct("seller.user", {
+        historical: { $ne: true },
+        status: { $in: ["sold", "request_sent", "paid", "collected", "payout_due"] },
+    });
+    const stale = await User.find({
+        _id: { $in: sellerIds },
+        "stripeConnect.payoutsEnabled": { $ne: true },
+        $or: [{ "stripeConnect.checkedAt": null }, { "stripeConnect.checkedAt": { $lt: new Date(Date.now() - 3600 * 1000) } }],
+    }).limit(limit);
+    const { refreshSellerConnect } = await import("./connectService.js");
+    for (const u of stale) await refreshSellerConnect(u);
+    return stale.length;
+};
+
+/**
+ * Sends the buyer their receipt as soon as a sale is paid. Earlier (imported)
+ * sales are left alone. Never throws: a failed receipt must not undo a payment.
+ */
+export const autoIssueReceipt = async (sale) => {
+    if (!sale || sale.historical || sale.status !== "paid") return;
+    const { issueBuyerReceipt, issueSellerStatement } = await import("./saleLifecycleService.js");
+    if (!sale.documents?.some((d) => d.type === "buyer_receipt")) {
+        try {
+            await issueBuyerReceipt(sale._id, null);
+        } catch (err) {
+            console.error(`Automatic receipt for ${sale.reference} failed:`, err.message);
+        }
+    }
+    // The seller's "buyer has paid" email: statement plus buyer contact.
+    if (!sale.documents?.some((d) => d.type === "seller_statement")) {
+        try {
+            await issueSellerStatement(sale._id, null, { context: "paid" });
+        } catch (err) {
+            console.error(`Automatic seller statement for ${sale.reference} failed:`, err.message);
+        }
+    }
+};
+
 // ─── Payments received (Stripe webhook) ────────────────────
 
 export const recordPartialFunding = async (pi) => {
@@ -551,7 +601,8 @@ export const recordPayment = async (pi) => {
         (await Sale.findOne({ "stripe.paymentIntentId": pi.id })) ||
         (pi.metadata?.saleId ? await Sale.findById(pi.metadata.saleId) : null);
     if (!sale) return null;
-    if (!["sold", "request_sent"].includes(sale.status)) return sale;
+    if (!["sold", "request_sent", "failed"].includes(sale.status)) return sale;
+    if (sale.status === "failed") sale.notes.push({ text: "Payment arrived after the sale was marked failed" });
 
     sale.status = "paid";
     const received = (pi.amount_received || pi.amount) / 100;
@@ -559,8 +610,11 @@ export const recordPayment = async (pi) => {
     sale.set("payment.paidAt", new Date());
     sale.set("payment.method", "bank_transfer");
     sale.set("payment.amount", received);
+    sale.set("payment.transactionId", pi.id);
+    sale.set("collection.dueBy", addWorkingDays(new Date(), COLLECTION_WORKING_DAYS));
     sale.notes.push({ text: `Payment of ${sale.payment.amount} ${sale.currency} received via Stripe (${pi.id})` });
     await sale.save();
+    await autoIssueReceipt(sale);
 
     // Keep the auction's own payment fields in step (save() fires the GA4 hook).
     const auction = await Auction.findById(sale.auction).populate("seller").populate("winner");
@@ -574,12 +628,8 @@ export const recordPayment = async (pi) => {
             console.error(`Auction ${auction._id} save failed after payment, updating directly:`, e.message);
             await Auction.updateOne({ _id: auction._id }, { $set: paid });
         }
-        try {
-            if (auction.winner) await paymentCompletedEmail(auction.winner, auction);
-            if (auction.seller) await paymentCompletedSellerEmail(auction.seller, auction, auction.winner);
-        } catch (e) {
-            console.error("Payment confirmation emails failed:", e.message);
-        }
+        // Buyer receipt and seller statement are sent by autoIssueReceipt above,
+        // in place of the generic payment emails.
     }
     return sale;
 };

@@ -46,7 +46,7 @@ MX → `smtp.google.com` · SPF includes `_spf.google.com` (and `spf.reg365.net`
 | Minimum no-reserve starting bid | **€400** (sterling equivalent) | same |
 | Payment | Card under €1,000; bank transfer from €1,000; within 48 hours | `backend/src/utils/manualPayment.js` (threshold) |
 | VAT on items | Only when the listing is "VAT Applicable". ROI 23%, NI 20%, on the item price only (never on the buyer fee: RexBid is not VAT registered). Cross-border or unclear-location sales are held for admin review; admin can zero-rate with a note. | `backend/src/utils/vat.js`, `backend/src/utils/region.js` |
-| Collection | Within 5 working days of payment confirmation | Policy |
+| Collection | Within 3 working days of payment confirmation; storage fines after that | Policy, Buyer Agreement, FAQs, receipt |
 | Seller payout | 0–3 working days after collection | Policy |
 | Not as described | Report within 24 hours of collection/delivery | Policy |
 | VAT on items | Set per listing by the seller | Listing field `vatIncluded` |
@@ -84,7 +84,24 @@ Stages: `sold` → `request_sent` → `paid` → `collected` → `payout_due` �
 - When Stripe reports the payment (`payment_intent.succeeded` webhook), the sale and the auction are marked paid.
 - Stripe webhook: `POST /api/v1/payments/webhook`, registered in `server.js` before the JSON parser. Needs `STRIPE_WEBHOOK_SECRET` on Render.
 
-Still to build: buyer receipts, payment and collection reminders, buyer/seller "collected" ticks, payout queue with early-release option, seller statements, sales ledger export matching the finance tracker, import of earlier sales.
+- **Receipts and seller statements** (Paid tab, tick and send): the buyer receipt shows the seller's name and phone, the collect-by date (3 working days after payment, weekends skipped, public holidays not; `COLLECTION_WORKING_DAYS`) and the storage-fines warning. The seller statement shows price + VAT collected − seller commission = amount due, and the seller's payout account (masked). The seller fee is read from the auction (`sellerCommissionAmount`, set from Admin → Commissions when the lot sold), so seller fees appear automatically once they are switched on.
+- Every payment request, receipt and statement is BCC'd to `EMAIL_USER` (change with `PAYMENT_REQUEST_BCC`, or `none`).
+- **Failed sales**: the red cross on an unpaid sale asks for a reason, cancels any open Stripe request and sets the auction's payment status to failed. *Reopen* puts it back in Ready to send.
+- **Earlier sales**: *Import earlier sales* records lots sold before `SALES_TRACKING_START` with `historical: true`; status from the auction's payment status and any completed Payout. No emails, no Stripe calls. They live in the *Earlier sales* tab.
+- Documents pages: `/bidder/documents`, `/seller/documents`, `/company/documents`.
+
+- **Receipts are sent automatically** when a sale is paid (Stripe bank transfer, card checkout, or admin marking it paid). For any auction with a sale record, the old generic "Payment Confirmed" buyer email is skipped so the buyer gets one email.
+- **Seller payouts use Stripe Connect Express accounts** (`user.stripeConnect`). Existing accounts made in the Stripe Dashboard are matched to sellers by email. Sellers set up or finish their account from Payout Methods (`/api/v1/stripe-connect/onboarding-link`); the "Item sold" email includes a setup button when the seller isn't ready, and admins can send a setup link from the Sales page. Status is refreshed at most hourly for sellers with open sales.
+
+- **Emails per sale.** Buyer: auction won → payment request → receipt (automatic on payment) → reminders only if needed. Seller: item sold (+ payout setup if needed) → "buyer has paid" with statement and buyer contact (automatic on payment) → "you've been paid" with updated statement. The old generic "Payment Received"/"Payment Confirmed" emails are skipped for sales with a sale record.
+- **Collection.** Buyer and seller each confirm on their Documents page; both → *Payout due*. Admin can *Release payout early* with a note.
+- **Payouts.** *Payout due* tab → tick → *Pay sellers*: Stripe transfer of price + VAT − seller fee to the seller's Connect account (linked to the buyer's charge when possible, otherwise checked against available balance), recorded on the sale and as a `Payout` (method `stripeConnect`), then the "you've been paid" email. The old admin Payouts page is not used for these.
+- **Manual payouts** (bank icon on a *Payout due* sale): for high-value sales paid from RexBid's own bank (BOI) to avoid Stripe fees. Shows the seller's saved bank details (Payout Methods) with copy buttons; admin enters amount (defaults to the amount due; a different amount needs a note), date and bank reference. Records the payout (`method: bank_transfer`, Payout record `manual-<saleId>`), makes no Stripe transfer, and emails the seller their statement.
+- **Matching past payouts.** *Match past Stripe payouts* marks paid sales as paid out where a Dashboard transfer to that seller's account has exactly the seller's amount on or after the sale date. No emails.
+- **Reminders** (`send sale reminders`, every 30 min, 08:00–20:00 Irish time, each once): payment due in 24h, payment overdue (+ office alert), collection due in 24h, collection overdue (+ office alert). Office alerts go to `ADMIN_ALERT_EMAIL` or `EMAIL_USER`.
+
+Still to build: sales ledger export matching the finance tracker.
+
 
 ---
 

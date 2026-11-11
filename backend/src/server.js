@@ -36,6 +36,7 @@ import websiteReviewRouter from "./routes/websiteReview.route.js";
 import sitemapRouter from './routes/sitemap.route.js';
 import shareRouter from './routes/share.route.js';
 import { adminSaleRouter, saleRouter } from "./routes/sale.route.js";
+import connectRouter from "./routes/connect.route.js";
 import { handleStripeWebhook } from "./controllers/payment.controller.js";
 
 const app = express();
@@ -126,6 +127,7 @@ app.use('/api/v1/bids', bidRouter);
 app.use('/api/v1/admin/sales', adminSaleRouter);
 app.use('/api/v1/admin', AdminRouter);
 app.use('/api/v1/sales', saleRouter);
+app.use('/api/v1/stripe-connect', connectRouter);
 app.use('/api/v1/commissions', commissionRouter);
 app.use('/api/v1/bid-payments', bidPaymentRouter);
 app.use('/api/v1/contact', contactQueryRouter);

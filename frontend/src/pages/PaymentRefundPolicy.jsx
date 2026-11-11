@@ -13,7 +13,7 @@ import {
     MIN_NO_RESERVE_START_EUR,
 } from "../utils/fees";
 
-const LAST_UPDATED = "10 November 2026";
+const LAST_UPDATED = "11 November 2026";
 const EXAMPLES = [1000, 2000, 5000, 10000, 20000];
 const euro = (n) => `€${Number(n).toLocaleString("en-IE", { maximumFractionDigits: 2 })}`;
 
@@ -191,7 +191,8 @@ const PaymentRefundPolicy = () => {
                         <List
                             items={[
                                 "Do not arrange collection until RexBid confirms that cleared funds have been received. We will then share the seller's collection details.",
-                                "Items must be collected within 5 working days of payment confirmation, unless agreed otherwise with the seller.",
+                                "Items must be collected within 3 working days of payment confirmation, unless agreed otherwise with the seller.",
+                                "Items not collected within 3 working days of payment confirmation may be subject to storage fines.",
                                 <>
                                     Transport can be quoted through the “Request Delivery Quote” button or our{" "}
                                     <Link to="/delivery-partner-quote" className="underline">transport quote page</Link>.

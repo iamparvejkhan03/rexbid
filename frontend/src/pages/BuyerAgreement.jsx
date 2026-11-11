@@ -99,7 +99,7 @@ const BuyerAgreement = () => {
                                 <li>A buyer fee of 6% on the first €2,000 of the winning price and 3% on any amount above €2,000 (maximum €500 per item) is added to the winning price</li>
                                 <li>Purchases under €1,000 are paid by card; purchases of €1,000 or more are paid by bank transfer to RexBid</li>
                                 <li>Full payment is due within 48 hours of the auction closing or the offer being accepted</li>
-                                <li>Items must be collected within 5 working days of payment confirmation</li>
+                                <li>Items must be collected within 3 working days of payment confirmation; items not collected by then may be subject to storage fines</li>
                                 <li>Full details: <a href="/payment-refund-policy" className="underline">Payment, Fees &amp; Refund Policy</a></li>
                                 <li>Items will not be released until payment is confirmed</li>
                                 <li>Transactions may use GBP or EUR depending on region</li>

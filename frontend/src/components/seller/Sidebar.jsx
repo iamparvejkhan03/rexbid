@@ -12,7 +12,8 @@ import {
     CreditCard,
     Hand,
     BanknoteArrowUp,
-    BanknoteArrowDown
+    BanknoteArrowDown,
+    FileText,
 } from "lucide-react";
 import { Link, NavLink } from "react-router-dom";
 import { logo } from "../../assets";
@@ -30,6 +31,7 @@ const navigation = [
     // { name: 'Notifications', path: '/seller/notifications', icon: <Bell size={20} /> },
     { name: 'Payout Methods', path: '/seller/payout-methods', icon: <BanknoteArrowUp size={20} /> },
     { name: 'Payouts', path: '/seller/payouts', icon: <BanknoteArrowDown size={20} /> },
+    { name: 'Documents', path: '/seller/documents', icon: <FileText size={20} /> },
     { name: 'Profile', path: '/seller/profile', icon: <User size={20} /> },
 ];
 

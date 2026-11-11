@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { AlertTriangle, FileText, Eye, Send, RefreshCw, Search, X } from "lucide-react";
+import { AlertTriangle, FileText, Eye, Send, RefreshCw, Search, X, Receipt, History, XCircle, RotateCcw, Banknote, Link2, Unlock, Landmark } from "lucide-react";
 import { toast } from "react-hot-toast";
 import axiosInstance from "../../utils/axiosInstance";
 import { AdminContainer, AdminHeader, AdminSidebar, LoadingSpinner } from "../../components";
@@ -8,17 +8,22 @@ import { openPdf, DOCUMENT_LABELS, formatMoney } from "../../utils/openPdf";
 const TABS = [
     { key: "sold", label: "Ready to send" },
     { key: "request_sent", label: "Awaiting payment" },
-    { key: "paid", label: "Paid" },
+    { key: "paid", label: "Awaiting collection" },
+    { key: "payout_due", label: "Payout due" },
+    { key: "paid_out", label: "Paid out" },
+    { key: "failed", label: "Failed" },
     { key: "all", label: "All" },
+    { key: "historical", label: "Earlier sales" },
 ];
 
 const STATUS_LABELS = {
     sold: "Ready to send",
     request_sent: "Request sent",
     paid: "Paid",
-    collected: "Collected",
+    collected: "Partly confirmed",
     payout_due: "Payout due",
     paid_out: "Paid out",
+    failed: "Failed",
     cancelled: "Cancelled",
 };
 
@@ -26,6 +31,10 @@ const STATUS_STYLES = {
     sold: "bg-amber-100 text-amber-800",
     request_sent: "bg-blue-100 text-blue-800",
     paid: "bg-green-100 text-green-800",
+    paid_out: "bg-emerald-100 text-emerald-800",
+    collected: "bg-green-100 text-green-800",
+    payout_due: "bg-purple-100 text-purple-800",
+    failed: "bg-red-100 text-red-700",
     cancelled: "bg-gray-100 text-gray-600",
 };
 
@@ -138,12 +147,148 @@ function VatModal({ sale, onClose, onSaved }) {
     );
 }
 
+function ManualPayoutModal({ sale, onClose, onDone }) {
+    const [details, setDetails] = useState(null);
+    const [amount, setAmount] = useState("");
+    const [paidAt, setPaidAt] = useState(new Date().toISOString().slice(0, 10));
+    const [reference, setReference] = useState("");
+    const [note, setNote] = useState("");
+    const [sendEmail, setSendEmail] = useState(true);
+    const [saving, setSaving] = useState(false);
+
+    useEffect(() => {
+        axiosInstance
+            .get(`/api/v1/admin/sales/${sale._id}/payout-details`)
+            .then(({ data }) => {
+                setDetails(data.data);
+                setAmount(String(data.data.amount));
+            })
+            .catch((err) => toast.error(err.response?.data?.message || "Could not load payout details"));
+    }, [sale._id]);
+
+    const copy = (text) => {
+        navigator.clipboard?.writeText(text).then(() => toast.success("Copied"), () => {});
+    };
+
+    const save = async () => {
+        if (!reference.trim()) return toast.error("Add the bank payment reference");
+        const differs = details && Number(amount) !== details.amount;
+        if (differs && !note.trim()) return toast.error("The amount differs from what's due; add a note");
+        if (!window.confirm(`Record ${formatMoney(amount, details?.currency)} paid to ${details?.seller?.name} by bank transfer on ${paidAt}?` + (sendEmail ? "\n\nThe seller will be emailed their updated statement." : ""))) return;
+        setSaving(true);
+        try {
+            await axiosInstance.post(`/api/v1/admin/sales/${sale._id}/manual-payout`, { amount, paidAt, reference, note, sendEmail });
+            toast.success(`Manual payout recorded for ${sale.reference}`);
+            onDone();
+        } catch (err) {
+            toast.error(err.response?.data?.message || "Could not record the payout");
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const Row = ({ label, value, mono }) =>
+        value ? (
+            <div className="flex items-center justify-between gap-3 py-1">
+                <span className="text-gray-600">{label}</span>
+                <span className={`flex items-center gap-2 ${mono ? "font-mono" : ""}`}>
+                    {value}
+                    <button type="button" onClick={() => copy(String(value))} className="text-xs underline text-primary">Copy</button>
+                </span>
+            </div>
+        ) : null;
+
+    return (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+                <div className="flex items-center justify-between p-5 border-b">
+                    <h3 className="text-lg font-semibold">Manual payout · {sale.reference}</h3>
+                    <button onClick={onClose} aria-label="Close"><X size={20} /></button>
+                </div>
+                {!details ? (
+                    <LoadingSpinner height="200px" />
+                ) : (
+                    <div className="p-5 space-y-4 text-sm">
+                        <p>
+                            Pay <strong>{details.seller.name}</strong> from RexBid&rsquo;s bank (e.g. BOI), then record it here. No Stripe transfer is made.
+                        </p>
+                        <div className="bg-gray-50 border rounded-lg p-3">
+                            <p className="font-semibold mb-1">Seller&rsquo;s bank details (from their Payout Methods)</p>
+                            {details.bank ? (
+                                <>
+                                    <Row label="Account holder" value={details.bank.accountHolderName} />
+                                    <Row label="IBAN" value={details.bank.iban} mono />
+                                    <Row label="BIC" value={details.bank.bic} mono />
+                                    <Row label="Account no." value={details.bank.accountNumber} mono />
+                                    <Row label="Sort code" value={details.bank.sortCode} mono />
+                                    <Row label="Bank" value={details.bank.bankName} />
+                                </>
+                            ) : (
+                                <p className="text-amber-700">
+                                    No bank details saved on RexBid. Ask the seller for their IBAN
+                                    {details.seller.phone ? ` (${details.seller.phone})` : ""}.
+                                    {details.stripe.bankLast4 ? ` Their Stripe payout bank is ${details.stripe.bankName || ""} ending ${details.stripe.bankLast4}.` : ""}
+                                </p>
+                            )}
+                            <Row label="Amount due" value={Number(details.amount).toFixed(2)} />
+                            <Row label="Suggested reference" value={details.paymentReference} mono />
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                            <label className="block">
+                                <span className="text-gray-600">Amount paid ({details.currency})</span>
+                                <input type="number" step="0.01" min="0" className="mt-1 w-full border rounded-lg p-2" value={amount} onChange={(e) => setAmount(e.target.value)} />
+                            </label>
+                            <label className="block">
+                                <span className="text-gray-600">Date paid</span>
+                                <input type="date" className="mt-1 w-full border rounded-lg p-2" value={paidAt} onChange={(e) => setPaidAt(e.target.value)} />
+                            </label>
+                        </div>
+                        <label className="block">
+                            <span className="text-gray-600">Bank payment reference (required)</span>
+                            <input className="mt-1 w-full border rounded-lg p-2" value={reference} onChange={(e) => setReference(e.target.value)} placeholder="e.g. BOI 365 transaction reference" />
+                        </label>
+                        <label className="block">
+                            <span className="text-gray-600">Note {Number(amount) !== details.amount ? "(required: amount differs)" : "(optional)"}</span>
+                            <textarea className="mt-1 w-full border rounded-lg p-2" rows={2} value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. Paid from BOI to avoid Stripe fees" />
+                        </label>
+                        <label className="flex items-center gap-2">
+                            <input type="checkbox" checked={sendEmail} onChange={(e) => setSendEmail(e.target.checked)} />
+                            Email the seller their &ldquo;You&rsquo;ve been paid&rdquo; statement
+                        </label>
+                    </div>
+                )}
+                <div className="flex justify-end gap-2 p-5 border-t">
+                    <button onClick={onClose} className="px-4 py-2 rounded-lg border">Cancel</button>
+                    <button onClick={save} disabled={saving || !details} className="px-4 py-2 rounded-lg bg-secondary text-white disabled:opacity-50">
+                        {saving ? "Saving…" : "Record payout"}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+const PAID_STATES = ["paid", "collected", "payout_due", "paid_out"];
+const canDocs = (s) => PAID_STATES.includes(s.status);
+const canFail = (s) => ["sold", "request_sent"].includes(s.status);
+const hasDoc = (s, type) => (s.documents || []).some((d) => d.type === type && !d.supersededAt);
+
+const canPay = (s) => s.status === "payout_due" && !s.payout?.reference;
+const netPayout = (s) => Math.round(((s.itemPrice || 0) + (s.vat?.amount || 0) - (s.sellerFee || 0)) * 100) / 100;
+
+const DOC_ACTIONS = {
+    payment_request: { label: "payment request", plural: "payment requests", who: "buyer", eligible: canSend },
+    buyer_receipt: { label: "receipt", plural: "receipts", who: "buyer", eligible: canDocs },
+    seller_statement: { label: "seller statement", plural: "seller statements", who: "seller", eligible: canDocs },
+};
+
 function Sales() {
     const [tab, setTab] = useState("sold");
     const [reviewOnly, setReviewOnly] = useState(false);
     const [search, setSearch] = useState("");
     const [sales, setSales] = useState([]);
     const [counts, setCounts] = useState({});
+    const [historicalCount, setHistoricalCount] = useState(null);
     const [needsReview, setNeedsReview] = useState(0);
     const [loading, setLoading] = useState(true);
     const [selected, setSelected] = useState(new Set());
@@ -154,12 +299,13 @@ function Sales() {
     const load = useCallback(async () => {
         setLoading(true);
         try {
-            const params = new URLSearchParams({ status: tab });
+            const params = new URLSearchParams(tab === "historical" ? { status: "all", historical: "true" } : { status: tab });
             if (reviewOnly) params.set("review", "true");
             if (search.trim()) params.set("search", search.trim());
             const { data } = await axiosInstance.get(`/api/v1/admin/sales?${params}`);
             setSales(data.data.sales);
             setCounts(data.data.counts || {});
+            setHistoricalCount(data.data.historicalCount ?? 0);
             setNeedsReview(data.data.needsReview || 0);
             setSelected(new Set());
         } catch (err) {
@@ -174,8 +320,12 @@ function Sales() {
         return () => clearTimeout(t);
     }, [load, search]);
 
-    const selectable = useMemo(() => sales.filter(canSend), [sales]);
+    const selectable = useMemo(() => sales.filter((s) => canSend(s) || canDocs(s) || canPay(s)), [sales]);
+    const [matchResult, setMatchResult] = useState(null);
+    const [manualSale, setManualSale] = useState(null);
     const allSelected = selectable.length > 0 && selectable.every((s) => selected.has(s._id));
+    const chosen = useMemo(() => sales.filter((s) => selected.has(s._id)), [sales, selected]);
+    const eligible = (type) => chosen.filter(DOC_ACTIONS[type].eligible);
 
     const toggle = (id) =>
         setSelected((prev) => {
@@ -186,36 +336,169 @@ function Sales() {
 
     const toggleAll = () => setSelected(allSelected ? new Set() : new Set(selectable.map((s) => s._id)));
 
-    const issue = async () => {
-        const chosen = sales.filter((s) => selected.has(s._id));
-        const resends = chosen.filter((s) => s.status === "request_sent").length;
+    const issue = async (type) => {
+        const a = DOC_ACTIONS[type];
+        const list = eligible(type);
+        if (!list.length) return;
+        const again = list.filter((s) => hasDoc(s, type)).length;
         const msg =
-            `Send payment requests to ${chosen.length} buyer${chosen.length === 1 ? "" : "s"}?` +
-            (resends ? `\n\n${resends} already had a request; they will get a replacement.` : "") +
-            "\n\nEach buyer is emailed a PDF and it is saved in their Documents.";
+            `Send ${list.length} ${list.length === 1 ? a.label : a.plural}?` +
+            (again ? `\n\n${again} already had one; they will get a replacement.` : "") +
+            `\n\nEach ${a.who} is emailed a PDF and it is saved in their Documents. You get a copy.`;
         if (!window.confirm(msg)) return;
         setSending(true);
         try {
-            const { data } = await axiosInstance.post("/api/v1/admin/sales/issue-payment-requests", {
-                saleIds: chosen.map((s) => s._id),
-            });
+            const { data } =
+                type === "payment_request"
+                    ? await axiosInstance.post("/api/v1/admin/sales/issue-payment-requests", { saleIds: list.map((s) => s._id) })
+                    : await axiosInstance.post("/api/v1/admin/sales/issue-documents", { type, saleIds: list.map((s) => s._id) });
             const { sent, failed, results } = data.data;
-            if (sent) toast.success(`${sent} payment request${sent === 1 ? "" : "s"} sent`);
+            if (sent) toast.success(`${sent} ${sent === 1 ? a.label : a.plural} sent`);
             const notEmailed = results.filter((r) => r.ok && !r.emailed).length;
-            if (notEmailed) toast.error(`${notEmailed} created but the email failed; open Documents to resend`);
+            if (notEmailed) toast.error(`${notEmailed} created but the email failed; open Documents to check`);
             results
                 .filter((r) => !r.ok)
                 .forEach((r) => {
-                    const s = chosen.find((c) => c._id === r.saleId);
+                    const s = list.find((c) => c._id === r.saleId);
                     toast.error(`${s?.reference || r.saleId}: ${r.message}`, { duration: 8000 });
                 });
-            if (failed && !sent) toast.error("No requests were sent");
+            if (failed && !sent) toast.error(`No ${a.plural} were sent`);
             await load();
         } catch (err) {
             toast.error(err.response?.data?.message || "Sending failed");
         } finally {
             setSending(false);
         }
+    };
+
+    const markFailed = async (s) => {
+        const reason = window.prompt(
+            `Mark ${s.reference} (${s.title}) as failed?\n\nAny open Stripe bank-transfer request is cancelled. You can reopen it later.\n\nReason:`,
+            "Buyer did not pay",
+        );
+        if (!reason?.trim()) return;
+        try {
+            await axiosInstance.post(`/api/v1/admin/sales/${s._id}/fail`, { reason });
+            toast.success(`${s.reference} marked failed`);
+            load();
+        } catch (err) {
+            toast.error(err.response?.data?.message || "Could not mark failed");
+        }
+    };
+
+    const reopen = async (s) => {
+        if (!window.confirm(`Reopen ${s.reference}? It goes back to Ready to send.`)) return;
+        try {
+            await axiosInstance.post(`/api/v1/admin/sales/${s._id}/reopen`);
+            toast.success(`${s.reference} reopened`);
+            load();
+        } catch (err) {
+            toast.error(err.response?.data?.message || "Could not reopen");
+        }
+    };
+
+    const sendPayoutSetup = async (s) => {
+        const who = s.seller?.companyName || s.seller?.name || "the seller";
+        if (!window.confirm(`Email ${who} a link to set up their Stripe payout account?`)) return;
+        try {
+            await axiosInstance.post(`/api/v1/admin/sales/${s._id}/payout-setup-email`);
+            toast.success(`Payout setup link sent to ${who}`);
+            load();
+        } catch (err) {
+            toast.error(err.response?.data?.message || "Could not send the link");
+        }
+    };
+
+    const payable = chosen.filter(canPay);
+
+    const paySellers = async () => {
+        if (!payable.length) return;
+        const total = payable.reduce((n, s) => n + netPayout(s), 0);
+        const notReady = payable.filter((s) => s.sellerPayout?.state !== "ready").length;
+        if (
+            !window.confirm(
+                `Pay ${payable.length} seller${payable.length === 1 ? "" : "s"} a total of ${formatMoney(total, payable[0].currency)} by Stripe transfer?` +
+                    (notReady ? `\n\n${notReady} ${notReady === 1 ? "has" : "have"} no ready payout account and will be skipped.` : "") +
+                    "\n\nEach seller is emailed their updated statement. This cannot be undone from here.",
+            )
+        )
+            return;
+        setSending(true);
+        try {
+            const { data } = await axiosInstance.post("/api/v1/admin/sales/pay-sellers", { saleIds: payable.map((s) => s._id) });
+            const { paid, results } = data.data;
+            if (paid) toast.success(`${paid} seller${paid === 1 ? "" : "s"} paid`);
+            results
+                .filter((r) => !r.ok)
+                .forEach((r) => {
+                    const s = payable.find((c) => c._id === r.saleId);
+                    toast.error(`${s?.reference || r.saleId}: ${r.message}`, { duration: 10000 });
+                });
+            await load();
+        } catch (err) {
+            toast.error(err.response?.data?.message || "Payout failed");
+        } finally {
+            setSending(false);
+        }
+    };
+
+    const releaseEarly = async (s) => {
+        const note = window.prompt(
+            `Release the payout for ${s.reference} before both sides confirm collection?\n\nNote who agreed and when (kept on the sale):`,
+        );
+        if (!note?.trim()) return;
+        try {
+            await axiosInstance.post(`/api/v1/admin/sales/${s._id}/release-payout`, { note });
+            toast.success(`${s.reference} moved to Payout due`);
+            load();
+        } catch (err) {
+            toast.error(err.response?.data?.message || "Could not release the payout");
+        }
+    };
+
+    const matchTransfers = async () => {
+        if (!window.confirm("Look through payouts already made in the Stripe Dashboard and mark matching sales as paid out?\n\nA sale matches when a transfer of exactly the seller's amount went to that seller's Stripe account on or after the sale date. No emails are sent.")) return;
+        setSending(true);
+        try {
+            const { data } = await axiosInstance.post("/api/v1/admin/sales/match-transfers");
+            setMatchResult(data.data);
+            await load();
+        } catch (err) {
+            toast.error(err.response?.data?.message || "Matching failed");
+        } finally {
+            setSending(false);
+        }
+    };
+
+    const importHistory = async () => {
+        if (!window.confirm("Import every lot sold before sale records began?\n\nNo emails are sent and nothing is created in Stripe. Paid, paid-out and failed statuses are taken from the auction records.")) return;
+        setSending(true);
+        try {
+            const { data } = await axiosInstance.post("/api/v1/admin/sales/import-history");
+            const r = data.data;
+            toast.success(`Imported ${r.imported} earlier sales: ${r.paid} paid, ${r.paidOut} paid out, ${r.unpaid} unpaid, ${r.failed} failed`, { duration: 8000 });
+            setTab("historical");
+        } catch (err) {
+            toast.error(err.response?.data?.message || "Import failed");
+        } finally {
+            setSending(false);
+        }
+    };
+
+    const button = (type, icon) => {
+        const n = eligible(type).length;
+        if (!n && !(type === "payment_request" && ["sold", "request_sent"].includes(tab))) return null;
+        return (
+            <button
+                key={type}
+                onClick={() => issue(type)}
+                disabled={!n || sending}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white text-sm font-medium disabled:opacity-40"
+            >
+                {icon}
+                {sending ? "Sending…" : `Send ${DOC_ACTIONS[type].plural} (${n})`}
+            </button>
+        );
     };
 
     return (
@@ -231,20 +514,36 @@ function Sales() {
                                 <button onClick={load} className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border bg-white text-sm">
                                     <RefreshCw size={16} /> Refresh
                                 </button>
-                                <button
-                                    onClick={issue}
-                                    disabled={selected.size === 0 || sending}
-                                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white text-sm font-medium disabled:opacity-40"
-                                >
-                                    <Send size={16} />
-                                    {sending ? "Sending…" : `Send payment requests (${selected.size})`}
-                                </button>
+                                {historicalCount === 0 && (
+                                    <button onClick={importHistory} disabled={sending} className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border bg-white text-sm">
+                                        <History size={16} /> Import earlier sales
+                                    </button>
+                                )}
+                                {button("payment_request", <Send size={16} />)}
+                                {button("buyer_receipt", <Receipt size={16} />)}
+                                {button("seller_statement", <FileText size={16} />)}
+                                {(payable.length > 0 || tab === "payout_due") && (
+                                    <button
+                                        onClick={paySellers}
+                                        disabled={!payable.length || sending}
+                                        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-secondary text-white text-sm font-medium disabled:opacity-40"
+                                    >
+                                        <Banknote size={16} />
+                                        {sending ? "Working…" : `Pay sellers (${payable.length})`}
+                                    </button>
+                                )}
+                                {["paid", "payout_due", "paid_out", "historical"].includes(tab) && (
+                                    <button onClick={matchTransfers} disabled={sending} className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border bg-white text-sm">
+                                        <Link2 size={16} /> Match past Stripe payouts
+                                    </button>
+                                )}
                             </div>
                         </div>
                         <p className="text-gray-600 text-sm">
-                            Every sold lot appears here as soon as it sells, including sales paid by card. Tick the sales to send and press the
-                            button: each buyer gets their own Stripe bank details, a PDF by email, and a copy in their Documents. Sales marked
-                            &ldquo;Card OK&rdquo; (under €1,000) also include a pay-by-card link; once paid by card they move to Paid on their own.
+                            Every sold lot appears here as soon as it sells, including sales paid by card. Tick sales and press a Send button:
+                            payment requests go to buyers in Ready to send; receipts (buyer) and seller statements go out for paid sales. Each
+                            document is emailed as a PDF, saved in the recipient&rsquo;s Documents, and copied to you. Use the red cross to mark a
+                            sale as failed.
                         </p>
                     </div>
 
@@ -268,7 +567,7 @@ function Sales() {
                                     className={`px-3 py-1.5 rounded-md text-sm ${tab === t.key && !reviewOnly ? "bg-secondary text-white" : "text-gray-700"}`}
                                 >
                                     {t.label}
-                                    {t.key !== "all" && counts[t.key] ? ` (${counts[t.key]})` : ""}
+                                    {t.key === "historical" ? (historicalCount ? ` (${historicalCount})` : "") : t.key !== "all" && counts[t.key] ? ` (${counts[t.key]})` : ""}
                                 </button>
                             ))}
                             {reviewOnly && <span className="px-3 py-1.5 rounded-md text-sm bg-amber-500 text-white">VAT review</span>}
@@ -316,7 +615,7 @@ function Sales() {
                                                         type="checkbox"
                                                         aria-label={`Select ${s.reference}`}
                                                         checked={selected.has(s._id)}
-                                                        disabled={!canSend(s)}
+                                                        disabled={!canSend(s) && !canDocs(s) && !canPay(s)}
                                                         onChange={() => toggle(s._id)}
                                                     />
                                                 </td>
@@ -336,6 +635,11 @@ function Sales() {
                                                 <td className="p-3 align-top min-w-[160px]">
                                                     <div>{s.buyer?.name || s.buyer?.username}</div>
                                                     <div className="text-xs text-gray-500">{s.buyer?.email}</div>
+                                                    {s.buyer?.phone && (
+                                                        <a href={`tel:${s.buyer.phone.replace(/\s+/g, "")}`} className="text-xs text-gray-700 block">
+                                                            {s.buyer.phone}
+                                                        </a>
+                                                    )}
                                                     <div className="text-xs text-gray-500">{s.buyer?.region || "Location unknown"}</div>
                                                     {s.stripe?.bankTransfer?.iban || s.stripe?.bankTransfer?.accountNumber ? (
                                                         <div className="text-xs font-mono text-gray-700 mt-1" title="Buyer's own Stripe bank-transfer account">
@@ -353,7 +657,37 @@ function Sales() {
                                                 </td>
                                                 <td className="p-3 align-top min-w-[140px]">
                                                     <div>{s.seller?.companyName || s.seller?.name || s.seller?.username}</div>
+                                                    {s.seller?.phone && (
+                                                        <a href={`tel:${s.seller.phone.replace(/\s+/g, "")}`} className="text-xs text-gray-700 block">
+                                                            {s.seller.phone}
+                                                        </a>
+                                                    )}
                                                     <div className="text-xs text-gray-500">Item in {s.vat?.itemRegion || "unknown"}</div>
+                                                    {s.sellerPayout && (
+                                                        <div className="mt-1 flex flex-wrap items-center gap-1">
+                                                            <span
+                                                                className={`text-[11px] px-1.5 py-0.5 rounded ${
+                                                                    s.sellerPayout.state === "ready"
+                                                                        ? "bg-green-50 text-green-700"
+                                                                        : s.sellerPayout.state === "incomplete"
+                                                                          ? "bg-amber-50 text-amber-700"
+                                                                          : "bg-gray-100 text-gray-600"
+                                                                }`}
+                                                                title="Seller's Stripe payout account"
+                                                            >
+                                                                {s.sellerPayout.state === "ready"
+                                                                    ? `Payouts ready${s.sellerPayout.bankLast4 ? ` ·${s.sellerPayout.bankLast4}` : ""}`
+                                                                    : s.sellerPayout.state === "incomplete"
+                                                                      ? "Payout setup incomplete"
+                                                                      : "No payout account"}
+                                                            </span>
+                                                            {s.sellerPayout.state !== "ready" && !s.historical && (
+                                                                <button onClick={() => sendPayoutSetup(s)} className="text-[11px] underline text-primary">
+                                                                    Send setup link
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    )}
                                                 </td>
                                                 <td className="p-3 align-top text-right whitespace-nowrap">{formatMoney(s.itemPrice, s.currency)}</td>
                                                 <td className="p-3 align-top text-right whitespace-nowrap">
@@ -375,6 +709,48 @@ function Sales() {
                                                             {PAYMENT_METHODS[s.payment.method] || "Paid"} · {shortDate(s.payment.paidAt)}
                                                         </div>
                                                     )}
+                                                    {s.status === "failed" && s.failure?.reason && (
+                                                        <div className="text-xs mt-1 text-red-700 max-w-[180px]">{s.failure.reason}</div>
+                                                    )}
+                                                    {canDocs(s) && (
+                                                        <div className="flex flex-wrap gap-1 mt-1">
+                                                            <span className={`text-[11px] px-1.5 py-0.5 rounded ${hasDoc(s, "buyer_receipt") ? "bg-green-50 text-green-700" : "bg-gray-100 text-gray-500"}`}>
+                                                                {hasDoc(s, "buyer_receipt") ? "✓" : "○"} Receipt
+                                                            </span>
+                                                            <span className={`text-[11px] px-1.5 py-0.5 rounded ${hasDoc(s, "seller_statement") ? "bg-green-50 text-green-700" : "bg-gray-100 text-gray-500"}`}>
+                                                                {hasDoc(s, "seller_statement") ? "✓" : "○"} Statement
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                    {["paid", "collected"].includes(s.status) && (
+                                                        <div className="text-[11px] mt-1 text-gray-600">
+                                                            Collected: buyer {s.collection?.buyerConfirmedAt ? "✓" : "○"} · seller {s.collection?.sellerConfirmedAt ? "✓" : "○"}
+                                                            {s.collection?.dueBy && (
+                                                                <div className={new Date(s.collection.dueBy) < new Date() ? "text-red-600 font-medium" : "text-gray-500"}>
+                                                                    Collect by {shortDate(s.collection.dueBy)}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                    {s.status === "payout_due" && (
+                                                        <div className="text-[11px] mt-1 text-purple-800 font-medium">
+                                                            Pay {formatMoney(netPayout(s), s.currency)}
+                                                            {s.collection?.releasedEarly?.note && <div className="font-normal text-gray-500">Released early: {s.collection.releasedEarly.note}</div>}
+                                                        </div>
+                                                    )}
+                                                    {s.status === "paid_out" && s.payout?.paidAt && (
+                                                        <div className="text-[11px] mt-1 text-gray-500">
+                                                            {formatMoney(s.payout.amount, s.currency)} · {shortDate(s.payout.paidAt)}
+                                                            {s.payout.reference && (
+                                                                <div className="font-mono">
+                                                                    {s.payout.method === "bank_transfer" ? "Bank: " : ""}
+                                                                    {s.payout.reference}
+                                                                    {s.payout.matched ? " (matched)" : ""}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                    {s.historical && <div className="text-[11px] mt-1 text-gray-400">Earlier sale</div>}
                                                     {s.status === "request_sent" && s.payment?.dueAt && (
                                                         <div className={`text-xs mt-1 ${new Date(s.payment.dueAt) < new Date() ? "text-red-600 font-medium" : "text-gray-500"}`}>
                                                             Due {shortDate(s.payment.dueAt)}
@@ -395,6 +771,44 @@ function Sales() {
                                                         {["sold", "request_sent"].includes(s.status) && !s.vat?.reviewRequired && s.vat?.applicable && (
                                                             <button title="Change VAT" onClick={() => setVatSale(s)} className="p-2 rounded-lg hover:bg-gray-100 text-xs">
                                                                 VAT
+                                                            </button>
+                                                        )}
+                                                        {canDocs(s) && (
+                                                            <>
+                                                                <button
+                                                                    title="Preview receipt"
+                                                                    onClick={() => openPdf(`/api/v1/admin/sales/${s._id}/receipt/preview`, `${s.reference}-receipt-draft.pdf`)}
+                                                                    className="p-2 rounded-lg hover:bg-gray-100"
+                                                                >
+                                                                    <Receipt size={16} />
+                                                                </button>
+                                                                <button
+                                                                    title="Preview seller statement"
+                                                                    onClick={() => openPdf(`/api/v1/admin/sales/${s._id}/statement/preview`, `${s.reference}-statement-draft.pdf`)}
+                                                                    className="p-2 rounded-lg hover:bg-gray-100"
+                                                                >
+                                                                    <Eye size={16} />
+                                                                </button>
+                                                            </>
+                                                        )}
+                                                        {canPay(s) && (
+                                                            <button title="Manual payout (paid from RexBid's bank)" onClick={() => setManualSale(s)} className="p-2 rounded-lg hover:bg-gray-100">
+                                                                <Landmark size={16} />
+                                                            </button>
+                                                        )}
+                                                        {["paid", "collected"].includes(s.status) && (
+                                                            <button title="Release payout early (both parties agreed)" onClick={() => releaseEarly(s)} className="p-2 rounded-lg hover:bg-gray-100">
+                                                                <Unlock size={16} />
+                                                            </button>
+                                                        )}
+                                                        {canFail(s) && (
+                                                            <button title="Mark as failed" onClick={() => markFailed(s)} className="p-2 rounded-lg hover:bg-red-50 text-red-600">
+                                                                <XCircle size={16} />
+                                                            </button>
+                                                        )}
+                                                        {s.status === "failed" && (
+                                                            <button title="Reopen" onClick={() => reopen(s)} className="p-2 rounded-lg hover:bg-gray-100">
+                                                                <RotateCcw size={16} />
                                                             </button>
                                                         )}
                                                         <button
@@ -424,6 +838,43 @@ function Sales() {
                     onClose={() => setVatSale(null)}
                     onSaved={() => { setVatSale(null); load(); }}
                 />
+            )}
+
+            {manualSale && (
+                <ManualPayoutModal sale={manualSale} onClose={() => setManualSale(null)} onDone={() => { setManualSale(null); load(); }} />
+            )}
+
+            {matchResult && (
+                <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setMatchResult(null)}>
+                    <div className="bg-white rounded-xl w-full max-w-2xl max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center justify-between p-5 border-b">
+                            <h3 className="text-lg font-semibold">Past Stripe payouts</h3>
+                            <button onClick={() => setMatchResult(null)} aria-label="Close"><X size={20} /></button>
+                        </div>
+                        <div className="p-5 space-y-5 text-sm">
+                            <section>
+                                <h4 className="font-semibold mb-2">Matched and marked paid out ({matchResult.matched.length})</h4>
+                                {matchResult.matched.length ? (
+                                    <ul className="space-y-1">{matchResult.matched.map((m) => <li key={m.transferId}>{m.reference} · {m.title} · {formatMoney(m.amount)} · <span className="font-mono">{m.transferId}</span></li>)}</ul>
+                                ) : <p className="text-gray-500">None.</p>}
+                            </section>
+                            <section>
+                                <h4 className="font-semibold mb-2">Paid sales not yet paid out ({matchResult.unmatchedSales.length})</h4>
+                                {matchResult.unmatchedSales.length ? (
+                                    <ul className="space-y-1">{matchResult.unmatchedSales.map((m) => <li key={m.reference}>{m.reference} · {m.title} · {m.seller} · {formatMoney(m.amount)} <span className="text-gray-500">({m.reason})</span></li>)}</ul>
+                                ) : <p className="text-gray-500">None.</p>}
+                                <p className="text-gray-500 mt-2">Recent sales here are simply still awaiting collection or payout. Older ones may have been paid a different amount.</p>
+                            </section>
+                            <section>
+                                <h4 className="font-semibold mb-2">Stripe transfers not matched to a sale ({matchResult.unmatchedTransfers.length})</h4>
+                                {matchResult.unmatchedTransfers.length ? (
+                                    <ul className="space-y-1">{matchResult.unmatchedTransfers.map((t) => <li key={t.transferId}><span className="font-mono">{t.transferId}</span> · {formatMoney(t.amount, t.currency)} · {shortDate(t.date)} · {t.seller || t.destination}</li>)}</ul>
+                                ) : <p className="text-gray-500">None.</p>}
+                                <p className="text-gray-500 mt-2">These usually differ in amount (e.g. a fee was taken off by hand). Check them in Stripe.</p>
+                            </section>
+                        </div>
+                    </div>
+                </div>
             )}
 
             {docsSale && (

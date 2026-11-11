@@ -58,6 +58,10 @@ const saleSchema = new Schema(
         title: String,
         saleDate: Date,
         currency: { type: String, enum: ["EUR", "GBP"], default: "EUR" },
+        // Where the item is, for collection.
+        itemLocation: String,
+        // Sold before sale records began; imported without emails or Stripe calls.
+        historical: { type: Boolean, default: false, index: true },
 
         buyer: partySchema,
         seller: partySchema,
@@ -93,7 +97,7 @@ const saleSchema = new Schema(
 
         status: {
             type: String,
-            enum: ["sold", "request_sent", "paid", "collected", "payout_due", "paid_out", "cancelled"],
+            enum: ["sold", "request_sent", "paid", "collected", "payout_due", "paid_out", "failed", "cancelled"],
             default: "sold",
             index: true,
         },
@@ -126,6 +130,47 @@ const saleSchema = new Schema(
             transactionId: String,
             // Under €1,000 the buyer may also pay by card at /checkout/:auctionId.
             cardCheckoutAvailable: Boolean,
+        },
+
+        // Sale marked failed by an admin (buyer did not pay, sale fell through).
+        failure: {
+            reason: String,
+            previousStatus: String,
+            by: { type: Schema.Types.ObjectId, ref: "User" },
+            at: Date,
+        },
+
+        collection: {
+            // Collect within 3 working days of payment.
+            dueBy: Date,
+            // Each side ticks "collected" in their dashboard; both → payout due.
+            buyerConfirmedAt: Date,
+            sellerConfirmedAt: Date,
+            // Admin released the payout before both ticks (e.g. both parties agreed).
+            releasedEarly: {
+                note: String,
+                by: { type: Schema.Types.ObjectId, ref: "User" },
+                at: Date,
+            },
+        },
+
+        payout: {
+            paidAt: Date,
+            amount: Number,
+            // Stripe transfer id (tr_...) or other payout reference.
+            reference: String,
+            method: String,
+            accountId: String,
+            // Matched to a transfer made earlier in the Stripe Dashboard.
+            matched: Boolean,
+        },
+
+        // When each automatic reminder went out, so each is sent once only.
+        reminders: {
+            paymentDueSoonAt: Date,
+            paymentOverdueAt: Date,
+            collectionDueSoonAt: Date,
+            collectionOverdueAt: Date,
         },
 
         documents: [documentSchema],

@@ -1,0 +1,59 @@
+import { Router } from "express";
+import { auth } from "../middlewares/auth.middleware.js";
+import {
+    refreshSellerConnect,
+    createOnboardingLink,
+    createDashboardLink,
+    payoutState,
+} from "../services/connectService.js";
+
+// Mounted at /api/v1/stripe-connect (sellers and companies, signed in)
+const connectRouter = Router();
+
+const send = (res, sc) =>
+    res.json({
+        success: true,
+        data: {
+            state: payoutState(sc),
+            payoutsEnabled: !!sc?.payoutsEnabled,
+            detailsSubmitted: !!sc?.detailsSubmitted,
+            requirementsDue: sc?.requirementsDue || 0,
+            bankLast4: sc?.bankLast4,
+            bankName: sc?.bankName,
+        },
+    });
+
+const fail = (res, err) => {
+    if (!err.status) console.error("Stripe Connect error:", err);
+    res.status(err.status || 500).json({ success: false, message: err.status ? err.message : "Stripe could not be reached. Please try again." });
+};
+
+connectRouter.get("/status", auth, async (req, res) => {
+    try {
+        send(res, await refreshSellerConnect(req.user._id));
+    } catch (err) {
+        fail(res, err);
+    }
+});
+
+connectRouter.post("/onboarding-link", auth, async (req, res) => {
+    try {
+        const { default: User } = await import("../models/user.model.js");
+        const user = await User.findById(req.user._id);
+        res.json({ success: true, data: { url: await createOnboardingLink(user) } });
+    } catch (err) {
+        fail(res, err);
+    }
+});
+
+connectRouter.post("/dashboard-link", auth, async (req, res) => {
+    try {
+        const { default: User } = await import("../models/user.model.js");
+        const user = await User.findById(req.user._id);
+        res.json({ success: true, data: { url: await createDashboardLink(user) } });
+    } catch (err) {
+        fail(res, err);
+    }
+});
+
+export default connectRouter;

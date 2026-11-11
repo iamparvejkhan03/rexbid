@@ -24,7 +24,7 @@ const QA = [
     },
     {
         q: "How does collection work?",
-        a: "Once the buyer has paid, we share collection details and they collect from you within 5 working days. Buyers can also get a transport quote from our partner EVOLVE.",
+        a: "Once the buyer has paid, we share collection details and they collect from you within 3 working days. Buyers can also get a transport quote from our partner EVOLVE.",
     },
 ];
 
