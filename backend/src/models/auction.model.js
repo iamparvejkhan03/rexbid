@@ -204,6 +204,11 @@ const auctionSchema = new Schema(
       soldAt: Date,
       endedAt: Date,
       note: String,
+      // Seller emailed an invitation to use Buy It Now (automatic or from Admin → Buy It Now).
+      invitedAt: Date,
+      // Latest time the seller can start it (defaults to 72 hours after the end;
+      // an admin invitation gives a fresh 72 hours from the email).
+      startDeadline: Date,
     },
     vatIncluded: {
       type: Boolean,

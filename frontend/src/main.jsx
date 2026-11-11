@@ -113,6 +113,7 @@ const Transactions = lazy(() => import('./pages/admin/Transactions'));
 const Categories = lazy(() => import('./pages/admin/Categories'));
 const AdminPayouts = lazy(() => import('./pages/admin/Payouts'));
 const AdminSales = lazy(() => import('./pages/admin/Sales'));
+const AdminBuyItNow = lazy(() => import('./pages/admin/BuyItNow'));
 const AdminPayoutMethods = lazy(() => import('./pages/admin/PayoutMethods'));
 const AuctionDates = lazy(() => import('./pages/admin/AuctionDates'));
 const EmailHealth = lazy(() => import('./pages/admin/EmailHealth'));
@@ -648,6 +649,16 @@ createRoot(document.getElementById('root')).render(
                             element={
                                 <Suspense fallback={<LoadingSpinner height={'750px'} />}>
                                     <AdminDashboard />
+                                </Suspense>
+                            }
+                        />
+
+                        {/* Admin Buy It Now */}
+                        <Route
+                            path='/admin/buy-it-now'
+                            element={
+                                <Suspense fallback={<LoadingSpinner height={'750px'} />}>
+                                    <AdminBuyItNow />
                                 </Suspense>
                             }
                         />

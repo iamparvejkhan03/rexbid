@@ -71,3 +71,26 @@ test("public data: scheduled price and buyer are hidden", () => {
   assert.equal(live.postAuctionBin.soldTo, undefined);
   assert.equal(live.postAuctionBin.note, undefined);
 });
+
+test("an admin invitation gives the seller a fresh 72 hours", async () => {
+  const { startDeadlineFor } = await import("../src/utils/postAuctionBin.js");
+  const ended = lot({ endDate: new Date(Date.now() - 80 * 36e5) });
+  assert.equal(binStartState(ended).allowed, false);
+  const invited = lot({ endDate: ended.endDate, postAuctionBin: { startDeadline: new Date(Date.now() + 70 * 36e5) } });
+  assert.equal(binStartState(invited).allowed, true);
+  assert.ok(startDeadlineFor(invited) > new Date());
+});
+
+test("seller invite email lists each lot and links to Buy It Now", async () => {
+  const { renderBinInviteEmail } = await import("../src/utils/nodemailer.js");
+  const { subject, html } = renderBinInviteEmail(
+    { firstName: "Pat", userType: "seller" },
+    [{ _id: "a1", title: "MF 5613 <tractor>", currency: "EUR", topBid: 15000, maxPrice: 18000 }],
+    { deadline: new Date("2026-11-14T18:00:00Z") }
+  );
+  assert.match(subject, /Buy It Now/);
+  assert.match(html, /\/buy-it-now/);
+  assert.match(html, /\/seller\/auctions\/all/);
+  assert.match(html, /MF 5613 &lt;tractor&gt;/);
+  assert.match(html, /€18,000/);
+});

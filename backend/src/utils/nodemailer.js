@@ -188,7 +188,8 @@ const formatCurrency = (amount, currency = 'EUR') => {
     const symbol = symbols[currency] || currency;
     const locale = currency === 'GBP' ? 'en-GB' : 'en-IE';
 
-    return `${symbol}${Number(amount)?.toFixed(0).toLocaleString(locale)}`;
+    // toFixed() returns a string, so the old version never added thousands separators.
+    return `${symbol}${Math.round(Number(amount)).toLocaleString(locale)}`;
 };
 
 // Get time remaining for auctions/end dates
@@ -4326,7 +4327,70 @@ const postAuctionBinSellerEmail = async (seller, listing, kind, { price, currenc
     }
 };
 
+// Seller invite: "your lot didn't reach its reserve, put it on Buy It Now".
+// One email per seller listing each of their unsold reserve lots.
+// lots: [{ _id, title, currency, topBid, maxPrice }], deadline: Date to start by.
+const renderBinInviteEmail = (seller, lots, { deadline } = {}) => {
+    const name = seller?.companyName || seller?.firstName || "there";
+    const area = seller?.userType === "company" ? "company" : seller?.userType === "broker" ? "broker" : "seller";
+    const dashboard = `${FRONTEND_URL}/${area}/auctions/all`;
+    const many = lots.length > 1;
+    const deadlineText = deadline
+        ? new Date(deadline).toLocaleString("en-IE", { weekday: "long", day: "numeric", month: "long", hour: "numeric", minute: "2-digit", timeZone: "Europe/Dublin" })
+        : null;
+
+    const rows = lots.map((l) => `
+        <div style="border: 1px solid ${BRAND_COLORS.grayBorder}; border-radius: 10px; padding: 14px 16px; margin: 10px 0;">
+            <p style="margin: 0 0 6px 0; font-weight: bold;"><a href="${FRONTEND_URL}/auction/${l._id}" style="color: ${BRAND_COLORS.secondary};">${escapeHtml(l.title)}</a></p>
+            <p style="margin: 0; font-size: 14px; color: ${BRAND_COLORS.text};">
+                Top bid: <strong>${l.topBid ? formatCurrency(l.topBid, l.currency) : "no bids"}</strong>
+                &nbsp;·&nbsp; Buy It Now price up to <strong>${formatCurrency(l.maxPrice, l.currency)}</strong> (10% below your reserve)
+            </p>
+        </div>`).join("");
+
+    const content = `
+        <h2 style="text-align: center;">${many ? "Your lots" : "Your lot"} didn't reach the reserve. Try Buy It Now</h2>
+        <p>Hi ${escapeHtml(name)},</p>
+        <p>Thanks for selling with RexBid. In last night's sale ${many ? "these lots" : "this lot"} didn't reach your reserve:</p>
+        ${rows}
+        <p style="margin-top: 20px;"><strong>New on RexBid: Buy It Now.</strong> You can now offer an unsold lot at a fixed price for 48 hours on our Buy It Now page, which is also shown at the top of the RexBid homepage.</p>
+        <ul style="padding-left: 20px;">
+            <li>You choose the price. It must be at least 10% below your reserve and above the top bid.</li>
+            <li>We email the bidders, watchers and everyone who asked about the lot.</li>
+            <li>The first buyer to confirm buys it, and the sale goes through RexBid as normal, with payment protected and no extra fee for you.</li>
+        </ul>
+        ${deadlineText ? `<p><strong>You can start Buy It Now until ${escapeHtml(deadlineText)}.</strong> Open the lot's menu in your dashboard and choose <em>Buy It Now (48 hours)</em>.</p>` : ""}
+        <div style="text-align: center; margin: 25px 0 12px 0;">
+            ${createButton("Set my Buy It Now price", dashboard, "primary")}
+        </div>
+        <p style="text-align: center; margin: 0 0 20px 0;">
+            <a href="${FRONTEND_URL}/buy-it-now" style="color: ${BRAND_COLORS.primary}; font-weight: bold;">See the Buy It Now page</a>
+        </p>
+        <p style="font-size: 13px; color: ${BRAND_COLORS.textLight};">Not sure what price to set? Reply to this email or contact us and we'll help.</p>
+    `;
+    return {
+        subject: many
+            ? "Your lots didn't reach the reserve – try Buy It Now for 48 hours"
+            : `Didn't reach the reserve – try Buy It Now: ${lots[0]?.title || ""}`,
+        html: baseTemplate(content, "Buy It Now"),
+    };
+};
+
+const sendBinInviteEmail = async (to, rendered) => {
+    if (!to) return false;
+    const info = await transporter.sendMail({
+        from: `"${BRAND_NAME}" <${process.env.EMAIL_USER}>`,
+        to,
+        replyTo: process.env.EMAIL_USER,
+        subject: rendered.subject,
+        html: rendered.html,
+    });
+    return !!info;
+};
+
 export {
+    renderBinInviteEmail,
+    sendBinInviteEmail,
     postAuctionBinBuyerEmail,
     postAuctionBinSellerEmail,
     newQuestionSellerEmail,
