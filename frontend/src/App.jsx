@@ -3,7 +3,6 @@ import { Footer, Header, MobileNav, ScrollToTop, ScrollToTopIcon, SearchFormPopU
 import { Toaster } from "react-hot-toast";
 import { lazy, Suspense } from "react";
 import { usePopUp } from "./contexts/PopUpContextProvider";
-import RouteSeo from "./components/RouteSeo";
 
 const CategoryImagesSection = lazy(() => import('./components/CategoryImagesSection'));
 
@@ -13,7 +12,6 @@ function App(){
     const isCategoryImagesSectionOpen = isPopupOpen('category');
     return (
         <main className="bg-gray-50">
-            <RouteSeo />
             <Header />
             <Outlet />
             <Footer />

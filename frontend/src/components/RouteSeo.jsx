@@ -85,6 +85,56 @@ const NOINDEX_PREFIXES = ["/admin", "/seller", "/bidder", "/broker", "/company",
 const SELF_MANAGED_PREFIXES = ["/auction/", "/catalogue/", "/seller-reviews/"];
 const SELF_MANAGED_EXACT = ["/auctions"];
 
+// Dashboard page names for the browser tab, e.g. "Sales · Admin | RexBid".
+const DASHBOARD_AREAS = { admin: "Admin", seller: "Seller", company: "Company", broker: "Broker", bidder: "My Account" };
+const DASHBOARD_PAGES = {
+    dashboard: "Dashboard",
+    sales: "Sales",
+    users: "Users",
+    "pilot-users": "Pilot Users",
+    "email-health": "Email Problems",
+    interests: "Guest Interests",
+    "auctions/all": "Auctions",
+    "auctions/create": "Create Listing",
+    "auctions/edit": "Edit Listing",
+    "auctions/sold": "Sold Auctions",
+    "auctions/active": "Active Auctions",
+    "auctions/won": "Won Auctions",
+    "auction-dates": "Auction Dates",
+    catalogues: "Catalogues",
+    bids: "My Bids",
+    "bids/history": "Bid History",
+    offers: "Offers",
+    "offers/all": "Offers",
+    categories: "Categories",
+    transactions: "Transactions",
+    "email-campaigns": "Email Campaigns",
+    comments: "Comments",
+    "seller-reviews": "Seller Reviews",
+    "website-reviews": "Website Reviews",
+    "support/inquiries": "Support",
+    "delivery-quotes": "Delivery Quotes",
+    commissions: "Commissions",
+    payouts: "Payouts",
+    "payout-methods": "Payout Methods",
+    documents: "Documents",
+    watchlist: "Watchlist",
+    billing: "Billing",
+    notifications: "Notifications",
+    profile: "Profile",
+};
+
+const titleCase = (s) => s.replace(/[-_]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+
+const dashboardTitle = (path) => {
+    const [, area, ...rest] = path.split("/");
+    const areaName = DASHBOARD_AREAS[area];
+    if (!areaName) return null;
+    const two = rest.slice(0, 2).join("/");
+    const page = DASHBOARD_PAGES[two] || DASHBOARD_PAGES[rest[0]] || (rest[0] ? titleCase(rest[0]) : "Dashboard");
+    return `${page} · ${areaName} | RexBid`;
+};
+
 const resolveRouteSeo = (pathname) => {
     const path = pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname;
 
@@ -95,7 +145,7 @@ const resolveRouteSeo = (pathname) => {
     if (NOINDEX_PAGES[path]) return { title: NOINDEX_PAGES[path], noindex: true };
     // "/seller-agreement" and "/seller-reviews/..." are public; "/seller" and "/seller/..." are dashboards.
     if (NOINDEX_PREFIXES.some((p) => path === p.replace(/\/$/, "") || path.startsWith(p.endsWith("/") ? p : `${p}/`))) {
-        return { title: "RexBid", noindex: true };
+        return { title: dashboardTitle(path) || "RexBid", noindex: true };
     }
     // Anything else is not a real page (see NotFound route).
     return { skip: true };
