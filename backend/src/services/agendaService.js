@@ -1,4 +1,5 @@
 import Agenda from "agenda";
+import { syncSales } from "./saleService.js";
 import Auction from "../models/auction.model.js";
 import backendAxios from "../utils/backendAxios.js";
 import {
@@ -418,6 +419,16 @@ class AgendaService {
     //   }
     // });
 
+    // Creates a Sale record for every newly sold lot and keeps paid status in step.
+    this.agenda.define("sync sales", async () => {
+      try {
+        const { created, markedPaid } = await syncSales();
+        if (created || markedPaid) console.log(`Sales sync: ${created} created, ${markedPaid} marked paid`);
+      } catch (error) {
+        console.error("Agenda job error (sync sales):", error);
+      }
+    });
+
     // Job to notify users 2 hours before an auction ends
     this.agenda.define("send ending soon notifications", async (job) => {
       try {
@@ -638,6 +649,7 @@ class AgendaService {
     console.log("🕒 Agenda service started");
     await this.agenda.every("15 minutes", "send ending soon notifications");
     await this.agenda.every("15 minutes", "send reserve nudge notifications");
+    await this.agenda.every("15 minutes", "sync sales");
   }
 
   // Graceful shutdown

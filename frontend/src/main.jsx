@@ -85,6 +85,7 @@ const ActiveAuctions = lazy(() => import('./pages/bidder/ActiveAuctions'));
 const MyBids = lazy(() => import('./pages/bidder/MyBids'));
 const MyOffers = lazy(() => import('./pages/bidder/MyOffers'));
 const WonAuctions = lazy(() => import('./pages/bidder/WonAuctions'));
+const BidderDocuments = lazy(() => import('./pages/bidder/Documents'));
 const BidderProfile = lazy(() => import('./pages/bidder/Profile'));
 const BidderNotifications = lazy(() => import('./pages/bidder/Notifications'));
 const BidderBilling = lazy(() => import('./pages/bidder/Billing'));
@@ -107,6 +108,7 @@ const AdminAllOffers = lazy(() => import('./pages/admin/AllOffers'));
 const Transactions = lazy(() => import('./pages/admin/Transactions'));
 const Categories = lazy(() => import('./pages/admin/Categories'));
 const AdminPayouts = lazy(() => import('./pages/admin/Payouts'));
+const AdminSales = lazy(() => import('./pages/admin/Sales'));
 const AdminPayoutMethods = lazy(() => import('./pages/admin/PayoutMethods'));
 const AuctionDates = lazy(() => import('./pages/admin/AuctionDates'));
 const EmailHealth = lazy(() => import('./pages/admin/EmailHealth'));
@@ -572,6 +574,16 @@ createRoot(document.getElementById('root')).render(
                                 </Suspense>
                             }
                         />
+                        {/* Bidder Documents */}
+                        <Route
+                            path='/bidder/documents'
+                            element={
+                                <Suspense fallback={<LoadingSpinner height={'750px'} />}>
+                                    <BidderDocuments />
+                                </Suspense>
+                            }
+                        />
+
                         {/* Bidder Profile */}
                         <Route
                             path='/bidder/profile'
@@ -612,6 +624,16 @@ createRoot(document.getElementById('root')).render(
                             element={
                                 <Suspense fallback={<LoadingSpinner height={'750px'} />}>
                                     <AdminDashboard />
+                                </Suspense>
+                            }
+                        />
+
+                        {/* Admin Sales */}
+                        <Route
+                            path='/admin/sales'
+                            element={
+                                <Suspense fallback={<LoadingSpinner height={'750px'} />}>
+                                    <AdminSales />
                                 </Suspense>
                             }
                         />

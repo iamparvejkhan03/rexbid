@@ -8,6 +8,7 @@ import {
 } from "../utils/nodemailer.js";
 import { getCommissionSettings } from "../utils/commissionCalculator.js";
 import { getCachedRates } from "../routes/currency.route.js";
+import { recordPayment, recordPartialFunding } from "../services/saleService.js";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -185,18 +186,29 @@ export const handleStripeWebhook = async (req, res) => {
         return res.status(400).send(`Webhook Error: ${err.message}`);
     }
 
-    // Handle the event
-    switch (event.type) {
-        case "payment_intent.succeeded":
-            const paymentIntent = event.data.object;
-            await handlePaymentSuccess(paymentIntent);
-            break;
-        case "payment_intent.payment_failed":
-            const failedPaymentIntent = event.data.object;
-            await handlePaymentFailure(failedPaymentIntent);
-            break;
-        default:
-            console.log(`Unhandled event type ${event.type}`);
+    const pi = event.data.object;
+    // Bank-transfer payment requests raised from a Sale record.
+    const isSale = pi?.metadata?.source === "sale_payment_request";
+
+    try {
+        switch (event.type) {
+            case "payment_intent.succeeded":
+                if (isSale) await recordPayment(pi);
+                else await handlePaymentSuccess(pi);
+                break;
+            case "payment_intent.partially_funded":
+                if (isSale) await recordPartialFunding(pi);
+                break;
+            case "payment_intent.payment_failed":
+                if (!isSale) await handlePaymentFailure(pi);
+                break;
+            default:
+                console.log(`Unhandled event type ${event.type}`);
+        }
+    } catch (err) {
+        // Let Stripe retry.
+        console.error(`Webhook ${event.type} failed:`, err);
+        return res.status(500).json({ received: false });
     }
 
     res.json({ received: true });

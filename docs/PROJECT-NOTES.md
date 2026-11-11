@@ -5,7 +5,7 @@ the site (owner, developer, or Claude in a new session) can pick up where things
 were left. **This repository is public: never put passwords, API keys, personal
 data or private business details in this file.**
 
-_Last updated: 9 November 2026_
+_Last updated: 11 November 2026_
 
 ---
 
@@ -45,6 +45,7 @@ MX → `smtp.google.com` · SPF includes `_spf.google.com` (and `spf.reg365.net`
 | Minimum reserve | **€500** (sterling equivalent for £ listings) | `backend/src/utils/listingRules.js`, `frontend/src/utils/listingRules.js` |
 | Minimum no-reserve starting bid | **€400** (sterling equivalent) | same |
 | Payment | Card under €1,000; bank transfer from €1,000; within 48 hours | `backend/src/utils/manualPayment.js` (threshold) |
+| VAT on items | Only when the listing is "VAT Applicable". ROI 23%, NI 20%, on the item price only (never on the buyer fee: RexBid is not VAT registered). Cross-border or unclear-location sales are held for admin review; admin can zero-rate with a note. | `backend/src/utils/vat.js`, `backend/src/utils/region.js` |
 | Collection | Within 5 working days of payment confirmation | Policy |
 | Seller payout | 0–3 working days after collection | Policy |
 | Not as described | Report within 24 hours of collection/delivery | Policy |
@@ -69,6 +70,21 @@ If a fee or rule changes, update `fees.js` / `listingRules.js` **and** the admin
 Email (9 Nov, outside the code): sending moved from Register365 to Google; DKIM enabled; DMARC added. Outlook/Hotmail had been rejecting RexBid email ("lacks SPF/DKIM/DMARC").
 
 Backend tests: `cd backend && npm test` (node:test; 14 tests).
+
+---
+
+## 3a. After-sale process (sale records)
+
+Every lot sold on or after `SALES_TRACKING_START` (default 10 Nov 2026) gets a **Sale** record (`backend/src/models/sale.model.js`) within 15 minutes (Agenda job `sync sales`, also run when the admin Sales page loads). It snapshots buyer, seller, price, buyer fee, VAT and total.
+
+Stages: `sold` → `request_sent` → `paid` → `collected` → `payout_due` → `paid_out`.
+
+- **Admin → Sales** (`/admin/sales`): tick sales, press *Send payment requests*. For each one the site creates a Stripe bank-transfer PaymentIntent (`customer_balance`, EU IBAN from Stripe Ireland; GB sort code for £ sales), so the buyer gets their own IBAN; renders the PDF; emails it; and saves it under the buyer's **Documents** (`/bidder/documents`).
+- PDFs are not stored as files. Each document keeps a snapshot of what was printed and is re-rendered on download, behind login.
+- When Stripe reports the payment (`payment_intent.succeeded` webhook), the sale and the auction are marked paid.
+- Stripe webhook: `POST /api/v1/payments/webhook`, registered in `server.js` before the JSON parser. Needs `STRIPE_WEBHOOK_SECRET` on Render.
+
+Still to build: buyer receipts, payment and collection reminders, buyer/seller "collected" ticks, payout queue with early-release option, seller statements, sales ledger export matching the finance tracker, import of earlier sales.
 
 ---
 
