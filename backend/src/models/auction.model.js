@@ -185,6 +185,26 @@ const auctionSchema = new Schema(
       type: Boolean,
       default: false,
     },
+    // Buy It Now after the auction (utils/postAuctionBin.js). Used when a reserve
+    // lot ends without meeting its reserve. Price is in the lot's own currency.
+    postAuctionBin: {
+      price: { type: Number, min: 0 },
+      status: {
+        type: String,
+        // scheduled: set in advance, starts if the reserve isn't met
+        // live: on the Buy It Now page; processing: a purchase is going through
+        // not_started: the scheduled price wasn't valid once the auction ended
+        enum: [null, "scheduled", "live", "processing", "sold", "expired", "cancelled", "not_started"],
+        default: null,
+      },
+      startedAt: Date,
+      endsAt: Date,
+      topBidAtStart: Number,
+      soldTo: { type: Schema.Types.ObjectId, ref: "User" },
+      soldAt: Date,
+      endedAt: Date,
+      note: String,
+    },
     vatIncluded: {
       type: Boolean,
       default: false,
@@ -480,6 +500,7 @@ auctionSchema.index({ seller: 1, createdAt: -1 });
 auctionSchema.index({ category: 1, status: 1 });
 auctionSchema.index({ startDate: 1, endDate: 1 });
 auctionSchema.index({ "offers.status": 1 });
+auctionSchema.index({ "postAuctionBin.status": 1, "postAuctionBin.endsAt": 1 });
 auctionSchema.index({ "offers.expiresAt": 1 });
 auctionSchema.index({ "proxyBids.bidder": 1, "proxyBids.isActive": 1 });
 auctionSchema.index({ "proxyBids.maxAmount": -1 });

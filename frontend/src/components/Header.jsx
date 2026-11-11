@@ -28,6 +28,10 @@ const navLinks = [
         name: 'Listings',
         href: '/auctions'
     },
+    {
+        name: 'Buy It Now',
+        href: '/buy-it-now'
+    },
 ];
 
 const auctionTypes = [

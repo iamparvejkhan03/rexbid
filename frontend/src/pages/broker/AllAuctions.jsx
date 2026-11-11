@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import BinDashboardModal from "../../components/buyItNow/BinDashboardModal";
 import { LoadingSpinner, LowerReserveModal, BrokerContainer, BrokerHeader, BrokerSidebar } from "../../components";
 import { Gavel, Eye, Award, BarChart3, TrendingUp, DollarSign, Clock, Search, Filter, SortAsc, Users, MoreVertical, Loader } from "lucide-react";
 import axiosInstance from "../../utils/axiosInstance";
@@ -25,6 +26,7 @@ function AllAuctions() {
     const [subCategories, setSubCategories] = useState([]);
 
     const [isLowerReserveModalOpen, setIsLowerReserveModalOpen] = useState(false);
+    const [binAuction, setBinAuction] = useState(null);
     const [lowerReserveCurrentAuction, setLowerReserveCurrentAuction] = useState(false);
     const [activeDropdown, setActiveDropdown] = useState(null);
 
@@ -244,6 +246,8 @@ function AllAuctions() {
             <BrokerSidebar />
 
             {/* Modal */}
+            {binAuction && <BinDashboardModal auction={binAuction} onClose={() => setBinAuction(null)} />}
+
             {
                 isLowerReserveModalOpen &&
                 <LowerReserveModal
@@ -477,6 +481,15 @@ function AllAuctions() {
                                                                         >
                                                                             Lower Reserve Price
                                                                         </button>
+                                                                        {auction?.auctionType === 'reserve' && ['draft', 'approved', 'active', 'reserve_not_met'].includes(auction?.status) && <button
+                                                                            onClick={() => {
+                                                                                setBinAuction(auction);
+                                                                                setActiveDropdown(null);
+                                                                            }}
+                                                                            className="px-4 py-2 text-gray-800 hover:bg-gray-50 transition-colors text-left"
+                                                                        >
+                                                                            Buy It Now (48 hours)
+                                                                        </button>}
                                                                         <Link
                                                                             to={`/broker/auctions/edit/${auction._id}`}
                                                                             className="px-4 py-2 text-gray-700 hover:bg-gray-50 transition-colors text-left"

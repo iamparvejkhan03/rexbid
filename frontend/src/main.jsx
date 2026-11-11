@@ -31,6 +31,7 @@ const DeliveryPartnerQuote = lazy(() => import('./pages/DeliveryPartnerQuote'));
 const Unsubscribe = lazy(() => import('./pages/Unsubscribe'));
 const SingleCatalogue = lazy(() => import('./pages/SingleCatalogue'));
 const Catalogues = lazy(() => import('./pages/Catalogues'));
+const BuyItNow = lazy(() => import('./pages/BuyItNow'));
 const RateUs = lazy(() => import('./pages/RateUs'));
 const Reviews = lazy(() => import('./pages/WhatOurClientsSay'));
 const NotFound = lazy(() => import('./pages/NotFound'));
@@ -180,6 +181,8 @@ createRoot(document.getElementById('root')).render(
                         <Route path='/catalogue/:id' element={<Suspense fallback={<LoadingSpinner height={'725px'} />}><SingleCatalogue /></Suspense>} />
 
                         <Route path='/catalogues' element={<Suspense fallback={<LoadingSpinner height={'725px'} />}><Catalogues /></Suspense>} />
+
+                        <Route path='/buy-it-now' element={<Suspense fallback={<LoadingSpinner height={'725px'} />}><BuyItNow /></Suspense>} />
 
                         <Route path='/rate-us' element={<Suspense fallback={<LoadingSpinner height={'725px'} />}><RateUs /></Suspense>} />
 

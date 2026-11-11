@@ -20,6 +20,7 @@ const STATIC_PAGES = [
     { path: "/auctions?status=sold", changefreq: "daily", priority: "0.7" },
     { path: "/auctions?status=approved", changefreq: "daily", priority: "0.6" },
     { path: "/catalogues", changefreq: "daily", priority: "0.7" },
+    { path: "/buy-it-now", changefreq: "hourly", priority: "0.7" },
     { path: "/sell", changefreq: "monthly", priority: "0.8" },
     { path: "/about", changefreq: "monthly", priority: "0.6" },
     { path: "/faqs", changefreq: "monthly", priority: "0.6" },

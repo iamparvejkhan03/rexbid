@@ -14,6 +14,7 @@ import { socket } from "../utils/socket";
 import { convertAuctionPrices } from "../utils/convertAuctionPrices.js";
 import { useSeo, buildAuctionSeo } from "../utils/seo";
 import { buyerFeeShort } from "../utils/fees";
+import PostAuctionBinPanel from "../components/buyItNow/PostAuctionBinPanel";
 
 const YouTubeEmbed = lazy(() => import('../components/YouTubeEmbed'));
 const ImageLightBox = lazy(() => import('../components/ImageLightBox'));
@@ -441,6 +442,14 @@ function SingleAuction() {
             behavior: 'smooth',
             block: 'start'
         });
+    };
+
+    // Quiet refetch (no spinner), e.g. after a Buy It Now purchase.
+    const refreshAuction = async () => {
+        try {
+            const { data } = await axiosInstance.get(`/api/v1/auctions/${id}?currency=${userCurrency}`);
+            if (data.success) setAuction(data.data.auction);
+        } catch (_) { /* the realtime update will follow */ }
     };
 
     // Links from question emails/texts: /auction/:id?tab=questions#q-<id>
@@ -925,6 +934,11 @@ function SingleAuction() {
                     countdown={countdown}
                     onProxyBidClick={handleOpenProxyBidModal}
                 />
+
+                {/* Buy It Now after the auction (mobile; desktop shows it in the bid panel) */}
+                <div className="lg:hidden">
+                    <PostAuctionBinPanel auction={auction} onPurchased={refreshAuction} />
+                </div>
 
                 <hr className="my-8" />
 
@@ -1481,6 +1495,11 @@ function SingleAuction() {
                                     <p className="text-sm text-blue-600 mt-1">Bidding will begin when the auction starts</p>
                                 </div>
                             )}
+
+                            {/* Buy It Now after the auction (desktop) */}
+                            <div className="hidden lg:block">
+                                <PostAuctionBinPanel auction={auction} onPurchased={refreshAuction} />
+                            </div>
 
                             {countdown.status === 'ended' && (
                                 <div className="text-center py-4 bg-yellow-100 rounded-lg border border-yellow-200">
