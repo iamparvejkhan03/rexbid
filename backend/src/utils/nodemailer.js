@@ -1599,10 +1599,18 @@ const sendAuctionEndedSellerEmail = async (listing) => {
         let payoutSetup = '';
         if (isSold && listing?.winner) {
             try {
-                const { refreshSellerConnect, payoutState, payoutSetupUrl } = await import('../services/connectService.js');
+                const { refreshSellerConnect, payoutState, payoutSetupUrl, ensureConnectAccount } = await import('../services/connectService.js');
                 const sellerUser = await User.findById(listing.seller._id || listing.seller);
                 const sc = sellerUser ? await refreshSellerConnect(sellerUser) : null;
                 const state = payoutState(sc);
+                // Create the Stripe account now so it shows in Connected accounts straight away.
+                if (sellerUser && state === 'none') {
+                    try {
+                        await ensureConnectAccount(sellerUser);
+                    } catch (err) {
+                        console.error('Could not create Stripe payout account:', err.message);
+                    }
+                }
                 if (sellerUser && state !== 'ready') {
                     payoutSetup = `
                         <div style="background: #fffbeb; padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 4px solid ${BRAND_COLORS.warning};">
