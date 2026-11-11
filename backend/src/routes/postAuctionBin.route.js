@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { adminInvitePreview, adminInviteSend, adminInviteTest, adminUnsold, buy, cancel, listLive, lotStatus, lowerPrice, setup } from "../controllers/postAuctionBin.controller.js";
+import { adminRecentSales, adminUndo, adminInvitePreview, adminInviteSend, adminInviteTest, adminUnsold, buy, cancel, listLive, lotStatus, lowerPrice, setup } from "../controllers/postAuctionBin.controller.js";
 import { auth, authAdmin, optionalAuth } from "../middlewares/auth.middleware.js";
 
 // Buy It Now after the auction – mounted at /api/v1/buy-it-now
@@ -16,5 +16,8 @@ postAuctionBinRouter.get("/admin/unsold", authAdmin, adminUnsold);
 postAuctionBinRouter.post("/admin/invite/preview", authAdmin, adminInvitePreview);
 postAuctionBinRouter.post("/admin/invite/test", authAdmin, adminInviteTest);
 postAuctionBinRouter.post("/admin/invite/send", authAdmin, adminInviteSend);
+// Admin → Buy It Now: undo a purchase (test / accidental)
+postAuctionBinRouter.get("/admin/sold", authAdmin, adminRecentSales);
+postAuctionBinRouter.post("/admin/lot/:id/undo", authAdmin, adminUndo);
 
 export default postAuctionBinRouter;

@@ -4296,6 +4296,23 @@ const postAuctionBinSellerEmail = async (seller, listing, kind, { price, currenc
                 <p>The 48 hours on Buy It Now for <strong>${title}</strong> have ended without a buyer. You can relist it in a future sale from your dashboard. Our team is happy to advise on the reserve.</p>`,
             button: "Go to my auctions",
         },
+        undone: {
+            subject: `Buy It Now sale cancelled: ${listing?.title}`,
+            heading: "The Buy It Now sale has been cancelled",
+            body: `<p>Hi ${escapeHtml(name)},</p>
+                <p>Sorry for the confusion. The Buy It Now purchase of <strong>${title}</strong> was made in error and has been cancelled by RexBid, so the lot has <strong>not</strong> been sold. Please ignore the earlier "item sold" email. There's nothing you need to do.</p>
+                <p>The lot is unsold. You can relist it from your dashboard, and we're happy to help.</p>`,
+            button: "Go to my auctions",
+        },
+        undone_relisted: {
+            subject: `Buy It Now sale cancelled – your lot is back on Buy It Now: ${listing?.title}`,
+            heading: "The Buy It Now sale has been cancelled",
+            body: `<p>Hi ${escapeHtml(name)},</p>
+                <p>Sorry for the confusion. The Buy It Now purchase of <strong>${title}</strong> was made in error and has been cancelled by RexBid, so the lot has <strong>not</strong> been sold. Please ignore the earlier "item sold" email. There's nothing you need to do.</p>
+                <p>Your lot is back on Buy It Now at <strong>${priceText}</strong> for another ${binHoursLeft(endsAt)} hours. If it sells, we'll email you straight away.</p>`,
+            button: "View the listing",
+            url: `${FRONTEND_URL}/auction/${listing?._id}`,
+        },
         not_started: {
             subject: `Buy It Now didn't start: ${listing?.title}`,
             heading: "Your Buy It Now price couldn't be used",
