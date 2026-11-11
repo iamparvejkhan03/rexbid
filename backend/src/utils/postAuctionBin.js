@@ -58,6 +58,13 @@ export const binPriceError = (auction, price, { atEnd = true } = {}) => {
   return null;
 };
 
+/** Latest time the seller can start Buy It Now after the auction. */
+export const startDeadlineFor = (auction) => {
+  const byEnd = new Date(new Date(auction?.endDate || 0).getTime() + START_WINDOW_HOURS * 36e5);
+  const extra = auction?.postAuctionBin?.startDeadline ? new Date(auction.postAuctionBin.startDeadline) : null;
+  return extra && extra > byEnd ? extra : byEnd;
+};
+
 /** Can the seller start (or schedule) Buy It Now on this lot right now? */
 export const binStartState = (auction, now = new Date()) => {
   if (!auction || auction.auctionType !== "reserve") return { allowed: false, mode: null, reason: "Only lots with a reserve can use Buy It Now after the auction." };
@@ -69,8 +76,7 @@ export const binStartState = (auction, now = new Date()) => {
     return { allowed: true, mode: "schedule" };
   }
   if (auction.status === "reserve_not_met") {
-    const ended = new Date(auction.endDate || 0).getTime();
-    if (now.getTime() - ended > START_WINDOW_HOURS * 36e5) {
+    if (now.getTime() > startDeadlineFor(auction).getTime()) {
       return { allowed: false, mode: null, reason: `Buy It Now has to be started within ${START_WINDOW_HOURS} hours of the auction ending. You can relist the lot instead.` };
     }
     return { allowed: true, mode: "start" };

@@ -117,6 +117,7 @@ export const handleReserveNotMet = async (auctionId) => {
   // because the top bid is already within 10% of the reserve.
   if (!bin.status && seller && !binPriceError(auction, Math.max(1, topBidOf(auction) + 1), { atEnd: true })) {
     postAuctionBinSellerEmail(seller, auction, "invite").catch(() => {});
+    await Auction.updateOne({ _id: auction._id }, { $set: { "postAuctionBin.invitedAt": new Date() } });
   }
   return false;
 };

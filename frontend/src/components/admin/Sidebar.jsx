@@ -34,7 +34,8 @@ import {
     Star,
     Mail,
     BookMarked,
-    Stars
+    Stars,
+    ShoppingCart,
 } from "lucide-react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { logo } from "../../assets";
@@ -76,6 +77,11 @@ const navigation = [
         name: 'Sales',
         path: '/admin/sales',
         icon: <FileText size={20} />
+    },
+    {
+        name: 'Buy It Now',
+        path: '/admin/buy-it-now',
+        icon: <ShoppingCart size={20} />
     },
     {
         name: "Auction Dates",

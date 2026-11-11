@@ -5,7 +5,9 @@ import mongoose from "mongoose";
 import Auction from "../models/auction.model.js";
 import { getCachedRates } from "../routes/currency.route.js";
 import { publicName } from "../utils/displayName.js";
-import { BIN_HOURS, START_WINDOW_HOURS, binIsLive, binPriceError, binStartState, maxBinPrice, topBidOf } from "../utils/postAuctionBin.js";
+import { BIN_HOURS, START_WINDOW_HOURS, binIsLive, binPriceError, binStartState, maxBinPrice, startDeadlineFor, topBidOf } from "../utils/postAuctionBin.js";
+import User from "../models/user.model.js";
+import { renderBinInviteEmail, sendBinInviteEmail } from "../utils/nodemailer.js";
 import { buyBin, startBin } from "../services/postAuctionBinService.js";
 import { broadcastAuctionChange } from "../services/realtimeService.js";
 
@@ -114,6 +116,7 @@ export const lotStatus = async (req, res) => {
         livePrice: live ? toDisplay(bin.price, auction.baseCurrency, display) : null,
         note: bin.note || null,
         startWindowHours: START_WINDOW_HOURS,
+        startDeadline: auction.status === "reserve_not_met" ? startDeadlineFor(auction) : null,
         // Top bid already within 10% of the reserve: Buy It Now can't work.
         blockedByTopBid: auction.status === "reserve_not_met" && top > 0 && max <= top,
       };
@@ -238,5 +241,156 @@ export const buy = async (req, res) => {
   } catch (error) {
     console.error("Buy It Now purchase error:", error);
     fail(res, error, "Could not complete the purchase");
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Admin → Buy It Now: invite sellers of unsold reserve lots (e.g. last night's
+// sale) to use Buy It Now. Nothing is sent until the admin presses Send.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const INVITE_WINDOW_HOURS = START_WINDOW_HOURS;
+
+// GET /api/v1/buy-it-now/admin/unsold?hours=36
+export const adminUnsold = async (req, res) => {
+  try {
+    const hours = Math.min(24 * 14, Math.max(1, Number(req.query.hours) || 36));
+    const since = new Date(Date.now() - hours * 36e5);
+    const lots = await Auction.find({ status: "reserve_not_met", auctionType: "reserve", winner: null, endDate: { $gte: since } })
+      .select("title endDate reservePrice startPrice currentPrice bidCount baseCurrency seller postAuctionBin auctionType status")
+      .populate("seller", "firstName lastName companyName email userType")
+      .sort({ endDate: -1 })
+      .lean();
+    const now = new Date();
+    res.json({
+      success: true,
+      data: {
+        hours,
+        lots: lots.map((a) => {
+          const state = binStartState(a, now);
+          const max = maxBinPrice(a.reservePrice);
+          const top = topBidOf(a);
+          const blocked = top > 0 && max <= top;
+          return {
+            _id: a._id,
+            title: a.title,
+            endDate: a.endDate,
+            currency: a.baseCurrency || "EUR",
+            reservePrice: a.reservePrice,
+            topBid: top || null,
+            maxPrice: max,
+            binStatus: a.postAuctionBin?.status || null,
+            invitedAt: a.postAuctionBin?.invitedAt || null,
+            startDeadline: startDeadlineFor(a),
+            eligible: state.allowed && !blocked && !a.postAuctionBin?.status,
+            reason: blocked ? "Top bid already within 10% of reserve" : a.postAuctionBin?.status ? `Buy It Now ${a.postAuctionBin.status}` : state.allowed ? null : state.reason,
+            seller: a.seller ? {
+              _id: a.seller._id,
+              name: [a.seller.firstName, a.seller.lastName].filter(Boolean).join(" "),
+              companyName: a.seller.companyName || null,
+              email: a.seller.email,
+            } : null,
+          };
+        }),
+      },
+    });
+  } catch (error) {
+    console.error("Admin unsold lots error:", error);
+    res.status(500).json({ success: false, message: "Could not load unsold lots" });
+  }
+};
+
+// Groups the chosen lots by seller, ready for one email each.
+const buildInvites = async (auctionIds) => {
+  const ids = (Array.isArray(auctionIds) ? auctionIds : []).filter((id) => mongoose.isValidObjectId(id));
+  const lots = await Auction.find({ _id: { $in: ids }, status: "reserve_not_met", auctionType: "reserve", winner: null });
+  const bySeller = new Map();
+  const deadline = new Date(Date.now() + INVITE_WINDOW_HOURS * 36e5);
+  for (const a of lots) {
+    const top = topBidOf(a);
+    const max = maxBinPrice(a.reservePrice);
+    if (a.postAuctionBin?.status || (top > 0 && max <= top)) continue; // not eligible
+    const key = String(a.seller);
+    if (!bySeller.has(key)) bySeller.set(key, []);
+    bySeller.get(key).push(a);
+  }
+  const sellers = await User.find({ _id: { $in: [...bySeller.keys()] } }).select("firstName companyName email userType").lean();
+  return sellers
+    .filter((s) => s.email)
+    .map((seller) => {
+      const auctions = bySeller.get(String(seller._id)) || [];
+      const items = auctions.map((a) => ({
+        _id: a._id,
+        title: a.title,
+        currency: a.baseCurrency || "EUR",
+        topBid: topBidOf(a) || null,
+        maxPrice: maxBinPrice(a.reservePrice),
+      }));
+      return { seller, auctions, rendered: renderBinInviteEmail(seller, items, { deadline }), deadline };
+    })
+    .filter((i) => i.auctions.length > 0);
+};
+
+// POST /api/v1/buy-it-now/admin/invite/preview  { auctionIds }
+export const adminInvitePreview = async (req, res) => {
+  try {
+    const invites = await buildInvites(req.body?.auctionIds);
+    res.json({
+      success: true,
+      data: {
+        sellerCount: invites.length,
+        lotCount: invites.reduce((n, i) => n + i.auctions.length, 0),
+        recipients: invites.map((i) => ({ email: i.seller.email, name: i.seller.companyName || i.seller.firstName, lots: i.auctions.length })),
+        previews: invites.map((i) => ({ to: i.seller.email, subject: i.rendered.subject, html: i.rendered.html })),
+      },
+    });
+  } catch (error) {
+    console.error("Invite preview error:", error);
+    res.status(500).json({ success: false, message: "Could not build the preview" });
+  }
+};
+
+// POST /api/v1/buy-it-now/admin/invite/test  { auctionIds }  – first seller's email, to the admin only
+export const adminInviteTest = async (req, res) => {
+  try {
+    const invites = await buildInvites(req.body?.auctionIds);
+    if (!invites.length) return res.status(400).json({ success: false, message: "None of the selected lots can be invited." });
+    const first = invites[0];
+    await sendBinInviteEmail(req.user.email, { ...first.rendered, subject: `[TEST to ${first.seller.email}] ${first.rendered.subject}` });
+    res.json({ success: true, message: `Test sent to ${req.user.email}` });
+  } catch (error) {
+    console.error("Invite test error:", error);
+    res.status(500).json({ success: false, message: "Could not send the test email" });
+  }
+};
+
+// POST /api/v1/buy-it-now/admin/invite/send  { auctionIds, confirm: true }
+export const adminInviteSend = async (req, res) => {
+  try {
+    if (req.body?.confirm !== true) return res.status(400).json({ success: false, message: "Please confirm before sending." });
+    const invites = await buildInvites(req.body?.auctionIds);
+    let sent = 0;
+    const failed = [];
+    for (const inv of invites) {
+      try {
+        await sendBinInviteEmail(inv.seller.email, inv.rendered);
+        sent += 1;
+        await Auction.updateMany(
+          { _id: { $in: inv.auctions.map((a) => a._id) } },
+          { $set: { "postAuctionBin.invitedAt": new Date(), "postAuctionBin.startDeadline": inv.deadline } }
+        );
+      } catch (e) {
+        console.error(`Invite to ${inv.seller.email} failed:`, e.message);
+        failed.push(inv.seller.email);
+      }
+    }
+    res.json({
+      success: true,
+      message: `Sent to ${sent} seller${sent === 1 ? "" : "s"}${failed.length ? `, ${failed.length} failed` : ""}.`,
+      data: { sent, failed },
+    });
+  } catch (error) {
+    console.error("Invite send error:", error);
+    res.status(500).json({ success: false, message: "Could not send the emails" });
   }
 };

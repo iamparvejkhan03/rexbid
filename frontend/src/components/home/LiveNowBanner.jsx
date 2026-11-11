@@ -9,7 +9,7 @@ import { irishDayKey, livePrice, money, timeLeft, useNow } from "./shared";
  * live price and countdown. Rolls on to the next listing when it closes.
  * Hidden when nothing closes today.
  */
-function LiveNowBanner({ items, currency }) {
+function LiveNowBanner({ items, currency, belowBin = false }) {
     const now = useNow(1000);
     const today = irishDayKey(now);
     const closingToday = items
@@ -25,7 +25,7 @@ function LiveNowBanner({ items, currency }) {
     const urgent = msLeft < 15 * 60 * 1000;
 
     return (
-        <section className="bg-white pt-[72px] md:pt-[84px]" aria-label="Closing now">
+        <section className={`bg-white ${belowBin ? "pt-0" : "pt-[72px] md:pt-[84px]"}`} aria-label="Closing now">
             <Container>
                 <Link
                     to={`/auction/${current._id}`}

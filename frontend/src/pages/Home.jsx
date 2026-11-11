@@ -1,8 +1,10 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { Container, PromoBanner } from "../components";
 import { evolve } from "../assets";
 import HomeHero from "../components/home/HomeHero";
 import LiveNowBanner from "../components/home/LiveNowBanner";
+import HomeBuyItNow from "../components/home/HomeBuyItNow";
+import axiosInstance from "../utils/axiosInstance";
 import { irishDayKey, useClosingNext } from "../components/home/shared";
 
 const FeaturedListings = lazy(() => import("../components/FeaturedListings"));
@@ -24,10 +26,23 @@ function Home() {
         (a) => new Date(a.endDate).getTime() > now && irishDayKey(a.endDate) === today
     );
 
+    // Lots on Buy It Now (after the auction): shown at the very top while any are live.
+    const [binLots, setBinLots] = useState([]);
+    useEffect(() => {
+        let cancelled = false;
+        axiosInstance
+            .get(`/api/v1/buy-it-now?currency=${currency || "EUR"}`)
+            .then(({ data }) => !cancelled && setBinLots(data?.data?.lots || []))
+            .catch(() => {});
+        return () => { cancelled = true; };
+    }, [currency]);
+    const binLive = binLots.some((l) => new Date(l.endsAt).getTime() > now);
+
     return (
         <>
-            <LiveNowBanner items={items} currency={currency} />
-            <HomeHero items={items} currency={currency} excludeId={liveNow?._id} belowBanner={!!liveNow} />
+            <HomeBuyItNow lots={binLots} />
+            <LiveNowBanner items={items} currency={currency} belowBin={binLive} />
+            <HomeHero items={items} currency={currency} excludeId={liveNow?._id} belowBanner={!!liveNow || binLive} />
 
             <Suspense fallback={null}>
                 <SaleDates />

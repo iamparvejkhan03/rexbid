@@ -154,6 +154,10 @@ Data: `auction.postAuctionBin` (price in the lot's own currency, status `schedul
 
 Note: a Buy It Now price shows bidders roughly where the reserve was (it is at most 90% of it).
 
+**Homepage:** while any lot is live on Buy It Now, a Buy It Now strip (up to 4 lots, ending soonest first, "See all") is the first thing on the homepage, above the "Closing now" banner (`frontend/src/components/home/HomeBuyItNow.jsx`).
+
+**Admin → Buy It Now** (`/admin/buy-it-now`): lists unsold reserve lots from the last 36 hours / 3 days / 7 days. Tick lots, **Preview email** (the exact email each seller will get), **Send test to me** (first seller's email, to the signed-in admin only), then **Send** (asks to confirm). One email per seller covering all their lots, with a "Set my Buy It Now price" button (their dashboard) and a link to `/buy-it-now`. Sending records `postAuctionBin.invitedAt` and gives the seller a fresh 72 hours from the email (`postAuctionBin.startDeadline`). Already-invited lots are unticked by default.
+
 ---
 
 ## 4. Open to-do list (most important first)
