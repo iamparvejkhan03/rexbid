@@ -107,7 +107,7 @@ export const buildSale = (auction, buyer, seller) => {
  * Creates sale records for sold lots that do not have one yet.
  * Safe to run repeatedly; it is called on a schedule and from the admin page.
  */
-export const syncSales = async ({ since = SALES_TRACKING_START } = {}) => {
+export const syncSales = async ({ since = SALES_TRACKING_START, ibanLimit = 25 } = {}) => {
     const existing = await Sale.find({}, "auction").lean();
     const have = new Set(existing.map((s) => String(s.auction)));
 
@@ -153,7 +153,8 @@ export const syncSales = async ({ since = SALES_TRACKING_START } = {}) => {
         );
         markedPaid += r.modifiedCount;
     }
-    return { created, markedPaid };
+    const { ibansAdded } = await fillMissingIbans({ limit: ibanLimit });
+    return { created, markedPaid, ibansAdded };
 };
 
 // ─── VAT decisions ─────────────────────────────────────────
@@ -195,21 +196,77 @@ const bankTransferOptions = (currency) =>
         ? { type: "gb_bank_transfer" }
         : { type: "eu_bank_transfer", eu_bank_transfer: { country: "IE" } };
 
-export const instructionsFromPaymentIntent = (pi) => {
-    const ins = pi?.next_action?.display_bank_transfer_instructions;
-    if (!ins) return null;
-    const iban = ins.financial_addresses?.find((f) => f.type === "iban")?.iban;
-    const sort = ins.financial_addresses?.find((f) => f.type === "sort_code")?.sort_code;
+const fromFinancialAddresses = (addresses = [], type, reference) => {
+    const iban = addresses.find((f) => f.type === "iban")?.iban;
+    const sort = addresses.find((f) => f.type === "sort_code")?.sort_code;
+    if (!iban && !sort) return null;
     return {
-        type: ins.type,
+        type,
         iban: iban?.iban,
         bic: iban?.bic,
         country: iban?.country,
         sortCode: sort?.sort_code,
         accountNumber: sort?.account_number,
         accountHolderName: iban?.account_holder_name || sort?.account_holder_name,
-        reference: ins.reference,
+        reference,
     };
+};
+
+export const instructionsFromPaymentIntent = (pi) => {
+    const ins = pi?.next_action?.display_bank_transfer_instructions;
+    if (!ins) return null;
+    return fromFinancialAddresses(ins.financial_addresses, ins.type, ins.reference);
+};
+
+export const instructionsFromFunding = (fi) =>
+    fromFinancialAddresses(fi?.bank_transfer?.financial_addresses, fi?.bank_transfer?.type, undefined);
+
+const hasBankDetails = (sale) => !!(sale.stripe?.bankTransfer?.iban || sale.stripe?.bankTransfer?.accountNumber);
+
+/**
+ * Switches on bank transfer for the buyer in Stripe (the same as "Enable bank
+ * transfer" on the customer in the Stripe Dashboard) and stores their unique
+ * IBAN on the sale, so it shows in admin before anything is sent.
+ */
+export const ensureBuyerIban = async (sale) => {
+    if (hasBankDetails(sale)) return sale;
+    try {
+        const customerId = sale.stripe?.customerId || (await ensureStripeCustomer(sale));
+        const fi = await stripe.customers.createFundingInstructions(customerId, {
+            currency: sale.currency.toLowerCase(),
+            funding_type: "bank_transfer",
+            bank_transfer: bankTransferOptions(sale.currency),
+        });
+        const details = instructionsFromFunding(fi);
+        if (!details) throw new Error("Stripe returned no bank details");
+        sale.set("stripe.customerId", customerId);
+        sale.set("stripe.bankTransfer", details);
+        sale.set("stripe.ibanAddedAt", new Date());
+        sale.set("stripe.ibanError", undefined);
+        sale.notes.push({ text: `Bank transfer enabled in Stripe for ${customerId}` });
+    } catch (err) {
+        console.error(`Could not get IBAN for sale ${sale.reference}:`, err.message);
+        sale.set("stripe.ibanError", err.message);
+    }
+    await sale.save();
+    return sale;
+};
+
+/** Fetches IBANs for unsent sales that do not have one yet. */
+export const fillMissingIbans = async ({ limit = 25 } = {}) => {
+    const sales = await Sale.find({
+        status: { $in: ["sold", "request_sent"] },
+        "stripe.bankTransfer.iban": { $in: [null, ""] },
+        "stripe.bankTransfer.accountNumber": { $in: [null, ""] },
+    })
+        .sort({ saleDate: -1 })
+        .limit(limit);
+    let added = 0;
+    for (const sale of sales) {
+        await ensureBuyerIban(sale);
+        if (hasBankDetails(sale)) added += 1;
+    }
+    return { ibansAdded: added, ibansMissing: sales.length - added };
 };
 
 const ensureStripeCustomer = async (sale) => {

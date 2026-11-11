@@ -113,6 +113,9 @@ const saleSchema = new Schema(
                 reference: String,
             },
             amountReceived: { type: Number, default: 0 },
+            // Set when bank transfer is switched on for the buyer in Stripe.
+            ibanAddedAt: Date,
+            ibanError: String,
         },
 
         payment: {

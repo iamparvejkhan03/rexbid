@@ -326,6 +326,19 @@ function Sales() {
                                                     <div>{s.buyer?.name || s.buyer?.username}</div>
                                                     <div className="text-xs text-gray-500">{s.buyer?.email}</div>
                                                     <div className="text-xs text-gray-500">{s.buyer?.region || "Location unknown"}</div>
+                                                    {s.stripe?.bankTransfer?.iban || s.stripe?.bankTransfer?.accountNumber ? (
+                                                        <div className="text-xs font-mono text-gray-700 mt-1" title="Buyer's own Stripe bank-transfer account">
+                                                            {s.stripe.bankTransfer.iban ||
+                                                                `${s.stripe.bankTransfer.sortCode} ${s.stripe.bankTransfer.accountNumber}`}
+                                                        </div>
+                                                    ) : ["sold", "request_sent"].includes(s.status) ? (
+                                                        <div
+                                                            className={`text-xs mt-1 ${s.stripe?.ibanError ? "text-red-600" : "text-gray-400"}`}
+                                                            title={s.stripe?.ibanError || ""}
+                                                        >
+                                                            {s.stripe?.ibanError ? "IBAN failed – press Refresh" : "Getting IBAN from Stripe…"}
+                                                        </div>
+                                                    ) : null}
                                                 </td>
                                                 <td className="p-3 align-top min-w-[140px]">
                                                     <div>{s.seller?.companyName || s.seller?.name || s.seller?.username}</div>
