@@ -209,6 +209,18 @@ const auctionSchema = new Schema(
       // Latest time the seller can start it (defaults to 72 hours after the end;
       // an admin invitation gives a fresh 72 hours from the email).
       startDeadline: Date,
+      // Purchases reversed by an admin (e.g. a test or accidental purchase).
+      undone: [
+        {
+          buyer: { type: Schema.Types.ObjectId, ref: "User" },
+          price: Number,
+          boughtAt: Date,
+          saleReference: String,
+          reason: String,
+          by: { type: Schema.Types.ObjectId, ref: "User" },
+          at: Date,
+        },
+      ],
     },
     vatIncluded: {
       type: Boolean,

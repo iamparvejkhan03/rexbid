@@ -8,7 +8,7 @@ import { publicName } from "../utils/displayName.js";
 import { BIN_HOURS, START_WINDOW_HOURS, binIsLive, binPriceError, binStartState, maxBinPrice, startDeadlineFor, topBidOf } from "../utils/postAuctionBin.js";
 import User from "../models/user.model.js";
 import { renderBinInviteEmail, sendBinInviteEmail } from "../utils/nodemailer.js";
-import { buyBin, startBin } from "../services/postAuctionBinService.js";
+import { buyBin, recentBinSales, startBin, undoBinPurchase } from "../services/postAuctionBinService.js";
 import { broadcastAuctionChange } from "../services/realtimeService.js";
 
 const STAFF = new Set(["admin", "staff"]);
@@ -392,5 +392,54 @@ export const adminInviteSend = async (req, res) => {
   } catch (error) {
     console.error("Invite send error:", error);
     res.status(500).json({ success: false, message: "Could not send the emails" });
+  }
+};
+
+// GET /api/v1/buy-it-now/admin/sold   – Buy It Now sales in the last 14 days
+export const adminRecentSales = async (req, res) => {
+  try {
+    const lots = await recentBinSales(14);
+    res.json({
+      success: true,
+      data: {
+        lots: lots.map((a) => ({
+          _id: a._id,
+          title: a.title,
+          currency: a.baseCurrency || "EUR",
+          price: a.postAuctionBin.price,
+          soldAt: a.postAuctionBin.soldAt,
+          endsAt: a.postAuctionBin.endsAt,
+          paid: a.paymentStatus === "completed",
+          buyer: a.winner ? { name: a.winner.companyName || [a.winner.firstName, a.winner.lastName].filter(Boolean).join(" "), email: a.winner.email } : null,
+          seller: a.seller ? { name: a.seller.companyName || [a.seller.firstName, a.seller.lastName].filter(Boolean).join(" "), email: a.seller.email } : null,
+        })),
+      },
+    });
+  } catch (error) {
+    console.error("Admin recent Buy It Now sales error:", error);
+    res.status(500).json({ success: false, message: "Could not load Buy It Now sales" });
+  }
+};
+
+// POST /api/v1/buy-it-now/admin/lot/:id/undo   { reason, relist, notifySeller, confirm: true }
+export const adminUndo = async (req, res) => {
+  try {
+    if (req.body?.confirm !== true) return res.status(400).json({ success: false, message: "Please confirm." });
+    if (!mongoose.isValidObjectId(req.params.id)) return res.status(404).json({ success: false, message: "Lot not found" });
+    const result = await undoBinPurchase(req.params.id, req.user, {
+      reason: req.body?.reason,
+      relist: req.body?.relist !== false,
+      notifySeller: req.body?.notifySeller !== false,
+    });
+    res.json({
+      success: true,
+      message: result.endsAt
+        ? `Purchase undone. The lot is back on Buy It Now until ${new Date(result.endsAt).toLocaleString("en-IE", { timeZone: "Europe/Dublin", weekday: "short", hour: "numeric", minute: "2-digit" })}.`
+        : "Purchase undone. The lot is unsold.",
+      data: { endsAt: result.endsAt, saleRemoved: result.saleRemoved },
+    });
+  } catch (error) {
+    console.error("Undo Buy It Now error:", error);
+    fail(res, error, "Could not undo the purchase");
   }
 };

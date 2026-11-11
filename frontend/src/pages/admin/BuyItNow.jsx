@@ -5,7 +5,7 @@
 // 2. See what is live on Buy It Now right now.
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Eye, Loader2, Mail, RefreshCw, Send, X } from "lucide-react";
+import { Eye, Loader2, Mail, RefreshCw, Send, Undo2, X } from "lucide-react";
 import toast from "react-hot-toast";
 import { AdminContainer, AdminHeader, AdminSidebar } from "../../components";
 import axiosInstance from "../../utils/axiosInstance";
@@ -46,6 +46,56 @@ const PreviewModal = ({ previews, onClose }) => {
     );
 };
 
+const UndoModal = ({ lot, onClose, onDone }) => {
+    const [reason, setReason] = useState("Test purchase by RexBid");
+    const [relist, setRelist] = useState(true);
+    const [notifySeller, setNotifySeller] = useState(true);
+    const [busy, setBusy] = useState(false);
+    const submit = async () => {
+        setBusy(true);
+        try {
+            const { data } = await axiosInstance.post(`/api/v1/buy-it-now/admin/lot/${lot._id}/undo`, { reason, relist, notifySeller, confirm: true });
+            toast.success(data.message, { duration: 8000 });
+            onDone();
+        } catch (e) {
+            toast.error(e.response?.data?.message || "Couldn't undo the purchase", { duration: 8000 });
+        } finally {
+            setBusy(false);
+        }
+    };
+    return (
+        <div className="fixed inset-0 z-[70] bg-black/50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="undo-title">
+            <div className="bg-white rounded-xl w-full max-w-lg p-5">
+                <div className="flex items-start justify-between gap-4">
+                    <h2 id="undo-title" className="text-lg font-semibold">Undo Buy It Now purchase</h2>
+                    <button type="button" onClick={onClose} aria-label="Close" className="p-1 text-gray-500 hover:text-black"><X size={20} /></button>
+                </div>
+                <p className="text-sm text-gray-700 mt-1"><strong>{lot.title}</strong>, bought by {lot.buyer?.name} ({lot.buyer?.email}) for {money(lot.price, lot.currency)}.</p>
+                <ul className="text-sm text-gray-600 mt-3 list-disc pl-5 space-y-1">
+                    <li>Cancels the sale and any payment request (checks Stripe first that nothing has been paid).</li>
+                    <li>The lot goes back to "reserve not met" with its top bid restored.</li>
+                </ul>
+                <label htmlFor="undo-reason" className="block text-sm font-medium mt-4">Reason (kept on the lot)</label>
+                <input id="undo-reason" value={reason} onChange={(e) => setReason(e.target.value)} className="mt-1 w-full border border-gray-300 rounded-md px-3 py-2 text-sm" />
+                <label className="flex items-start gap-2 mt-4 text-sm">
+                    <input type="checkbox" checked={relist} onChange={(e) => setRelist(e.target.checked)} className="mt-1" />
+                    <span>Put it back on Buy It Now for the time it had left (at least 24 hours)</span>
+                </label>
+                <label className="flex items-start gap-2 mt-2 text-sm">
+                    <input type="checkbox" checked={notifySeller} onChange={(e) => setNotifySeller(e.target.checked)} className="mt-1" />
+                    <span>Email the seller ({lot.seller?.email}) that the sale was cancelled in error and to ignore the "item sold" email{relist ? ", and that the lot is back on Buy It Now" : ""}</span>
+                </label>
+                <div className="mt-5 flex justify-end gap-2">
+                    <button type="button" onClick={onClose} className="px-4 py-2 border rounded-md text-sm">Cancel</button>
+                    <button type="button" disabled={busy || !reason.trim()} onClick={submit} className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-md text-sm disabled:opacity-50">
+                        {busy ? <Loader2 size={16} className="animate-spin" /> : <Undo2 size={16} />} Undo purchase
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 function AdminBuyItNow() {
     const [hours, setHours] = useState(36);
     const [lots, setLots] = useState(null);
@@ -53,14 +103,18 @@ function AdminBuyItNow() {
     const [busy, setBusy] = useState(null); // "preview" | "test" | "send"
     const [previews, setPreviews] = useState(null);
     const [live, setLive] = useState([]);
+    const [sold, setSold] = useState([]);
+    const [undoLot, setUndoLot] = useState(null);
 
     const load = async () => {
         setLots(null);
         try {
-            const [{ data }, liveRes] = await Promise.all([
+            const [{ data }, liveRes, soldRes] = await Promise.all([
                 axiosInstance.get(`/api/v1/buy-it-now/admin/unsold?hours=${hours}`),
                 axiosInstance.get(`/api/v1/buy-it-now`),
+                axiosInstance.get(`/api/v1/buy-it-now/admin/sold`).catch(() => null),
             ]);
+            setSold(soldRes?.data?.data?.lots || []);
             const list = data.data.lots || [];
             setLots(list);
             setSelected(new Set(list.filter((l) => l.eligible && !l.invitedAt).map((l) => l._id)));
@@ -131,6 +185,7 @@ function AdminBuyItNow() {
     return (
         <section className="flex min-h-screen bg-gray-50">
             {previews && <PreviewModal previews={previews} onClose={() => setPreviews(null)} />}
+            {undoLot && <UndoModal lot={undoLot} onClose={() => setUndoLot(null)} onDone={() => { setUndoLot(null); load(); }} />}
             <AdminSidebar />
             <div className="w-full relative">
                 <AdminHeader />
@@ -218,6 +273,33 @@ function AdminBuyItNow() {
                                         </button>
                                     </div>
                                 </>
+                            )}
+                        </div>
+
+                        <div className="bg-white border border-gray-200 rounded-lg p-5 mt-6">
+                            <h2 className="text-lg font-semibold">Bought on Buy It Now (last 14 days)</h2>
+                            {sold.length === 0 ? (
+                                <p className="text-sm text-gray-500 mt-2">No Buy It Now sales yet.</p>
+                            ) : (
+                                <ul className="mt-3 divide-y text-sm">
+                                    {sold.map((l) => (
+                                        <li key={l._id} className="py-3 flex flex-wrap items-center justify-between gap-3">
+                                            <div className="min-w-0">
+                                                <Link to={`/auction/${l._id}`} target="_blank" className="underline font-medium">{l.title}</Link>
+                                                <p className="text-xs text-gray-500">
+                                                    {money(l.price, l.currency)} · bought {fmtDate(l.soldAt)} by {l.buyer?.name} ({l.buyer?.email}) · seller {l.seller?.name}
+                                                </p>
+                                            </div>
+                                            {l.paid ? (
+                                                <span className="text-xs text-green-700">Paid</span>
+                                            ) : (
+                                                <button type="button" onClick={() => setUndoLot(l)} className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-red-300 text-red-700 rounded-md text-xs hover:bg-red-50">
+                                                    <Undo2 size={14} /> Undo purchase
+                                                </button>
+                                            )}
+                                        </li>
+                                    ))}
+                                </ul>
                             )}
                         </div>
 

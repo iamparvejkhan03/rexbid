@@ -158,6 +158,8 @@ Note: a Buy It Now price shows bidders roughly where the reserve was (it is at m
 
 **Admin → Buy It Now** (`/admin/buy-it-now`): lists unsold reserve lots from the last 36 hours / 3 days / 7 days. Tick lots, **Preview email** (the exact email each seller will get), **Send test to me** (first seller's email, to the signed-in admin only), then **Send** (asks to confirm). One email per seller covering all their lots, with a "Set my Buy It Now price" button (their dashboard) and a link to `/buy-it-now`. Sending records `postAuctionBin.invitedAt` and gives the seller a fresh 72 hours from the email (`postAuctionBin.startDeadline`). Already-invited lots are unticked by default.
 
+**Undoing a purchase** (test or accidental): Admin → Buy It Now → *Bought on Buy It Now* → **Undo purchase** (unpaid sales only). It checks Stripe that nothing has been paid and cancels any payment request, removes the sale record (a copy is kept on the lot in `postAuctionBin.undone`, with the reason), puts the lot back to "reserve not met" with its top bid restored, and optionally puts it back on Buy It Now for the time it had left (at least 24 hours) and emails the seller to ignore the "item sold" email.
+
 ---
 
 ## 4. Open to-do list (most important first)

@@ -5,6 +5,7 @@ import Auction from "../models/auction.model.js";
 import User from "../models/user.model.js";
 import Watchlist from "../models/watchlist.model.js";
 import Comment from "../models/comment.model.js";
+import Sale from "../models/sale.model.js";
 import { calculateCommission } from "../utils/commissionCalculator.js";
 import { BIN_HOURS, binIsLive, binPriceError, topBidOf } from "../utils/postAuctionBin.js";
 import {
@@ -231,3 +232,111 @@ export const expireBins = async (now = new Date()) => {
 };
 
 export const isLive = binIsLive;
+
+/**
+ * Admin: reverses a Buy It Now purchase that hasn't been paid (e.g. a test or
+ * accidental purchase). Cancels any Stripe payment request, removes the sale
+ * record (a copy is kept on the lot), returns the lot to "reserve not met" and,
+ * if asked, puts it back on Buy It Now for the time it had left.
+ * @param {{ reason: string, relist: boolean, notifySeller: boolean }} opts
+ */
+export const undoBinPurchase = async (auctionId, admin, { reason, relist = true, notifySeller = true } = {}) => {
+  if (!reason?.trim()) throw httpError(400, "Add a reason");
+  const auction = await Auction.findById(auctionId);
+  if (!auction) throw httpError(404, "Lot not found");
+  const bin = auction.postAuctionBin || {};
+  if (bin.status !== "sold" || auction.status !== "sold") throw httpError(400, "This lot wasn't bought on Buy It Now.");
+  if (auction.paymentStatus === "completed") throw httpError(409, "This sale has been paid. Refund it before undoing.");
+
+  const sale = await Sale.findOne({ auction: auction._id });
+  if (sale) {
+    if (!["sold", "request_sent", "failed"].includes(sale.status)) {
+      throw httpError(409, `The sale is already ${sale.status.replace("_", " ")}, so it can't be undone here.`);
+    }
+    const piId = sale.stripe?.paymentIntentId;
+    if (piId) {
+      const { default: Stripe } = await import("stripe");
+      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+      const pi = await stripe.paymentIntents.retrieve(piId);
+      if (pi.amount_received > 0 || pi.status === "succeeded") {
+        throw httpError(409, "Money has already arrived for this sale in Stripe. Check Stripe before undoing.");
+      }
+      if (!["canceled", "succeeded"].includes(pi.status)) await stripe.paymentIntents.cancel(piId);
+    }
+  }
+
+  const now = new Date();
+  const buyerId = bin.soldTo || auction.winner;
+  // Time it had left when it was bought; at least 24 hours if it's put back.
+  const remainingMs = Math.max(
+    24 * 36e5,
+    new Date(bin.endsAt || now).getTime() - new Date(bin.soldAt || now).getTime()
+  );
+
+  // Back to how it was after the auction: top bid and bidder from the bids.
+  const bids = (auction.bids || []).filter((b) => !b.isBuyNow).sort((a, b) => b.amount - a.amount);
+  auction.status = "reserve_not_met";
+  auction.winner = null;
+  auction.finalPrice = undefined;
+  auction.currentPrice = bids[0]?.amount ?? auction.startPrice;
+  auction.currentBidder = bids[0]?.bidder ?? null;
+  for (const f of ["commissionAmount", "sellerCommissionAmount", "bidderCommissionAmount", "commissionType", "commissionValue", "featuredPremiumAmount"]) {
+    auction[f] = undefined;
+  }
+  auction.paymentStatus = "pending";
+
+  const record = {
+    buyer: buyerId,
+    price: bin.price,
+    boughtAt: bin.soldAt,
+    saleReference: sale?.reference,
+    reason: reason.trim(),
+    by: admin._id,
+    at: now,
+  };
+  auction.postAuctionBin.undone = [...(bin.undone || []), record];
+  auction.postAuctionBin.soldTo = undefined;
+  auction.postAuctionBin.soldAt = undefined;
+  if (relist) {
+    auction.postAuctionBin.status = "live";
+    auction.postAuctionBin.endsAt = new Date(now.getTime() + remainingMs);
+    auction.postAuctionBin.endedAt = undefined;
+  } else {
+    auction.postAuctionBin.status = "cancelled";
+    auction.postAuctionBin.endedAt = now;
+  }
+  auction.postAuctionBin.note = `Purchase undone by RexBid: ${reason.trim()}`;
+  await auction.save();
+  if (sale) await Sale.deleteOne({ _id: sale._id });
+
+  if (relist) {
+    try {
+      const { default: agendaService } = await import("./agendaService.js");
+      await agendaService.scheduleBinEnd?.(auction._id, auction.postAuctionBin.endsAt);
+    } catch { /* the 15-minute sweep covers it */ }
+  }
+  broadcastAuctionChange(auction._id);
+
+  if (notifySeller) {
+    const seller = await User.findById(auction.seller).select(SELLER_FIELDS).lean();
+    if (seller) {
+      postAuctionBinSellerEmail(seller, auction, relist ? "undone_relisted" : "undone", {
+        price: bin.price,
+        currency: auction.baseCurrency || "EUR",
+        endsAt: auction.postAuctionBin.endsAt,
+      }).catch((e) => console.error("Undo seller email failed:", e));
+    }
+  }
+  return { auction, saleRemoved: !!sale, endsAt: relist ? auction.postAuctionBin.endsAt : null };
+};
+
+/** Admin: recent Buy It Now sales (for the undo list). */
+export const recentBinSales = async (days = 14) => {
+  const since = new Date(Date.now() - days * 864e5);
+  return Auction.find({ "postAuctionBin.status": "sold", "postAuctionBin.soldAt": { $gte: since } })
+    .select("title baseCurrency postAuctionBin paymentStatus status winner seller")
+    .populate("winner", "firstName lastName companyName email")
+    .populate("seller", "firstName lastName companyName email")
+    .sort({ "postAuctionBin.soldAt": -1 })
+    .lean();
+};
