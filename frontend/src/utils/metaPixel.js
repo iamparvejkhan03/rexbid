@@ -64,9 +64,12 @@ export function trackMeta(eventName, params = {}) {
 
 // New account. Sellers and companies also get SellerSignUp, so seller
 // campaigns can optimise for real sellers rather than any sign-up.
-export function trackMetaRegistration(userType) {
-    trackMeta('CompleteRegistration', { content_category: userType || 'bidder' });
+// Meta asks for value + currency on CompleteRegistration (Events Manager
+// diagnostics); a sign-up has no money value, so value is 0.
+export function trackMetaRegistration(userType, currency) {
+    const cur = currency === 'GBP' ? 'GBP' : 'EUR';
+    trackMeta('CompleteRegistration', { content_category: userType || 'bidder', value: 0, currency: cur });
     if (userType === 'seller' || userType === 'company') {
-        trackMeta('SellerSignUp', { content_category: userType });
+        trackMeta('SellerSignUp', { content_category: userType, value: 0, currency: cur });
     }
 }
