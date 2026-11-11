@@ -420,7 +420,7 @@ const Register = () => {
                     : '/bidder/dashboard';
 
             // Track successful registration in Meta (Pixel + Conversions API)
-            trackMetaRegistration(data.data.user.userType);
+            trackMetaRegistration(data.data.user.userType, data.data.user.currency);
 
             gtag('event', 'sign_up', {
                 user_type: data.data.user.userType,

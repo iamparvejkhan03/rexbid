@@ -149,7 +149,7 @@ const AuthBidModal = ({ isOpen, onClose, onAuthSuccess, pendingAction }) => {
             setUser(user);
 
             // GA + Meta (mirror Register.jsx)
-            trackMetaRegistration(user.userType);
+            trackMetaRegistration(user.userType, user.currency);
             if (typeof window.gtag === 'function') {
                 window.gtag('event', 'sign_up', {
                     user_type: user.userType,
