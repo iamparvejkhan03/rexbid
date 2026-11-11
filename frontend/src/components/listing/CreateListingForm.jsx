@@ -38,6 +38,7 @@ import axiosInstance from '../../utils/axiosInstance.js';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext.jsx';
 import { compressAuctionImages } from '../../utils/compressImage.js';
+import { trackMeta } from '../../utils/metaPixel.js';
 import { TouchBackend } from 'react-dnd-touch-backend';
 import { validateMinStart, validateMinReserve, minimumsHint, suggestedIncrement } from '../../utils/listingRules';
 import { FEATURED_FEE_EUR, SELLER_FEES_FREE_UNTIL, META_BOOST_PACKAGES, META_BOOST_MIN_HOURS_BEFORE_CLOSE, extraPriceLabel } from '../../utils/fees';
@@ -437,6 +438,7 @@ const CreateListingForm = ({ Container, Header, Sidebar, basePath, defaultUserTy
         gtag('event', 'listing_start', {
             user_type: user?.userType || defaultUserType
         });
+        trackMeta('ListingStart', { content_category: user?.userType || defaultUserType });
     };
 
     const {
@@ -914,6 +916,12 @@ const CreateListingForm = ({ Container, Header, Sidebar, basePath, defaultUserTy
 
             if (data && data.success) {
                 toast.success("Thanks! We'll check your listing within 12 hours and email you when it's live.", { duration: 8000 });
+
+                trackMeta('Lead', {
+                    content_ids: data.data?._id ? [String(data.data._id)] : undefined,
+                    content_name: auctionData.title,
+                    content_category: auctionData.parentCategory,
+                });
 
                 gtag('event', 'listing_submit', {
                     listing_id: data.data?._id,
