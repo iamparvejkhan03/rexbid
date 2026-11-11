@@ -3876,8 +3876,8 @@ const docDate = (d, withTime = false) => new Date(d).toLocaleString('en-IE', {
 });
 
 
-// "Leave us a review" block, linking to the What Our Clients Say page.
-const REVIEWS_URL = process.env.REVIEWS_URL || `${FRONTEND_URL}/reviews`;
+// "Leave us a review" block, linking straight to the review form.
+const REVIEWS_URL = process.env.REVIEWS_URL || `${FRONTEND_URL}/rate-us`;
 const reviewBlock = (text) => `
     <div style="text-align: center; margin: 30px 0 10px 0; padding-top: 20px; border-top: 1px solid ${BRAND_COLORS.grayBorder};">
         <p style="margin: 0 0 4px 0; color: ${BRAND_COLORS.textLight};">${text}</p>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Container, LoadingSpinner } from "../components";
-import { Star, MapPin, Quote, Users, Sparkles, Loader2 } from "lucide-react";
+import { Star, MapPin, Quote, Users, Sparkles, Loader2, PenLine } from "lucide-react";
+import { Link } from "react-router-dom";
 import axiosInstance from "../utils/axiosInstance";
 import toast from "react-hot-toast";
 
@@ -105,6 +106,14 @@ function WhatOurClientsSay() {
                             Real feedback from buyers and sellers who use RexBid.
                         </p>
 
+                        <Link
+                            to="/rate-us"
+                            className="mt-6 inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[#D19F3E] text-white font-semibold hover:bg-[#B88A2E] transition-colors"
+                        >
+                            <PenLine size={18} />
+                            Leave a Review
+                        </Link>
+
                         {/* Summary */}
                         {summary.total > 0 && (
                             <div className="mt-8 inline-flex flex-wrap items-center justify-center gap-x-8 gap-y-4 bg-white/5 border border-white/10 rounded-2xl px-6 py-4">
@@ -145,9 +154,9 @@ function WhatOurClientsSay() {
                         <Users size={48} className="mx-auto text-gray-300 mb-3" />
                         <p className="text-gray-500">
                             No reviews yet. Be the first to{" "}
-                            <a href="/rate-us" className="text-[#D19F3E] underline">
+                            <Link to="/rate-us" className="text-[#D19F3E] underline">
                                 rate us
-                            </a>
+                            </Link>
                             .
                         </p>
                     </div>
