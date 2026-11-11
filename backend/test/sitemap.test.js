@@ -22,6 +22,6 @@ test("sitemap lists static pages, listings, catalogues and established sellers",
   }
   assert.ok(xml.includes("<loc>https://rexbid.ie/auctions?status=sold</loc>"), "query string present");
   assert.ok(!xml.includes("/admin"), "no private routes");
-  assert.equal((xml.match(/<url>/g) || []).length, 15 + 2 + 1 + 1);
+  assert.equal((xml.match(/<url>/g) || []).length, 16 + 2 + 1 + 1); // 16 static pages incl. /buy-it-now
   mock.restoreAll();
 });

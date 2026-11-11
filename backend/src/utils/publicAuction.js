@@ -108,6 +108,15 @@ export const sanitizeAuctionForViewer = (auction, viewer = null) => {
   }
 
   for (const f of OWNER_ONLY_FIELDS) delete a[f];
+
+  // Buy It Now after the auction: the public sees the live price and end time only
+  // (a price set in advance would hint at the reserve, and the buyer is private).
+  if (a.postAuctionBin) {
+    const bin = a.postAuctionBin;
+    a.postAuctionBin = ["live", "processing", "sold", "expired"].includes(bin.status)
+      ? { status: bin.status === "processing" ? "live" : bin.status, price: bin.price, endsAt: bin.endsAt, startedAt: bin.startedAt }
+      : undefined;
+  }
   if (!isWinner) for (const f of PARTY_ONLY_FIELDS) delete a[f];
 
   // Only the viewer's own proxy bid / offers / giveaway entry.

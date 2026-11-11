@@ -37,6 +37,8 @@ export const TRANSACTIONAL_EMAILS = new Set([
     "auctionListed",
     "sendAuctionEndedSeller",
     "newQuestionSeller",       // a buyer asked a question on the seller's listing
+    "postAuctionBinSeller",    // Buy It Now after the auction: invite / live / ended
+    "postAuctionBinTopBidder", // the top bidder hears first that the lot is on Buy It Now
 
     // Questions & Answers: the buyer asked, so they always hear the answer
     "questionAnswered",

@@ -4216,7 +4216,119 @@ const questionAnsweredEmail = async (recipient, listing, question, answer, answe
     }
 };
 
+// ============================================
+// BUY IT NOW AFTER THE AUCTION
+// ============================================
+
+const binHoursLeft = (endsAt) => Math.max(1, Math.round((new Date(endsAt) - Date.now()) / 36e5));
+
+// To buyers: a lot they bid on, watched or asked about is on Buy It Now.
+const postAuctionBinBuyerEmail = async (recipient, listing, { price, currency, endsAt, isTopBidder }) => {
+    const type = isTopBidder ? "postAuctionBinTopBidder" : "postAuctionBin";
+    if (!(await canSendEmail(recipient?.email, type))) return false;
+    try {
+        const priceText = formatCurrency(price, currency);
+        const content = `
+            <h2 style="text-align: center;">${isTopBidder ? "You can now buy the lot you bid on" : "Now on Buy It Now"}</h2>
+            <p style="text-align: center;"><strong>${escapeHtml(listing?.title)}</strong></p>
+            ${createInfoCard(`
+                ${createSummaryRow("Buy It Now price:", priceText)}
+                ${createSummaryRow("Available for:", `${binHoursLeft(endsAt)} more hours`)}
+            `)}
+            <p>${isTopBidder
+                ? "The auction didn't reach the seller's reserve, so the seller is now offering it at a fixed price. You were the top bidder, so we're letting you know first."
+                : "The auction didn't reach the seller's reserve, so the seller is now offering it at a fixed price."}
+               The first buyer to confirm gets it. The usual buyer fee applies and payment is protected through RexBid.</p>
+            <div style="text-align: center; margin: 25px 0;">
+                ${createButton("View Buy It Now", `${FRONTEND_URL}/auction/${listing?._id}`, "primary")}
+            </div>
+            <p style="text-align: center; font-size: 13px; color: ${BRAND_COLORS.textLight};">See everything on Buy It Now: <a href="${FRONTEND_URL}/buy-it-now">${FRONTEND_URL.replace(/^https?:\/\//, "")}/buy-it-now</a></p>
+        `;
+        const info = await transporter.sendMail({
+            from: `"${BRAND_NAME}" <${process.env.EMAIL_USER}>`,
+            to: recipient?.email,
+            subject: `${isTopBidder ? "You can buy it now: " : "Now on Buy It Now: "}${listing?.title} – ${priceText}`,
+            html: baseTemplate(content, "Buy It Now"),
+        });
+        return !!info;
+    } catch (error) {
+        console.error("Failed to send Buy It Now buyer email:", error);
+        return false;
+    }
+};
+
+// To the seller about their own lot.
+//   kind: "invite" (reserve not met, offer Buy It Now), "live", "expired", "not_started"
+const postAuctionBinSellerEmail = async (seller, listing, kind, { price, currency, endsAt, reason } = {}) => {
+    if (!(await canSendEmail(seller?.email, "postAuctionBinSeller"))) return false;
+    const dashboard = `${FRONTEND_URL}/${seller?.userType === "company" ? "company" : seller?.userType === "broker" ? "broker" : "seller"}/auctions/all`;
+    const name = seller?.companyName || seller?.firstName || "there";
+    const title = escapeHtml(listing?.title);
+    const priceText = price != null ? formatCurrency(price, currency) : "";
+    const copy = {
+        invite: {
+            subject: `Reserve not met – offer it on Buy It Now: ${listing?.title}`,
+            heading: "Your reserve wasn't met. Try Buy It Now",
+            body: `<p>Hi ${escapeHtml(name)},</p>
+                <p><strong>${title}</strong> didn't reach your reserve. You can offer it on the RexBid Buy It Now page for 48 hours at a fixed price.</p>
+                <ul>
+                    <li>The price must be at least 10% below your reserve and above the top bid.</li>
+                    <li>We tell the bidders, watchers and everyone who asked about it.</li>
+                    <li>The first buyer to confirm buys it, and the sale goes through RexBid as normal.</li>
+                </ul>
+                <p>You can start it from your dashboard for the next 72 hours. Open the lot's menu and choose <strong>Buy It Now (48 hours)</strong>.</p>`,
+            button: "Go to my auctions",
+        },
+        live: {
+            subject: `Now on Buy It Now: ${listing?.title}`,
+            heading: "Your lot is on Buy It Now",
+            body: `<p>Hi ${escapeHtml(name)},</p>
+                <p><strong>${title}</strong> is now on Buy It Now at <strong>${priceText}</strong> for ${binHoursLeft(endsAt)} hours. We've told the bidders, watchers and everyone who asked about it.</p>
+                <p>If it sells we'll email you straight away, and the sale follows the usual RexBid process.</p>`,
+            button: "View the listing",
+            url: `${FRONTEND_URL}/auction/${listing?._id}`,
+        },
+        expired: {
+            subject: `Buy It Now ended without a sale: ${listing?.title}`,
+            heading: "Buy It Now ended without a sale",
+            body: `<p>Hi ${escapeHtml(name)},</p>
+                <p>The 48 hours on Buy It Now for <strong>${title}</strong> have ended without a buyer. You can relist it in a future sale from your dashboard. Our team is happy to advise on the reserve.</p>`,
+            button: "Go to my auctions",
+        },
+        not_started: {
+            subject: `Buy It Now didn't start: ${listing?.title}`,
+            heading: "Your Buy It Now price couldn't be used",
+            body: `<p>Hi ${escapeHtml(name)},</p>
+                <p>The reserve on <strong>${title}</strong> wasn't met, but the Buy It Now price you set couldn't be used: ${escapeHtml(reason || "")}</p>
+                <p>You can set a new price from your dashboard within 72 hours.</p>`,
+            button: "Go to my auctions",
+        },
+    }[kind];
+    if (!copy) return false;
+    try {
+        const content = `
+            <h2 style="text-align: center;">${copy.heading}</h2>
+            ${copy.body}
+            <div style="text-align: center; margin: 25px 0;">
+                ${createButton(copy.button, copy.url || dashboard, "primary")}
+            </div>
+        `;
+        const info = await transporter.sendMail({
+            from: `"${BRAND_NAME}" <${process.env.EMAIL_USER}>`,
+            to: seller?.email,
+            subject: copy.subject,
+            html: baseTemplate(content, "Buy It Now"),
+        });
+        return !!info;
+    } catch (error) {
+        console.error("Failed to send Buy It Now seller email:", error);
+        return false;
+    }
+};
+
 export {
+    postAuctionBinBuyerEmail,
+    postAuctionBinSellerEmail,
     newQuestionSellerEmail,
     questionAnsweredEmail,
     paymentRequestEmail,

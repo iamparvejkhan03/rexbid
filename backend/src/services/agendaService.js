@@ -210,8 +210,23 @@ class AgendaService {
             // Send seller email (auction ended without sale)
             await sendAuctionEndedSellerEmail(auction);
 
+            // ── Buy It Now after the auction: start it if the seller set a price
+            //    in advance, otherwise invite the seller to set one. ──
+            let binStarted = false;
+            if (result.newStatus === "reserve_not_met") {
+              try {
+                const { handleReserveNotMet } = await import("./postAuctionBinService.js");
+                binStarted = await handleReserveNotMet(auctionId);
+              } catch (err) {
+                console.error(`Buy It Now start failed for ${auctionId}:`, err.message);
+              }
+            }
+
             // ── Reserve not met → notify top 2 bidders with the reserve price ──
+            // (skipped when the lot went straight onto Buy It Now: bidders get
+            //  the Buy It Now email instead)
             if (
+              !binStarted &&
               result.newStatus === "reserve_not_met" &&
               Array.isArray(auction.bids) &&
               auction.bids.length > 0
@@ -419,6 +434,18 @@ class AgendaService {
     //     console.error("Agenda job error (ending soon notifications):", error);
     //   }
     // });
+
+    // Buy It Now after the auction: end windows that have run out.
+    // Scheduled for each lot's end time, plus a 15-minute sweep as a safety net.
+    this.agenda.define("end post-auction buy it now", async () => {
+      try {
+        const { expireBins } = await import("./postAuctionBinService.js");
+        const expired = await expireBins();
+        if (expired) console.log(`Buy It Now: ${expired} ended without a sale`);
+      } catch (error) {
+        console.error("Agenda job error (end post-auction buy it now):", error);
+      }
+    });
 
     // Creates a Sale record for every newly sold lot and keeps paid status in step.
     this.agenda.define("sync sales", async () => {
@@ -648,6 +675,15 @@ class AgendaService {
     // console.log(`📅 Scheduled ending for auction ${auctionId} at ${endDate}`);
   }
 
+  // Buy It Now after the auction: end the window at endsAt
+  async scheduleBinEnd(auctionId, endsAt) {
+    await this.agenda.schedule(endsAt, "end post-auction buy it now", { auctionId, kind: "bin" });
+  }
+
+  async cancelBinJobs(auctionId) {
+    await this.agenda.cancel({ name: "end post-auction buy it now", "data.auctionId": auctionId });
+  }
+
   // Cancel jobs if auction is deleted or modified
   async cancelAuctionJobs(auctionId) {
     await this.agenda.cancel({
@@ -663,6 +699,7 @@ class AgendaService {
     await this.agenda.every("15 minutes", "send ending soon notifications");
     await this.agenda.every("15 minutes", "send reserve nudge notifications");
     await this.agenda.every("15 minutes", "sync sales");
+    await this.agenda.every("15 minutes", "end post-auction buy it now");
     await this.agenda.every("30 minutes", "send sale reminders");
   }
 

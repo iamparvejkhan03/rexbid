@@ -131,6 +131,31 @@ Still to build: sales ledger export matching the finance tracker.
 
 ---
 
+## 3c. Buy It Now after the auction (Nov 2026)
+
+When a **reserve** lot ends without meeting its reserve, the seller can offer it at a fixed price for **48 hours** on the public page **`/buy-it-now`** (also in the header menu and sitemap).
+
+Rules (`backend/src/utils/postAuctionBin.js`):
+- Price at least **10% below the reserve** and **above the top bid**. If the top bid is already within 10% of the reserve, Buy It Now isn't available (the seller is told to contact RexBid to sell to the top bidder).
+- **First buyer to confirm wins** (atomic claim, so two buyers at the same moment can't both buy). Buyer must be signed in, active and verified, and ticks a binding-purchase box. Normal buyer fee.
+- One 48-hour window per lot. Sellers can **lower** the price while live but can't withdraw it; staff can take it down (`DELETE /api/v1/buy-it-now/lot/:id/setup`).
+
+How sellers use it (dashboard → All Auctions → lot menu → **Buy It Now (48 hours)**, or the box on their own listing):
+- **Before or during the auction:** set a backup price. If the reserve isn't met it starts automatically (re-checked against the final top bid; if it no longer fits, the seller is emailed and can set a new one).
+- **After the auction:** start it within **72 hours** of the end. With no backup price, the seller gets an email inviting them to.
+
+When it goes live: emails to the seller, the top bidder (first, always sent), other bidders, watchers and people who asked a question (these respect email preferences). The usual "reserve not met" email to the top two bidders is skipped when the lot went straight onto Buy It Now.
+
+When it sells: the lot becomes `sold` at the Buy It Now price with the winner set, so the normal **Sale record**, payment request, receipts and payout all follow (section 3a), plus the usual won / sold / admin emails.
+
+When it ends unsold: Agenda job `end post-auction buy it now` (scheduled at the end time, plus a 15-minute sweep) marks it expired and emails the seller to relist. If the lot sold another way during the window (e.g. an accepted offer) it's marked cancelled.
+
+Data: `auction.postAuctionBin` (price in the lot's own currency, status `scheduled` / `live` / `processing` / `sold` / `expired` / `cancelled` / `not_started`, start/end times). The public only sees price, status and times for live/sold/expired lots; a backup price is never public (it would hint at the reserve). API: `/api/v1/buy-it-now` (`backend/src/controllers/postAuctionBin.controller.js`, `backend/src/services/postAuctionBinService.js`). Frontend: `frontend/src/pages/BuyItNow.jsx`, `frontend/src/components/buyItNow/`.
+
+Note: a Buy It Now price shows bidders roughly where the reserve was (it is at most 90% of it).
+
+---
+
 ## 4. Open to-do list (most important first)
 
 0. **Seller contact / Q&A go-live:** set `PHONE_CONTACT_MIN_RESERVE_EUR` on Render (without it no lot shows a phone number); set up Twilio for seller texts if wanted. Owner review of phone numbers on higher-reserve lots due 25 Nov 2026.
