@@ -2,6 +2,7 @@ import { lazy, StrictMode, Suspense } from 'react';
 import { createRoot } from 'react-dom/client';
 import './index.css';
 import App from './App.jsx';
+import RouteSeo from './components/RouteSeo';
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { PopUpContextProvider } from './contexts/PopUpContextProvider';
 import { Protected, LoadingSpinner, AdminRoute } from './components';
@@ -126,6 +127,8 @@ createRoot(document.getElementById('root')).render(
     <AuthProvider>
         <PopUpContextProvider>
             <BrowserRouter>
+                {/* Sets the tab title and meta tags for every page, dashboards included. */}
+                <RouteSeo />
                 <Routes>
                     <Route path='/' element={<App />}>
                         <Route path='' index={true} element={<Suspense fallback={<LoadingSpinner height={'725px'} />}><Home /></Suspense>} />
