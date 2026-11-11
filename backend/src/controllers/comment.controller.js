@@ -2,6 +2,11 @@ import Comment from '../models/comment.model.js';
 import Auction from '../models/auction.model.js';
 import { flaggedCommentAdminEmail, newCommentBidderEmail, newCommentSellerEmail } from '../utils/nodemailer.js';
 import User from '../models/user.model.js';
+import { checkForContactDetails, CONTACT_BLOCKED_MESSAGE } from '../utils/contactFilter.js';
+
+// Comments are stored and shown as plain text (the old rich-text HTML was
+// rendered unsanitised, which allowed script injection).
+const plainToHtml = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
 
 // Add a new comment
 export const addComment = async (req, res) => {
@@ -25,6 +30,12 @@ export const addComment = async (req, res) => {
                 success: false,
                 message: 'Comment content is required'
             });
+        }
+
+        // Same contact-details rule as listing Questions & Answers.
+        const contactCheck = checkForContactDetails(content);
+        if (!contactCheck.ok) {
+            return res.status(422).json({ success: false, code: 'contact_details', message: CONTACT_BLOCKED_MESSAGE });
         }
 
         // Check if parent comment exists (for replies)
@@ -51,7 +62,7 @@ export const addComment = async (req, res) => {
             companyName: req.user.companyName || '',
             userAvatar: req.user.avatar || '',
             content: content.trim(),
-            contentHtml: contentHtml || content.trim(),
+            contentHtml: plainToHtml(content.trim()),
             parentComment: parentCommentId || null
         });
 
@@ -295,8 +306,13 @@ export const updateComment = async (req, res) => {
             });
         }
 
+        const contactCheck = checkForContactDetails(content);
+        if (!contactCheck.ok) {
+            return res.status(422).json({ success: false, code: 'contact_details', message: CONTACT_BLOCKED_MESSAGE });
+        }
+
         comment.content = content.trim();
-        comment.contentHtml = contentHtml || content.trim();
+        comment.contentHtml = plainToHtml(content.trim());
         comment.updatedAt = new Date();
 
         await comment.save();
@@ -322,9 +338,14 @@ export const deleteComment = async (req, res) => {
         const { commentId } = req.params;
         const userId = req.user._id;
 
+        // Admins (Admin → Comments) delete with a reason.
+        if (req.user.userType === 'admin') {
+            return adminDeleteComment(req, res);
+        }
+
         const comment = await Comment.findOne({
             _id: commentId,
-            // user: userId
+            user: userId
         });
 
         if (!comment) {

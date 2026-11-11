@@ -77,8 +77,7 @@ const SellerReviewsPage = () => {
     if (!sellerStats) return null;
 
     const {
-        fullName,
-        username,
+        displayName,
         country,
         isVerified,
         sellerImage,
@@ -111,13 +110,13 @@ const SellerReviewsPage = () => {
                 <div className="px-6 py-5 border-b border-gray-200 bg-gray-50 flex flex-col md:flex-row md:items-center gap-4">
                     <div className="flex items-center gap-4">
                         {sellerImage ? (
-                            <img src={sellerImage || dummyUserImg} alt={fullName} className="w-16 h-16 rounded-full object-cover border-2 border-orange-200" />
+                            <img src={sellerImage || dummyUserImg} alt={displayName} className="w-16 h-16 rounded-full object-cover border-2 border-orange-200" />
                         ) : (
-                            <img src={sellerImage || dummyUserImg} alt={fullName} className="w-16 h-16 rounded-full object-cover border-2 border-orange-200" />
+                            <img src={sellerImage || dummyUserImg} alt={displayName} className="w-16 h-16 rounded-full object-cover border-2 border-orange-200" />
                         )}
                         <div>
                             <div className="flex items-center gap-5">
-                                <h1 className="text-xl md:text-2xl font-bold text-gray-800">{fullName || username}</h1>
+                                <h1 className="text-xl md:text-2xl font-bold text-gray-800">{displayName}</h1>
                                 {/* <div className="flex items-center gap-3 mt-2">
                                     <a href={`mailto:${email}`} className="text-gray-500 hover:text-orange-500 transition-colors">
                                         <Mail size={18} />

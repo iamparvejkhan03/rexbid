@@ -1,11 +1,14 @@
 import { useState, useEffect } from "react";
-import { MapPin, ShieldCheck, Package, Star, MessageCircle, PackageCheck, PhoneCall } from "lucide-react";
+import { MapPin, ShieldCheck, Package, Star, MessageCircle, PhoneCall, HelpCircle } from "lucide-react";
 import axiosInstance from "../utils/axiosInstance";
 import { dummyUserImg } from "../assets";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 
-const SellerStatsCard = ({ sellerId }) => {
+// contactMode comes from the listing ("phone" or "questions", decided on the
+// server in utils/contactPolicy.js). The rule itself is never shown to buyers.
+const SellerStatsCard = ({ sellerId, auctionId, contactMode = "questions", onAskQuestion }) => {
+    const phoneContact = contactMode === "phone";
     const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(false);
     const [showDetails, setShowDetails] = useState(false);
@@ -24,7 +27,8 @@ const SellerStatsCard = ({ sellerId }) => {
         const fetchStats = async () => {
             setLoading(true);
             try {
-                const { data } = await axiosInstance.get(`/api/v1/users/${sellerId}/seller-stats`);
+                const query = auctionId ? `?auctionId=${auctionId}` : "";
+                const { data } = await axiosInstance.get(`/api/v1/users/${sellerId}/seller-stats${query}`);
                 setStats(data.data);
             } catch (error) {
                 console.error("Failed to fetch seller stats:", error);
@@ -33,7 +37,7 @@ const SellerStatsCard = ({ sellerId }) => {
             }
         };
         fetchStats();
-    }, [showDetails, user, sellerId]);
+    }, [showDetails, user, sellerId, auctionId]);
 
     const handleContactClick = () => {
         if (user) {
@@ -59,9 +63,9 @@ const SellerStatsCard = ({ sellerId }) => {
                         <div>
                             <div className="flex items-center gap-5">
                                 <h3 className="text-lg font-semibold text-gray-700 flex items-center gap-5">
-                                    {stats?.companyName || stats?.fullName || stats?.username}
+                                    {stats?.displayName}
                                 </h3>
-                                {!showDetails ? (
+                                {phoneContact && (!showDetails ? (
                                     <button
                                         className="bg-primary text-white py-2 px-4 rounded-md hover:bg-primary-dark transition-colors flex items-center justify-center gap-1 text-xs"
                                         onClick={handleContactClick}
@@ -79,7 +83,7 @@ const SellerStatsCard = ({ sellerId }) => {
                                             <span className="underline">{stats?.phone}</span>
                                         </a>
                                     </div>
-                                }
+                                )}
 
                             </div>
                             <div className="flex items-center gap-2 text-sm text-gray-500 mt-1">
@@ -95,6 +99,21 @@ const SellerStatsCard = ({ sellerId }) => {
                         </div>
                     </div>
                 </div>
+                {!phoneContact && user?._id?.toString() !== sellerId?.toString() && (
+                    <div className="mt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-md bg-gray-50 border border-gray-200 p-3">
+                        <p className="text-sm text-gray-700">
+                            Questions about this lot are answered on the listing, so every bidder sees the same information.
+                        </p>
+                        <button
+                            type="button"
+                            onClick={onAskQuestion}
+                            className="inline-flex items-center justify-center gap-2 flex-shrink-0 bg-[#edcd1f] text-black text-sm font-medium py-2 px-4 rounded-md hover:bg-[#edcd1f]/90"
+                        >
+                            <HelpCircle size={16} />
+                            Ask the seller a question
+                        </button>
+                    </div>
+                )}
                 {/* <div className="text-center flex-1">
                         <div className="flex items-center justify-center gap-1 text-gray-600">
                             <PackageCheck size={16} />

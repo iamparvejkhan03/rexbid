@@ -4134,7 +4134,91 @@ const adminSaleAlertEmail = async (sale, kind) => {
     }
 };
 
+// ============================================
+// QUESTIONS & ANSWERS EMAILS
+// ============================================
+
+const escapeHtml = (v) =>
+    String(v ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+
+const questionLink = (listing, questionId) =>
+    `${FRONTEND_URL}/auction/${listing?._id}?tab=questions${questionId ? `#q-${questionId}` : ""}`;
+
+// To the seller: a buyer has asked a question on their listing.
+const newQuestionSellerEmail = async (seller, listing, question, askerName) => {
+    if (!(await canSendEmail(seller?.email, "newQuestionSeller"))) return false;
+    try {
+        const content = `
+            <h2 style="text-align: center;">New question on your listing</h2>
+            <p style="text-align: center;">${escapeHtml(askerName || "A buyer")} has asked a question about <strong>${escapeHtml(listing?.title)}</strong>.</p>
+
+            <div style="background: ${BRAND_COLORS.grayBg}; padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 4px solid ${BRAND_COLORS.primary};">
+                <p style="margin: 0 0 8px 0;"><strong>Question</strong></p>
+                <p style="margin: 0; white-space: pre-wrap;">${escapeHtml(question?.content)}</p>
+            </div>
+
+            <p>Your answer appears on the listing for every bidder to see. Lots with clear, quick answers attract more bids.</p>
+            <p style="color: ${BRAND_COLORS.textLight}; font-size: 13px;">Please don't include phone numbers or email addresses in your answer. Answers that contain contact details can't be posted.</p>
+
+            <div style="text-align: center; margin: 25px 0;">
+                ${createButton("Answer this question", questionLink(listing, question?._id), "primary")}
+            </div>
+        `;
+        const info = await transporter.sendMail({
+            from: `"${BRAND_NAME}" <${process.env.EMAIL_USER}>`,
+            to: seller?.email,
+            subject: `New question on your listing: ${listing?.title}`,
+            html: baseTemplate(content, "New question"),
+        });
+        return !!info;
+    } catch (error) {
+        console.error("Failed to send new question email to seller:", error);
+        return false;
+    }
+};
+
+// To a buyer: the seller (or RexBid) has answered a question on a lot.
+// `isAsker` is true for the person who asked, false for others following the lot.
+const questionAnsweredEmail = async (recipient, listing, question, answer, answererName, isAsker = true) => {
+    const type = isAsker ? "questionAnswered" : "newComment";
+    if (!(await canSendEmail(recipient?.email, type))) return false;
+    try {
+        const content = `
+            <h2 style="text-align: center;">${isAsker ? "Your question has been answered" : "New answer on a lot you asked about"}</h2>
+            <p style="text-align: center;"><strong>${escapeHtml(listing?.title)}</strong></p>
+
+            <div style="background: ${BRAND_COLORS.grayBg}; padding: 20px; border-radius: 8px; margin: 25px 0;">
+                <p style="margin: 0 0 8px 0;"><strong>Question</strong></p>
+                <p style="margin: 0 0 16px 0; white-space: pre-wrap;">${escapeHtml(question?.content)}</p>
+                <p style="margin: 0 0 8px 0;"><strong>Answer from ${escapeHtml(answererName || "the seller")}</strong></p>
+                <p style="margin: 0; white-space: pre-wrap;">${escapeHtml(answer?.content)}</p>
+            </div>
+
+            <div style="text-align: center; margin: 25px 0;">
+                ${createButton("View the listing", questionLink(listing, question?._id), "primary")}
+            </div>
+        `;
+        const info = await transporter.sendMail({
+            from: `"${BRAND_NAME}" <${process.env.EMAIL_USER}>`,
+            to: recipient?.email,
+            subject: isAsker ? `Your question has been answered: ${listing?.title}` : `New answer: ${listing?.title}`,
+            html: baseTemplate(content, "Question answered"),
+        });
+        return !!info;
+    } catch (error) {
+        console.error("Failed to send question answered email:", error);
+        return false;
+    }
+};
+
 export {
+    newQuestionSellerEmail,
+    questionAnsweredEmail,
     paymentRequestEmail,
     saleReminderEmail,
     adminSaleAlertEmail,

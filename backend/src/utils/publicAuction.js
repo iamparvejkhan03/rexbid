@@ -10,6 +10,9 @@
 // an admin, or (for payment fields only) the winner, and replaces it with the
 // derived values the public UI actually needs (hasReserve, reserveMet, counts).
 
+import { publicName } from "./displayName.js";
+import { contactModeFor } from "./contactPolicy.js";
+
 const idOf = (v) => (v && typeof v === "object" ? v._id ?? v.id : v)?.toString?.();
 
 // Fields only the seller and admins may see.
@@ -41,6 +44,22 @@ const stripUser = (u) => {
   if (!u || typeof u !== "object") return u;
   const out = { ...u };
   for (const f of USER_PRIVATE_FIELDS) delete out[f];
+  return out;
+};
+
+// The public sees the seller by first name only (company name in full).
+// The winner still gets the seller's full name (they need it to collect).
+const isPopulatedUser = (u) =>
+  !!u && typeof u === "object" && ("firstName" in u || "companyName" in u || "username" in u);
+
+const publicSeller = (u, { keepFullName = false } = {}) => {
+  if (!isPopulatedUser(u)) return stripUser(u);
+  const out = stripUser(u);
+  out.displayName = publicName(u);
+  if (!keepFullName) {
+    delete out.lastName;
+    delete out.username;
+  }
   return out;
 };
 
@@ -80,8 +99,12 @@ export const sanitizeAuctionForViewer = (auction, viewer = null) => {
     participantCount: participants.length,
   };
 
+  // "phone" or "questions": how buyers contact the seller (utils/contactPolicy.js).
+  const contactMode = contactModeFor(a);
+  const sellerDisplayName = isPopulatedUser(a.seller) ? publicName(a.seller) : undefined;
+
   if (isAdmin || isSeller) {
-    return { ...a, ...summary, ...counts };
+    return { ...a, ...summary, ...counts, contactMode, sellerDisplayName };
   }
 
   for (const f of OWNER_ONLY_FIELDS) delete a[f];
@@ -98,14 +121,15 @@ export const sanitizeAuctionForViewer = (auction, viewer = null) => {
         .map(({ email, phoneNumber, ...rest }) => rest)
     : [];
 
-  a.seller = stripUser(a.seller);
+  a.seller = publicSeller(a.seller, { keepFullName: isWinner });
+  if (sellerDisplayName) a.sellerUsername = sellerDisplayName;
   a.winner = stripUser(a.winner);
   a.currentBidder = stripUser(a.currentBidder);
   if (Array.isArray(a.bids)) {
     a.bids = a.bids.map((b) => (b && typeof b === "object" ? { ...b, bidder: stripUser(b.bidder) } : b));
   }
 
-  return { ...a, ...summary, ...counts };
+  return { ...a, ...summary, ...counts, contactMode, sellerDisplayName };
 };
 
 export const sanitizeAuctionsForViewer = (list, viewer = null) =>

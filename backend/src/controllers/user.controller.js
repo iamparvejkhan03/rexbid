@@ -11,6 +11,9 @@ import crypto from "crypto";
 import BidPayment from "../models/bidPayment.model.js";
 import Review from "../models/review.model.js";
 import Auction from "../models/auction.model.js";
+import mongoose from "mongoose";
+import { publicName } from "../utils/displayName.js";
+import { contactModeFor } from "../utils/contactPolicy.js";
 import { getCachedRates } from "../routes/currency.route.js";
 import {
   deleteFromCloudinary,
@@ -846,6 +849,14 @@ export const getSellerStats = async (req, res) => {
       return res.status(404).json({ success: false, message: "User not found" });
     }
 
+    // Phone contact depends on the lot being viewed (?auctionId=...).
+    let contactMode = "questions";
+    const { auctionId } = req.query;
+    if (auctionId && mongoose.isValidObjectId(auctionId)) {
+      const lot = await Auction.findById(auctionId).select("seller auctionType reservePrice baseCurrency").lean();
+      if (lot && lot.seller?.toString() === userId.toString()) contactMode = contactModeFor(lot);
+    }
+
     // Count sold items (auctions where user is seller and status is 'sold')
     const itemsSold = await Auction.countDocuments({
       seller: userId,
@@ -892,12 +903,14 @@ export const getSellerStats = async (req, res) => {
     res.status(200).json({
       success: true,
       data: {
-        username: user.username,
+        // First name only for individuals; company names in full (utils/displayName.js).
+        displayName: publicName(user),
         companyName: user.companyName,
-        // Contact number is only shown to signed-in users (see SellerStatsCard "Contact").
-        // Email is never exposed publicly.
-        phone: req.user ? user?.phone : undefined,
-        fullName: `${user.firstName || ""} ${user.lastName || ""}`.trim(),
+        // How buyers contact the seller about this lot ("phone" or "questions").
+        contactMode,
+        // The phone number is only given to signed-in users, and only for lots
+        // whose contact mode is "phone" (utils/contactPolicy.js). Email is never public.
+        phone: contactMode === "phone" && req.user ? user?.phone : undefined,
         country: user.countryName || "Not specified",
         currency: user?.currency || userCurrency,
         displayCurrency: userCurrency,

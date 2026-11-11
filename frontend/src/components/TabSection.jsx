@@ -1,9 +1,9 @@
 import { useState, Suspense, lazy, useEffect, forwardRef } from "react";
-import { MessageSquare, Gavel, Notebook, PoundSterling, Star, Euro } from "lucide-react";
+import { HelpCircle, Gavel, Notebook, PoundSterling, Star, Euro } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 
 const LoadingSpinner = lazy(() => import("./LoadingSpinner"));
-const CommentSection = lazy(() => import("./CommentSection"));
+const QuestionsSection = lazy(() => import("./QuestionsSection"));
 const BidHistory = lazy(() => import("./BidHistory"));
 const Description = lazy(() => import("./Description"));
 const OffersSection = lazy(() => import("./OffersSection"));
@@ -54,11 +54,13 @@ const TabSection = forwardRef(
       component: <Description description={description} />,
     });
 
+    // Listing Questions & Answers (replaces the old Comments tab; the id stays
+    // "comments" so existing links and buttons keep working).
     tabs.push({
       id: "comments",
-      label: "Comments",
-      icon: <MessageSquare size={18} />,
-      component: <CommentSection auctionId={auction._id} />,
+      label: "Questions",
+      icon: <HelpCircle size={18} />,
+      component: <QuestionsSection auctionId={auction._id} />,
     });
 
 
