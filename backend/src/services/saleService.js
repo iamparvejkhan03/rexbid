@@ -546,8 +546,8 @@ export const issuePaymentRequest = async (saleId, admin, { sendEmail = true } = 
  * that still need paying out, linking existing connected accounts by email.
  */
 export const refreshOpenSellerAccounts = async ({ limit = 10 } = {}) => {
+    // Earlier sales too: their sellers may have been set up by hand in Stripe.
     const sellerIds = await Sale.distinct("seller.user", {
-        historical: { $ne: true },
         status: { $in: ["sold", "request_sent", "paid", "collected", "payout_due"] },
     });
     const stale = await User.find({

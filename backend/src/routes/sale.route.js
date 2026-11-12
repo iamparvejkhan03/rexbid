@@ -24,6 +24,8 @@ import {
     manualPayout,
     recordPaymentManually,
     matchStripePayments,
+    unlinkedStripeAccounts,
+    linkSellerStripeAccount,
 } from "../controllers/sale.controller.js";
 
 // Mounted at /api/v1/admin/sales
@@ -36,6 +38,7 @@ adminSaleRouter.post("/import-history", authAdmin, importHistory);
 adminSaleRouter.post("/pay-sellers", authAdmin, paySellers);
 adminSaleRouter.post("/match-transfers", authAdmin, matchTransfers);
 adminSaleRouter.post("/match-payments", authAdmin, matchStripePayments);
+adminSaleRouter.get("/stripe-accounts/unlinked", authAdmin, unlinkedStripeAccounts);
 adminSaleRouter.get("/:saleId", authAdmin, getSale);
 adminSaleRouter.patch("/:saleId/vat", authAdmin, updateVat);
 adminSaleRouter.get("/:saleId/payment-request/preview", authAdmin, previewPaymentRequest);
@@ -47,6 +50,7 @@ adminSaleRouter.post("/:saleId/release-payout", authAdmin, releaseEarly);
 adminSaleRouter.get("/:saleId/payout-details", authAdmin, payoutDetails);
 adminSaleRouter.post("/:saleId/manual-payout", authAdmin, manualPayout);
 adminSaleRouter.post("/:saleId/record-payment", authAdmin, recordPaymentManually);
+adminSaleRouter.post("/:saleId/link-payout-account", authAdmin, linkSellerStripeAccount);
 adminSaleRouter.get("/:saleId/documents/:documentId", authAdmin, downloadDocument);
 
 // Mounted at /api/v1/sales (buyers and sellers)
