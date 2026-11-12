@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { AlertTriangle, FileText, Eye, Send, RefreshCw, Search, X, Receipt, History, XCircle, RotateCcw, Banknote, Link2, Unlock, Landmark } from "lucide-react";
+import { AlertTriangle, FileText, Eye, Send, RefreshCw, Search, X, Receipt, History, XCircle, RotateCcw, Banknote, Link2, Unlock, Landmark, CheckCircle } from "lucide-react";
 import { toast } from "react-hot-toast";
 import axiosInstance from "../../utils/axiosInstance";
 import { AdminContainer, AdminHeader, AdminSidebar, LoadingSpinner } from "../../components";
@@ -147,13 +147,95 @@ function VatModal({ sale, onClose, onSaved }) {
     );
 }
 
-function ManualPayoutModal({ sale, onClose, onDone }) {
-    const [details, setDetails] = useState(null);
-    const [amount, setAmount] = useState("");
+function RecordPaymentModal({ sale, onClose, onDone }) {
+    const [method, setMethod] = useState("bank_transfer");
+    const [amount, setAmount] = useState(String(sale.total));
     const [paidAt, setPaidAt] = useState(new Date().toISOString().slice(0, 10));
     const [reference, setReference] = useState("");
     const [note, setNote] = useState("");
-    const [sendEmail, setSendEmail] = useState(true);
+    const [sendDocuments, setSendDocuments] = useState(!sale.historical);
+    const [saving, setSaving] = useState(false);
+    const differs = Number(amount) !== Number(sale.total);
+
+    const save = async () => {
+        if (differs && !note.trim()) return toast.error("The amount differs from the total due; add a note");
+        setSaving(true);
+        try {
+            await axiosInstance.post(`/api/v1/admin/sales/${sale._id}/record-payment`, { method, amount, paidAt, reference, note, sendDocuments });
+            toast.success(`${sale.reference} marked paid${sendDocuments ? "; receipt and seller statement sent" : ""}`);
+            onDone();
+        } catch (err) {
+            toast.error(err.response?.data?.message || "Could not record the payment");
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+                <div className="flex items-center justify-between p-5 border-b">
+                    <h3 className="text-lg font-semibold">Record payment · {sale.reference}</h3>
+                    <button onClick={onClose} aria-label="Close"><X size={20} /></button>
+                </div>
+                <div className="p-5 space-y-4 text-sm">
+                    <p>
+                        For a payment that didn&rsquo;t come through a payment request sent from this page, e.g. a request made by hand in Stripe,
+                        a transfer to RexBid&rsquo;s bank, or cash. Total due: <strong>{formatMoney(sale.total, sale.currency)}</strong>.
+                    </p>
+                    <label className="block">
+                        <span className="text-gray-600">How was it paid?</span>
+                        <select className="mt-1 w-full border rounded-lg p-2" value={method} onChange={(e) => setMethod(e.target.value)}>
+                            <option value="bank_transfer">Bank transfer (Stripe IBAN or RexBid bank)</option>
+                            <option value="credit_card">Card</option>
+                            <option value="other">Other (cash, cheque…)</option>
+                        </select>
+                    </label>
+                    <div className="grid grid-cols-2 gap-3">
+                        <label className="block">
+                            <span className="text-gray-600">Amount received ({sale.currency})</span>
+                            <input type="number" step="0.01" min="0" className="mt-1 w-full border rounded-lg p-2" value={amount} onChange={(e) => setAmount(e.target.value)} />
+                        </label>
+                        <label className="block">
+                            <span className="text-gray-600">Date received</span>
+                            <input type="date" className="mt-1 w-full border rounded-lg p-2" value={paidAt} onChange={(e) => setPaidAt(e.target.value)} />
+                        </label>
+                    </div>
+                    <label className="block">
+                        <span className="text-gray-600">Reference (optional)</span>
+                        <input className="mt-1 w-full border rounded-lg p-2" value={reference} onChange={(e) => setReference(e.target.value)} placeholder="e.g. Stripe pi_… or bank reference" />
+                    </label>
+                    <label className="block">
+                        <span className="text-gray-600">Note {differs ? "(required: amount differs)" : "(optional)"}</span>
+                        <textarea className="mt-1 w-full border rounded-lg p-2" rows={2} value={note} onChange={(e) => setNote(e.target.value)} />
+                    </label>
+                    <label className="flex items-center gap-2">
+                        <input type="checkbox" checked={sendDocuments} onChange={(e) => setSendDocuments(e.target.checked)} />
+                        Send the buyer their receipt and the seller their &ldquo;Buyer has paid&rdquo; statement
+                    </label>
+                    {sale.historical && <p className="text-xs text-gray-500">Earlier sale: unticked by default so old buyers and sellers aren&rsquo;t emailed.</p>}
+                </div>
+                <div className="flex justify-end gap-2 p-5 border-t">
+                    <button onClick={onClose} className="px-4 py-2 rounded-lg border">Cancel</button>
+                    <button onClick={save} disabled={saving} className="px-4 py-2 rounded-lg bg-secondary text-white disabled:opacity-50">
+                        {saving ? "Saving…" : "Mark as paid"}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function ManualPayoutModal({ sale, onClose, onDone }) {
+    const [details, setDetails] = useState(null);
+    // "bank": paid from RexBid's bank (BOI). "stripe": already sent as a transfer in the Stripe Dashboard.
+    const [method, setMethod] = useState("bank");
+    const [amount, setAmount] = useState("");
+    const [paidAt, setPaidAt] = useState(new Date().toISOString().slice(0, 10));
+    const [reference, setReference] = useState("");
+    const [transferId, setTransferId] = useState("");
+    const [note, setNote] = useState("");
+    const [sendEmail, setSendEmail] = useState(!sale.historical);
     const [saving, setSaving] = useState(false);
 
     useEffect(() => {
@@ -171,14 +253,22 @@ function ManualPayoutModal({ sale, onClose, onDone }) {
     };
 
     const save = async () => {
-        if (!reference.trim()) return toast.error("Add the bank payment reference");
-        const differs = details && Number(amount) !== details.amount;
-        if (differs && !note.trim()) return toast.error("The amount differs from what's due; add a note");
-        if (!window.confirm(`Record ${formatMoney(amount, details?.currency)} paid to ${details?.seller?.name} by bank transfer on ${paidAt}?` + (sendEmail ? "\n\nThe seller will be emailed their updated statement." : ""))) return;
+        let body;
+        if (method === "stripe") {
+            if (!/^tr_/.test(transferId.trim())) return toast.error("Enter the Stripe transfer ID (starts tr_)");
+            if (!window.confirm(`Record Stripe transfer ${transferId.trim()} as the payout to ${details?.seller?.name}?` + (sendEmail ? "\n\nThe seller will be emailed their updated statement." : ""))) return;
+            body = { method: "stripe_transfer", reference: transferId.trim(), note, sendEmail };
+        } else {
+            if (!reference.trim()) return toast.error("Add the bank payment reference");
+            const differs = details && Number(amount) !== details.amount;
+            if (differs && !note.trim()) return toast.error("The amount differs from what's due; add a note");
+            if (!window.confirm(`Record ${formatMoney(amount, details?.currency)} paid to ${details?.seller?.name} by bank transfer on ${paidAt}?` + (sendEmail ? "\n\nThe seller will be emailed their updated statement." : ""))) return;
+            body = { method: "bank_transfer", amount, paidAt, reference, note, sendEmail };
+        }
         setSaving(true);
         try {
-            await axiosInstance.post(`/api/v1/admin/sales/${sale._id}/manual-payout`, { amount, paidAt, reference, note, sendEmail });
-            toast.success(`Manual payout recorded for ${sale.reference}`);
+            await axiosInstance.post(`/api/v1/admin/sales/${sale._id}/manual-payout`, body);
+            toast.success(`Payout recorded for ${sale.reference}`);
             onDone();
         } catch (err) {
             toast.error(err.response?.data?.message || "Could not record the payout");
@@ -202,54 +292,78 @@ function ManualPayoutModal({ sale, onClose, onDone }) {
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
             <div className="bg-white rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
                 <div className="flex items-center justify-between p-5 border-b">
-                    <h3 className="text-lg font-semibold">Manual payout · {sale.reference}</h3>
+                    <h3 className="text-lg font-semibold">Record payout · {sale.reference}</h3>
                     <button onClick={onClose} aria-label="Close"><X size={20} /></button>
                 </div>
                 {!details ? (
                     <LoadingSpinner height="200px" />
                 ) : (
                     <div className="p-5 space-y-4 text-sm">
-                        <p>
-                            Pay <strong>{details.seller.name}</strong> from RexBid&rsquo;s bank (e.g. BOI), then record it here. No Stripe transfer is made.
+                        <fieldset className="space-y-2">
+                            <label className="flex items-start gap-2">
+                                <input type="radio" className="mt-1" checked={method === "bank"} onChange={() => setMethod("bank")} />
+                                <span>Paid from RexBid&rsquo;s bank (e.g. BOI)</span>
+                            </label>
+                            <label className="flex items-start gap-2">
+                                <input type="radio" className="mt-1" checked={method === "stripe"} onChange={() => setMethod("stripe")} />
+                                <span>Already paid by Stripe transfer in the Stripe Dashboard</span>
+                            </label>
+                        </fieldset>
+                        <p className="text-gray-600">
+                            Amount due to <strong>{details.seller.name}</strong>: <strong>{formatMoney(details.amount, details.currency)}</strong>. No new payment is made from here.
                         </p>
-                        <div className="bg-gray-50 border rounded-lg p-3">
-                            <p className="font-semibold mb-1">Seller&rsquo;s bank details (from their Payout Methods)</p>
-                            {details.bank ? (
-                                <>
-                                    <Row label="Account holder" value={details.bank.accountHolderName} />
-                                    <Row label="IBAN" value={details.bank.iban} mono />
-                                    <Row label="BIC" value={details.bank.bic} mono />
-                                    <Row label="Account no." value={details.bank.accountNumber} mono />
-                                    <Row label="Sort code" value={details.bank.sortCode} mono />
-                                    <Row label="Bank" value={details.bank.bankName} />
-                                </>
-                            ) : (
-                                <p className="text-amber-700">
-                                    No bank details saved on RexBid. Ask the seller for their IBAN
-                                    {details.seller.phone ? ` (${details.seller.phone})` : ""}.
-                                    {details.stripe.bankLast4 ? ` Their Stripe payout bank is ${details.stripe.bankName || ""} ending ${details.stripe.bankLast4}.` : ""}
-                                </p>
-                            )}
-                            <Row label="Amount due" value={Number(details.amount).toFixed(2)} />
-                            <Row label="Suggested reference" value={details.paymentReference} mono />
-                        </div>
-                        <div className="grid grid-cols-2 gap-3">
+
+                        {method === "stripe" ? (
                             <label className="block">
-                                <span className="text-gray-600">Amount paid ({details.currency})</span>
-                                <input type="number" step="0.01" min="0" className="mt-1 w-full border rounded-lg p-2" value={amount} onChange={(e) => setAmount(e.target.value)} />
+                                <span className="text-gray-600">Stripe transfer ID (required)</span>
+                                <input className="mt-1 w-full border rounded-lg p-2 font-mono" value={transferId} onChange={(e) => setTransferId(e.target.value)} placeholder="tr_..." />
+                                <span className="text-xs text-gray-500">
+                                    In Stripe: Connected accounts → the seller → the transfer → copy its ID. The amount and date are read from Stripe, and the
+                                    seller is linked to that account if they aren&rsquo;t already.
+                                </span>
                             </label>
-                            <label className="block">
-                                <span className="text-gray-600">Date paid</span>
-                                <input type="date" className="mt-1 w-full border rounded-lg p-2" value={paidAt} onChange={(e) => setPaidAt(e.target.value)} />
-                            </label>
-                        </div>
+                        ) : (
+                            <>
+                                <div className="bg-gray-50 border rounded-lg p-3">
+                                    <p className="font-semibold mb-1">Seller&rsquo;s bank details (from their Payout Methods)</p>
+                                    {details.bank ? (
+                                        <>
+                                            <Row label="Account holder" value={details.bank.accountHolderName} />
+                                            <Row label="IBAN" value={details.bank.iban} mono />
+                                            <Row label="BIC" value={details.bank.bic} mono />
+                                            <Row label="Account no." value={details.bank.accountNumber} mono />
+                                            <Row label="Sort code" value={details.bank.sortCode} mono />
+                                            <Row label="Bank" value={details.bank.bankName} />
+                                        </>
+                                    ) : (
+                                        <p className="text-amber-700">
+                                            No bank details saved on RexBid. Ask the seller for their IBAN
+                                            {details.seller.phone ? ` (${details.seller.phone})` : ""}.
+                                            {details.stripe.bankLast4 ? ` Their Stripe payout bank is ${details.stripe.bankName || ""} ending ${details.stripe.bankLast4}.` : ""}
+                                        </p>
+                                    )}
+                                    <Row label="Amount due" value={Number(details.amount).toFixed(2)} />
+                                    <Row label="Suggested reference" value={details.paymentReference} mono />
+                                </div>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <label className="block">
+                                        <span className="text-gray-600">Amount paid ({details.currency})</span>
+                                        <input type="number" step="0.01" min="0" className="mt-1 w-full border rounded-lg p-2" value={amount} onChange={(e) => setAmount(e.target.value)} />
+                                    </label>
+                                    <label className="block">
+                                        <span className="text-gray-600">Date paid</span>
+                                        <input type="date" className="mt-1 w-full border rounded-lg p-2" value={paidAt} onChange={(e) => setPaidAt(e.target.value)} />
+                                    </label>
+                                </div>
+                                <label className="block">
+                                    <span className="text-gray-600">Bank payment reference (required)</span>
+                                    <input className="mt-1 w-full border rounded-lg p-2" value={reference} onChange={(e) => setReference(e.target.value)} placeholder="e.g. BOI 365 transaction reference" />
+                                </label>
+                            </>
+                        )}
                         <label className="block">
-                            <span className="text-gray-600">Bank payment reference (required)</span>
-                            <input className="mt-1 w-full border rounded-lg p-2" value={reference} onChange={(e) => setReference(e.target.value)} placeholder="e.g. BOI 365 transaction reference" />
-                        </label>
-                        <label className="block">
-                            <span className="text-gray-600">Note {Number(amount) !== details.amount ? "(required: amount differs)" : "(optional)"}</span>
-                            <textarea className="mt-1 w-full border rounded-lg p-2" rows={2} value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. Paid from BOI to avoid Stripe fees" />
+                            <span className="text-gray-600">Note (required if the amount differs from what&rsquo;s due)</span>
+                            <textarea className="mt-1 w-full border rounded-lg p-2" rows={2} value={note} onChange={(e) => setNote(e.target.value)} />
                         </label>
                         <label className="flex items-center gap-2">
                             <input type="checkbox" checked={sendEmail} onChange={(e) => setSendEmail(e.target.checked)} />
@@ -261,6 +375,80 @@ function ManualPayoutModal({ sale, onClose, onDone }) {
                     <button onClick={onClose} className="px-4 py-2 rounded-lg border">Cancel</button>
                     <button onClick={save} disabled={saving || !details} className="px-4 py-2 rounded-lg bg-secondary text-white disabled:opacity-50">
                         {saving ? "Saving…" : "Record payout"}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function LinkStripeAccountModal({ sale, onClose, onDone }) {
+    const [accounts, setAccounts] = useState(null);
+    const [accountId, setAccountId] = useState("");
+    const [saving, setSaving] = useState(false);
+    useEffect(() => {
+        axiosInstance
+            .get("/api/v1/admin/sales/stripe-accounts/unlinked")
+            .then(({ data }) => setAccounts(data.data))
+            .catch(() => setAccounts([]));
+    }, []);
+    const save = async () => {
+        if (!accountId.trim()) return toast.error("Pick an account or paste its ID");
+        setSaving(true);
+        try {
+            const { data } = await axiosInstance.post(`/api/v1/admin/sales/${sale._id}/link-payout-account`, { accountId: accountId.trim() });
+            toast.success(data.data.state === "ready" ? "Linked: payouts ready" : "Linked: the seller still needs to finish setup in Stripe");
+            onDone();
+        } catch (err) {
+            toast.error(err.response?.data?.message || "Could not link the account");
+        } finally {
+            setSaving(false);
+        }
+    };
+    const sellerName = sale.seller?.companyName || sale.seller?.name;
+    return (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+                <div className="flex items-center justify-between p-5 border-b">
+                    <h3 className="text-lg font-semibold">Link Stripe account · {sellerName}</h3>
+                    <button onClick={onClose} aria-label="Close"><X size={20} /></button>
+                </div>
+                <div className="p-5 space-y-3 text-sm">
+                    <p>
+                        For a seller whose Stripe connected account was set up with a different email from their RexBid account. Pick their
+                        account below (only accounts not linked to anyone are shown).
+                    </p>
+                    {!accounts ? (
+                        <LoadingSpinner height="120px" />
+                    ) : accounts.length === 0 ? (
+                        <p className="text-gray-500">Every connected account is already linked.</p>
+                    ) : (
+                        <ul className="border rounded-lg divide-y max-h-64 overflow-y-auto">
+                            {accounts.map((a) => (
+                                <li key={a.accountId}>
+                                    <label className="flex items-start gap-2 p-2 cursor-pointer hover:bg-gray-50">
+                                        <input type="radio" className="mt-1" checked={accountId === a.accountId} onChange={() => setAccountId(a.accountId)} />
+                                        <span className="flex-1">
+                                            <span className="font-medium">{a.name || "(no name)"}</span>
+                                            <span className="block text-xs text-gray-500">{a.email} · {a.accountId}</span>
+                                        </span>
+                                        <span className={`text-[11px] px-1.5 py-0.5 rounded ${a.payoutsEnabled ? "bg-green-50 text-green-700" : "bg-amber-50 text-amber-700"}`}>
+                                            {a.payoutsEnabled ? "Ready" : "Incomplete"}
+                                        </span>
+                                    </label>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                    <label className="block">
+                        <span className="text-gray-600">Or paste the account ID</span>
+                        <input className="mt-1 w-full border rounded-lg p-2 font-mono" value={accountId} onChange={(e) => setAccountId(e.target.value)} placeholder="acct_..." />
+                    </label>
+                </div>
+                <div className="flex justify-end gap-2 p-5 border-t">
+                    <button onClick={onClose} className="px-4 py-2 rounded-lg border">Cancel</button>
+                    <button onClick={save} disabled={saving} className="px-4 py-2 rounded-lg bg-secondary text-white disabled:opacity-50">
+                        {saving ? "Linking…" : "Link account"}
                     </button>
                 </div>
             </div>
@@ -323,6 +511,8 @@ function Sales() {
     const selectable = useMemo(() => sales.filter((s) => canSend(s) || canDocs(s) || canPay(s)), [sales]);
     const [matchResult, setMatchResult] = useState(null);
     const [manualSale, setManualSale] = useState(null);
+    const [paySale, setPaySale] = useState(null);
+    const [linkSale, setLinkSale] = useState(null);
     const allSelected = selectable.length > 0 && selectable.every((s) => selected.has(s._id));
     const chosen = useMemo(() => sales.filter((s) => selected.has(s._id)), [sales, selected]);
     const eligible = (type) => chosen.filter(DOC_ACTIONS[type].eligible);
@@ -470,6 +660,21 @@ function Sales() {
         }
     };
 
+    const findStripePayments = async () => {
+        setSending(true);
+        try {
+            const { data } = await axiosInstance.post("/api/v1/admin/sales/match-payments");
+            const n = data.data.matched;
+            if (n) toast.success(`${n} sale${n === 1 ? "" : "s"} matched to a Stripe payment and marked paid`);
+            else toast("No new Stripe payments matched. Use Record payment for anything paid another way.");
+            await load();
+        } catch (err) {
+            toast.error(err.response?.data?.message || "Could not check Stripe");
+        } finally {
+            setSending(false);
+        }
+    };
+
     const importHistory = async () => {
         if (!window.confirm("Import every lot sold before sale records began?\n\nNo emails are sent and nothing is created in Stripe. Paid, paid-out and failed statuses are taken from the auction records.")) return;
         setSending(true);
@@ -536,6 +741,11 @@ function Sales() {
                                     >
                                         <Banknote size={16} />
                                         {sending ? "Working…" : `Pay sellers (${payable.length})`}
+                                    </button>
+                                )}
+                                {["sold", "request_sent", "historical", "all"].includes(tab) && (
+                                    <button onClick={findStripePayments} disabled={sending} className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border bg-white text-sm">
+                                        <Search size={16} /> Find Stripe payments
                                     </button>
                                 )}
                                 {["paid", "payout_due", "paid_out", "historical"].includes(tab) && (
@@ -704,6 +914,11 @@ function Sales() {
                                                                     Send setup link
                                                                 </button>
                                                             )}
+                                                            {s.sellerPayout.state !== "ready" && (
+                                                                <button onClick={() => setLinkSale(s)} className="text-[11px] underline text-gray-600">
+                                                                    Link Stripe account
+                                                                </button>
+                                                            )}
                                                         </div>
                                                     )}
                                                 </td>
@@ -809,14 +1024,19 @@ function Sales() {
                                                                 </button>
                                                             </>
                                                         )}
-                                                        {canPay(s) && (
-                                                            <button title="Manual payout (paid from RexBid's bank)" onClick={() => setManualSale(s)} className="p-2 rounded-lg hover:bg-gray-100">
+                                                        {["paid", "collected", "payout_due"].includes(s.status) && !s.payout?.reference && (
+                                                            <button title="Record payout (paid from BOI, or already paid in the Stripe Dashboard)" onClick={() => setManualSale(s)} className="p-2 rounded-lg hover:bg-gray-100">
                                                                 <Landmark size={16} />
                                                             </button>
                                                         )}
                                                         {["paid", "collected"].includes(s.status) && (
                                                             <button title="Release payout early (both parties agreed)" onClick={() => releaseEarly(s)} className="p-2 rounded-lg hover:bg-gray-100">
                                                                 <Unlock size={16} />
+                                                            </button>
+                                                        )}
+                                                        {["sold", "request_sent", "failed"].includes(s.status) && (
+                                                            <button title="Record payment (paid outside this page)" onClick={() => setPaySale(s)} className="p-2 rounded-lg hover:bg-green-50 text-green-700">
+                                                                <CheckCircle size={16} />
                                                             </button>
                                                         )}
                                                         {canFail(s) && (
@@ -857,6 +1077,10 @@ function Sales() {
                     onSaved={() => { setVatSale(null); load(); }}
                 />
             )}
+
+            {linkSale && <LinkStripeAccountModal sale={linkSale} onClose={() => setLinkSale(null)} onDone={() => { setLinkSale(null); load(); }} />}
+
+            {paySale && <RecordPaymentModal sale={paySale} onClose={() => setPaySale(null)} onDone={() => { setPaySale(null); load(); }} />}
 
             {manualSale && (
                 <ManualPayoutModal sale={manualSale} onClose={() => setManualSale(null)} onDone={() => { setManualSale(null); load(); }} />
