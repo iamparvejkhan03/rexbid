@@ -3987,7 +3987,14 @@ const sellerStatementEmail = async (sale, snapshot, pdfBuffer, filename, dashboa
             heading = 'Seller Statement';
             subject = `Seller Statement ${snapshot.reference} - ${snapshot.title}`;
             intro = `<p>Your statement for <strong>${snapshot.title}</strong> is attached and is also saved under <strong>Documents</strong> in your RexBid dashboard.</p>`;
-            body = `${figures}<p>${snapshot.buyerPaidDate ? `The buyer paid on ${docDate(snapshot.buyerPaidDate)}.` : ''} Your payout is released once collection is confirmed${snapshot.payoutAccount ? `, to your ${snapshot.payoutAccount}` : ''}.</p>${noBank}`;
+            if (snapshot.payoutPaidDate) {
+                // Already paid (e.g. an earlier sale): a statement for their records.
+                body = `${figures}<p>We paid you on ${docDate(snapshot.payoutPaidDate)}${snapshot.payoutReference ? ` (reference ${snapshot.payoutReference})` : ''}. This statement is for your records.</p>`;
+            } else if (snapshot.historical) {
+                body = `${figures}<p>${snapshot.buyerPaidDate ? `The buyer paid on ${docDate(snapshot.buyerPaidDate)}. ` : ''}This statement is for your records. If you haven't been paid for this sale yet, please reply to this email and we'll sort it out.</p>`;
+            } else {
+                body = `${figures}<p>${snapshot.buyerPaidDate ? `The buyer paid on ${docDate(snapshot.buyerPaidDate)}.` : ''} Your payout is released once collection is confirmed${snapshot.payoutAccount ? `, to your ${snapshot.payoutAccount}` : ''}.</p>${noBank}`;
+            }
             button = createButton('View My Documents', docsUrl, 'primary');
         }
 

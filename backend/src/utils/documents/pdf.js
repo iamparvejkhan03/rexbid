@@ -311,9 +311,9 @@ export const renderSellerStatementPdf = (s) =>
         y = sectionTitle(doc, y, "Payout");
         y = pairsTable(doc, y, [
             ["Buyer payment", s.buyerPaidDate ? `Received ${longDate(s.buyerPaidDate)}` : "Awaiting payment"],
-            ["Payout to", s.payoutAccount || "No payout bank account on file. Please add one under Payout Methods."],
+            ["Payout to", s.payoutAccount || (s.historical || s.payoutPaidDate ? "Not recorded on RexBid" : "No payout bank account on file. Please add one under Payout Methods.")],
             s.collectBy && !s.payoutPaidDate ? ["Buyer to collect by", longDate(s.collectBy)] : null,
-            ["Payout", s.payoutPaidDate ? `Paid ${longDate(s.payoutPaidDate)}` : "Released once collection is confirmed"],
+            ["Payout", s.payoutPaidDate ? `Paid ${longDate(s.payoutPaidDate)}` : s.historical ? "Not recorded on RexBid. Contact us if you have not been paid." : "Released once collection is confirmed"],
             s.payoutReference ? ["Payout reference", s.payoutReference] : null,
         ].filter(Boolean));
         y += 14;

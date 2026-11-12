@@ -487,7 +487,10 @@ function Sales() {
 
     const button = (type, icon) => {
         const n = eligible(type).length;
-        if (!n && !(type === "payment_request" && ["sold", "request_sent"].includes(tab))) return null;
+        const alwaysShow =
+            (type === "payment_request" && ["sold", "request_sent"].includes(tab)) ||
+            (type !== "payment_request" && ["paid", "payout_due", "paid_out", "historical"].includes(tab));
+        if (!n && !alwaysShow) return null;
         return (
             <button
                 key={type}
@@ -500,6 +503,9 @@ function Sales() {
             </button>
         );
     };
+
+    const paidHere = sales.filter(canDocs);
+    const selectAllPaid = () => setSelected(new Set(paidHere.map((s) => s._id)));
 
     return (
         <section className="flex min-h-screen bg-gray-50">
@@ -582,6 +588,18 @@ function Sales() {
                             />
                         </label>
                     </div>
+
+                    {tab === "historical" && sales.length > 0 && (
+                        <div className="mb-4 flex flex-col md:flex-row md:items-center gap-2 bg-blue-50 border border-blue-200 text-blue-900 rounded-lg p-3 text-sm">
+                            <span className="flex-1">
+                                Seller statements and receipts can be sent for earlier sales the buyer has paid ({paidHere.length} here). Unpaid and
+                                failed earlier sales are skipped. Run <strong>Match past Stripe payouts</strong> first so statements show who has already been paid.
+                            </span>
+                            <button onClick={selectAllPaid} disabled={!paidHere.length} className="px-3 py-1.5 rounded-lg bg-white border border-blue-300 font-medium disabled:opacity-40">
+                                Select all paid ({paidHere.length})
+                            </button>
+                        </div>
+                    )}
 
                     <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-16">
                         {loading ? (
