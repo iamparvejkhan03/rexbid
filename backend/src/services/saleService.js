@@ -240,6 +240,7 @@ export const syncSales = async ({ since = SALES_TRACKING_START, ibanLimit = 25 }
         await s.save();
     }
 
+    const { matched: paymentsMatched } = await matchOutsideStripePayments();
     const { ibansAdded } = await fillMissingIbans({ limit: ibanLimit });
     const sellersChecked = await refreshOpenSellerAccounts({ limit: 10 });
     return { created, markedPaid, ibansAdded, sellersChecked };
@@ -632,4 +633,130 @@ export const recordPayment = async (pi) => {
         // in place of the generic payment emails.
     }
     return sale;
+};
+
+// ─── Payments made outside the Sales page ──────────────────
+
+const METHOD_FROM_PI = (pi) => (pi.payment_method_types || []).includes("customer_balance") && !(pi.payment_method_types || []).includes("card")
+    ? "bank_transfer"
+    : (pi.payment_method_types || []).includes("card") ? "credit_card" : "bank_transfer";
+
+/**
+ * Records a payment that didn't come through a Sales-page request: a
+ * payment request made by hand in the Stripe Dashboard, a transfer to the
+ * RexBid bank account, cash, etc. Marks the sale and the auction paid and,
+ * unless told not to, sends the receipt and the seller's statement.
+ */
+export const recordOutsidePayment = async (saleId, { method, reference, paidAt, amount, note, sendDocuments = true }, admin = null) => {
+    const sale = await Sale.findById(saleId);
+    if (!sale) throw Object.assign(new Error("Sale not found"), { status: 404 });
+    if (!["sold", "request_sent", "failed"].includes(sale.status)) {
+        throw Object.assign(new Error(`This sale is already ${sale.status.replace("_", " ")}`), { status: 400 });
+    }
+    const allowed = ["bank_transfer", "credit_card", "other"];
+    if (!allowed.includes(method)) throw Object.assign(new Error("Choose how it was paid"), { status: 400 });
+    const paid = amount === undefined || amount === "" ? sale.total : round2(Number(amount));
+    if (!(paid > 0)) throw Object.assign(new Error("Enter the amount received"), { status: 400 });
+    if (paid !== sale.total && !note?.trim()) {
+        throw Object.assign(new Error(`The amount differs from the ${sale.total.toFixed(2)} ${sale.currency} due; add a note`), { status: 400 });
+    }
+    const when = paidAt ? new Date(paidAt) : new Date();
+    if (Number.isNaN(when.getTime()) || when > new Date(Date.now() + 86400e3)) {
+        throw Object.assign(new Error("Enter a valid payment date"), { status: 400 });
+    }
+
+    // Withdraw any unpaid Sales-page request so the buyer can't pay twice.
+    const openPi = sale.stripe?.paymentIntentId;
+    if (openPi && openPi !== reference) {
+        try {
+            const pi = await stripe.paymentIntents.retrieve(openPi);
+            if (["requires_action", "requires_payment_method"].includes(pi.status) && !(pi.amount_received > 0)) {
+                await stripe.paymentIntents.cancel(openPi);
+                sale.notes.push({ text: `Unused payment request ${openPi} cancelled in Stripe`, by: admin?._id });
+            }
+        } catch (err) {
+            sale.notes.push({ text: `Could not cancel payment request ${openPi}: ${err.message}`, by: admin?._id });
+        }
+    }
+
+    sale.status = "paid";
+    sale.set("payment.paidAt", when);
+    sale.set("payment.method", method);
+    sale.set("payment.amount", paid);
+    if (reference?.trim()) sale.set("payment.transactionId", reference.trim());
+    // Collection is counted from when we confirm payment, not when it arrived.
+    sale.set("collection.dueBy", addWorkingDays(new Date(), COLLECTION_WORKING_DAYS));
+    sale.notes.push({
+        text: `Payment of ${paid} ${sale.currency} recorded (${method.replace("_", " ")}${reference?.trim() ? `, ref ${reference.trim()}` : ""})${note?.trim() ? `: ${note.trim()}` : ""}`,
+        by: admin?._id,
+    });
+    await sale.save();
+
+    // Keep the auction in step. The sale is already paid, so the auction hook
+    // won't send anything twice.
+    const auction = await Auction.findById(sale.auction);
+    if (auction && auction.paymentStatus !== "completed") {
+        const fields = { paymentStatus: "completed", paymentMethod: method, paymentDate: when, ...(reference?.trim() ? { transactionId: reference.trim() } : {}) };
+        try {
+            Object.assign(auction, fields);
+            await auction.save();
+        } catch {
+            await Auction.updateOne({ _id: auction._id }, { $set: fields });
+        }
+    }
+
+    if (sendDocuments) await autoIssueReceipt(sale);
+    return Sale.findById(sale._id);
+};
+
+/**
+ * Finds Stripe payments for unpaid sales that were requested outside the
+ * Sales page (e.g. a payment request made by hand in the Stripe Dashboard):
+ * a succeeded payment by the same Stripe customer for exactly the sale total,
+ * made on or after the sale date and not already linked to another sale.
+ */
+export const matchOutsideStripePayments = async ({ limit = 30 } = {}) => {
+    // Includes unpaid earlier sales: many of those were requested by hand in Stripe.
+    const sales = await Sale.find({ status: { $in: ["sold", "request_sent"] } }).sort({ saleDate: -1 }).limit(limit);
+    if (!sales.length) return { matched: 0 };
+    const used = new Set((await Sale.distinct("payment.transactionId", { "payment.transactionId": { $ne: null } })).filter(Boolean));
+    let matched = 0;
+    for (const sale of sales) {
+        let customerId = sale.stripe?.customerId;
+        if (!customerId) customerId = (await User.findById(sale.buyer.user).select("stripeCustomerId"))?.stripeCustomerId;
+        if (!customerId) continue;
+        try {
+            const cents = Math.round(sale.total * 100);
+            const after = Math.floor(new Date(sale.saleDate).getTime() / 1000) - 86400;
+            const list = await stripe.paymentIntents.list({ customer: customerId, created: { gte: after }, limit: 20 });
+            const hits = list.data.filter(
+                (pi) =>
+                    pi.status === "succeeded" &&
+                    pi.amount_received === cents &&
+                    pi.currency === sale.currency.toLowerCase() &&
+                    !used.has(pi.id) &&
+                    (!pi.metadata?.saleId || pi.metadata.saleId === String(sale._id)) &&
+                    // Card checkout payments are linked through the auction already.
+                    !(pi.metadata?.auctionId && pi.metadata.auctionId !== String(sale.auction)),
+            );
+            if (hits.length !== 1) {
+                if (hits.length > 1) console.warn(`Sale ${sale.reference}: ${hits.length} possible Stripe payments, not matching automatically`);
+                continue;
+            }
+            const pi = hits[0];
+            used.add(pi.id);
+            await recordOutsidePayment(sale._id, {
+                method: METHOD_FROM_PI(pi),
+                reference: pi.id,
+                paidAt: new Date(pi.created * 1000),
+                note: "Matched automatically to a Stripe payment made outside the Sales page",
+                // Earlier sales: record quietly, no receipt or statement emails.
+                sendDocuments: !sale.historical,
+            });
+            matched += 1;
+        } catch (err) {
+            console.error(`Matching Stripe payments for ${sale.reference} failed:`, err.message);
+        }
+    }
+    return { matched };
 };

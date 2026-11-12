@@ -439,3 +439,23 @@ export const manualPayout = async (req, res) => {
         fail(res, err);
     }
 };
+
+export const recordPaymentManually = async (req, res) => {
+    try {
+        const { recordOutsidePayment } = await import("../services/saleService.js");
+        const { method, reference, paidAt, amount, note, sendDocuments } = req.body || {};
+        const sale = await recordOutsidePayment(req.params.saleId, { method, reference, paidAt, amount, note, sendDocuments: sendDocuments !== false }, req.user);
+        res.json({ success: true, data: { _id: sale._id, status: sale.status, documents: sale.documents.length } });
+    } catch (err) {
+        fail(res, err);
+    }
+};
+
+export const matchStripePayments = async (req, res) => {
+    try {
+        const { matchOutsideStripePayments } = await import("../services/saleService.js");
+        res.json({ success: true, data: await matchOutsideStripePayments({ limit: 100 }) });
+    } catch (err) {
+        fail(res, err);
+    }
+};
