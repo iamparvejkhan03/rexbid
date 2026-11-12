@@ -5,6 +5,9 @@ import {
     buildMetaEvent,
     normalisePhone,
     normaliseEmail,
+    normaliseLetters,
+    normalisePostcode,
+    normaliseCountry,
     cleanCustomData,
     sendMetaEvent,
 } from "../src/utils/metaCapi.js";
@@ -17,6 +20,10 @@ test("phone numbers are normalised to digits with country code", () => {
     assert.equal(normalisePhone("0035387 1234567"), "353871234567");
     assert.equal(normalisePhone("07700 900123"), "447700900123");
     assert.equal(normalisePhone("123"), null);
+    // The user's country decides the dialling code for local numbers.
+    assert.equal(normalisePhone("07700 900123", "IE"), "3537700900123");
+    assert.equal(normalisePhone("028 3755 1234", "GB"), "442837551234");
+    assert.equal(normalisePhone("0612345678", "FR"), null);
     assert.equal(normalisePhone(undefined), null);
 });
 
@@ -70,4 +77,30 @@ test("does nothing without Render settings or for unknown events", async () => {
     assert.deepEqual(await sendMetaEvent({ eventName: "Purchase" }), { skipped: true });
     delete process.env.META_PIXEL_ID;
     delete process.env.META_CAPI_TOKEN;
+});
+
+test("names, county, postcode and country are normalised for Meta", () => {
+    assert.equal(normaliseLetters("  Seán O'Brien "), "seánobrien");
+    assert.equal(normaliseLetters("Co. Cavan"), "cocavan");
+    assert.equal(normalisePostcode("H12 FR84"), "h12fr84");
+    assert.equal(normaliseCountry("IE"), "ie");
+    assert.equal(normaliseCountry("Ireland"), null);
+});
+
+test("event includes hashed name, county, postcode and country", () => {
+    const user = {
+        _id: "u1",
+        firstName: "Seán",
+        lastName: "Murphy",
+        countryCode: "IE",
+        address: { county: "Co. Cavan", postCode: "H12 FR84" },
+    };
+    const e = buildMetaEvent({ eventName: "ViewContent", user });
+    assert.deepEqual(e.user_data.fn, [sha("seán")]);
+    assert.deepEqual(e.user_data.ln, [sha("murphy")]);
+    assert.deepEqual(e.user_data.st, [sha("cavan")]);
+    assert.deepEqual(e.user_data.zp, [sha("h12fr84")]);
+    assert.deepEqual(e.user_data.country, [sha("ie")]);
+    const json = JSON.stringify(e);
+    for (const plain of ["Murphy", "murphy", "h12fr84", "Cavan"]) assert.ok(!json.includes(plain));
 });
