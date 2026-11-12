@@ -432,9 +432,54 @@ export const payoutDetails = async (req, res) => {
 
 export const manualPayout = async (req, res) => {
     try {
-        const { amount, paidAt, reference, note, sendEmail } = req.body || {};
-        const r = await recordManualPayout(req.params.saleId, { amount, paidAt, reference, note, sendEmail: sendEmail !== false }, req.user);
+        const { amount, paidAt, reference, note, sendEmail, method } = req.body || {};
+        const r = await recordManualPayout(req.params.saleId, { amount, paidAt, reference, note, sendEmail: sendEmail !== false, method }, req.user);
         res.json({ success: true, data: { reference: r.sale.reference, amount: r.amount, emailed: r.emailed } });
+    } catch (err) {
+        fail(res, err);
+    }
+};
+
+export const recordPaymentManually = async (req, res) => {
+    try {
+        const { recordOutsidePayment } = await import("../services/saleService.js");
+        const { method, reference, paidAt, amount, note, sendDocuments } = req.body || {};
+        const sale = await recordOutsidePayment(req.params.saleId, { method, reference, paidAt, amount, note, sendDocuments: sendDocuments !== false }, req.user);
+        res.json({ success: true, data: { _id: sale._id, status: sale.status, documents: sale.documents.length } });
+    } catch (err) {
+        fail(res, err);
+    }
+};
+
+export const matchStripePayments = async (req, res) => {
+    try {
+        const { matchOutsideStripePayments } = await import("../services/saleService.js");
+        res.json({ success: true, data: await matchOutsideStripePayments({ limit: 100 }) });
+    } catch (err) {
+        fail(res, err);
+    }
+};
+
+export const unlinkedStripeAccounts = async (req, res) => {
+    try {
+        const { listUnlinkedAccounts } = await import("../services/connectService.js");
+        res.json({ success: true, data: await listUnlinkedAccounts() });
+    } catch (err) {
+        fail(res, err);
+    }
+};
+
+export const linkSellerStripeAccount = async (req, res) => {
+    try {
+        const sale = await Sale.findById(req.params.saleId, "seller reference notes");
+        if (!sale) return res.status(404).json({ success: false, message: "Sale not found" });
+        const seller = await User.findById(sale.seller.user);
+        if (!seller) return res.status(404).json({ success: false, message: "Seller account not found" });
+        const { linkConnectAccount } = await import("../services/connectService.js");
+        const sc = await linkConnectAccount(seller, String(req.body?.accountId || "").trim());
+        sale.notes.push({ text: `Seller linked to Stripe account ${sc.accountId} by an admin`, by: req.user._id });
+        await sale.save();
+        res.json({ success: true, data: { state: payoutState(sc), bankLast4: sc.bankLast4 } });
     } catch (err) {
         fail(res, err);
     }

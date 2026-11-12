@@ -158,6 +158,7 @@ export const statementSnapshot = (sale, { issueDate = new Date(), payoutAccount 
         netPayout: round2(grossForSeller - sellerFee),
         buyerPaidDate: sale.payment?.paidAt,
         payoutPaidDate: sale.payout?.paidAt,
+        historical: !!sale.historical,
         payoutReference: sale.payout?.reference,
         payoutMethod: sale.payout?.method,
         payoutAccount,

@@ -303,11 +303,15 @@ export const getPayoutDetails = async (saleId) => {
  * Records a payout made outside Stripe (e.g. from BOI for a high-value sale)
  * and sends the seller their "you've been paid" statement.
  */
-export const recordManualPayout = async (saleId, { amount, paidAt, reference, note, sendEmail = true }, admin) => {
+export const recordManualPayout = async (saleId, { amount, paidAt, reference, note, sendEmail = true, method = "bank_transfer" }, admin) => {
     const sale = await Sale.findById(saleId);
     if (!sale) throw fail("Sale not found", 404);
-    if (sale.status !== "payout_due") throw fail("Only sales marked payout due can be paid. Use Release payout early first if both parties agree.");
+    // Recording a payout that has already happened is allowed once the buyer has paid.
+    if (!["paid", "collected", "payout_due"].includes(sale.status)) {
+        throw fail(sale.status === "paid_out" ? "This sale is already paid out" : "Record the buyer's payment first");
+    }
     if (sale.payout?.reference) throw fail(`Already paid (${sale.payout.reference})`);
+    if (method === "stripe_transfer") return recordDashboardTransfer(sale, { reference, note, sendEmail }, admin);
     if (!reference?.trim()) throw fail("Add the bank payment reference");
 
     const expected = netPayout(sale);
@@ -338,6 +342,7 @@ export const recordManualPayout = async (saleId, { amount, paidAt, reference, no
             details: { method: "manual_bank_transfer", reference: reference.trim(), iban: bank?.iban ? maskIban(bank.iban) : undefined },
         },
     });
+    if (sale.status !== "payout_due") sale.notes.push({ text: "Payout recorded before collection was confirmed on the site", by: admin._id });
     sale.notes.push({
         text: `Paid ${paid} ${sale.currency} by manual bank transfer, ref ${reference.trim()}${paid !== expected ? ` (due ${expected})` : ""}${note?.trim() ? `: ${note.trim()}` : ""}`,
         by: admin._id,
@@ -353,4 +358,57 @@ export const recordManualPayout = async (saleId, { amount, paidAt, reference, no
         }
     }
     return { sale, amount: paid, emailed };
+};
+
+/**
+ * Records a payout that was made as a transfer from the Stripe Dashboard.
+ * The transfer is checked with Stripe; the seller is linked to the account it
+ * went to if they weren't already.
+ */
+const recordDashboardTransfer = async (sale, { reference, note, sendEmail }, admin) => {
+    const id = String(reference || "").trim();
+    if (!/^tr_[A-Za-z0-9]+$/.test(id)) throw fail("Enter the Stripe transfer ID (tr_...), shown on the transfer in Stripe");
+    if (await Sale.exists({ "payout.reference": id, _id: { $ne: sale._id } })) throw fail("That transfer is already recorded against another sale");
+    let t;
+    try {
+        t = await stripe.transfers.retrieve(id);
+    } catch {
+        throw fail("Stripe has no transfer with that ID", 404);
+    }
+    if (t.reversed) throw fail("That transfer was reversed in Stripe");
+    if (t.currency !== sale.currency.toLowerCase()) throw fail(`That transfer is in ${t.currency.toUpperCase()}, the sale is in ${sale.currency}`);
+
+    const seller = await User.findById(sale.seller.user);
+    const sc = await refreshSellerConnect(seller);
+    if (sc?.accountId && sc.accountId !== t.destination) {
+        throw fail(`That transfer went to ${t.destination}, but this seller is linked to ${sc.accountId}`);
+    }
+    if (!sc?.accountId) {
+        const { linkConnectAccount } = await import("./connectService.js");
+        await linkConnectAccount(seller, t.destination);
+        sale.notes.push({ text: `Seller linked to Stripe account ${t.destination} (from the recorded transfer)`, by: admin._id });
+    }
+
+    const amount = t.amount / 100;
+    const expected = netPayout(sale);
+    if (amount !== expected && !note?.trim()) {
+        throw fail(`The transfer was ${amount.toFixed(2)} ${sale.currency} but ${expected.toFixed(2)} is due; add a note explaining why`);
+    }
+    await recordPayout(sale, { transferId: t.id, accountId: t.destination, amount, paidAt: new Date(t.created * 1000), admin, matched: true, seller });
+    if (sale.status !== "paid_out") sale.status = "paid_out";
+    sale.notes.push({
+        text: `Payout recorded: Stripe transfer ${t.id} of ${amount} ${sale.currency} made in the Dashboard${amount !== expected ? ` (due ${expected})` : ""}${note?.trim() ? `: ${note.trim()}` : ""}`,
+        by: admin._id,
+    });
+    await sale.save();
+
+    let emailed = false;
+    if (sendEmail) {
+        try {
+            ({ emailed } = await issueSellerStatement(sale._id, admin, { context: "paid_out" }));
+        } catch (err) {
+            console.error(`Payout statement for ${sale.reference} failed:`, err.message);
+        }
+    }
+    return { sale, amount, emailed };
 };

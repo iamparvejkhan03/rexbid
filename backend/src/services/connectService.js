@@ -157,3 +157,40 @@ export const createDashboardLink = async (user) => {
     const link = await stripe.accounts.createLoginLink(user.stripeConnect.accountId);
     return link.url;
 };
+
+/** Connected accounts not yet linked to any RexBid user (for linking by hand). */
+export const listUnlinkedAccounts = async () => {
+    const linked = new Set(await User.distinct("stripeConnect.accountId", { "stripeConnect.accountId": { $ne: null } }));
+    const out = [];
+    for await (const acct of stripe.accounts.list({ limit: 100 })) {
+        if (linked.has(acct.id)) continue;
+        const person = [acct.individual?.first_name, acct.individual?.last_name].filter(Boolean).join(" ");
+        out.push({
+            accountId: acct.id,
+            name: acct.business_profile?.name || acct.company?.name || person || acct.settings?.dashboard?.display_name || null,
+            email: acct.email,
+            payoutsEnabled: !!acct.payouts_enabled,
+            created: new Date(acct.created * 1000),
+        });
+    }
+    return out.sort((a, b) => b.created - a.created);
+};
+
+/** Links a seller to a specific connected account (e.g. made in the Dashboard with a different email). */
+export const linkConnectAccount = async (user, accountId) => {
+    if (!/^acct_[A-Za-z0-9]+$/.test(String(accountId || ""))) {
+        throw Object.assign(new Error("Enter a Stripe account ID (acct_...)"), { status: 400 });
+    }
+    const other = await User.findOne({ "stripeConnect.accountId": accountId, _id: { $ne: user._id } }).select("username email");
+    if (other) throw Object.assign(new Error(`That Stripe account is already linked to ${other.username || other.email}`), { status: 409 });
+    let acct;
+    try {
+        acct = await stripe.accounts.retrieve(accountId);
+    } catch {
+        throw Object.assign(new Error("Stripe has no connected account with that ID"), { status: 404 });
+    }
+    user.set("stripeConnect", statusFromAccount(acct));
+    await user.save({ validateBeforeSave: false });
+    accountCache.at = 0;
+    return user.stripeConnect;
+};
