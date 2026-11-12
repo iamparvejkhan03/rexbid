@@ -179,6 +179,8 @@ Admin-created listings (`pages/admin/CreateAuction.jsx`) are deliberately not se
 
 **Conversions API (server copy).** The browser also posts each event to `POST /api/v1/meta-events` (`backend/src/routes/metaEvent.route.js`), which forwards it to Meta with the signed-in user's hashed email/phone (`backend/src/utils/metaCapi.js`). Meta de-duplicates by the shared event ID. Off until these are set on Render: `META_PIXEL_ID` (`1342628734664826`), `META_CAPI_TOKEN` (Events Manager → the pixel → Settings → Conversions API → Generate access token). Optional `META_TEST_EVENT_CODE` sends events to Events Manager → Test events while checking.
 
+**Advanced matching.** For signed-in visitors who accepted advertising cookies, the Pixel starts with their email, phone, first/last name, country and hashed account ID (`syncMetaUser` in `metaPixel.js`, called from `AuthContext`; `index.html` reads `window.__rexbidMetaUser`). The Conversions API copy also sends hashed first/last name, county, postcode and country from the account. An ad click ID (`fbclid`) is kept in memory for the visit (never stored on the device) and sent as `fbc` once cookies are accepted. Also turn on Events Manager → Pixel → Settings → *Automatic advanced matching*.
+
 After deploying, in Events Manager create Custom Conversions for `PlaceBid` and `SellerSignUp` so campaigns can optimise for them.
 
 **Ad link tags.** Use the same tags on every ad (Meta ad → Tracking → URL parameters):

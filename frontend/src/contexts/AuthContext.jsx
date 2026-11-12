@@ -2,6 +2,7 @@ import axios from 'axios';
 import { createContext, useContext, useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import { getGaClientId } from '../utils/ga.js';
+import { syncMetaUser } from '../utils/metaPixel.js';
 
 const AuthContext = createContext();
 
@@ -20,6 +21,12 @@ export const AuthProvider = ({ children }) => {
     useEffect(() => {
         checkAuth();
     }, []);
+
+    // Keep Meta advanced matching in step with who is signed in
+    // (only used once the visitor accepts advertising cookies).
+    useEffect(() => {
+        syncMetaUser(user);
+    }, [user]);
 
     const checkAuth = async () => {
         try {

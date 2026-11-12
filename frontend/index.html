@@ -118,7 +118,9 @@
             fbq("consent", "grant");
             if (!fbStarted) {
               fbStarted = true;
-              fbq("init", "1342628734664826");
+              // Signed-in visitor's details for advanced matching, set by
+              // frontend/src/utils/metaPixel.js (syncMetaUser).
+              fbq("init", "1342628734664826", window.__rexbidMetaUser || {});
               fbq("track", "PageView");
             }
           } else if (fbStarted) {

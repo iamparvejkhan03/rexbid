@@ -3,7 +3,8 @@
 // The browser fires each Meta event with an eventID and, only when the
 // visitor has accepted advertising cookies, also posts it to
 // POST /api/v1/meta-events. That endpoint passes it on to Meta from the
-// server with the signed-in user's hashed email/phone, so events still count
+// server with the signed-in user's hashed details (email, phone, name,
+// county, postcode, country, account ID), so events still count
 // when ad blockers or browser privacy features drop the Pixel. Meta removes
 // the duplicate using the shared event_id.
 //
@@ -30,19 +31,36 @@ const sha256 = (v) => crypto.createHash("sha256").update(v).digest("hex");
 export const normaliseEmail = (email) =>
     typeof email === "string" && email.includes("@") ? email.trim().toLowerCase() : null;
 
-// Meta wants digits only, with country code. Irish numbers typed as 08x...
-// become 3538x..., UK 07x... become 447x...
-export const normalisePhone = (phone) => {
+const DIAL_CODES = { IE: "353", GB: "44" };
+
+// Meta wants digits only, with country code. Local numbers (08x..., 07...)
+// get the dialling code of the user's country; without a country, 08x is
+// treated as Irish and 07x as UK.
+export const normalisePhone = (phone, countryCode) => {
     if (typeof phone !== "string" && typeof phone !== "number") return null;
     let d = String(phone).replace(/[^\d+]/g, "");
     if (!d) return null;
     if (d.startsWith("+")) d = d.slice(1);
     else if (d.startsWith("00")) d = d.slice(2);
-    else if (d.startsWith("08")) d = "353" + d.slice(1);
-    else if (d.startsWith("07")) d = "44" + d.slice(1);
+    else if (d.startsWith("0")) {
+        const dial =
+            DIAL_CODES[String(countryCode || "").toUpperCase()] ||
+            (d.startsWith("08") ? "353" : d.startsWith("07") ? "44" : null);
+        if (!dial) return null;
+        d = dial + d.slice(1);
+    }
     d = d.replace(/\D/g, "");
     return d.length >= 8 ? d : null;
 };
+
+// Names, county: lower case, letters only (accents kept). Postcode: lower
+// case, no spaces or dashes. Country: two-letter ISO code, lower case.
+export const normaliseLetters = (v) =>
+    typeof v === "string" ? v.normalize("NFKC").toLowerCase().replace(/[^\p{L}]/gu, "") || null : null;
+export const normalisePostcode = (v) =>
+    typeof v === "string" ? v.toLowerCase().replace(/[^a-z0-9]/g, "") || null : null;
+export const normaliseCountry = (code) =>
+    typeof code === "string" && /^[a-z]{2}$/i.test(code.trim()) ? code.trim().toLowerCase() : null;
 
 const cleanString = (v, max = 500) =>
     typeof v === "string" && v.length > 0 ? v.slice(0, max) : undefined;
@@ -84,8 +102,20 @@ export function buildMetaEvent({
     const userData = {};
     const em = normaliseEmail(user?.email);
     if (em) userData.em = [sha256(em)];
-    const ph = normalisePhone(user?.phone || user?.phoneNumber);
+    const ph = normalisePhone(user?.phone || user?.phoneNumber, user?.countryCode);
     if (ph) userData.ph = [sha256(ph)];
+    const fn = normaliseLetters(user?.firstName);
+    if (fn) userData.fn = [sha256(fn)];
+    const ln = normaliseLetters(user?.lastName);
+    if (ln) userData.ln = [sha256(ln)];
+    // "Co. Cavan" / "County Cavan" -> "cavan"
+    const county = (user?.address?.county || user?.address?.state || "").replace(/^\s*(co\.?|county)\s+/i, "");
+    const st = normaliseLetters(county);
+    if (st) userData.st = [sha256(st)];
+    const zp = normalisePostcode(user?.address?.postCode);
+    if (zp) userData.zp = [sha256(zp)];
+    const country = normaliseCountry(user?.countryCode);
+    if (country) userData.country = [sha256(country)];
     if (user?._id) userData.external_id = [sha256(String(user._id))];
     if (cleanString(fbp, 200)) userData.fbp = fbp;
     if (cleanString(fbc, 300)) userData.fbc = fbc;
